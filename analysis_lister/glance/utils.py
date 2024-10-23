@@ -1,0 +1,99 @@
+"""Module providing utility functions to handle analysis/paper GLANCE entries.
+
+
+"""
+
+
+def format_contacts(contacts: str, end_dates: str) -> str:
+    """Return the current analysis contacts of an analysis.
+
+    Parameters:
+        contacts: String with all analysis contacts.
+        end_dates: String with the end dates per analysis contact.
+
+    Returns: String with comma-separated list of current analysis contacts.
+
+    """
+    contacts = contacts.split(", ")
+    contacts = [
+        contacts[k] for k, d in enumerate(end_dates.split(", ")) if d == "No end date"
+    ]
+    return ", ".join(contacts)
+
+
+def format_editorial_board(ed_board: str, chairs: str) -> str:
+    """Return the editorial board of an analysis.
+
+    Parameters:
+        ed_board: String with all Editorial Board members.
+        chairs: String with all (Editorial Board) Chairs.
+
+    Returns: String with comma-separated list of editorial board members. The
+        editorial board chair is marked with "(chair)" in that list.
+
+    """
+    if ed_board == "":
+        return ""
+
+    ed_board = [x.strip() for x in ed_board.split(",")]
+    chairs = [x.strip() for x in chairs.split(",")]
+    ed_board = [f"**{x}** (chair)" if x in chairs else x for x in ed_board]
+    return ", ".join(ed_board)
+
+
+def format_ref_code(ref_code: str) -> str:
+    """Return the reference code of an analysis/paper.
+
+    Parameters:
+        ref_code: String with reference code as stored in the GLANCE entry.
+
+    Returns: Reference code but with prepended "ANA-" removed if present.
+
+    """
+    if ref_code.startswith("ANA-"):
+        ref_code = ref_code[4:]
+
+    return ref_code
+
+
+def format_supporting_docs(supporting_docs: str) -> str:
+    """Return comma-separated list of supporting documents.
+
+    Parameters:
+        supporting_docs: String with the docs as stored in the GLANCE entry.
+
+    Returns: Comma-separated list of supporting documents.
+
+    """
+    if supporting_docs != "":
+        supporting_docs = supporting_docs.split(",")
+
+    return supporting_docs
+
+
+def format_url_doi(urls: str) -> str:
+    """Return the DOI URL of a paper.
+
+    Parameters:
+        urls: String with a list of URLs (comma-separated or not).
+
+    Returns: String with the DOI URL.
+
+    """
+    urls = ["http" + x for x in urls.split("http")[1:]]
+    urls = list(filter(lambda a: "doi.org" in a, urls))
+    return urls[0] if urls else ""
+
+
+def format_url_inspire(urls: str) -> str:
+    """Return the Inspire HEP URL of a paper.
+
+    Parameters:
+        urls: String with a list of URLs (comma-separated or not).
+
+    Returns: String with the Inspire HEP URL.
+
+    """
+    urls = ["http" + x for x in urls.split("http")[1:]]
+    urls = list(filter(lambda a: "inspirehep.net" in a, urls))
+    return urls[0] if urls else ""
