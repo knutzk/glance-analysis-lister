@@ -227,19 +227,21 @@ def overview(
     print(f'Writing output file "{output_dir}/index.md"')
     with open(f"{output_dir}/index.md", "w", encoding="utf8") as _f:
         _f.write(
-            "# ATLAS top WG analyses\n\n\n"
-            "Jump to the overall analysis/paper lists:\n\n"
-            "* [Submitted/published papers](published.md)\n"
-            "* [Ongoing analyses](ongoing.md)\n\n\n"
+            "# Analyses and Papers\n\n\n"
+            "The following pages provide an overview of all ongoing analyses and all "
+            "submitted/published papers of the top group:\n\n"
+            "* [Ongoing Analyses](ongoing.md)\n"
+            "* [Submitted/Published Papers](published.md)\n"
+            "\n\n"
             "Pages for the individual subgroups:\n\n"
+            "* [Cross-section](xs/index.md)\n"
+            "    * [Ongoing Analyses](xs/ongoing.md)\n"
+            "    * [Submitted/Published Papers](xs/published.md)\n"
+            "* [Properties & Mass](pm/index.md)\n"
+            "    * [Ongoing Analyses](pm/ongoing.md)\n"
+            "    * [Submitted/Published Papers](pm/published.md)\n"
             "* [Top Quarks + X](topx/index.md)\n"
-            "    * [Submitted/published papers](topx/published.md)\n"
-            "    * [Ongoing analyses](topx/ongoing.md)\n"
-            "* [Top Cross Section](xsec/index.md)\n"
-            "    * [Submitted/published papers](xsec/published.md)\n"
-            "    * [Ongoing analyses](xsec/ongoing.md)\n"
-            "* [Top Properties & Mass](pnm/index.md)\n"
-            "    * [Submitted/published papers](pnm/published.md)\n"
-            "    * [Ongoing analyses](pnm/ongoing.md)\n"
+            "    * [Ongoing Analyses](topx/ongoing.md)\n"
+            "    * [Submitted/Published Papers](topx/published.md)\n"
             "\n\n\n",
         )
