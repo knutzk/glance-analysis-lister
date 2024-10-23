@@ -58,7 +58,7 @@ def ongoing_analyses(
             if not a.is_with_edboard:
                 _f.write(utils.analysis_block(a))
 
-        # _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
+        _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
 
 
 def overview(
@@ -147,7 +147,7 @@ def overview(
             )
 
         _f.write("\n\n\n")
-        # _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
+        _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
 
 
 def published_papers(
@@ -200,4 +200,4 @@ def published_papers(
             if p.is_published:
                 _f.write(utils.paper_block(p))
 
-        # _f.write(utils.print_footer_timestamps("csv/papers.csv"))
+        _f.write(utils.print_footer_timestamps("csv/papers.csv"))

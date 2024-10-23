@@ -72,7 +72,7 @@ def published(
             )
 
         _f.write("\n\n\n")
-        # _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
+        _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
 
 
 def ongoing_analyses(
@@ -201,7 +201,7 @@ def ongoing_analyses(
 
         _f.write("\n\n\n")
 
-        # _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
+        _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
 
 
 def overview(
