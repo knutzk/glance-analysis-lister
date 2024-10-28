@@ -14,7 +14,12 @@ from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.short_titles import ShortTitles
 
 
-def analysis_block(_ana: Analysis, title: bool = True, attribute_tag: bool = True):
+def analysis_block(
+    _ana: Analysis,
+    title: bool = True,
+    attribute_tag: bool = True,
+    heading_level: int = 3,
+):
     """Create an information block for an analysis.
 
     Uses a glance.analysis.Analysis class instance and returns all relevant
@@ -26,6 +31,8 @@ def analysis_block(_ana: Analysis, title: bool = True, attribute_tag: bool = Tru
     Parameters:
         _ana: glance.analysis.Analysis instance to provide information for.
         title: Boolean whether the heading should include the analysis title.
+        attribute_tag (bool): Boolean whether to include an attribute tag in heading.
+        heading_level (int): The level of the heading to use for the analysis block.
 
     Returns:
         String containing information about the analysis instance.
@@ -33,11 +40,11 @@ def analysis_block(_ana: Analysis, title: bool = True, attribute_tag: bool = Tru
     """
     s = ""
     if not title:
-        s += f"### {_ana.ref_code}"
+        s += heading_level * "#" + f" {_ana.ref_code}"
     elif _ana.ref_code in ShortTitles:
-        s += f"### {_ana.ref_code} – {ShortTitles[_ana.ref_code]}"
+        s += heading_level * "#" + f" {_ana.ref_code} – {ShortTitles[_ana.ref_code]}"
     else:
-        s += f"### {_ana.ref_code} – {_ana.title_short}"
+        s += heading_level * "#" + f" {_ana.ref_code} – {_ana.title_short}"
 
     if attribute_tag:
         s += f" {{: #{_ana.ref_code}}}"
@@ -194,7 +201,12 @@ def _citation_block(p: Paper, prepend: str = ""):
     return s + "\n"
 
 
-def paper_block(_paper: Paper, title: bool = True, attribute_tag: bool = True):
+def paper_block(
+    _paper: Paper,
+    title: bool = True,
+    attribute_tag: bool = True,
+    heading_level: int = 3,
+):
     """Create an information block for a paper.
 
     Uses a glance.paper.Paper class instance and returns all relevant
@@ -205,6 +217,8 @@ def paper_block(_paper: Paper, title: bool = True, attribute_tag: bool = True):
     Parameters:
         _paper: glance.paper.Paper instance to provide information for.
         title: Boolean whether the heading should include the analysis title.
+        attribute_tag (bool): Boolean whether to include an attribute tag in heading.
+        heading_level (int): The level of the heading to use for the analysis block.
 
     Returns:
         String containing information about the analysis instance.
@@ -212,11 +226,13 @@ def paper_block(_paper: Paper, title: bool = True, attribute_tag: bool = True):
     """
     s = ""
     if not title:
-        s += f"### {_paper.ref_code}"
+        s += heading_level * "#" + f" {_paper.ref_code}"
     elif _paper.ref_code in ShortTitles and title:
-        s += f"### {_paper.ref_code} – {ShortTitles[_paper.ref_code]}"
+        s += (
+            heading_level * "#" + f" {_paper.ref_code} – {ShortTitles[_paper.ref_code]}"
+        )
     else:
-        s += f"### {_paper.ref_code} – {_paper.title_short}"
+        s += heading_level * "#" + f" {_paper.ref_code} – {_paper.title_short}"
 
     if attribute_tag:
         s += f" {{: #{_paper.ref_code}}}"
