@@ -24,99 +24,145 @@ from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
 
-if __name__ == "__main__":
-    # Load the papers and analyses from the CSV files. These CSV files are extracted
-    # from the GLANCE database and (at the moment) need to be updated manually.
-    with open("csv/papers.csv", encoding="utf8") as f:
-        paper_dict = list(csv.DictReader(f))
-        paper_dict = [paper.Paper.from_dict(p) for p in paper_dict]
-        paper_dict.sort(key=lambda x: x.ref_code)
+CSV_PATH = "csv/"
+OUTPUT_DIR = "docs/analyses/"
+THRESHOLD_YEAR = "2020"
 
-    with open("csv/analyses.csv", encoding="utf8") as f:
-        analysis_dict = list(csv.DictReader(f))
-        analysis_dict = [analysis.Analysis.from_dict(a) for a in analysis_dict]
-        analysis_dict.sort(key=lambda x: x.ref_code)
 
-    # Create a list of reference codes for unpublished papers.
-    ref_codes_unpublished = [p.ref_code for p in paper_dict if p.date_submission == ""]
+def load_data(file_name, cls):
+    """Load data from a CSV file and return a sorted list of objects.
 
-    # Now go through the paper dictionary and filter all that are associated to any of
-    # the top WG subgroups, are submitted, and are not published since 2020.
-    threshold = "2020"
-    list_of_papers = []
-    for p in paper_dict:
-        if not any(x in p.subgroups for x in [x.id for x in subgroups.TopGroups]):
-            continue
+    These CSV files are extracted from the GLANCE database and (at the moment) need
+    to be updated manually. The function returns a sorted list of objects instantiated
+    from the CSV file data, sorted by the 'ref_code' attribute.
 
-        if not p.is_submitted:
-            continue
+    Args:
+        file_name (str): The name of the CSV file to load.
 
-        if p.is_published and p.date_publication < threshold:
-            continue
+    Returns:
+        list: Sorted list of objects instantiated from the CSV file data
 
-        list_of_papers.append(p)
+    """
+    with open(f"{CSV_PATH}{file_name}", encoding="utf8") as f:
+        return sorted(
+            [cls.from_dict(item) for item in csv.DictReader(f)],
+            key=lambda x: x.ref_code,
+        )
 
-    # Now go through the analysis dictionary and do the same: filter all that are
-    # associated to any of the top WG subgroups, are not closed, and are either in
-    # phase 0 or have a paper entry defined, but are not published yet.
-    list_of_analyses = []
-    for a in analysis_dict:
-        if not any(x in p.subgroups for x in [x.id for x in subgroups.TopGroups]):
-            continue
 
-        if not (a.is_in_phase0 or a.ref_code in ref_codes_unpublished):
-            continue
+def filter_papers(papers, threshold, top_groups):
+    """Prepares a filtered list of papers that should go onto the pages.
 
-        if a.is_closed:
-            continue
+    The following filters are applied:
+    - The paper must belong to one of the top groups.
+    - The paper must be submitted.
+    - The paper must either not be published or have a publication date on or after
+      the threshold (to cut off very lengthy publication lists).
 
-        list_of_analyses.append(a)
+    Args:
+        papers (list): A list of paper objects to be filtered.
+        threshold (datetime): The date threshold for publication.
+        top_groups (list): A list of top group names to filter by.
 
-    # Generate the top WG overview pages in Markdown format. This creates a generic
-    # overview page with links to the others, a list of all published papers, and a
-    # list of all ongoing analyses.
-    global_pages.overview(
-        list_of_papers,
-        list_of_analyses,
-        output_dir="docs/analyses",
-        threshold=threshold,
-    )
+    Returns:
+        list: Filtered list of papers.
 
-    global_pages.published(
-        list_of_papers,
-        output_dir="docs/analyses",
-        threshold=threshold,
-    )
+    """
+    return [
+        p
+        for p in papers
+        if any(x in p.subgroups for x in top_groups)
+        and p.is_submitted
+        and (not p.is_published or p.date_publication >= threshold)
+    ]
 
-    global_pages.ongoing_analyses(
-        list_of_analyses,
-        output_dir="docs/analyses",
-    )
 
-    # Generate the subgroup overview pages in Markdown format. For each subgroup, this
-    # creates an overview page with tables of all published papers and ongoing
-    # analyses. Then, generate detailed pages for published papers and ongoing
-    # analyses. The pages are stored in the subgroup directories.
-    for g in subgroups.TopGroups:
-        print(g)
+def filter_analyses(analyses, ref_codes_unpublished, top_groups):
+    """Prepares a filtered list of analyses that should go onto the pages.
+
+    The following filters are applied:
+    - The analysis belongs to any of the top groups.
+    - The analysis is either in phase 0 or its reference code is in the set of
+      unpublished reference codes (those should be listed as ongoing).
+    - The analysis is not closed.
+
+    Args:
+        analyses (list): A list of analysis objects to be filtered.
+        ref_codes_unpublished (set): A set of reference codes for unpublished analyses.
+        top_groups (set): A set of top subgroups.
+
+    Returns:
+        list: Filtered list of analyses.
+
+    """
+    return [
+        a
+        for a in analyses
+        if any(x in a.subgroups for x in top_groups)
+        and (a.is_in_phase0 or a.ref_code in ref_codes_unpublished)
+        and not a.is_closed
+    ]
+
+
+def generate_subgroup_pages(subgroups, papers, analyses, threshold):
+    """Generate the subgroup overview pages in Markdown format.
+
+    For each subgroup, this function creates an overview page with tables of all
+    published papers and ongoing analyses. Then, it generates detailed pages for
+    published papers and ongoing analyses. The pages are stored in the subgroup
+    directories.
+
+    Args:
+        subgroups (list): A list of subgroups to be considered for the pages.
+        papers (list): A list of paper objects to be included in the pages.
+        analyses (list): A list of analysis objects to be included in the pages.
+        threshold (int): A threshold value used for filtering the papers.
+
+    """
+    for g in subgroups:
         subgroup_pages.published_papers(
-            list_of_papers,
+            papers,
             output_dir=g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             threshold=threshold,
         )
         subgroup_pages.ongoing_analyses(
-            list_of_analyses,
+            analyses,
             output_dir=g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
         )
         subgroup_pages.overview(
-            list_of_papers,
-            list_of_analyses,
+            papers,
+            analyses,
             output_dir=g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             threshold=threshold,
         )
+
+
+if __name__ == "__main__":
+    papers = load_data("papers.csv", paper.Paper)
+    analyses = load_data("analyses.csv", analysis.Analysis)
+
+    # Create a list of analyses where a paper entry is already created, but the paper
+    # is not yet submitted. In those cases, the analysis should be listed as ongoing
+    # even if it is not in phase 0.
+    ref_codes_unpublished = [p.ref_code for p in papers if p.date_submission == ""]
+
+    top_groups = [x.id for x in subgroups.TopGroups]
+    papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
+    analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
+
+    global_pages.overview(
+        papers,
+        analyses,
+        output_dir=OUTPUT_DIR,
+        threshold=THRESHOLD_YEAR,
+    )
+    global_pages.published(papers, output_dir=OUTPUT_DIR, threshold=THRESHOLD_YEAR)
+    global_pages.ongoing_analyses(analyses, output_dir=OUTPUT_DIR)
+
+    generate_subgroup_pages(subgroups.TopGroups, papers, analyses, THRESHOLD_YEAR)
