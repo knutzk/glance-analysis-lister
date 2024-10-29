@@ -97,14 +97,14 @@ def ongoing_analyses(
         _f.write("# Ongoing analyses\n\n\n")
 
         _f.write(
-            "The following table lists all ongoing analyses in the ATLAS top WG.\n"
-            'The "**EB PA A**" column indicates the review status of the analyses:\n'
-            "One tick mark = EdBoard is assigned (EB),\n"
-            "two tick marks = analysis is pre-approved (PA),\n"
-            "three tick marks = analysis is group-approved (A).\n"
-            'The "**Subgroups**" column lists all top WG subgroups involved in the '
+            "The following table lists all ongoing analyses in the ATLAS top WG.\n\n"
+            '- The "**EB PA A**" column indicates the review status of the analyses:\n'
+            "    - One tick mark = EdBoard is assigned (EB),\n"
+            "    - two tick marks = analysis is pre-approved (PA),\n"
+            "    - three tick marks = analysis is group-approved (A).\n"
+            '- The "**Subgroups**" column lists all top WG subgroups involved in the '
             "analysis.\n"
-            '"**Rel.**" shows the software release the analysis uses – it is based '
+            '- "**Rel.**" shows the software release the analysis uses – it is based '
             "on the keywords assigned to the analysis on GLANCE.\n\n"
         )
 

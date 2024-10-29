@@ -99,13 +99,14 @@ def overview(
         _f.write(
             f"There are currently {len(subgroup_analyses)} ongoing analyses "
             f'for which "{subgroup_id}" is listed as the leading or an '
-            "additional subgroup.\n"
-            'The "**EB PA A**" column indicates the review status of the analyses:\n'
-            "One tick mark = EdBoard is assigned (EB),\n"
-            "two tick marks = analysis is pre-approved (PA),\n"
-            "three tick marks = analysis is group-approved (A).\n"
-            '"**Rel.**" shows the software release the analysis uses – it is based '
-            "on the keywords assigned to the analysis on GLANCE.\n\n"
+            "additional subgroup.\n\n"
+            '- The "**EB PA A**" column indicates the review status of the analyses:\n'
+            "    - One tick mark = EdBoard is assigned (EB),\n"
+            "    - two tick marks = analysis is pre-approved (PA),\n"
+            "    - three tick marks = analysis is group-approved (A).\n"
+            '- "**Rel.**" shows the software release the analysis uses – it is based '
+            "on the keywords assigned to the analysis on GLANCE.\n"
+            '- "**Start**" is the date the analysis started.\n\n'
         )
         _f.write("| Identifier | Title | EB PA A | Rel. | Start |\n")
         _f.write("| --- | --- | --- | --- | --- |\n")
