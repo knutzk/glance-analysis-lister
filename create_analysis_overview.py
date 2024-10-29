@@ -56,23 +56,7 @@ def load_data(file_name, cls):
 
 
 def filter_papers(papers, threshold, top_groups):
-    """Prepares a filtered list of papers that should go onto the pages.
-
-    The following filters are applied:
-    - The paper must belong to one of the top groups.
-    - The paper must be submitted.
-    - The paper must either not be published or have a publication date on or after
-      the threshold (to cut off very lengthy publication lists).
-
-    Args:
-        papers (list): A list of paper objects to be filtered.
-        threshold (datetime): The date threshold for publication.
-        top_groups (list): A list of top group names to filter by.
-
-    Returns:
-        list: Filtered list of papers.
-
-    """
+    """Prepares a filtered list of papers for overview pages."""
     return [
         p
         for p in papers
@@ -83,23 +67,7 @@ def filter_papers(papers, threshold, top_groups):
 
 
 def filter_analyses(analyses, ref_codes_unpublished, top_groups):
-    """Prepares a filtered list of analyses that should go onto the pages.
-
-    The following filters are applied:
-    - The analysis belongs to any of the top groups.
-    - The analysis is either in phase 0 or its reference code is in the set of
-      unpublished reference codes (those should be listed as ongoing).
-    - The analysis is not closed.
-
-    Args:
-        analyses (list): A list of analysis objects to be filtered.
-        ref_codes_unpublished (set): A set of reference codes for unpublished analyses.
-        top_groups (set): A set of top subgroups.
-
-    Returns:
-        list: Filtered list of analyses.
-
-    """
+    """Prepares a filtered list of analyses for overview pages."""
     return [
         a
         for a in analyses
@@ -110,20 +78,7 @@ def filter_analyses(analyses, ref_codes_unpublished, top_groups):
 
 
 def generate_subgroup_pages(subgroups, papers, analyses, threshold):
-    """Generate the subgroup overview pages in Markdown format.
-
-    For each subgroup, this function creates an overview page with tables of all
-    published papers and ongoing analyses. Then, it generates detailed pages for
-    published papers and ongoing analyses. The pages are stored in the subgroup
-    directories.
-
-    Args:
-        subgroups (list): A list of subgroups to be considered for the pages.
-        papers (list): A list of paper objects to be included in the pages.
-        analyses (list): A list of analysis objects to be included in the pages.
-        threshold (int): A threshold value used for filtering the papers.
-
-    """
+    """Generate the subgroup overview pages in Markdown format."""
     for g in subgroups:
         subgroup_pages.published_papers(
             papers,
@@ -149,6 +104,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, threshold):
 
 
 if __name__ == "__main__":
+    # Load papers and analyses data, exit if any file is missing.
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
 
@@ -156,11 +112,13 @@ if __name__ == "__main__":
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
     # even if it is not in phase 0.
     ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
-
     top_groups = [x.id for x in subgroups.TopGroups]
+
+    # Filter papers and analyses.
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
     analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
 
+    # Generate global overview pages.
     global_pages.overview(
         papers,
         analyses,
@@ -170,4 +128,5 @@ if __name__ == "__main__":
     global_pages.published(papers, output_dir=OUTPUT_DIR, threshold=THRESHOLD_YEAR)
     global_pages.ongoing_analyses(analyses, output_dir=OUTPUT_DIR)
 
+    # Generate subgroup pages.
     generate_subgroup_pages(subgroups.TopGroups, papers, analyses, THRESHOLD_YEAR)
