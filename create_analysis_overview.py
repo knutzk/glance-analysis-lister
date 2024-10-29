@@ -152,10 +152,10 @@ if __name__ == "__main__":
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
 
-    # Create a list of analyses where a paper entry is already created, but the paper
+    # Create a set of analyses where a paper entry is already created, but the paper
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
     # even if it is not in phase 0.
-    ref_codes_unpublished = [p.ref_code for p in papers if p.date_submission == ""]
+    ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
 
     top_groups = [x.id for x in subgroups.TopGroups]
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
