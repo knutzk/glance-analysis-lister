@@ -18,14 +18,15 @@ The script performs the following tasks:
 """
 
 import csv
+from pathlib import Path
 
 from analysis_lister.glance import analysis, paper, subgroups
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
 
-CSV_PATH = "csv/"
-OUTPUT_DIR = "docs/analyses/"
+CSV_DIR = Path("csv/")
+OUTPUT_DIR = Path("docs/analyses/")
 THRESHOLD_YEAR = "2020"
 
 
@@ -43,11 +44,15 @@ def load_data(file_name, cls):
         list: Sorted list of objects instantiated from the CSV file data
 
     """
-    with open(f"{CSV_PATH}{file_name}", encoding="utf8") as f:
-        return sorted(
-            [cls.from_dict(item) for item in csv.DictReader(f)],
-            key=lambda x: x.ref_code,
-        )
+    try:
+        with open(CSV_DIR / file_name, encoding="utf8") as f:
+            return sorted(
+                [cls.from_dict(item) for item in csv.DictReader(f)],
+                key=lambda x: x.ref_code,
+            )
+    except FileNotFoundError:
+        print(f"File {file_name} not found in {CSV_DIR}.")
+        raise SystemExit(f"Required CSV file '{file_name}' is missing.")
 
 
 def filter_papers(papers, threshold, top_groups):
@@ -122,21 +127,21 @@ def generate_subgroup_pages(subgroups, papers, analyses, threshold):
     for g in subgroups:
         subgroup_pages.published_papers(
             papers,
-            output_dir=g.output_dir,
+            output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             threshold=threshold,
         )
         subgroup_pages.ongoing_analyses(
             analyses,
-            output_dir=g.output_dir,
+            output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
         )
         subgroup_pages.overview(
             papers,
             analyses,
-            output_dir=g.output_dir,
+            output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             threshold=threshold,
