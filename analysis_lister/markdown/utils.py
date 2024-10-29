@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
-from analysis_lister.glance.short_titles import ShortTitles
+from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 
 def analysis_block(

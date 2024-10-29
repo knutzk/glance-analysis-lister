@@ -33,7 +33,9 @@ Extract table from the glance web UI with the following columns:
 from attrs import define, field
 from typing import List
 
-from . import journal_refs, subgroups, utils
+from ..lookup_dicts import journal_refs
+
+from . import subgroups, utils
 
 
 @define
