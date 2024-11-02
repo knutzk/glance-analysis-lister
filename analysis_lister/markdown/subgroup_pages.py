@@ -5,6 +5,10 @@
 
 from . import utils
 from analysis_lister.glance import analysis, paper
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 def ongoing_analyses(
@@ -22,7 +26,7 @@ def ongoing_analyses(
     in separate subsectinos depending on their stage in the approval process.
 
     Parameters:
-        list_of_analyses: A list of analysis obejct consiered for the overview
+        list_of_analyses: A list of analysis objects considered for the overview
             tables.
         output_dir: String for the output directory of the Markdown files.
         subgroup_title: String with the name of the subgroup (used for
@@ -32,12 +36,14 @@ def ongoing_analyses(
     """
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
-    print(f'Writing output file "{output_dir}/ongoing.md"')
+    logger.info(f'Writing output file "{output_dir}/ongoing.md"')
     with open(f"{output_dir}/ongoing.md", "w", encoding="utf8") as _f:
-        _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
-
+        _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
+        logger.debug(
+            f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
+        )
         _f.write(
             f"There are currently {len(subgroup_analyses)} ongoing analyses "
             f'for which "{subgroup_id}" is listed as the leading or an '
@@ -80,8 +86,8 @@ def overview(
     GLANCE. Only papers published in 'threshold' or later will be listed.
 
     Parameters:
-        list_of_papers: list of papers considered for the overview tables.
-        list_of_analyses: list of analyses considered for the overview tables.
+        list_of_papers: List of papers considered for the overview tables.
+        list_of_analyses: List of analyses considered for the overview tables.
         output_dir: String for the output directory of the Markdown files.
         subgroup_title: String with the name of the subgroup (used to set up
             headings in Markdown).
@@ -93,13 +99,16 @@ def overview(
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
-    print(f'Writing output file "{output_dir}/index.md"')
+    logger.info(f'Writing output file "{output_dir}/index.md"')
     with open(f"{output_dir}/index.md", "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write(f"# {subgroup_title} – Analyses and Papers\n\n\n")
 
         _f.write(utils.print_header_timestamp(last_modified))
 
+        logger.debug(
+            f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
+        )
         _f.write("## Ongoing Analyses\n\n")
         _f.write(
             f"There are currently {len(subgroup_analyses)} ongoing analyses "
@@ -183,12 +192,15 @@ def published_papers(
     n_submitted = sum(1 for p in subgroup_papers if not p.is_published)
     n_published = sum(1 for p in subgroup_papers if p.is_published)
 
-    print(f'Writing output file "{output_dir}/published.md"')
+    logger.info(f'Writing output file "{output_dir}/published.md"')
     with open(f"{output_dir}/published.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Submitted/Published Papers\n\n\n")
 
         _f.write(utils.print_header_timestamp(last_modified))
 
+        logger.debug(
+            f'Found {n_submitted} submitted and {n_published} published papers for subgroup "{subgroup_id}".'
+        )
         _f.write(
             f"There are currently {n_submitted} submitted papers for which "
             f'"{subgroup_id}" is listed as the leading or an additional '

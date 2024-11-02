@@ -23,6 +23,7 @@ import git
 import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
+import logging
 
 from analysis_lister.glance import analysis, paper, subgroups
 from analysis_lister.markdown import global_pages
@@ -32,6 +33,13 @@ from analysis_lister.markdown import subgroup_pages
 CSV_DIR = Path("csv/")
 OUTPUT_DIR = Path("docs/analyses/")
 THRESHOLD_YEAR = "2020"
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def load_data(file_name, cls):
@@ -50,12 +58,12 @@ def load_data(file_name, cls):
     """
     try:
         with open(CSV_DIR / file_name, encoding="utf8") as f:
-            return sorted(
-                [cls.from_dict(item) for item in csv.DictReader(f)],
-                key=lambda x: x.ref_code,
-            )
+            logging.info(f"Loading data from {file_name}.")
+            data = [cls.from_dict(item) for item in csv.DictReader(f)]
+            logging.info(f"Loaded {len(data)} items from {file_name}.")
+            return sorted(data, key=lambda x: x.ref_code)
     except FileNotFoundError:
-        print(f"File {file_name} not found in {CSV_DIR}.")
+        logging.error(f"File {file_name} not found in {CSV_DIR}.")
         raise SystemExit(f"Required CSV file '{file_name}' is missing.")
 
 
@@ -68,6 +76,11 @@ def filter_papers(papers, threshold, top_groups):
         and p.is_submitted
         and (not p.is_published or p.date_publication >= threshold)
     ]
+    logging.info(f"Filtered {len(filtered_papers)} papers with threshold {threshold}.")
+    logging.debug(
+        f"Filter criteria: {top_groups} && "
+        f"submitted && (not published || published after {threshold})"
+    )
     return filtered_papers
 
 
@@ -80,6 +93,11 @@ def filter_analyses(analyses, ref_codes_unpublished, top_groups):
         and (a.is_in_phase0 or a.ref_code in ref_codes_unpublished)
         and not a.is_closed
     ]
+    logging.info(f"Filtered {len(filtered_analyses)} analyses.")
+    logging.debug(
+        f"Filter criteria: {top_groups} && "
+        "(in phase 0 || unpublished paper entry) && not closed"
+    )
     return filtered_analyses
 
 
@@ -95,14 +113,17 @@ def determine_last_modified_time(files):
             max_timestamp, file_commits[0].committed_datetime.timestamp()
         )
 
-    return datetime.fromtimestamp(max_timestamp, tz=ZoneInfo("Europe/Zurich")).strftime(
-        "%b %d, %Y, %H:%M (%Z)"
+    last_modified_time = datetime.fromtimestamp(
+        max_timestamp, tz=ZoneInfo("Europe/Zurich")
     )
+    logging.info(f"Determined last modification time: {last_modified_time}")
+    return last_modified_time.strftime("%b %d, %Y, %H:%M (%Z)")
 
 
 def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshold):
     """Generate the subgroup overview pages in Markdown format."""
     for g in subgroups:
+        logging.info(f"Generating pages for subgroup: {g.title}")
         subgroup_pages.published_papers(
             papers,
             output_dir=OUTPUT_DIR / g.output_dir,
@@ -130,6 +151,8 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
 
 
 if __name__ == "__main__":
+    logging.info("Script started.")
+
     # Load papers and analyses data, exit if any file is missing.
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
@@ -143,13 +166,16 @@ if __name__ == "__main__":
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
     # even if it is not in phase 0.
     ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
+    logging.info(f"Unpublished reference codes: {ref_codes_unpublished}")
     top_groups = [x.id for x in subgroups.TopGroups]
+    logging.info(f"Top groups: {top_groups}")
 
     # Filter papers and analyses.
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
     analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
 
     # Generate global overview pages.
+    logging.info("Generating global overview pages.")
     global_pages.overview(
         papers,
         analyses,
@@ -169,3 +195,5 @@ if __name__ == "__main__":
         last_modified=mtime,
         threshold=THRESHOLD_YEAR,
     )
+
+    logging.info("Script finished successfully.")

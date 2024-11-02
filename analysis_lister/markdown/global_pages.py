@@ -4,8 +4,12 @@
 """
 
 from typing import List
+import logging
 from analysis_lister.glance import analysis, paper, subgroups
 from . import utils
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 def published(
@@ -23,12 +27,19 @@ def published(
             on the number of listed publications (only newer than 'threshold').
 
     """
+    logger.info("Generating published papers overview.")
+
     n_published = sum(1 for x in list_of_papers if x.is_published)
     n_submitted = sum(
         1 for x in list_of_papers if x.is_submitted and not x.is_published
     )
-    print(f'Writing output file "{output_dir}/published.md"')
-    with open(f"{output_dir}/published.md", "w", encoding="utf8") as _f:
+
+    logger.debug(f"Found {n_published} published and {n_submitted} submitted papers.")
+
+    output_file = f"{output_dir}/published.md"
+    logger.info(f'Writing output file "{output_file}"')
+
+    with open(output_file, "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write("# Submitted/published papers\n\n")
 
@@ -90,10 +101,13 @@ def ongoing_analyses(
     Parameters:
         list_of_analyses: A list of analysis objects considered for the table.
         output_dir: String for the output directory of the Markdown file.
-
     """
-    print(f'Writing output file "{output_dir}/ongoing.md"')
-    with open(f"{output_dir}/ongoing.md", "w", encoding="utf8") as _f:
+    logger.info("Generating ongoing analyses overview.")
+
+    output_file = f"{output_dir}/ongoing.md"
+    logger.info(f'Writing output file "{output_file}"')
+
+    with open(output_file, "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write("# Ongoing analyses\n\n\n")
 
@@ -183,6 +197,7 @@ def ongoing_analyses(
 
         _f.write("| Identifier | Title | EB PA A | Subgroups | Rel. | Start |\n")
         _f.write("| --- | --- | --- | --- | --- | --- |\n")
+
         for a in list_of_analyses:
             release_str = ""
             if "R22" in a.keywords:
@@ -223,8 +238,12 @@ def overview(
             on the number of listed publications (only newer than 'threshold').
 
     """
-    print(f'Writing output file "{output_dir}/index.md"')
-    with open(f"{output_dir}/index.md", "w", encoding="utf8") as _f:
+    logger.info("Generating overview page.")
+
+    output_file = f"{output_dir}/index.md"
+    logger.info(f'Writing output file "{output_file}"')
+
+    with open(output_file, "w", encoding="utf8") as _f:
         _f.write(
             "# Analyses and Papers\n\n\n"
             "The following pages provide an overview of all ongoing analyses and all "
