@@ -41,7 +41,7 @@ def ongoing_analyses(
         _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
-        logger.debug(
+        logger.info(
             f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
         )
         _f.write(
@@ -56,17 +56,22 @@ def ongoing_analyses(
         _f.write("## Analyses beyond pre-approval\n\n\n")
         for a in subgroup_analyses:
             if a.is_preapproved:
+                logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses with EdBoard\n\n\n")
         for a in subgroup_analyses:
             if a.is_with_edboard and not a.is_preapproved:
+                logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses w/o EdBoard\n\n\n")
         for a in subgroup_analyses:
             if not a.is_with_edboard:
+                logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
+
+    logger.info(f"Finished writing ongoing analyses page for subgroup '{subgroup_id}'.")
 
 
 def overview(
@@ -106,7 +111,7 @@ def overview(
 
         _f.write(utils.print_header_timestamp(last_modified))
 
-        logger.debug(
+        logger.info(
             f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
         )
         _f.write("## Ongoing Analyses\n\n")
@@ -125,6 +130,7 @@ def overview(
         _f.write("| Identifier | Title | EB PA A | Rel. | Start |\n")
         _f.write("| --- | --- | --- | --- | --- |\n")
         for a in subgroup_analyses:
+            logger.debug(f"Writing table row for analysis {a.ref_code}.")
             release_str = ""
             if "R22" in a.keywords:
                 release_str = "R25"
@@ -143,6 +149,11 @@ def overview(
 
         _f.write("\n\n\n")
 
+        logger.info(
+            f"Found {len(subgroup_papers)} submitted and published papers for "
+            f'subgroup "{subgroup_id}".'
+        )
+
         _f.write("## Submitted/Published Papers\n\n")
         _f.write(
             f"There are {len(subgroup_papers)} submitted and published papers "
@@ -153,6 +164,7 @@ def overview(
         _f.write("| Identifier | Title | Submission | Publication |\n")
         _f.write("| --- | --- | --- | --- |\n")
         for p in subgroup_papers:
+            logger.debug(f"Writing table row for paper {p.ref_code}.")
             _f.write(
                 f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
                 f"| {p.title_short} "
@@ -160,6 +172,8 @@ def overview(
                 f'| {p.date_publication.replace("-", "&#8209;")} '
                 f"|\n",
             )
+
+    logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
 
 
 def published_papers(
@@ -212,9 +226,13 @@ def published_papers(
         _f.write("## Submitted papers\n\n")
         for p in subgroup_papers:
             if p.is_submitted and not p.is_published:
+                logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
 
         _f.write("## Published papers\n\n")
         for p in subgroup_papers:
             if p.is_published:
+                logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
+
+    logger.info(f"Finished writing published papers page for subgroup '{subgroup_id}'.")

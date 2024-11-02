@@ -31,11 +31,14 @@ Extract table from the glance web UI with the following columns:
 """
 
 from attrs import define, field
+import logging
 from typing import List
 
 from ..lookup_dicts import journal_refs
 
 from . import subgroups, utils
+
+logger = logging.getLogger(__name__)
 
 
 @define
@@ -173,7 +176,7 @@ class Paper:
             self.journal_ref = ""
 
         if self.journal_ref == "" and self.doi != "":
-            print("No journal reference found for DOI:", self.doi)
+            logger.warning("No journal reference found for DOI:", self.doi)
 
         # Determine the top subgroups this paper is associated with.
         self.top_subgroups = []

@@ -36,7 +36,7 @@ THRESHOLD_YEAR = "2020"
 
 # Configure logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -166,16 +166,16 @@ if __name__ == "__main__":
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
     # even if it is not in phase 0.
     ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
-    logging.info(f"Unpublished reference codes: {ref_codes_unpublished}")
+    logging.debug(f"Unpublished reference codes: {ref_codes_unpublished}")
     top_groups = [x.id for x in subgroups.TopGroups]
-    logging.info(f"Top groups: {top_groups}")
+    logging.debug(f"Top groups: {top_groups}")
 
     # Filter papers and analyses.
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
     analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
 
     # Generate global overview pages.
-    logging.info("Generating global overview pages.")
+    logging.info("Generating global pages for the top group.")
     global_pages.overview(
         papers,
         analyses,
@@ -196,4 +196,4 @@ if __name__ == "__main__":
         threshold=THRESHOLD_YEAR,
     )
 
-    logging.info("Script finished successfully.")
+    logging.info("Analysis lists script finished successfully.")

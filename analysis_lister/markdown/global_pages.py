@@ -56,6 +56,7 @@ def published(
             f"[TopPublicResults twiki page]({link}).\n\n"
         )
 
+        logger.info("Writing detailed paper counts for published papers.")
         _f.write(f'!!! info "Counts per subgroup (since {threshold})"\n\n')
         for g in subgroups.TopGroups:
             count = sum(1 for x in list_of_papers if g in x.top_subgroups)
@@ -76,6 +77,7 @@ def published(
         _f.write("| Identifier | Title | Subgroup | Submission | Publication |\n")
         _f.write("| --- | --- | --- | --- | --- |\n")
         for p in list_of_papers:
+            logger.debug(f"Writing table row for paper {p.ref_code}.")
             _f.write(
                 f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
                 f"| {p.title_short} "
@@ -144,6 +146,7 @@ def ongoing_analyses(
                 f"in R25, {len(filtered) - f_R21 - f_R25} unknown)"
             )
 
+        logger.info("Writing detailed analysis counts for ongoing analyses.")
         _f.write('!!! info "Detailed analysis counts"\n\n')
         _f.write("    * **All ongoing analyses**: ")
         _f.write(provide_counts(list_of_analyses, lambda _: True))
@@ -152,6 +155,7 @@ def ongoing_analyses(
         # =====================================================================
         # Split by subgroup
         # =====================================================================
+        logger.info("Writing subgroup counts for ongoing analyses.")
         _f.write("    * **Split by subgroup** (double-counts possible):\n")
         for g in subgroups.TopGroups:
             count = sum(1 for x in list_of_analyses if g in x.top_subgroups)
@@ -176,6 +180,7 @@ def ongoing_analyses(
         # =====================================================================
         # Split by status
         # =====================================================================
+        logger.info("Writing status counts for ongoing analyses.")
         _f.write("    * **Split by status**:")
         _f.write("\n        * Approved: ")
         _f.write(provide_counts(list_of_analyses, lambda x: x.is_approved))
@@ -199,6 +204,7 @@ def ongoing_analyses(
         _f.write("| --- | --- | --- | --- | --- | --- |\n")
 
         for a in list_of_analyses:
+            logger.debug(f"Writing table row for analysis {a.ref_code}.")
             release_str = ""
             if "R22" in a.keywords:
                 release_str = "R25"
@@ -238,7 +244,7 @@ def overview(
             on the number of listed publications (only newer than 'threshold').
 
     """
-    logger.info("Generating overview page.")
+    logger.info("Generating overview page with tables of analyses and papers.")
 
     output_file = f"{output_dir}/index.md"
     logger.info(f'Writing output file "{output_file}"')
@@ -263,3 +269,5 @@ def overview(
             "    * [Submitted/Published Papers](topx/published.md)\n"
             "\n",
         )
+
+    logger.info("Finished generating overview page.")
