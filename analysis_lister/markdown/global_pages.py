@@ -4,7 +4,6 @@
 """
 
 from typing import List
-
 from analysis_lister.glance import analysis, paper, subgroups
 from . import utils
 
@@ -12,6 +11,7 @@ from . import utils
 def published(
     list_of_papers: list[paper.Paper],
     output_dir: str,
+    last_modified: str,
     threshold: str = "2020",
 ):
     """Create a list of submitted and published papers.
@@ -31,6 +31,9 @@ def published(
     with open(f"{output_dir}/published.md", "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write("# Submitted/published papers\n\n")
+
+        _f.write(utils.print_header_timestamp(last_modified))
+
         link = "https://twiki.cern.ch/twiki/bin/view/AtlasPublic/TopPublicResults"
         _f.write(
             f"There are currently {n_submitted} submitted papers for which "
@@ -71,13 +74,11 @@ def published(
                 f"|\n",
             )
 
-        _f.write("\n\n\n")
-        _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
-
 
 def ongoing_analyses(
     list_of_analyses: list[analysis.Analysis],
     output_dir: str,
+    last_modified: str,
 ):
     """Create a page with ongoing analyses for one subgroup.
 
@@ -95,6 +96,8 @@ def ongoing_analyses(
     with open(f"{output_dir}/ongoing.md", "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write("# Ongoing analyses\n\n\n")
+
+        _f.write(utils.print_header_timestamp(last_modified))
 
         _f.write(
             "The following table lists all ongoing analyses in the ATLAS top WG.\n\n"
@@ -199,10 +202,6 @@ def ongoing_analyses(
                 f"|\n",
             )
 
-        _f.write("\n\n\n")
-
-        _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
-
 
 def overview(
     list_of_papers: list[paper.Paper],
@@ -243,5 +242,5 @@ def overview(
             "* [Top Quarks + X](topx/index.md)\n"
             "    * [Ongoing Analyses](topx/ongoing.md)\n"
             "    * [Submitted/Published Papers](topx/published.md)\n"
-            "\n\n\n",
+            "\n",
         )

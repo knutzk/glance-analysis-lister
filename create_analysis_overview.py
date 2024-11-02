@@ -18,7 +18,11 @@ The script performs the following tasks:
 """
 
 import csv
+from datetime import datetime
+import git
+import os
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from analysis_lister.glance import analysis, paper, subgroups
 from analysis_lister.markdown import global_pages
@@ -57,27 +61,46 @@ def load_data(file_name, cls):
 
 def filter_papers(papers, threshold, top_groups):
     """Prepares a filtered list of papers for overview pages."""
-    return [
+    filtered_papers = [
         p
         for p in papers
         if any(x in p.subgroups for x in top_groups)
         and p.is_submitted
         and (not p.is_published or p.date_publication >= threshold)
     ]
+    return filtered_papers
 
 
 def filter_analyses(analyses, ref_codes_unpublished, top_groups):
     """Prepares a filtered list of analyses for overview pages."""
-    return [
+    filtered_analyses = [
         a
         for a in analyses
         if any(x in a.subgroups for x in top_groups)
         and (a.is_in_phase0 or a.ref_code in ref_codes_unpublished)
         and not a.is_closed
     ]
+    return filtered_analyses
 
 
-def generate_subgroup_pages(subgroups, papers, analyses, threshold):
+def determine_last_modified_time(files):
+    """Determine the last modification time of a list of files."""
+    repo = git.Repo(os.getcwd())
+    max_timestamp = 0
+
+    for f in files:
+        # Get the timestamp of the most recent commit affecting the file
+        file_commits = list(repo.iter_commits(paths=f))
+        max_timestamp = max(
+            max_timestamp, file_commits[0].committed_datetime.timestamp()
+        )
+
+    return datetime.fromtimestamp(max_timestamp, tz=ZoneInfo("Europe/Zurich")).strftime(
+        "%b %d, %Y, %H:%M (%Z)"
+    )
+
+
+def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshold):
     """Generate the subgroup overview pages in Markdown format."""
     for g in subgroups:
         subgroup_pages.published_papers(
@@ -85,6 +108,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, threshold):
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
+            last_modified=last_modified,
             threshold=threshold,
         )
         subgroup_pages.ongoing_analyses(
@@ -92,6 +116,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, threshold):
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
+            last_modified=last_modified,
         )
         subgroup_pages.overview(
             papers,
@@ -99,6 +124,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, threshold):
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
+            last_modified=last_modified,
             threshold=threshold,
         )
 
@@ -107,6 +133,11 @@ if __name__ == "__main__":
     # Load papers and analyses data, exit if any file is missing.
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
+
+    # Get modification time of the CSV files.
+    mtime = determine_last_modified_time(
+        [CSV_DIR / "papers.csv", CSV_DIR / "analyses.csv"]
+    )
 
     # Create a set of analyses where a paper entry is already created, but the paper
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
@@ -125,8 +156,16 @@ if __name__ == "__main__":
         output_dir=OUTPUT_DIR,
         threshold=THRESHOLD_YEAR,
     )
-    global_pages.published(papers, output_dir=OUTPUT_DIR, threshold=THRESHOLD_YEAR)
-    global_pages.ongoing_analyses(analyses, output_dir=OUTPUT_DIR)
+    global_pages.published(
+        papers, output_dir=OUTPUT_DIR, last_modified=mtime, threshold=THRESHOLD_YEAR
+    )
+    global_pages.ongoing_analyses(analyses, last_modified=mtime, output_dir=OUTPUT_DIR)
 
     # Generate subgroup pages.
-    generate_subgroup_pages(subgroups.TopGroups, papers, analyses, THRESHOLD_YEAR)
+    generate_subgroup_pages(
+        subgroups.TopGroups,
+        papers,
+        analyses,
+        last_modified=mtime,
+        threshold=THRESHOLD_YEAR,
+    )

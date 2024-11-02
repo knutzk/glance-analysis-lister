@@ -3,11 +3,7 @@
 
 """
 
-import git
-import os
-from datetime import datetime
 from typing import List, Union
-from zoneinfo import ZoneInfo
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
@@ -293,36 +289,16 @@ def _update_clock_icon():
     )
 
 
-def _current_time():
-    """Return the current time in Europe/Zurich.
-
-    Returns: A string with the current time in Europe/Zurich.
-
-    """
-    stamp = datetime.now(tz=ZoneInfo("Europe/Zurich"))
-    return stamp.strftime("%d %b %Y, %H:%M")
-
-
-def print_footer_timestamps(*_files: List[str]):
-    """Return the timestamp that goes into the page footers.
+def print_header_timestamp(mtime: str):
+    """Return the timestamp that goes into the page headers.
 
     Returns: The code that creates that footer that goes on all markdown
         pages. This includes a span that shows the page creation date and
         the date of the last sync with the GLANCE database.
 
     """
-    repo = git.Git(os.getcwd())
-
-    ti = 0
-    for f in _files:
-        ti = max(ti, int(repo.log("--max-count=1", "--pretty=format:%ct", f)))
-
-    ti = datetime.fromtimestamp(ti, tz=ZoneInfo("Europe/Zurich")).strftime(
-        "%d %b %Y, %H:%M",
-    )
     return (
-        '</br><aside class="md-source-file"><span class="md-source-file__fact">'
-        f"{_creation_clock_icon()}Created: {_current_time()}"
-        f"{_update_clock_icon()}Synced with glance: {ti}"
-        " (Europe/Zurich)</span></aside>"
+        '<aside class="md-source-file"><span class="md-source-file__fact">'
+        f"{_update_clock_icon()}Synced with glance: {mtime}"
+        "</span></aside>\n\n"
     )

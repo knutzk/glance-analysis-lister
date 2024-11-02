@@ -12,6 +12,7 @@ def ongoing_analyses(
     output_dir: str,
     subgroup_title: str,
     subgroup_id: str,
+    last_modified: str,
 ):
     """Create a page with ongoing analyses for one subgroup.
 
@@ -34,6 +35,9 @@ def ongoing_analyses(
     print(f'Writing output file "{output_dir}/ongoing.md"')
     with open(f"{output_dir}/ongoing.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
+
+        _f.write(utils.print_header_timestamp(last_modified))
+
         _f.write(
             f"There are currently {len(subgroup_analyses)} ongoing analyses "
             f'for which "{subgroup_id}" is listed as the leading or an '
@@ -58,8 +62,6 @@ def ongoing_analyses(
             if not a.is_with_edboard:
                 _f.write(utils.analysis_block(a))
 
-        _f.write(utils.print_footer_timestamps("csv/analyses.csv"))
-
 
 def overview(
     list_of_papers: list[paper.Paper],
@@ -67,6 +69,7 @@ def overview(
     output_dir: str,
     subgroup_title: str,
     subgroup_id: str,
+    last_modified: str,
     threshold: str = "2020",
 ):
     """Create an analysis/paper overview page for one subgroup.
@@ -94,6 +97,8 @@ def overview(
     with open(f"{output_dir}/index.md", "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write(f"# {subgroup_title} – Analyses and Papers\n\n\n")
+
+        _f.write(utils.print_header_timestamp(last_modified))
 
         _f.write("## Ongoing Analyses\n\n")
         _f.write(
@@ -147,15 +152,13 @@ def overview(
                 f"|\n",
             )
 
-        _f.write("\n\n\n")
-        _f.write(utils.print_footer_timestamps("csv/analyses.csv", "csv/papers.csv"))
-
 
 def published_papers(
     list_of_papers: list[paper.Paper],
     output_dir: str,
     subgroup_title: str,
     subgroup_id: str,
+    last_modified: str,
     threshold: str = "2020",
 ):
     """Create an overview page with publications for one subgroup.
@@ -183,6 +186,9 @@ def published_papers(
     print(f'Writing output file "{output_dir}/published.md"')
     with open(f"{output_dir}/published.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Submitted/Published Papers\n\n\n")
+
+        _f.write(utils.print_header_timestamp(last_modified))
+
         _f.write(
             f"There are currently {n_submitted} submitted papers for which "
             f'"{subgroup_id}" is listed as the leading or an additional '
@@ -200,5 +206,3 @@ def published_papers(
         for p in subgroup_papers:
             if p.is_published:
                 _f.write(utils.paper_block(p))
-
-        _f.write(utils.print_footer_timestamps("csv/papers.csv"))
