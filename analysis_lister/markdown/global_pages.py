@@ -5,6 +5,7 @@
 
 from typing import List
 import logging
+from pathlib import Path
 from analysis_lister.glance import analysis, paper, subgroups
 from . import utils
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def published(
     list_of_papers: list[paper.Paper],
-    output_dir: str,
+    output_dir: Path,
     last_modified: str,
     threshold: str = "2020",
 ):
@@ -36,7 +37,7 @@ def published(
 
     logger.debug(f"Found {n_published} published and {n_submitted} submitted papers.")
 
-    output_file = f"{output_dir}/published.md"
+    output_file = output_dir / "published.md"
     logger.info(f'Writing output file "{output_file}"')
 
     with open(output_file, "w", encoding="utf8") as _f:
@@ -90,7 +91,7 @@ def published(
 
 def ongoing_analyses(
     list_of_analyses: list[analysis.Analysis],
-    output_dir: str,
+    output_dir: Path,
     last_modified: str,
 ):
     """Create a page with ongoing analyses for one subgroup.
@@ -106,7 +107,7 @@ def ongoing_analyses(
     """
     logger.info("Generating ongoing analyses overview.")
 
-    output_file = f"{output_dir}/ongoing.md"
+    output_file = output_dir / "ongoing.md"
     logger.info(f'Writing output file "{output_file}"')
 
     with open(output_file, "w", encoding="utf8") as _f:
@@ -224,29 +225,16 @@ def ongoing_analyses(
             )
 
 
-def overview(
-    list_of_papers: list[paper.Paper],
-    list_of_analyses: list[analysis.Analysis],
-    output_dir: str,
-    threshold: str = "2020",
-):
+def overview(output_dir: Path):
     """Create an analysis/paper overview page for all analyses.
 
-    Takes a list of papers and a list of analyses, and produces a Markdown
-    page with overview tables of both. Only papers published in 'threshold'
-    or later will be listed.
-
     Parameters:
-        list_of_papers: list of papers considered for the overview tables.
-        list_of_analyses: list of analyses considered for the overview tables.
         output_dir: String for the output directory of the Markdown files.
-        threshold: Threshold in the form of a date that is used to set a limit
-            on the number of listed publications (only newer than 'threshold').
 
     """
     logger.info("Generating overview page with tables of analyses and papers.")
 
-    output_file = f"{output_dir}/index.md"
+    output_file = output_dir / "index.md"
     logger.info(f'Writing output file "{output_file}"')
 
     with open(output_file, "w", encoding="utf8") as _f:

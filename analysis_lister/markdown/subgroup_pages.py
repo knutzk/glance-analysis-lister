@@ -4,6 +4,7 @@
 """
 
 from . import utils
+from pathlib import Path
 from analysis_lister.glance import analysis, paper
 import logging
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def ongoing_analyses(
     list_of_analyses: list[analysis.Analysis],
-    output_dir: str,
+    output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,
     last_modified: str,
@@ -37,7 +38,7 @@ def ongoing_analyses(
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
     logger.info(f'Writing output file "{output_dir}/ongoing.md"')
-    with open(f"{output_dir}/ongoing.md", "w", encoding="utf8") as _f:
+    with open(output_dir / "ongoing.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
@@ -77,7 +78,7 @@ def ongoing_analyses(
 def overview(
     list_of_papers: list[paper.Paper],
     list_of_analyses: list[analysis.Analysis],
-    output_dir: str,
+    output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,
     last_modified: str,
@@ -105,7 +106,7 @@ def overview(
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
     logger.info(f'Writing output file "{output_dir}/index.md"')
-    with open(f"{output_dir}/index.md", "w", encoding="utf8") as _f:
+    with open(output_dir / "index.md", "w", encoding="utf8") as _f:
         _f.write("---\nhide:\n -toc\n---\n\n\n")
         _f.write(f"# {subgroup_title} – Analyses and Papers\n\n\n")
 
@@ -178,7 +179,7 @@ def overview(
 
 def published_papers(
     list_of_papers: list[paper.Paper],
-    output_dir: str,
+    output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,
     last_modified: str,
@@ -207,7 +208,7 @@ def published_papers(
     n_published = sum(1 for p in subgroup_papers if p.is_published)
 
     logger.info(f'Writing output file "{output_dir}/published.md"')
-    with open(f"{output_dir}/published.md", "w", encoding="utf8") as _f:
+    with open(output_dir / "published.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Submitted/Published Papers\n\n\n")
 
         _f.write(utils.print_header_timestamp(last_modified))
