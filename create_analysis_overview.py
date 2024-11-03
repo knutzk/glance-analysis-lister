@@ -93,7 +93,7 @@ def filter_analyses(analyses, ref_codes_unpublished, top_groups):
         and (a.is_in_phase0 or a.ref_code in ref_codes_unpublished)
         and not a.is_closed
     ]
-    logging.info(f"Filtered {len(filtered_analyses)} analyses.")
+    logging.info(f"Filtered {len(filtered_analyses)} active analyses.")
     logging.debug(
         f"Filter criteria: {top_groups} && "
         "(in phase 0 || unpublished paper entry) && not closed"
@@ -175,19 +175,19 @@ if __name__ == "__main__":
     analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
 
     # Generate global overview pages.
+    logging.info("=" * 80)
     logging.info("Generating global pages for the top group.")
-    global_pages.overview(
-        papers,
-        analyses,
-        output_dir=OUTPUT_DIR,
-        threshold=THRESHOLD_YEAR,
-    )
+    logging.info("=" * 80)
+    global_pages.overview(output_dir=OUTPUT_DIR)
     global_pages.published(
         papers, output_dir=OUTPUT_DIR, last_modified=mtime, threshold=THRESHOLD_YEAR
     )
     global_pages.ongoing_analyses(analyses, last_modified=mtime, output_dir=OUTPUT_DIR)
 
     # Generate subgroup pages.
+    logging.info("=" * 80)
+    logging.info(f"Generating subgroup pages for {len(subgroups.TopGroups)} subgroups.")
+    logging.info("=" * 80)
     generate_subgroup_pages(
         subgroups.TopGroups,
         papers,
