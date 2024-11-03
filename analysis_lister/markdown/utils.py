@@ -3,11 +3,14 @@
 
 """
 
+import logging
 from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
+
+logger = logging.getLogger(__name__)
 
 
 def analysis_block(
@@ -40,6 +43,8 @@ def analysis_block(
     elif _ana.ref_code in ShortTitles:
         s += heading_level * "#" + f" {_ana.ref_code} – {ShortTitles[_ana.ref_code]}"
     else:
+        logger.warning(f"No short title found for {_ana.ref_code}.")
+        logger.warning(f"Using title from glance: {_ana.title_short}")
         s += heading_level * "#" + f" {_ana.ref_code} – {_ana.title_short}"
 
     if attribute_tag:
@@ -228,6 +233,8 @@ def paper_block(
             heading_level * "#" + f" {_paper.ref_code} – {ShortTitles[_paper.ref_code]}"
         )
     else:
+        logger.warning(f"No short title found for {_paper.ref_code}.")
+        logger.warning(f"Using title from glance: {_paper.title_short}")
         s += heading_level * "#" + f" {_paper.ref_code} – {_paper.title_short}"
 
     if attribute_tag:
