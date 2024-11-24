@@ -2,17 +2,19 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 import csv
-import sys
+import os
+import json
+import urllib3
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-import json
-import os
 
 logging.basicConfig(level=logging.INFO)
 
 COOKIE_FILE = "cookies.json"
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def fetch_data(url, params, cookies):
@@ -91,9 +93,7 @@ def get_new_cookies():
     try:
         driver.get("https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php")
         logging.info("Please log in manually if required.")
-        input(
-            "Press Enter after completing login..."
-        )  # Pause to allow manual login if needed
+        input("Press Enter after completing login...")
         cookies = driver.get_cookies()
         save_cookies(cookies)
         return cookies
@@ -106,6 +106,26 @@ def cookies_to_dict(cookies):
     Convert cookies from Selenium format to Requests format.
     """
     return {cookie["name"]: cookie["value"] for cookie in cookies}
+
+
+def validate_cookies(url, params, cookies):
+    """
+    Check if cookies are valid by making a test request and verifying the response content.
+    """
+    try:
+        # Fetch the HTML response
+        html = fetch_data(url, params, cookies)
+
+        # Check for the string indicating a sign-in requirement
+        if "Sign in to your account" in html:
+            logging.warning("Cookies are invalid. Redirected to the login page.")
+            return False
+        else:
+            logging.info("Cookies are valid.")
+            return True
+    except Exception as e:
+        logging.warning(f"Cookies are invalid: {e}")
+        return False
 
 
 def process_request(url, params, cookies, output_csv):
@@ -153,11 +173,12 @@ def main():
 
     # Attempt to load cookies or fetch new ones if needed
     cookies = load_cookies()
-    if not cookies:
-        cookies = get_new_cookies()
-
-    # Convert cookies to a Requests-compatible dictionary
-    cookies = cookies_to_dict(cookies)
+    if cookies:
+        cookies = cookies_to_dict(cookies)
+        if not validate_cookies(tasks[0]["url"], common_params, cookies):
+            cookies = cookies_to_dict(get_new_cookies())
+    else:
+        cookies = cookies_to_dict(get_new_cookies())
 
     # Process each task
     for task in tasks:
