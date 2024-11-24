@@ -33,18 +33,20 @@ def parse_html_to_csv(html, output_csv):
     """
     Parse the HTML table data and save it to a CSV file.
     """
-    soup = BeautifulSoup(html, 'html.parser')
-    table = soup.find('table')
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
 
     if not table:
         logging.error(f"No table found in the HTML for {output_csv}")
         raise ValueError("No table found")
 
-    rows = table.find_all('tr')
+    rows = table.find_all("tr")
     csv_data = [
         [
-            col.text.replace("\n", " ").replace("\r", " ")  # Replace line breaks with spaces
-            for col in row.find_all(['td', 'th'])
+            col.text.replace("\n", " ").replace(
+                "\r", " "
+            )  # Replace line breaks with spaces
+            for col in row.find_all(["td", "th"])
         ]
         for row in rows
     ]
@@ -89,7 +91,9 @@ def get_new_cookies():
     try:
         driver.get("https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php")
         logging.info("Please log in manually if required.")
-        input("Press Enter after completing login...")  # Pause to allow manual login if needed
+        input(
+            "Press Enter after completing login..."
+        )  # Pause to allow manual login if needed
         cookies = driver.get_cookies()
         save_cookies(cookies)
         return cookies
@@ -101,7 +105,7 @@ def cookies_to_dict(cookies):
     """
     Convert cookies from Selenium format to Requests format.
     """
-    return {cookie['name']: cookie['value'] for cookie in cookies}
+    return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
 def process_request(url, params, cookies, output_csv):
@@ -118,17 +122,33 @@ def process_request(url, params, cookies, output_csv):
 def main():
     # Define common parameters
     common_params = {
-        "c[0][i]": 0, "c[0][p]": "subgroups", "c[0][o]": "contains", "c[0][v]": 80,
-        "c[1][i]": 1, "c[1][p]": "subgroups", "c[1][o]": "contains", "c[1][v]": 198,
-        "c[2][i]": 2, "c[2][p]": "subgroups", "c[2][o]": "contains", "c[2][v]": 205,
-        "s[0][name]": "reference_code", "s[0][descending]": "false",
-        "only_deleted_input": "false"
+        "c[0][i]": 0,
+        "c[0][p]": "subgroups",
+        "c[0][o]": "contains",
+        "c[0][v]": 80,
+        "c[1][i]": 1,
+        "c[1][p]": "subgroups",
+        "c[1][o]": "contains",
+        "c[1][v]": 198,
+        "c[2][i]": 2,
+        "c[2][p]": "subgroups",
+        "c[2][o]": "contains",
+        "c[2][v]": 205,
+        "s[0][name]": "reference_code",
+        "s[0][descending]": "false",
+        "only_deleted_input": "false",
     }
 
     # Define tasks with unique URLs and output file names
     tasks = [
-        {"url": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php", "output_csv": "csv/analyses.csv"},
-        {"url": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php", "output_csv": "csv/papers.csv"}
+        {
+            "url": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
+            "output_csv": "csv/analyses.csv",
+        },
+        {
+            "url": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
+            "output_csv": "csv/papers.csv",
+        },
     ]
 
     # Attempt to load cookies or fetch new ones if needed
