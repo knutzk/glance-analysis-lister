@@ -9,7 +9,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging with timestamps and log levels
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 COOKIE_FILE = "cookies.json"
 
@@ -22,6 +26,7 @@ def fetch_data(url, params, cookies):
     Send a GET request and fetch the HTML response.
     """
     try:
+        logging.info(f"Fetching data from {url} with params: {params}")
         response = requests.get(url, params=params, cookies=cookies, verify=False)
         response.raise_for_status()
         logging.info(f"Successfully fetched data from {url}")
@@ -35,6 +40,7 @@ def parse_html_to_csv(html, output_csv):
     """
     Parse the HTML table data and save it to a CSV file.
     """
+    logging.info(f"Parsing HTML content to extract table data for {output_csv}")
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
 
@@ -57,7 +63,7 @@ def parse_html_to_csv(html, output_csv):
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(csv_data)
 
-    logging.info(f"CSV file generated: {output_csv}")
+    logging.info(f"CSV file successfully generated: {output_csv}")
 
 
 def load_cookies():
@@ -66,8 +72,9 @@ def load_cookies():
     """
     if os.path.exists(COOKIE_FILE):
         with open(COOKIE_FILE, "r") as f:
-            logging.info("Loading cookies from file")
+            logging.info(f"Loading cookies from {COOKIE_FILE}")
             return json.load(f)
+    logging.info("No cookie file found.")
     return None
 
 
@@ -77,34 +84,39 @@ def save_cookies(cookies):
     """
     with open(COOKIE_FILE, "w") as f:
         json.dump(cookies, f)
-        logging.info("Cookies saved to file")
+        logging.info(f"Cookies successfully saved to {COOKIE_FILE}")
 
 
 def get_new_cookies():
     """
     Use Selenium to retrieve new cookies after logging in manually.
     """
-    logging.info("Starting Selenium to retrieve new cookies")
+    logging.info("Starting Selenium to retrieve new cookies.")
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
     driver = webdriver.Chrome(service=Service(), options=chrome_options)
     try:
-        driver.get("https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php")
+        url = "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php"
+        logging.info(f"Opening URL: {url}")
+        driver.get(url)
         logging.info("Please log in manually if required.")
         input("Press Enter after completing login...")
         cookies = driver.get_cookies()
         save_cookies(cookies)
+        logging.info("New cookies retrieved and saved.")
         return cookies
     finally:
         driver.quit()
+        logging.info("Selenium session ended.")
 
 
 def cookies_to_dict(cookies):
     """
     Convert cookies from Selenium format to Requests format.
     """
+    logging.info("Converting cookies to Requests-compatible format.")
     return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
@@ -113,18 +125,15 @@ def validate_cookies(url, params, cookies):
     Check if cookies are valid by making a test request and verifying the response content.
     """
     try:
-        # Fetch the HTML response
+        logging.info("Validating cookies.")
         html = fetch_data(url, params, cookies)
-
-        # Check for the string indicating a sign-in requirement
         if "Sign in to your account" in html:
             logging.warning("Cookies are invalid. Redirected to the login page.")
             return False
-        else:
-            logging.info("Cookies are valid.")
-            return True
+        logging.info("Cookies are valid.")
+        return True
     except Exception as e:
-        logging.warning(f"Cookies are invalid: {e}")
+        logging.warning(f"Cookies validation failed: {e}")
         return False
 
 
@@ -132,6 +141,7 @@ def process_request(url, params, cookies, output_csv):
     """
     Process a single URL request and save results to a CSV file.
     """
+    logging.info(f"Processing request for {output_csv}.")
     try:
         html = fetch_data(url, params, cookies)
         parse_html_to_csv(html, output_csv)
@@ -176,8 +186,10 @@ def main():
     if cookies:
         cookies = cookies_to_dict(cookies)
         if not validate_cookies(tasks[0]["url"], common_params, cookies):
+            logging.info("Fetching new cookies as the current ones are invalid.")
             cookies = cookies_to_dict(get_new_cookies())
     else:
+        logging.info("No cookies found. Fetching new ones.")
         cookies = cookies_to_dict(get_new_cookies())
 
     # Process each task
