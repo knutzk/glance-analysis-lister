@@ -41,6 +41,35 @@ from . import subgroups, utils
 logger = logging.getLogger(__name__)
 
 
+PAPER_DATA_COLUMNS = {
+    "Reference Code": None,
+    "Short Title": None,
+    "Public Short Title": None,
+    "Full Title": None,
+    "Status": None,
+    "Phase State": None,
+    "Run": None,
+    "Leading Group": None,
+    "Subgroups": None,
+    "Supporting Documents": None,
+    "Current Paper Draft": None,
+    "Contact Editors": None,
+    "Keywords": None,
+    "Phase 1 Start Date": None,
+    "Editorial Board": None,
+    "Chairs": None,
+    "ArXiv Reference Number": None,
+    "ArXiv Reference URLs": None,
+    "Figures": None,
+    "Final Title (Tex)": None,
+    "Journal of Final Submission": None,
+    "arXiv Submission Date": None,
+    "Journal Acceptance Date": None,
+    "Final Journal Publication URLs": None,
+    "Publication Date": None,
+}
+
+
 @define
 class Paper:
     """A class to hold information about a glance paper entry.
