@@ -12,10 +12,10 @@ import csv
 import json
 import logging
 import requests
+import os
 import sys
-from pathlib import Path
 import urllib3
-
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -29,6 +29,7 @@ logging.basicConfig(
 # Constants
 COOKIE_FILE = Path("cookies.json")
 CSV_DIR = Path("csv")
+DEBUG_DIR = Path("debug")
 URLS = {
     "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
     "papers": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
@@ -74,7 +75,7 @@ def fetch_data(url, params, cookies):
         raise
 
 
-def parse_html_to_csv(html, output_csv):
+def parse_html_to_csv(html, output_csv, debug_filename=None):
     """Parse the HTML table data and save it to a CSV file."""
     logging.info(f"Parsing HTML content to extract table data for {output_csv}")
     soup = BeautifulSoup(html, "html.parser")
@@ -83,6 +84,14 @@ def parse_html_to_csv(html, output_csv):
     if not table:
         logging.error(f"No table found in the HTML for {output_csv}")
         raise ValueError("No table found")
+
+    # Save the table object into a debug file.
+    if debug_filename:
+        DEBUG_DIR.mkdir(exist_ok=True)
+        debug_path = DEBUG_DIR / debug_filename
+        with open(debug_path, "w", encoding="utf-8") as f:
+            f.write(str(table) + "\n")
+        logging.debug(f"All table rows saved to {debug_path}")
 
     rows = table.find_all("tr")
     csv_data = [
@@ -138,12 +147,12 @@ def cookies_to_dict(cookies):
     return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
-def process_request(url, params, cookies, output_csv):
+def process_request(url, params, cookies, output_csv, debug_filename=None):
     """Process a single URL request and save results to a CSV file."""
     logging.info(f"Processing request for {output_csv}.")
     try:
         html = fetch_data(url, params, cookies)
-        parse_html_to_csv(html, output_csv)
+        parse_html_to_csv(html, output_csv, debug_filename)
     except Exception as e:
         logging.error(f"Failed to process request for {output_csv}: {e}")
 
@@ -155,6 +164,11 @@ def main():
         "--generate-new-cookies",
         action="store_true",
         help="Use Selenium to generate new cookies and save them to the file.",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Save parsed table data to debug directory for inspection.",
     )
     args = parser.parse_args()
 
@@ -176,13 +190,27 @@ def main():
 
     # Define tasks
     tasks = [
-        {"url": URLS["analyses"], "output_csv": CSV_DIR / "analyses.csv"},
-        {"url": URLS["papers"], "output_csv": CSV_DIR / "papers.csv"},
+        {
+            "url": URLS["analyses"],
+            "output_csv": CSV_DIR / "analyses.csv",
+            "debug_filename": "analyses.txt",
+        },
+        {
+            "url": URLS["papers"],
+            "output_csv": CSV_DIR / "papers.csv",
+            "debug_filename": "papers.txt",
+        },
     ]
 
     # Process each task
     for task in tasks:
-        process_request(task["url"], COMMON_PARAMS, cookies, task["output_csv"])
+        process_request(
+            task["url"],
+            COMMON_PARAMS,
+            cookies,
+            task["output_csv"],
+            task["debug_filename"] if args.debug else None,
+        )
 
 
 if __name__ == "__main__":
