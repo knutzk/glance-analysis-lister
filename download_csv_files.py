@@ -9,11 +9,11 @@ import argparse
 import csv
 import json
 import logging
-import os
+import requests
 import sys
 import urllib3
 from pathlib import Path
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
