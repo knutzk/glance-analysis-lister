@@ -3,19 +3,17 @@
 This script fetches data from specified URLs, parses HTML table data, and
 saves it to CSV files. It uses cookies for authentication and can generate
 new cookies using Selenium if needed.
-
 """
 
 import argparse
-from bs4 import BeautifulSoup
 import csv
 import json
 import logging
-import requests
 import os
 import sys
 import urllib3
 from pathlib import Path
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -51,7 +49,6 @@ COMMON_PARAMS = {
     "s[0][descending]": "false",
     "only_deleted_input": "false",
 }
-
 COLUMN_FILTER_ANALYSES = {
     "Reference Code": None,
     "Short Title": None,
@@ -77,221 +74,174 @@ COLUMN_FILTER_ANALYSES = {
     "Approval Meetings Dates": None,
 }
 
-
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def fetch_data(url, params, cookies):
-    """Fetch data from a given URL using a GET request."""
-    try:
-        logging.info(f"Fetching data from {url} with params: {params}")
-        response = requests.get(url, params=params, cookies=cookies, verify=False)
-        response.raise_for_status()
-        if "Sign in to your account" in response.text:
-            logging.error(
-                "Cookies are invalid or expired. Run the script with "
-                "--generate-new-cookies to fetch new cookies."
-            )
-            sys.exit(1)
-        logging.info(f"Successfully fetched data from {url}")
-        return response.text
-    except requests.RequestException as e:
-        logging.error(f"Error fetching data from {url}: {e}")
-        raise
+class CookieManager:
+    @staticmethod
+    def load_cookies():
+        """Load cookies from a JSON file if available."""
+        if COOKIE_FILE.exists():
+            logging.info(f"Loading cookies from {COOKIE_FILE}")
+            return json.loads(COOKIE_FILE.read_text())
+        logging.info("No cookie file found.")
+        return None
 
-
-def parse_html_to_csv(html, output_csv, debug_filename=None, column_filter=None):
-    """
-    Parse the HTML table data and save it to a CSV file.
-
-    Args:
-        html (str): HTML content containing the table.
-        output_csv (str): File path to save the resulting CSV.
-        debug_filename (str): File name to save the raw table HTML (optional).
-        column_filter (dict): A dictionary where keys are column headers to include.
-    """
-    logging.info(f"Parsing HTML content to extract table data for {output_csv}")
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table")
-
-    if not table:
-        logging.error(f"No table found in the HTML for {output_csv}")
-        raise ValueError("No table found")
-
-    # Save the table object into a debug file.
-    if debug_filename:
-        DEBUG_DIR.mkdir(exist_ok=True)
-        debug_path = DEBUG_DIR / debug_filename
-        with open(debug_path, "w", encoding="utf-8") as f:
-            f.write(str(table) + "\n")
-        logging.debug(f"All table rows saved to {debug_path}")
-
-    rows = table.find_all("tr")
-
-    # Extract the headers
-    headers = [th.text.strip() for th in rows[0].find_all("th")]
-
-    if column_filter:
-        # Map header names to their indices
-        header_indices = {
-            index: header for index, header in enumerate(headers) if header in column_filter
-        }
-        logging.info(f"Filtering columns: {list(header_indices.values())}")
-    else:
-        # Include all columns if no filter is provided
-        header_indices = {index: header for index, header in enumerate(headers)}
-
-    # Filter rows based on the header indices
-    csv_data = [
-        [header_indices[idx] for idx in header_indices]  # Include only selected headers
-    ]  # Header row
-    csv_data += [
-        [row.find_all("td")[idx].text.strip() for idx in header_indices]
-        for row in rows[1:]
-        if row.find_all("td")  # Avoid rows without data cells
-    ]
-
-    with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerows(csv_data)
-
-    logging.info(f"CSV file successfully generated: {output_csv}")
-
-
-def load_cookies():
-    """Load cookies from a JSON file if available."""
-    if COOKIE_FILE.exists():
-        logging.info(f"Loading cookies from {COOKIE_FILE}")
-        return json.loads(COOKIE_FILE.read_text())
-    logging.info("No cookie file found.")
-    return None
-
-
-def get_new_cookies():
-    """Use Selenium to retrieve new cookies after logging in manually."""
-    logging.info("Starting Selenium to retrieve new cookies.")
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(service=Service(), options=chrome_options)
-    try:
-        url = URLS["analyses"]
-        logging.info(f"Opening URL: {url}")
-        driver.get(url)
-        logging.info("Please log in manually if required.")
-        input("Press Enter after completing login...")
-        cookies = driver.get_cookies()
+    @staticmethod
+    def save_cookies(cookies):
+        """Save cookies to a JSON file."""
         COOKIE_FILE.write_text(json.dumps(cookies))
         logging.info(f"Cookies successfully saved to {COOKIE_FILE}")
-        return cookies
-    finally:
-        driver.quit()
-        logging.info("Selenium session ended.")
+
+    @staticmethod
+    def generate_cookies():
+        """Use Selenium to retrieve new cookies after logging in manually."""
+        logging.info("Starting Selenium to retrieve new cookies.")
+        chrome_options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+
+        driver = webdriver.Chrome(service=Service(), options=chrome_options)
+        try:
+            url = URLS["analyses"]
+            logging.info(f"Opening URL: {url}")
+            driver.get(url)
+            logging.info("Please log in manually if required.")
+            input("Press Enter after completing login...")
+            cookies = driver.get_cookies()
+            CookieManager.save_cookies(cookies)
+            return cookies
+        finally:
+            driver.quit()
+            logging.info("Selenium session ended.")
+
+    @staticmethod
+    def to_requests_format(cookies):
+        """Convert cookies from Selenium format to Requests format."""
+        logging.info("Converting cookies to Requests-compatible format.")
+        return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
-def cookies_to_dict(cookies):
-    """Convert cookies from Selenium format to Requests format."""
-    logging.info("Converting cookies to Requests-compatible format.")
-    return {cookie["name"]: cookie["value"] for cookie in cookies}
+class DataFetcher:
+    @staticmethod
+    def fetch_html(url, params, cookies):
+        """Fetch HTML content from a URL."""
+        try:
+            logging.info(f"Fetching data from {url} with params: {params}")
+            response = requests.get(url, params=params, cookies=cookies, verify=False)
+            response.raise_for_status()
+            if "Sign in to your account" in response.text:
+                logging.error("Invalid or expired cookies detected.")
+                sys.exit(1)
+            return response.text
+        except requests.RequestException as e:
+            logging.error(f"Error fetching data from {url}: {e}")
+            raise
 
 
-def process_request(url, params, cookies, output_csv, debug_filename=None):
-    """Process a single URL request and save results to a CSV file."""
-    logging.info(f"Processing request for {output_csv}.")
-    try:
-        html = fetch_data(url, params, cookies)
-        parse_html_to_csv(html, output_csv, debug_filename)
-    except Exception as e:
-        logging.error(f"Failed to process request for {output_csv}: {e}")
+class HTMLParser:
+    @staticmethod
+    def parse_to_csv(html, output_csv, debug_file=None, column_filter=None):
+        """Parse HTML and save table data to CSV."""
+        soup = BeautifulSoup(html, "html.parser")
+        table = soup.find("table")
+        if not table:
+            raise ValueError("No table found in the HTML.")
+
+        if debug_file:
+            DEBUG_DIR.mkdir(exist_ok=True)
+            debug_path = DEBUG_DIR / debug_file
+            debug_path.write_text(str(table), encoding="utf-8")
+            logging.info(f"Debug file saved: {debug_path}")
+
+        rows = table.find_all("tr")
+        headers = [th.text.strip() for th in rows[0].find_all("th")]
+
+        if column_filter:
+            indices = {
+                idx: header
+                for idx, header in enumerate(headers)
+                if header in column_filter
+            }
+        else:
+            indices = {idx: header for idx, header in enumerate(headers)}
+
+        csv_data = [[indices[idx] for idx in indices]]
+        csv_data += [
+            [row.find_all("td")[idx].text.strip() for idx in indices]
+            for row in rows[1:]
+            if row.find_all("td")
+        ]
+
+        CSV_DIR.mkdir(exist_ok=True)
+        with open(output_csv, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(csv_data)
+        logging.info(f"CSV file saved: {output_csv}")
 
 
 def main():
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Fetch data and generate CSV files.")
     parser.add_argument(
         "--generate-new-cookies",
         action="store_true",
-        help="Use Selenium to generate new cookies and save them to the file.",
+        help="Generate new cookies using Selenium.",
     )
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Save parsed table data to debug directory for inspection.",
+        help="Save raw HTML tables to debug directory.",
     )
     parser.add_argument(
         "--use-local-html",
         action="store_true",
-        help="Read HTML files from the debug directory instead of fetching them.",
+        help="Read HTML from debug directory instead of fetching it.",
     )
     args = parser.parse_args()
 
-    # Ensure the output directory exists
-    CSV_DIR.mkdir(exist_ok=True)
-    DEBUG_DIR.mkdir(exist_ok=True)
-
-    # Define tasks
     tasks = [
         {
             "name": "analyses",
             "url": URLS["analyses"],
             "output_csv": CSV_DIR / "analyses.csv",
-            "debug_filename": DEBUG_DIR / "analyses.html",
+            "debug_file": "analyses.html",
             "column_filter": COLUMN_FILTER_ANALYSES,
         },
         {
             "name": "papers",
             "url": URLS["papers"],
             "output_csv": CSV_DIR / "papers.csv",
-            "debug_filename": DEBUG_DIR / "papers.html",
+            "debug_file": "papers.html",
             "column_filter": None,
         },
     ]
 
+    cookies = None
     if args.use_local_html:
-        logging.info("Using local HTML files from the debug directory.")
         for task in tasks:
-            debug_path = task["debug_filename"]
-            if not debug_path.exists():
-                logging.error(f"Debug file not found: {debug_path}")
-                sys.exit(1)
-            html_content = debug_path.read_text(encoding="utf-8")
-            parse_html_to_csv(
-                html_content,
-                task["output_csv"],
-                debug_filename=None,  # No need to re-save the parsed table
-                column_filter=task["column_filter"],
+            html = (DEBUG_DIR / task["debug_file"]).read_text(encoding="utf-8")
+            HTMLParser.parse_to_csv(
+                html, task["output_csv"], None, task["column_filter"]
             )
-        logging.info("Processing completed using local HTML files.")
+        logging.info("Completed processing from local HTML files.")
         return
 
-    # Load or generate cookies
     if args.generate_new_cookies:
-        logging.info("Generating new cookies as requested.")
-        cookies = cookies_to_dict(get_new_cookies())
+        cookies = CookieManager.generate_cookies()
     else:
-        cookies = load_cookies()
+        cookies = CookieManager.load_cookies()
         if not cookies:
-            logging.error(
-                "No cookie file found. Run the script with --generate-new-cookies to generate new cookies."
-            )
+            logging.error("No cookies found. Use --generate-new-cookies.")
             sys.exit(1)
-        cookies = cookies_to_dict(cookies)
 
-    # Process each task
+    cookies = CookieManager.to_requests_format(cookies)
     for task in tasks:
-        process_request(
-            task["url"],
-            COMMON_PARAMS,
-            cookies,
-            task["output_csv"],
-            task["debug_filename"] if args.debug else None,
+        html = DataFetcher.fetch_html(task["url"], COMMON_PARAMS, cookies)
+        HTMLParser.parse_to_csv(
+            html, task["output_csv"], task["debug_file"] if args.debug else None, task["column_filter"]
         )
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
+    main()
