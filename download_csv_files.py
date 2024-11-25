@@ -122,11 +122,7 @@ class DataFetcher:
 class HTMLParser:
     @staticmethod
     def fix_malformed_td(html):
-        """
-        Fix malformed <td> tags where the closing </td> is missing.
-
-        This function searches for <td> tags that do not have a closing </td> and adds the missing tag.
-        """
+        """Fix malformed <td> tags where the closing </td> is missing."""
         import re
 
         # Look for <td> tags that do not have a closing tag
@@ -138,15 +134,7 @@ class HTMLParser:
 
     @staticmethod
     def parse_to_csv(html, output_csv, debug_filename=None, column_filter=None):
-        """
-        Parse the HTML table data and save it to a CSV file.
-
-        Args:
-            html (str): HTML content containing the table.
-            output_csv (str): File path to save the resulting CSV.
-            debug_filename (str): File name to save the raw table HTML (optional).
-            column_filter (dict): A dictionary where keys are column headers to include.
-        """
+        """Parse the HTML table data and save it to a CSV file."""
         logging.info(f"Parsing HTML content to extract table data for {output_csv}")
 
         # Fix malformed <td> tags
@@ -175,7 +163,9 @@ class HTMLParser:
         if column_filter:
             # Map header names to their indices
             header_indices = {
-                index: header for index, header in enumerate(headers) if header in column_filter
+                index: header
+                for index, header in enumerate(headers)
+                if header in column_filter
             }
             logging.info(f"Filtering columns: {list(header_indices.values())}")
         else:
@@ -184,7 +174,9 @@ class HTMLParser:
 
         # Filter rows based on the header indices
         csv_data = [
-            [header_indices[idx] for idx in header_indices]  # Include only selected headers
+            [
+                header_indices[idx] for idx in header_indices
+            ]  # Include only selected headers
         ]  # Header row
 
         # Iterate through table rows and handle malformed <td> tags
@@ -237,7 +229,7 @@ def main():
             "url": URLS["papers"],
             "output_csv": CSV_DIR / "papers.csv",
             "debug_file": "papers.html",
-            "column_filter": PAPER_DATA_COLUMNS
+            "column_filter": PAPER_DATA_COLUMNS,
         },
     ]
 
@@ -263,7 +255,10 @@ def main():
     for task in tasks:
         html = DataFetcher.fetch_html(task["url"], COMMON_PARAMS, cookies)
         HTMLParser.parse_to_csv(
-            html, task["output_csv"], task["debug_file"] if args.debug else None, task["column_filter"]
+            html,
+            task["output_csv"],
+            task["debug_file"] if args.debug else None,
+            task["column_filter"],
         )
 
 
