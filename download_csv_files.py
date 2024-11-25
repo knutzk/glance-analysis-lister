@@ -52,6 +52,32 @@ COMMON_PARAMS = {
     "only_deleted_input": "false",
 }
 
+COLUMN_FILTER_ANALYSES = {
+    "Reference Code": None,
+    "Short Title": None,
+    "Public Short Title": None,
+    "Full Title": None,
+    "Status": None,
+    "Run": None,
+    "Leading Group": None,
+    "Subgroups": None,
+    "Contact Editors": None,
+    "Supporting Documents": None,
+    "Keywords": None,
+    "Phase State": None,
+    "Phase 0 Start Date": None,
+    "Analysis Contacts": None,
+    "Analysis Contacts' Start Date": None,
+    "Analysis Contacts' End Date": None,
+    "Internal Note Editors": None,
+    "Editorial Board": None,
+    "Chairs": None,
+    "Editorial Board Formed On": None,
+    "Pre approval Meetings Dates": None,
+    "Approval Meetings Dates": None,
+}
+
+
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -75,8 +101,16 @@ def fetch_data(url, params, cookies):
         raise
 
 
-def parse_html_to_csv(html, output_csv, debug_filename=None):
-    """Parse the HTML table data and save it to a CSV file."""
+def parse_html_to_csv(html, output_csv, debug_filename=None, column_filter=None):
+    """
+    Parse the HTML table data and save it to a CSV file.
+
+    Args:
+        html (str): HTML content containing the table.
+        output_csv (str): File path to save the resulting CSV.
+        debug_filename (str): File name to save the raw table HTML (optional).
+        column_filter (dict): A dictionary where keys are column headers to include.
+    """
     logging.info(f"Parsing HTML content to extract table data for {output_csv}")
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
@@ -94,12 +128,28 @@ def parse_html_to_csv(html, output_csv, debug_filename=None):
         logging.debug(f"All table rows saved to {debug_path}")
 
     rows = table.find_all("tr")
+
+    # Extract the headers
+    headers = [th.text.strip() for th in rows[0].find_all("th")]
+
+    if column_filter:
+        # Map header names to their indices
+        header_indices = {
+            index: header for index, header in enumerate(headers) if header in column_filter
+        }
+        logging.info(f"Filtering columns: {list(header_indices.values())}")
+    else:
+        # Include all columns if no filter is provided
+        header_indices = {index: header for index, header in enumerate(headers)}
+
+    # Filter rows based on the header indices
     csv_data = [
-        [
-            col.text.replace("\n", " ").replace("\r", " ")
-            for col in row.find_all(["td", "th"])
-        ]
-        for row in rows
+        [header_indices[idx] for idx in header_indices]  # Include only selected headers
+    ]  # Header row
+    csv_data += [
+        [row.find_all("td")[idx].text.strip() for idx in header_indices]
+        for row in rows[1:]
+        if row.find_all("td")  # Avoid rows without data cells
     ]
 
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
@@ -170,10 +220,51 @@ def main():
         action="store_true",
         help="Save parsed table data to debug directory for inspection.",
     )
+    parser.add_argument(
+        "--use-local-html",
+        action="store_true",
+        help="Read HTML files from the debug directory instead of fetching them.",
+    )
     args = parser.parse_args()
 
     # Ensure the output directory exists
     CSV_DIR.mkdir(exist_ok=True)
+    DEBUG_DIR.mkdir(exist_ok=True)
+
+    # Define tasks
+    tasks = [
+        {
+            "name": "analyses",
+            "url": URLS["analyses"],
+            "output_csv": CSV_DIR / "analyses.csv",
+            "debug_filename": DEBUG_DIR / "analyses.html",
+            "column_filter": COLUMN_FILTER_ANALYSES,
+        },
+        {
+            "name": "papers",
+            "url": URLS["papers"],
+            "output_csv": CSV_DIR / "papers.csv",
+            "debug_filename": DEBUG_DIR / "papers.html",
+            "column_filter": None,
+        },
+    ]
+
+    if args.use_local_html:
+        logging.info("Using local HTML files from the debug directory.")
+        for task in tasks:
+            debug_path = task["debug_filename"]
+            if not debug_path.exists():
+                logging.error(f"Debug file not found: {debug_path}")
+                sys.exit(1)
+            html_content = debug_path.read_text(encoding="utf-8")
+            parse_html_to_csv(
+                html_content,
+                task["output_csv"],
+                debug_filename=None,  # No need to re-save the parsed table
+                column_filter=task["column_filter"],
+            )
+        logging.info("Processing completed using local HTML files.")
+        return
 
     # Load or generate cookies
     if args.generate_new_cookies:
@@ -187,20 +278,6 @@ def main():
             )
             sys.exit(1)
         cookies = cookies_to_dict(cookies)
-
-    # Define tasks
-    tasks = [
-        {
-            "url": URLS["analyses"],
-            "output_csv": CSV_DIR / "analyses.csv",
-            "debug_filename": "analyses.txt",
-        },
-        {
-            "url": URLS["papers"],
-            "output_csv": CSV_DIR / "papers.csv",
-            "debug_filename": "papers.txt",
-        },
-    ]
 
     # Process each task
     for task in tasks:
