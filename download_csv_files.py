@@ -137,7 +137,7 @@ class HTMLParser:
         """Parse the HTML table data and save it to a CSV file."""
         logging.info(f"Parsing HTML content to extract table data for {output_csv}")
 
-        # Fix malformed <td> tags
+        # Fix malformed <td> tags (glance tables seem to have a lot of these).
         html = HTMLParser.fix_malformed_td(html)
 
         soup = BeautifulSoup(html, "html.parser")
@@ -147,7 +147,6 @@ class HTMLParser:
             logging.error(f"No table found in the HTML for {output_csv}")
             raise ValueError("No table found")
 
-        # Save the table object into a debug file.
         if debug_filename:
             DEBUG_DIR.mkdir(exist_ok=True)
             debug_path = DEBUG_DIR / debug_filename
@@ -157,11 +156,10 @@ class HTMLParser:
 
         rows = table.find_all("tr")
 
-        # Extract the headers
         headers = [th.text.strip() for th in rows[0].find_all("th")]
 
+        # Filter headers based on the column_filter, otherwise include all.
         if column_filter:
-            # Map header names to their indices
             header_indices = {
                 index: header
                 for index, header in enumerate(headers)
@@ -169,23 +167,15 @@ class HTMLParser:
             }
             logging.info(f"Filtering columns: {list(header_indices.values())}")
         else:
-            # Include all columns if no filter is provided
             header_indices = {index: header for index, header in enumerate(headers)}
 
-        # Filter rows based on the header indices
-        csv_data = [
-            [
-                header_indices[idx] for idx in header_indices
-            ]  # Include only selected headers
-        ]  # Header row
+        csv_data = [[header_indices[idx] for idx in header_indices]]
 
-        # Iterate through table rows and handle malformed <td> tags
         for row in rows[1:]:
             cells = row.find_all("td")
             if not cells:
-                continue  # Skip rows without <td> cells
+                continue
 
-            # Extract relevant data based on the header indices
             csv_data.append(
                 [cells[idx].text for idx in header_indices if idx < len(cells)]
             )
