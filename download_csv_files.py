@@ -13,10 +13,13 @@ import os
 import sys
 import urllib3
 from pathlib import Path
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+
+from analysis_lister.glance.analysis import ANALYSIS_DATA_COLUMNS
+from analysis_lister.glance.paper import PAPER_DATA_COLUMNS
 
 # Configure logging
 logging.basicConfig(
@@ -48,30 +51,6 @@ COMMON_PARAMS = {
     "s[0][name]": "reference_code",
     "s[0][descending]": "false",
     "only_deleted_input": "false",
-}
-COLUMN_FILTER_ANALYSES = {
-    "Reference Code": None,
-    "Short Title": None,
-    "Public Short Title": None,
-    "Full Title": None,
-    "Status": None,
-    "Run": None,
-    "Leading Group": None,
-    "Subgroups": None,
-    "Contact Editors": None,
-    "Supporting Documents": None,
-    "Keywords": None,
-    "Phase State": None,
-    "Phase 0 Start Date": None,
-    "Analysis Contacts": None,
-    "Analysis Contacts' Start Date": None,
-    "Analysis Contacts' End Date": None,
-    "Internal Note Editors": None,
-    "Editorial Board": None,
-    "Chairs": None,
-    "Editorial Board Formed On": None,
-    "Pre approval Meetings Dates": None,
-    "Approval Meetings Dates": None,
 }
 
 # Disable SSL warnings
@@ -142,43 +121,88 @@ class DataFetcher:
 
 class HTMLParser:
     @staticmethod
-    def parse_to_csv(html, output_csv, debug_file=None, column_filter=None):
-        """Parse HTML and save table data to CSV."""
+    def fix_malformed_td(html):
+        """
+        Fix malformed <td> tags where the closing </td> is missing.
+
+        This function searches for <td> tags that do not have a closing </td> and adds the missing tag.
+        """
+        import re
+
+        # Look for <td> tags that do not have a closing tag
+        malformed_td_pattern = r"(<td>.*?)(?=<td>)"
+        fixed_html = re.sub(malformed_td_pattern, r"\1</td>", html, flags=re.DOTALL)
+        fixed_html = fixed_html.replace("\n", " ")
+
+        return fixed_html
+
+    @staticmethod
+    def parse_to_csv(html, output_csv, debug_filename=None, column_filter=None):
+        """
+        Parse the HTML table data and save it to a CSV file.
+
+        Args:
+            html (str): HTML content containing the table.
+            output_csv (str): File path to save the resulting CSV.
+            debug_filename (str): File name to save the raw table HTML (optional).
+            column_filter (dict): A dictionary where keys are column headers to include.
+        """
+        logging.info(f"Parsing HTML content to extract table data for {output_csv}")
+
+        # Fix malformed <td> tags
+        html = HTMLParser.fix_malformed_td(html)
+
         soup = BeautifulSoup(html, "html.parser")
         table = soup.find("table")
-        if not table:
-            raise ValueError("No table found in the HTML.")
 
-        if debug_file:
+        if not table:
+            logging.error(f"No table found in the HTML for {output_csv}")
+            raise ValueError("No table found")
+
+        # Save the table object into a debug file.
+        if debug_filename:
             DEBUG_DIR.mkdir(exist_ok=True)
-            debug_path = DEBUG_DIR / debug_file
-            debug_path.write_text(str(table), encoding="utf-8")
-            logging.info(f"Debug file saved: {debug_path}")
+            debug_path = DEBUG_DIR / debug_filename
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(str(table) + "\n")
+            logging.debug(f"All table rows saved to {debug_path}")
 
         rows = table.find_all("tr")
+
+        # Extract the headers
         headers = [th.text.strip() for th in rows[0].find_all("th")]
 
         if column_filter:
-            indices = {
-                idx: header
-                for idx, header in enumerate(headers)
-                if header in column_filter
+            # Map header names to their indices
+            header_indices = {
+                index: header for index, header in enumerate(headers) if header in column_filter
             }
+            logging.info(f"Filtering columns: {list(header_indices.values())}")
         else:
-            indices = {idx: header for idx, header in enumerate(headers)}
+            # Include all columns if no filter is provided
+            header_indices = {index: header for index, header in enumerate(headers)}
 
-        csv_data = [[indices[idx] for idx in indices]]
-        csv_data += [
-            [row.find_all("td")[idx].text.strip() for idx in indices]
-            for row in rows[1:]
-            if row.find_all("td")
-        ]
+        # Filter rows based on the header indices
+        csv_data = [
+            [header_indices[idx] for idx in header_indices]  # Include only selected headers
+        ]  # Header row
 
-        CSV_DIR.mkdir(exist_ok=True)
+        # Iterate through table rows and handle malformed <td> tags
+        for row in rows[1:]:
+            cells = row.find_all("td")
+            if not cells:
+                continue  # Skip rows without <td> cells
+
+            # Extract relevant data based on the header indices
+            csv_data.append(
+                [cells[idx].text for idx in header_indices if idx < len(cells)]
+            )
+
         with open(output_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
-        logging.info(f"CSV file saved: {output_csv}")
+
+        logging.info(f"CSV file successfully generated: {output_csv}")
 
 
 def main():
@@ -206,14 +230,14 @@ def main():
             "url": URLS["analyses"],
             "output_csv": CSV_DIR / "analyses.csv",
             "debug_file": "analyses.html",
-            "column_filter": COLUMN_FILTER_ANALYSES,
+            "column_filter": ANALYSIS_DATA_COLUMNS,
         },
         {
             "name": "papers",
             "url": URLS["papers"],
             "output_csv": CSV_DIR / "papers.csv",
             "debug_file": "papers.html",
-            "column_filter": None,
+            "column_filter": PAPER_DATA_COLUMNS
         },
     ]
 

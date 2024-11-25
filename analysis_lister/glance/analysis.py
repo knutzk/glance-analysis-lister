@@ -40,6 +40,32 @@ from typing import List
 from . import subgroups, utils
 
 
+ANALYSIS_DATA_COLUMNS = {
+    "Reference Code": None,
+    "Short Title": None,
+    "Public Short Title": None,
+    "Full Title": None,
+    "Status": None,
+    "Run": None,
+    "Leading Group": None,
+    "Subgroups": None,
+    "Contact Editors": None,
+    "Supporting Documents": None,
+    "Keywords": None,
+    "Phase State": None,
+    "Phase 0 Start Date": None,
+    "Analysis Contacts": None,
+    "Analysis Contacts' Start Date": None,
+    "Analysis Contacts' End Date": None,
+    "Internal Note Editors": None,
+    "Editorial Board": None,
+    "Chairs": None,
+    "Editorial Board Formed On": None,
+    "Pre approval Meetings Dates": None,
+    "Approval Meetings Dates": None,
+}
+
+
 @define
 class Analysis:
     """A class to hold information about a glance analysis entry.
