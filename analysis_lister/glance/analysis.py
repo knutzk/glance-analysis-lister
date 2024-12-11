@@ -30,6 +30,7 @@ Extract table from the glance web UI with the following columns:
   - "Chairs"
   - "Editorial Board Formed On"
   - "Pre approval Meetings Dates"
+  - "PGC or SGC sign-off date"
   - "Approval Meetings Dates"
 
 """
@@ -62,6 +63,7 @@ ANALYSIS_DATA_COLUMNS = {
     "Chairs": None,
     "Editorial Board Formed On": None,
     "Pre approval Meetings Dates": None,
+    "PGC or SGC sign-off date": None,
     "Approval Meetings Dates": None,
 }
 
@@ -106,6 +108,7 @@ class Analysis:
     date_start: str
     date_eb_formed: str
     date_preapproval: str
+    date_preapproval_signoff: str
     editorial_board: str
     glance_url_analysis: str = field(init=False)
     glance_url_paper: str = field(init=False)
@@ -151,6 +154,7 @@ class Analysis:
             date_eb_formed=_dict["Editorial Board Formed On"],
             date_start=_dict["Phase 0 Start Date"],
             date_preapproval=_dict["Pre approval Meetings Dates"],
+            date_preapproval_signoff=_dict["PGC or SGC sign-off date"],
             editorial_board=utils.format_editorial_board(
                 _dict["Editorial Board"],
                 _dict["Chairs"],
@@ -159,7 +163,7 @@ class Analysis:
             is_approved=_dict["Status"] == " Phase 0 is  Finished ",
             is_closed=_dict["Status"] == " Analysis is  Closed ",
             is_in_phase0=_dict["Status"] == " Phase 0 is  Active ",
-            is_preapproved=_dict["Pre approval Meetings Dates"] != "",
+            is_preapproved=_dict["PGC or SGC sign-off date"] != "",
             is_with_edboard=_dict["Editorial Board Formed On"] != "",
             keywords=_dict["Keywords"].split(", "),
             leading_group=_dict["Leading Group"],
