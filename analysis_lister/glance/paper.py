@@ -205,7 +205,7 @@ class Paper:
             self.journal_ref = ""
 
         if self.journal_ref == "" and self.doi != "":
-            logger.warning("No journal reference found for DOI:", self.doi)
+            logger.warning("No journal reference found for DOI: %s", self.doi)
 
         # Determine the top subgroups this paper is associated with.
         self.top_subgroups = []
