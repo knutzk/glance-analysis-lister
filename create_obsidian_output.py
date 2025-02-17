@@ -76,19 +76,19 @@ summary: {entry.title_short_public if entry_type == "paper" else entry.title_sho
 
 ## Relevant meetings
 
-XXXdataview
+```dataview
 TABLE date as Date, summary as Summary
 FROM "meeting-notes" and #{filename}
 SORT date desc
-XXX
+```
 
 ## Document reviews
 
-XXXdataview
+```dataview
 TABLE date as Date, doc-type+" v"+doc-version as "Reviewed version"
 FROM "document-reviews" and #{filename}
 SORT date desc
-XXX
+```
 
 """
             )
