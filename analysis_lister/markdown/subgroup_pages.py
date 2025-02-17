@@ -139,7 +139,7 @@ def overview(
                 release_str = "R21"
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
-                f"| {a.title_short} "
+                f'| {a.title_short.replace("|", "/")} '
                 f'| {"&#10003;&nbsp;" if a.is_with_edboard else ""}'
                 f'{"&#10003;&nbsp;" if a.is_preapproved else ""}'
                 f'{"&#10003;&nbsp;" if a.is_approved else ""}'
@@ -168,7 +168,7 @@ def overview(
             logger.debug(f"Writing table row for paper {p.ref_code}.")
             _f.write(
                 f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
-                f"| {p.title_short} "
+                f'| {p.title_short.replace("|", "/")} '
                 f'| {p.date_submission.replace("-", "&#8209;")} '
                 f'| {p.date_publication.replace("-", "&#8209;")} '
                 f"|\n",
