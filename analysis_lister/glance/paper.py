@@ -207,6 +207,11 @@ class Paper:
         if self.journal_ref == "" and self.doi != "":
             logger.warning("No journal reference found for DOI: %s", self.doi)
 
+        # Remove problematic characters from the titles.
+        self.title_short = self.title_short.replace("|", "/")
+        self.title_full = self.title_full.replace("|", "/")
+        self.title_short_public = self.title_short_public.replace("|", "/")
+
         # Determine the top subgroups this paper is associated with.
         self.top_subgroups = []
         for group in subgroups.TopGroups:

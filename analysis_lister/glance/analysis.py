@@ -189,6 +189,11 @@ class Analysis:
             f"ref_code={self.ref_code}"
         )
 
+        # Remove problematic characters from the titles.
+        self.title_full = self.title_full.replace("|", "/")
+        self.title_public_short = self.title_public_short.replace("|", "/")
+        self.title_short = self.title_short.replace("|", "/")
+
         # Determine the top subgroups this analysis is associated with.
         self.top_subgroups = []
         for group in subgroups.TopGroups:
