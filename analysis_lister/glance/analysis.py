@@ -36,6 +36,7 @@ Extract table from the glance web UI with the following columns:
 """
 
 from attrs import define, field
+import re
 from typing import List
 
 from . import subgroups, utils
@@ -171,7 +172,7 @@ class Analysis:
             run=_dict["Run"],
             phase_state=_dict["Phase State"],
             status=_dict["Status"],
-            subgroups=_dict["Subgroups"].split(","),
+            subgroups=re.split(r",(?=\S)", _dict["Subgroups"]),
             supporting_docs=utils.format_supporting_docs(_dict["Supporting Documents"]),
             title_full=_dict["Full Title"],
             title_public_short=_dict["Public Short Title"],
