@@ -34,6 +34,8 @@ DEBUG_DIR = Path("debug")
 URLS = {
     "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
     "papers": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
+    "pubnotes": "https://atlas-glance.cern.ch/atlas/analysis/pubnotes/main.php",
+    "confnotes": "https://atlas-glance.cern.ch/atlas/analysis/confnotes/main.php",
 }
 COMMON_PARAMS = {
     "c[0][i]": 0,
@@ -48,7 +50,6 @@ COMMON_PARAMS = {
     "c[2][p]": "subgroups",
     "c[2][o]": "contains",
     "c[2][v]": 205,
-    "s[0][name]": "reference_code",
     "s[0][descending]": "false",
     "only_deleted_input": "false",
 }
@@ -213,6 +214,7 @@ def main():
             "output_csv": CSV_DIR / "analyses.csv",
             "debug_file": "analyses.html",
             "column_filter": ANALYSIS_DATA_COLUMNS,
+            "custom_params": {"s[0][name]": "reference_code"},
         },
         {
             "name": "papers",
@@ -220,6 +222,23 @@ def main():
             "output_csv": CSV_DIR / "papers.csv",
             "debug_file": "papers.html",
             "column_filter": PAPER_DATA_COLUMNS,
+            "custom_params": {"s[0][name]": "reference_code"},
+        },
+        {
+            "name": "pubnotes",
+            "url": URLS["pubnotes"],
+            "output_csv": CSV_DIR / "pubnotes.csv",
+            "debug_file": "pubnotes.html",
+            "column_filter": None,
+            "custom_params": {"s[0][name]": "final_ref_code"},
+        },
+        {
+            "name": "confnotes",
+            "url": URLS["confnotes"],
+            "output_csv": CSV_DIR / "confnotes.csv",
+            "debug_file": "confnotes.html",
+            "column_filter": None,
+            "custom_params": {"s[0][name]": "final_ref_code"},
         },
     ]
 
@@ -243,7 +262,9 @@ def main():
 
     cookies = CookieManager.to_requests_format(cookies)
     for task in tasks:
-        html = DataFetcher.fetch_html(task["url"], COMMON_PARAMS, cookies)
+        html = DataFetcher.fetch_html(
+            task["url"], COMMON_PARAMS | task["custom_params"], cookies
+        )
         HTMLParser.parse_to_csv(
             html,
             task["output_csv"],
