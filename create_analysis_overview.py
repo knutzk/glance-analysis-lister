@@ -25,7 +25,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 import logging
 
-from analysis_lister.glance import analysis, paper, subgroups
+from analysis_lister.glance import analysis, confnotes, paper, pubnotes, subgroups
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
@@ -101,6 +101,34 @@ def filter_analyses(analyses, ref_codes_unpublished, top_groups):
     return filtered_analyses
 
 
+def filter_confnotes(confnotes, top_groups):
+    """Prepares a filtered list of confnotes for overview pages."""
+    filtered_confnotes = [
+        c
+        for c in confnotes
+        if any(x in c.subgroups for x in top_groups)
+        and c.is_published
+        and not c.is_superseded
+    ]
+    logging.info(f"Filtered {len(filtered_confnotes)} confnotes.")
+    logging.debug(f"Filter criteria: {top_groups}")
+    return filtered_confnotes
+
+
+def filter_pubnotes(pubnotes, top_groups):
+    """Prepares a filtered list of pubnotes for overview pages."""
+    filtered_pubnotes = [
+        p
+        for p in pubnotes
+        if any(x in p.subgroups for x in top_groups)
+        and p.is_published
+        and not p.is_superseded
+    ]
+    logging.info(f"Filtered {len(filtered_pubnotes)} pubnotes.")
+    logging.debug(f"Filter criteria: {top_groups}")
+    return filtered_pubnotes
+
+
 def determine_last_modified_time(files):
     """Determine the last modification time of a list of files."""
     repo = git.Repo(os.getcwd())
@@ -156,6 +184,8 @@ if __name__ == "__main__":
     # Load papers and analyses data, exit if any file is missing.
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
+    confnotes = load_data("confnotes.csv", confnotes.ConfNote)
+    pubnotes = load_data("pubnotes.csv", pubnotes.PubNote)
 
     # Get modification time of the CSV files.
     mtime = determine_last_modified_time(
@@ -164,8 +194,14 @@ if __name__ == "__main__":
 
     # Create a set of analyses where a paper entry is already created, but the paper
     # is not yet submitted. In those cases, the analysis should be listed as ongoing
-    # even if it is not in phase 0.
+    # even if it is not in phase 0. Same goes for CONF and PUB notes.
     ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
+    ref_codes_unpublished |= {
+        p.tmp_ref_code.replace("CONF-", "") for p in confnotes if not p.is_published
+    }
+    ref_codes_unpublished |= {
+        p.tmp_ref_code.replace("PUB-", "") for p in pubnotes if not p.is_published
+    }
     logging.debug(f"Unpublished reference codes: {ref_codes_unpublished}")
     top_groups = [x.id for x in subgroups.TopGroups]
     logging.debug(f"Top groups: {top_groups}")
@@ -173,6 +209,11 @@ if __name__ == "__main__":
     # Filter papers and analyses.
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
     analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
+    confnotes = filter_confnotes(confnotes, top_groups)
+    pubnotes = filter_pubnotes(pubnotes, top_groups)
+
+    # print(confnotes)
+    # print(pubnotes)
 
     # Generate global overview pages.
     logging.info("=" * 80)
