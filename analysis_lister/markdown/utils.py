@@ -62,6 +62,7 @@ def analysis_block(
 
     s += f"> [!info] {_ana.title_short}\n> \n"
     s += _glance_links(_ana, prepend="> ")
+    s += _involved_subgroups(_ana, prepend="> ")
     s += "> **Supporting documents:**"
     if _ana.supporting_docs != []:
         s += f" {format_docs(_ana.supporting_docs)}\n> \n"
@@ -154,6 +155,24 @@ def _email_links(p: Union[Analysis, Paper], prepend: str = ""):
 
     s += "group conveners, subgroup conveners, PubCom chair\n"
     return s + "\n"
+
+
+def _involved_subgroups(p: Union[Analysis, Paper], prepend: str = ""):
+    """Return the list of involved subgroups for an analysis or a paper.
+
+    Parameters:
+        p: Analysis or Paper instance for which to provide the involved subgroups.
+        prepend: str to prepend to the returned string (for formatting).
+
+    Returns:
+        str object with the list of involved subgroups.
+
+    """
+    s = f"{prepend}**Involved subgroups:**<br>\n"
+    for subgroup in p.subgroups:
+        s += f"{prepend}* {subgroup}<br>\n"
+
+    return s + f"{prepend}\n"
 
 
 def _submission_status(p: Paper):
