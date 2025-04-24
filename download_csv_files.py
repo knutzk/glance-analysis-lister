@@ -19,7 +19,9 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
 from analysis_lister.glance.analysis import ANALYSIS_DATA_COLUMNS
+from analysis_lister.glance.confnotes import CONF_DATA_COLUMNS
 from analysis_lister.glance.paper import PAPER_DATA_COLUMNS
+from analysis_lister.glance.pubnotes import PUB_DATA_COLUMNS
 
 # Configure logging
 logging.basicConfig(
@@ -229,7 +231,7 @@ def main():
             "url": URLS["pubnotes"],
             "output_csv": CSV_DIR / "pubnotes.csv",
             "debug_file": "pubnotes.html",
-            "column_filter": None,
+            "column_filter": PUB_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "final_ref_code"},
         },
         {
@@ -237,7 +239,7 @@ def main():
             "url": URLS["confnotes"],
             "output_csv": CSV_DIR / "confnotes.csv",
             "debug_file": "confnotes.html",
-            "column_filter": None,
+            "column_filter": CONF_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "final_ref_code"},
         },
     ]
