@@ -1,36 +1,13 @@
 """Store information about papers from glance.
 
 
-Extract table from the glance web UI with the following columns:
-  - "Reference Code"
-  - "Short Title"
-  - "Public Short Title"
-  - "Full Title"
-  - "Status"
-  - "Phase State"
-  - "Run"
-  - "Leading Group"
-  - "Subgroups"
-  - "Supporting Documents"
-  - "Current Paper Draft"
-  - "Contact Editors"
-  - "Keywords"
-  - "Phase 1 Start Date"
-  - "Editorial Board"
-  - "Chairs"
-  - "ArXiv Reference Number"
-  - "ArXiv Reference URLs"
-  - "Figures"
-  - "Final Title (Tex)"
-  - "Journal of Final Submission"
-  - "arXiv Submission Date"
-  - "Journal Acceptance Date"
-  - "Final Journal Publication URLs"
-  - "Publication Date"
+Extract table from GLANCE web UI. All columns listed in the
+PAPER_DATA_COLUMNS dictionary are required inputs.
 
 """
 
-from attrs import define, field
+from attrs import define, field, validators
+from enum import Enum, auto
 import logging
 from typing import List
 
@@ -70,11 +47,21 @@ PAPER_DATA_COLUMNS = {
 }
 
 
+class PaperPubState(Enum):
+    """Enum for the publication state of a paper."""
+
+    SUBMITTED = auto()
+    PUBLISHED = auto()
+    ONGOING = auto()
+    UNKNOWN = auto()
+
+
 @define
 class Paper:
     """A class to hold information about a glance paper entry.
 
     Attributes:
+        al_pub_state: String with the analysis-lister publication state.
         arxiv_number: String with the arXiv identifier of the paper.
         arxiv_url: String with the URL to the arXiv entry.
         contact_editors: Comma-separated list of contact editors.
@@ -87,10 +74,8 @@ class Paper:
         editorial_board: Comma-separated list of EdBoard members.
         figure_url: String with the URL to the figures webpage.
         glance_url_analysis: String with the analysis GLANCE URL.
-        glance_url_paper: String with the paper GLANCE URL.
+        glance_url_publ: String with the publication GLANCE URL.
         inspire_url: String with the Inspire HEP URL.
-        is_published: Boolean whether the paper is published.
-        is_submitted: Boolean whether the paper is submitted.
         journal: String with the name of the journal of publication.
         journal_ref: String that holds the full journal reference.
         keywords: List of strings with keywords from GLANCE.
@@ -106,6 +91,9 @@ class Paper:
         top_subgroups: List of glance.subgroups.Subgroup objects.
     """
 
+    al_pub_state: PaperPubState = field(
+        validator=validators.instance_of(PaperPubState), init=False
+    )
     arxiv_number: str
     arxiv_url: str
     contact_editors: str
@@ -118,10 +106,8 @@ class Paper:
     editorial_board: str
     figure_url: str
     glance_url_analysis: str = field(init=False)
-    glance_url_paper: str = field(init=False)
+    glance_url_publ: str = field(init=False)
     inspire_url: str
-    is_published: bool
-    is_submitted: bool
     journal: str
     journal_ref: str = field(init=False)
     keywords: List[str]
@@ -166,8 +152,6 @@ class Paper:
             inspire_url=utils.format_url_inspire(
                 _dict["Final Journal Publication URLs"],
             ),
-            is_published=_dict["Publication Date"] != "",
-            is_submitted=_dict["arXiv Submission Date"] != "",
             journal=_dict["Journal of Final Submission"],
             keywords=_dict["Keywords"].split(", "),
             phase_state=_dict["Phase State"],
@@ -191,13 +175,31 @@ class Paper:
             "https://atlas-glance.cern.ch/atlas/analysis/analyses/details.php?"
             f"ref_code=ANA-{self.ref_code}"
         )
-        self.glance_url_paper = (
+        self.glance_url_publ = (
             "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
             f"ref_code={self.ref_code}"
         )
 
+        # Determine the paper publication state. If phase 1 or phase 2 are active,
+        # the paper is considered ongoing (which means that the corresponding
+        # analysis entry will be listed). Set to SUBMITTED if the paper if the
+        # submission date is set but the publication date is not. Set to PUBLISHED
+        # if the publication date is set. Set to UNKNOWN as a fallback.
+        if self.status == " Phase 1 is  Active ":
+            self.al_pub_state = PaperPubState.ONGOING
+        elif self.status == " Phase 2 is  Active ":
+            self.al_pub_state = PaperPubState.ONGOING
+        elif self.date_submission != "" and self.date_publication == "":
+            self.al_pub_state = PaperPubState.SUBMITTED
+        elif self.date_publication != "":
+            self.al_pub_state = PaperPubState.PUBLISHED
+        else:
+            self.al_pub_state = PaperPubState.UNKNOWN
+
+        logger.debug("Paper %s state %s", self.ref_code, self.al_pub_state)
+
         # Determine the journal reference string.
-        if self.is_submitted and not self.is_published and self.journal != "":
+        if self.al_pub_state == PaperPubState.SUBMITTED and self.journal != "":
             self.journal_ref = f"Submitted to {self.journal}"
         elif self.doi in journal_refs.JournalRefs:
             self.journal_ref = journal_refs.JournalRefs[self.doi]

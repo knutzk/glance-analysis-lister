@@ -204,8 +204,12 @@ def published_papers(
 
     """
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
-    n_submitted = sum(1 for p in subgroup_papers if not p.is_published)
-    n_published = sum(1 for p in subgroup_papers if p.is_published)
+    n_submitted = sum(
+        p.al_pub_state == paper.PaperPubState.SUBMITTED for p in subgroup_papers
+    )
+    n_published = sum(
+        p.al_pub_state == paper.PaperPubState.PUBLISHED for p in subgroup_papers
+    )
 
     logger.info(f'Writing output file "{output_dir}/published.md"')
     with open(output_dir / "published.md", "w", encoding="utf8") as _f:
@@ -226,13 +230,13 @@ def published_papers(
         )
         _f.write("## Submitted papers\n\n")
         for p in subgroup_papers:
-            if p.is_submitted and not p.is_published:
+            if p.al_pub_state == paper.PaperPubState.SUBMITTED:
                 logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
 
         _f.write("## Published papers\n\n")
         for p in subgroup_papers:
-            if p.is_published:
+            if p.al_pub_state == paper.PaperPubState.PUBLISHED:
                 logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
 

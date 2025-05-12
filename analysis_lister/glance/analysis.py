@@ -7,39 +7,20 @@ instantiated from a CSV file that is pulled from the GLANCE database. The
 GLANCE fields are converted into slightly more useful attributes that can be
 used to print information about collections of analyses.
 
-
-Extract table from the glance web UI with the following columns:
-  - "Reference Code"
-  - "Short Title"
-  - "Public Short Title"
-  - "Full Title"
-  - "Status"
-  - "Run"
-  - "Leading Group"
-  - "Subgroups"
-  - "Contact Editors"
-  - "Supporting Documents"
-  - "Keywords"
-  - "Phase State"
-  - "Phase 0 Start Date"
-  - "Analysis Contacts"
-  - "Analysis Contacts' Start Date"
-  - "Analysis Contacts' End Date"
-  - "Internal Note Editors"
-  - "Editorial Board"
-  - "Chairs"
-  - "Editorial Board Formed On"
-  - "Pre approval Meetings Dates"
-  - "PGC or SGC sign-off date"
-  - "Approval Meetings Dates"
+Extract table from the glance web UI. All columns listed in the
+ANALYSIS_DATA_COLUMNS dictionary are required inputs.
 
 """
 
-from attrs import define, field
+from attrs import define, field, validators
+from enum import Enum, auto
+import logging
 import re
 from typing import List
 
 from . import subgroups, utils
+
+logger = logging.getLogger(__name__)
 
 
 ANALYSIS_DATA_COLUMNS = {
@@ -69,11 +50,24 @@ ANALYSIS_DATA_COLUMNS = {
 }
 
 
+class AnalysisPubState(Enum):
+    """Enum for the publication state of an analysis."""
+
+    CLOSED = auto()
+    ONGOING_WO_EB = auto()
+    WITH_EB = auto()
+    PRE_APPROVED = auto()
+    APPROVED = auto()
+    PUB_PREPARATION = auto()
+    UNKNOWN = auto()
+
+
 @define
 class Analysis:
     """A class to hold information about a glance analysis entry.
 
     Attributes:
+        al_analysis_state: String with the analysis-lister analysis state.
         contacts: Comma-separated list of analysis contacts.
         contact_editors: Comma-separated list of contact editors.
         date_approval: String with the approval date.
@@ -82,7 +76,7 @@ class Analysis:
         date_preapproval: String with the  pre-approval date.
         editorial_board: Comma-separated list of EdBoard members.
         glance_url_analysis: String with the analysis GLANCE URL.
-        glance_url_paper: String with the paper GLANCE URL.
+        glance_url_publ: String with the publication GLANCE URL.
         int_note_editors: Comma-separated list of INT note editors.
         is_approved: Boolean whether the analysis is approved.
         is_closed: Boolean whether the analysis is closed.
@@ -103,6 +97,9 @@ class Analysis:
         top_subgroups: List of glance.subgroups.Subgroup objects.
     """
 
+    al_analysis_state: AnalysisPubState = field(
+        validator=validators.instance_of(AnalysisPubState), init=False
+    )
     contacts: str
     contact_editors: str
     date_approval: str
@@ -112,7 +109,7 @@ class Analysis:
     date_preapproval_signoff: str
     editorial_board: str
     glance_url_analysis: str = field(init=False)
-    glance_url_paper: str = field(init=False)
+    glance_url_publ: str
     int_note_editors: str
     is_approved: str
     is_closed: str
@@ -160,6 +157,7 @@ class Analysis:
                 _dict["Editorial Board"],
                 _dict["Chairs"],
             ),
+            glance_url_publ=None,
             int_note_editors=_dict["Internal Note Editors"],
             is_approved=_dict["Status"] == " Phase 0 is  Finished ",
             is_closed=_dict["Status"] == " Analysis is  Closed ",
@@ -185,10 +183,22 @@ class Analysis:
             "https://atlas-glance.cern.ch/atlas/analysis/analyses/details.php?"
             f"ref_code=ANA-{self.ref_code}"
         )
-        self.glance_url_paper = (
-            "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
-            f"ref_code={self.ref_code}"
-        )
+
+        # Determine the state of the analysis.
+        if self.status == "Analysis is  Closed ":
+            self.al_analysis_state = AnalysisPubState.CLOSED
+        elif self.status == " Phase 0 is  Finished ":
+            self.al_analysis_state = AnalysisPubState.APPROVED
+        elif self.date_preapproval_signoff != "":
+            self.al_analysis_state = AnalysisPubState.PRE_APPROVED
+        elif self.date_eb_formed != "":
+            self.al_analysis_state = AnalysisPubState.WITH_EB
+        elif self.status == " Phase 0 is  Active ":
+            self.al_analysis_state = AnalysisPubState.ONGOING_WO_EB
+        else:
+            self.al_analysis_state = AnalysisPubState.UNKNOWN
+
+        logger.debug(f"Analysis {self.ref_code} state: {self.al_analysis_state}")
 
         # Remove problematic characters from the titles.
         self.title_full = self.title_full.replace("|", "/")

@@ -30,9 +30,11 @@ def published(
     """
     logger.info("Generating published papers overview.")
 
-    n_published = sum(1 for x in list_of_papers if x.is_published)
+    n_published = sum(
+        x.al_pub_state == paper.PaperPubState.PUBLISHED for x in list_of_papers
+    )
     n_submitted = sum(
-        1 for x in list_of_papers if x.is_submitted and not x.is_published
+        x.al_pub_state == paper.PaperPubState.SUBMITTED for x in list_of_papers
     )
 
     logger.debug(f"Found {n_published} published and {n_submitted} submitted papers.")
@@ -63,13 +65,17 @@ def published(
             count = sum(1 for x in list_of_papers if g in x.top_subgroups)
             _f.write(f"    * {g.title}: {count} (")
             count = sum(
-                1 for x in list_of_papers if g in x.top_subgroups and x.is_published
+                1
+                for x in list_of_papers
+                if g in x.top_subgroups
+                and x.al_pub_state == paper.PaperPubState.PUBLISHED
             )
             _f.write(f"published: {count}, ")
             count = sum(
                 1
                 for x in list_of_papers
-                if g in x.top_subgroups and not x.is_published and x.is_submitted
+                if g in x.top_subgroups
+                and x.al_pub_state == paper.PaperPubState.SUBMITTED
             )
             _f.write(f"submitted: {count})\n")
 

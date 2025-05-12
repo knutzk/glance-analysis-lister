@@ -25,7 +25,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 import logging
 
-from analysis_lister.glance import analysis, confnotes, paper, pubnotes, subgroups
+from analysis_lister.glance import analysis, confnote, paper, pubnote, subgroups
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
@@ -73,8 +73,13 @@ def filter_papers(papers, threshold, top_groups):
         p
         for p in papers
         if any(x in p.subgroups for x in top_groups)
-        and p.is_submitted
-        and (not p.is_published or p.date_publication >= threshold)
+        and (
+            p.al_pub_state == paper.PaperPubState.SUBMITTED
+            or (
+                p.al_pub_state == paper.PaperPubState.PUBLISHED
+                and p.date_publication >= threshold
+            )
+        )
     ]
     logging.info(f"Filtered {len(filtered_papers)} papers with threshold {threshold}.")
     logging.debug(
@@ -84,19 +89,22 @@ def filter_papers(papers, threshold, top_groups):
     return filtered_papers
 
 
-def filter_analyses(analyses, ref_codes_unpublished, top_groups):
+def filter_analyses(analyses, top_groups):
     """Prepares a filtered list of analyses for overview pages."""
     filtered_analyses = [
         a
         for a in analyses
         if any(x in a.subgroups for x in top_groups)
-        and (a.is_in_phase0 or a.ref_code in ref_codes_unpublished)
+        and (
+            a.is_in_phase0
+            or a.al_analysis_state == analysis.AnalysisPubState.PUB_PREPARATION
+        )
         and not a.is_closed
     ]
     logging.info(f"Filtered {len(filtered_analyses)} active analyses.")
     logging.debug(
         f"Filter criteria: {top_groups} && "
-        "(in phase 0 || unpublished paper entry) && not closed"
+        "(in phase 0 || unpublished publication entry) && not closed"
     )
     return filtered_analyses
 
@@ -107,8 +115,7 @@ def filter_confnotes(confnotes, top_groups):
         c
         for c in confnotes
         if any(x in c.subgroups for x in top_groups)
-        and c.is_published
-        and not c.is_superseded
+        and c.al_pub_state == confnote.ConfNotePubState.PUBLISHED
     ]
     logging.info(f"Filtered {len(filtered_confnotes)} confnotes.")
     logging.debug(f"Filter criteria: {top_groups}")
@@ -121,8 +128,7 @@ def filter_pubnotes(pubnotes, top_groups):
         p
         for p in pubnotes
         if any(x in p.subgroups for x in top_groups)
-        and p.is_published
-        and not p.is_superseded
+        and p.al_pub_state == pubnote.PubNotePubState.PUBLISHED
     ]
     logging.info(f"Filtered {len(filtered_pubnotes)} pubnotes.")
     logging.debug(f"Filter criteria: {top_groups}")
@@ -184,36 +190,59 @@ if __name__ == "__main__":
     # Load papers and analyses data, exit if any file is missing.
     papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
-    confnotes = load_data("confnotes.csv", confnotes.ConfNote)
-    pubnotes = load_data("pubnotes.csv", pubnotes.PubNote)
+    confnotes = load_data("confnotes.csv", confnote.ConfNote)
+    pubnotes = load_data("pubnotes.csv", pubnote.PubNote)
 
     # Get modification time of the CSV files.
     mtime = determine_last_modified_time(
         [CSV_DIR / "papers.csv", CSV_DIR / "analyses.csv"]
     )
 
-    # Create a set of analyses where a paper entry is already created, but the paper
-    # is not yet submitted. In those cases, the analysis should be listed as ongoing
-    # even if it is not in phase 0. Same goes for CONF and PUB notes.
-    ref_codes_unpublished = {p.ref_code for p in papers if p.date_submission == ""}
-    ref_codes_unpublished |= {
-        p.tmp_ref_code.replace("CONF-", "") for p in confnotes if not p.is_published
-    }
-    ref_codes_unpublished |= {
-        p.tmp_ref_code.replace("PUB-", "") for p in pubnotes if not p.is_published
-    }
-    logging.debug(f"Unpublished reference codes: {ref_codes_unpublished}")
+    # Go through all analyses that finished phase 0 and check if their publication
+    # entries are created but not finished. If so, set the publication state to
+    # "unpublished" and the publication type accordingly.
+    for a in [x for x in analyses if x.is_approved]:
+        ref_code = a.ref_code
+        if ref_code in {
+            p.ref_code for p in papers if p.al_pub_state == paper.PaperPubState.ONGOING
+        }:
+            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.glance_url_publ = (
+                "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
+                f"ref_code={a.ref_code}"
+            )
+            logging.debug(f"Found ongoing paper for analysis {a.ref_code}")
+        elif ref_code in {
+            c.tmp_ref_code.replace("CONF-", "")
+            for c in confnotes
+            if c.al_pub_state == confnote.ConfNotePubState.ONGOING
+        }:
+            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.glance_url_publ = (
+                "https://atlas-glance.cern.ch/atlas/analysis/confnotes/details.php?"
+                f"ref_code=CONF-{a.ref_code}"
+            )
+            logging.debug(f"Found ongoing CONF note for analysis {a.ref_code}")
+        elif ref_code in {
+            p.tmp_ref_code.replace("PUB-", "")
+            for p in pubnotes
+            if p.al_pub_state == pubnote.PubNotePubState.ONGOING
+        }:
+            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.glance_url_publ = (
+                "https://atlas-glance.cern.ch/atlas/analysis/pubnotes/details.php?"
+                f"ref_code=PUB-{a.ref_code}"
+            )
+            logging.debug(f"Found ongoing PUB note for analysis {a.ref_code}")
+
     top_groups = [x.id for x in subgroups.TopGroups]
     logging.debug(f"Top groups: {top_groups}")
 
     # Filter papers and analyses.
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
-    analyses = filter_analyses(analyses, ref_codes_unpublished, top_groups)
+    analyses = filter_analyses(analyses, top_groups)
     confnotes = filter_confnotes(confnotes, top_groups)
     pubnotes = filter_pubnotes(pubnotes, top_groups)
-
-    # print(confnotes)
-    # print(pubnotes)
 
     # Generate global overview pages.
     logging.info("=" * 80)

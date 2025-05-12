@@ -18,10 +18,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-from analysis_lister.glance.analysis import ANALYSIS_DATA_COLUMNS
-from analysis_lister.glance.confnotes import CONF_DATA_COLUMNS
-from analysis_lister.glance.paper import PAPER_DATA_COLUMNS
-from analysis_lister.glance.pubnotes import PUB_DATA_COLUMNS
+from analysis_lister.glance import analysis, confnote, paper, pubnote
 
 # Configure logging
 logging.basicConfig(
@@ -215,7 +212,7 @@ def main():
             "url": URLS["analyses"],
             "output_csv": CSV_DIR / "analyses.csv",
             "debug_file": "analyses.html",
-            "column_filter": ANALYSIS_DATA_COLUMNS,
+            "column_filter": analysis.ANALYSIS_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "reference_code"},
         },
         {
@@ -223,7 +220,7 @@ def main():
             "url": URLS["papers"],
             "output_csv": CSV_DIR / "papers.csv",
             "debug_file": "papers.html",
-            "column_filter": PAPER_DATA_COLUMNS,
+            "column_filter": paper.PAPER_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "reference_code"},
         },
         {
@@ -231,7 +228,7 @@ def main():
             "url": URLS["pubnotes"],
             "output_csv": CSV_DIR / "pubnotes.csv",
             "debug_file": "pubnotes.html",
-            "column_filter": PUB_DATA_COLUMNS,
+            "column_filter": pubnote.PUB_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "final_ref_code"},
         },
         {
@@ -239,7 +236,7 @@ def main():
             "url": URLS["confnotes"],
             "output_csv": CSV_DIR / "confnotes.csv",
             "debug_file": "confnotes.html",
-            "column_filter": CONF_DATA_COLUMNS,
+            "column_filter": confnote.CONF_DATA_COLUMNS,
             "custom_params": {"s[0][name]": "final_ref_code"},
         },
     ]

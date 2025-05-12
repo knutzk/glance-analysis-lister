@@ -3,7 +3,8 @@
 
 """
 
-from attrs import define
+from attrs import define, field, validators
+from enum import Enum, auto
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,10 +14,21 @@ PUB_DATA_COLUMNS = {
     "Final URL": None,
     "Reference Code": None,
     "Short Title": None,
+    "Status": None,
     "Subroups": None,
     "Superseded By": None,
     "Temporary Reference Code": None,
 }
+
+
+class PubNotePubState(Enum):
+    """Enum for the publication state of a PUB note."""
+
+    INACTIVE = auto()
+    PUBLISHED = auto()
+    ONGOING = auto()
+    SUPERSEDED = auto()
+    UNKNOWN = auto()
 
 
 @define
@@ -24,19 +36,24 @@ class PubNote:
     """A class to hold information about a glance PUB note entry.
 
     Attributes:
-        is_published: Boolean indicating if the note is published.
-        is_superseded: Boolean indicating if the note is superseded.
+        al_pub_state: Enum for the publication state of the PUB note.
+        final_url: String with the final URL of the PUB note.
         ref_code: String with the paper reference code.
         subgroups: String with the subgroups.
+        superseded_by: String with the reference code of superseding entry.
         tmp_ref_code: String with the temporary reference code.
         title_short: String with the short title.
 
     """
 
-    is_published: bool
-    is_superseded: bool
+    al_pub_state: PubNotePubState = field(
+        validator=validators.instance_of(PubNotePubState), init=False
+    )
+    final_url: str
     ref_code: str
+    status: str
     subgroups: str
+    superseded_by: str
     tmp_ref_code: str
     title_short: str
 
@@ -54,14 +71,28 @@ class PubNote:
 
         """
         return cls(
-            is_published=_dict["Final URL"] != "",
-            is_superseded=_dict["Superseded By"] != "",
+            final_url=_dict["Final URL"],
             ref_code=_dict["Reference Code"],
+            status=_dict["Status"],
             subgroups=_dict["Subroups"].split(","),
+            superseded_by=_dict["Superseded By"],
             tmp_ref_code=_dict["Temporary Reference Code"],
             title_short=_dict["Short Title"],
         )
 
     def __attrs_post_init__(self):
         """Initialise those attributes derived from others."""
-        pass
+
+        # Determine the publication state of the PUB note.
+        if self.status == " Phase 1 is  Not started ":
+            self.al_pub_state = PubNotePubState.INACTIVE
+        elif self.superseded_by != "":
+            self.al_pub_state = PubNotePubState.SUPERSEDED
+        elif self.final_url != "":
+            self.al_pub_state = PubNotePubState.PUBLISHED
+        elif self.tmp_ref_code != self.ref_code:
+            self.al_pub_state = PubNotePubState.ONGOING
+        else:
+            self.al_pub_state = PubNotePubState.UNKNOWN
+
+        logger.debug(f"PUB note {self.ref_code} state: {self.al_pub_state}")

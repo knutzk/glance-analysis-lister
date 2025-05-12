@@ -100,7 +100,12 @@ def _glance_links(p: Union[Analysis, Paper], prepend: str = ""):
     if isinstance(p, Analysis) and not ("Phase 0" and "Finished" in p.status):
         return s + f"{prepend}\n"
 
-    s += f"{prepend}, [{p.ref_code}]({p.glance_url_paper}) (paper)\n"
+    if "confnotes/" in p.glance_url_publ:
+        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (CONF note)\n"
+    elif "pubnotes/" in p.glance_url_publ:
+        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (PUB note)\n"
+    else:
+        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (paper)\n"
     return s + f"{prepend}\n"
 
 
