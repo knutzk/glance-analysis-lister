@@ -44,6 +44,7 @@ class PubNote(GlanceEntry):
         tmp_ref_code: The temporary reference code of the PUB note.
 
     """
+
     al_pub_state: PubNotePubState = field(
         validator=validators.instance_of(PubNotePubState), init=False
     )

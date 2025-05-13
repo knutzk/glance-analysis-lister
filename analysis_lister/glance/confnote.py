@@ -42,6 +42,7 @@ class ConfNote(GlanceEntry):
         tmp_ref_code: The temporary reference code of the CONF note.
 
     """
+
     al_pub_state: ConfNotePubState = field(
         validator=validators.instance_of(ConfNotePubState), init=False
     )
