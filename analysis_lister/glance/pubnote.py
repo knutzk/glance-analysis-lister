@@ -4,9 +4,9 @@
 """
 
 from attrs import define, field, validators
-from enum import Enum, auto
 import logging
 
+from .enums import PubNotePubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
@@ -21,16 +21,6 @@ PUB_DATA_COLUMNS = {
     "Superseded By": None,
     "Temporary Reference Code": None,
 }
-
-
-class PubNotePubState(Enum):
-    """Enum for the publication state of a PUB note."""
-
-    INACTIVE = auto()
-    PUBLISHED = auto()
-    ONGOING = auto()
-    SUPERSEDED = auto()
-    UNKNOWN = auto()
 
 
 @define

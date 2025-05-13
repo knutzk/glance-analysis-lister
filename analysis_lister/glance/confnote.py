@@ -4,9 +4,9 @@
 """
 
 from attrs import define, field, validators
-from enum import Enum, auto
 import logging
 
+from .enums import ConfNotePubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
@@ -20,15 +20,6 @@ CONF_DATA_COLUMNS = {
     "Superseded By": None,
     "Temporary Reference Code": None,
 }
-
-
-class ConfNotePubState(Enum):
-    """Enum for the publication state of a CONF note."""
-
-    PUBLISHED = auto()
-    ONGOING = auto()
-    SUPERSEDED = auto()
-    UNKNOWN = auto()
 
 
 @define

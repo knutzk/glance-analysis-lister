@@ -7,13 +7,12 @@ PAPER_DATA_COLUMNS dictionary are required inputs.
 """
 
 from attrs import define, field, validators
-from enum import Enum, auto
 import logging
-from typing import List
 
 from ..lookup_dicts import journal_refs
 
-from . import subgroups, utils
+from . import utils
+from .enums import PaperPubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
@@ -46,15 +45,6 @@ PAPER_DATA_COLUMNS = {
     "Final Journal Publication URLs": None,
     "Publication Date": None,
 }
-
-
-class PaperPubState(Enum):
-    """Enum for the publication state of a paper."""
-
-    SUBMITTED = auto()
-    PUBLISHED = auto()
-    ONGOING = auto()
-    UNKNOWN = auto()
 
 
 @define

@@ -13,11 +13,11 @@ ANALYSIS_DATA_COLUMNS dictionary are required inputs.
 """
 
 from attrs import define, field, validators
-from enum import Enum, auto
 import logging
 import re
 
 from . import utils
+from .enums import AnalysisPubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
@@ -48,18 +48,6 @@ ANALYSIS_DATA_COLUMNS = {
     "PGC or SGC sign-off date": None,
     "Approval Meetings Dates": None,
 }
-
-
-class AnalysisPubState(Enum):
-    """Enum for the publication state of an analysis."""
-
-    CLOSED = auto()
-    ONGOING_WO_EB = auto()
-    WITH_EB = auto()
-    PRE_APPROVED = auto()
-    PUB_PREPARATION = auto()
-    PAST_PHASE0 = auto()
-    UNKNOWN = auto()
 
 
 @define
