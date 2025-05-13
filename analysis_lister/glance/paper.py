@@ -12,8 +12,9 @@ import logging
 from ..lookup_dicts import journal_refs
 
 from . import utils
-from .enums import PaperPubState
 from .glance_base import GlanceEntry
+from .enums import PaperPubState
+from .field_maps import FIELD_MAP_PAPER
 
 logger = logging.getLogger(__name__)
 
@@ -67,49 +68,21 @@ class Paper(GlanceEntry):
 
     @classmethod
     def from_dict(cls, _dict):
-        """Initialise the paper instance through a dictionary.
+        """Initialise the paper instance through a dictionary."""
+        parsed = {}
+        for key, (col, func) in FIELD_MAP_PAPER.items():
+            raw = _dict.get(col, "") if col else ""
+            parsed[key] = func(raw) if func else raw
 
-        Takes a exported CSV file from GLANCE as input and generates (for one
-        line of that CSV file) the corresponding instance of this class.
-
-        Parameters:
-            _dict: The dictionary with the info from the CSV file.
-
-        Returns: Instantiated class object.
-
-        """
-        return cls(
-            arxiv_number=_dict["ArXiv Reference Number"],
-            arxiv_url=_dict["ArXiv Reference URLs"],
-            contact_editors=_dict["Contact Editors"],
-            date_acceptance=_dict["Journal Acceptance Date"],
-            date_phase_one=_dict["Phase 1 Start Date"],
-            date_publication=_dict["Publication Date"],
-            date_submission=_dict["arXiv Submission Date"],
-            doi_url=utils.format_url_doi(_dict["Final Journal Publication URLs"]),
-            editorial_board=utils.format_editorial_board(
-                _dict["Editorial Board"],
-                _dict["Chairs"],
-            ),
-            figure_url=_dict["Figures"],
-            inspire_url=utils.format_url_inspire(
-                _dict["Final Journal Publication URLs"]
-            ),
-            journal=_dict["Journal of Final Submission"],
-            keywords=_dict["Keywords"].split(", "),
-            phase_state=_dict["Phase State"],
-            ref_code=_dict["Reference Code"],
-            run=_dict["Run"],
-            status=_dict["Status"],
-            subgroups=_dict["Subgroups"].split(","),
-            title_final_tex=_dict["Final Title (Tex)"],
-            title_full=_dict["Full Title"],
-            title_short=_dict["Short Title"],
-            title_short_public=_dict["Public Short Title"],
+        # custom fields
+        parsed["editorial_board"] = utils.format_editorial_board(
+            _dict["Editorial Board"], _dict["Chairs"]
         )
 
+        return cls(**parsed)
+
     def __attrs_post_init__(self):
-        """Initialise those attributes derived from others."""
+        """Post-initialization of paper instance."""
         super().__attrs_post_init__()
 
         self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
@@ -122,21 +95,21 @@ class Paper(GlanceEntry):
             self.al_pub_state = PaperPubState.ONGOING
         elif self.status == " Phase 2 is  Active ":
             self.al_pub_state = PaperPubState.ONGOING
-        elif self.date_submission != "" and self.date_publication == "":
+        elif self.date_submission and not self.date_publication:
             self.al_pub_state = PaperPubState.SUBMITTED
-        elif self.date_publication != "":
+        elif self.date_publication:
             self.al_pub_state = PaperPubState.PUBLISHED
         else:
             self.al_pub_state = PaperPubState.UNKNOWN
 
         logger.debug("Paper %s state %s", self.ref_code, self.al_pub_state)
 
-        if self.al_pub_state == PaperPubState.SUBMITTED and self.journal != "":
+        if self.al_pub_state == PaperPubState.SUBMITTED and self.journal:
             self.journal_ref = f"Submitted to {self.journal}"
         elif self.doi in journal_refs.JournalRefs:
             self.journal_ref = journal_refs.JournalRefs[self.doi]
         else:
             self.journal_ref = ""
 
-        if self.journal_ref == "" and self.doi != "":
+        if not self.journal_ref and self.doi:
             logger.warning("No journal reference found for DOI: %s", self.doi)

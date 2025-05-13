@@ -9,8 +9,9 @@ fields.CONF_DATA_COLUMNS dictionary are required inputs.
 from attrs import define, field, validators
 import logging
 
-from .enums import ConfNotePubState
 from .glance_base import GlanceEntry
+from .enums import ConfNotePubState
+from .field_maps import FIELD_MAP_CONFNOTE
 
 logger = logging.getLogger(__name__)
 
@@ -36,39 +37,25 @@ class ConfNote(GlanceEntry):
 
     @classmethod
     def from_dict(cls, _dict):
-        """Initialise the CONF note instance through a dictionary.
-
-        Takes a exported CSV file from GLANCE as input and generates (for one
-        line of that CSV file) the corresponding instance of this class.
-
-        Parameters:
-            _dict: The dictionary with the info from the CSV file.
-
-        Returns: Instantiated class object.
-
-        """
-        return cls(
-            final_url=_dict["Final URL"],
-            ref_code=_dict["Reference Code"],
-            subgroups=_dict["Subroups"].split(","),
-            superseded_by=_dict["Superseded By"],
-            tmp_ref_code=_dict["Temporary Reference Code"],
-            title_short=_dict["Short Title"],
-            title_full=_dict["Short Title"],  # Reuse as placeholder
-            title_short_public=_dict["Short Title"],  # Reuse as placeholder
-            status="",
-            phase_state="",
-            keywords=[],
-        )
+        """Initialise the CONF note instance through a dictionary."""
+        parsed = {
+            key: (
+                func(_dict[col])
+                if col and func
+                else (_dict.get(col, "") if col else func(""))
+            )
+            for key, (col, func) in FIELD_MAP_CONFNOTE.items()
+        }
+        return cls(**parsed)
 
     def __attrs_post_init__(self):
         """Post-initialization of CONF note instance."""
         super().__attrs_post_init__()
 
         # Determine the publication state of the CONF note.
-        if self.superseded_by != "":
+        if self.superseded_by:
             self.al_pub_state = ConfNotePubState.SUPERSEDED
-        elif self.final_url != "":
+        elif self.final_url:
             self.al_pub_state = ConfNotePubState.PUBLISHED
         elif self.tmp_ref_code != self.ref_code:
             self.al_pub_state = ConfNotePubState.ONGOING

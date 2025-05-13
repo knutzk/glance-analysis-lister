@@ -1,16 +1,9 @@
-"""Store information about PUB notes from glance.
-
-
-Extract table from GLANCE web UI. All columns listed in the
-fields.PUB_DATA_COLUMNS dictionary are required inputs.
-
-"""
-
 from attrs import define, field, validators
 import logging
 
-from .enums import PubNotePubState
 from .glance_base import GlanceEntry
+from .enums import PubNotePubState
+from .field_maps import FIELD_MAP_PUBNOTE
 
 logger = logging.getLogger(__name__)
 
@@ -36,41 +29,27 @@ class PubNote(GlanceEntry):
 
     @classmethod
     def from_dict(cls, _dict):
-        """Initialise the PUB note instance through a dictionary.
-
-        Takes a exported CSV file from GLANCE as input and generates (for one
-        line of that CSV file) the corresponding instance of this class.
-
-        Parameters:
-            _dict: The dictionary with the info from the CSV file.
-
-        Returns: Instantiated class object.
-
-        """
-        return cls(
-            final_url=_dict["Final URL"],
-            ref_code=_dict["Reference Code"],
-            status=_dict["Status"],
-            subgroups=_dict["Subroups"].split(","),
-            superseded_by=_dict["Superseded By"],
-            tmp_ref_code=_dict["Temporary Reference Code"],
-            title_short=_dict["Short Title"],
-            title_full=_dict["Short Title"],  # Reuse as placeholder
-            title_short_public=_dict["Short Title"],  # Reuse as placeholder
-            phase_state="",
-            keywords=[],
-        )
+        """Initialise the PUB note instance through a dictionary."""
+        parsed = {
+            key: (
+                func(_dict[col])
+                if col and func
+                else (_dict.get(col, "") if col else func(""))
+            )
+            for key, (col, func) in FIELD_MAP_PUBNOTE.items()
+        }
+        return cls(**parsed)
 
     def __attrs_post_init__(self):
-        """Post-initialization processing for PUB note."""
+        """Post-initialization of PUB note instance."""
         super().__attrs_post_init__()
 
         # Determine the publication state of the PUB note.
         if self.status == " Phase 1 is  Not started ":
             self.al_pub_state = PubNotePubState.INACTIVE
-        elif self.superseded_by != "":
+        elif self.superseded_by:
             self.al_pub_state = PubNotePubState.SUPERSEDED
-        elif self.final_url != "":
+        elif self.final_url:
             self.al_pub_state = PubNotePubState.PUBLISHED
         elif self.tmp_ref_code != self.ref_code:
             self.al_pub_state = PubNotePubState.ONGOING

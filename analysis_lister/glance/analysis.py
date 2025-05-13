@@ -14,11 +14,11 @@ fields.ANALYSIS_DATA_COLUMNS dictionary are required inputs.
 
 from attrs import define, field, validators
 import logging
-import re
 
 from . import utils
 from .enums import AnalysisPubState
 from .glance_base import GlanceEntry
+from .field_maps import FIELD_MAP_ANALYSIS
 
 logger = logging.getLogger(__name__)
 
@@ -64,46 +64,22 @@ class Analysis(GlanceEntry):
 
     @classmethod
     def from_dict(cls, _dict):
-        """Initialise the analysis instance through a dictionary.
+        """Initialise the analysis instance through a dictionary."""
+        parsed = {}
+        for key, (col, func) in FIELD_MAP_ANALYSIS.items():
+            raw = _dict.get(col, "") if col else ""
+            parsed[key] = func(raw) if func else raw
 
-        Takes a exported CSV file from GLANCE as input and generates (for one
-        line of that CSV file) the corresponding instance of this class.
-
-        Parameters:
-            _dict: The dictionary with the info from the CSV file.
-
-        Returns: Instantiated class object.
-
-        """
-        return cls(
-            contacts=utils.format_contacts(
-                _dict["Analysis Contacts"],
-                _dict["Analysis Contacts' End Date"],
-            ),
-            contact_editors=_dict["Contact Editors"],
-            date_approval=_dict["Approval Meetings Dates"],
-            date_eb_formed=_dict["Editorial Board Formed On"],
-            date_start=_dict["Phase 0 Start Date"],
-            date_preapproval=_dict["Pre approval Meetings Dates"],
-            date_preapproval_signoff=_dict["PGC or SGC sign-off date"],
-            editorial_board=utils.format_editorial_board(
-                _dict["Editorial Board"],
-                _dict["Chairs"],
-            ),
-            glance_url_publ=None,
-            int_note_editors=_dict["Internal Note Editors"],
-            keywords=_dict["Keywords"].split(", "),
-            leading_group=_dict["Leading Group"],
-            ref_code=utils.format_ref_code(_dict["Reference Code"]),
-            run=_dict["Run"],
-            phase_state=_dict["Phase State"],
-            status=_dict["Status"],
-            subgroups=re.split(r",(?=\S)", _dict["Subgroups"]),
-            supporting_docs=utils.format_supporting_docs(_dict["Supporting Documents"]),
-            title_full=_dict["Full Title"],
-            title_short_public=_dict["Public Short Title"],
-            title_short=_dict["Short Title"],
+        # special fields with multi-column dependencies
+        parsed["contacts"] = utils.format_contacts(
+            _dict["Analysis Contacts"], _dict["Analysis Contacts' End Date"]
         )
+        parsed["editorial_board"] = utils.format_editorial_board(
+            _dict["Editorial Board"], _dict["Chairs"]
+        )
+        parsed["glance_url_publ"] = None
+
+        return cls(**parsed)
 
     def __attrs_post_init__(self):
         """Post-initialisation of the analysis instance."""
