@@ -6,23 +6,15 @@ fields.CONF_DATA_COLUMNS dictionary are required inputs.
 
 """
 
-from attrs import define, field, fields, validators
+from attrs import define, field, validators
 import logging
 
 from .enums import ConfNotePubState
 from .analysis import Analysis
+from .field_maps import FIELD_MAP_CONFNOTE
+from .utils import get_init_fields
 
 logger = logging.getLogger(__name__)
-
-
-def get_init_fields(source_obj, target_cls):
-    """Return fields from source_obj that are init=True in target_cls."""
-    target_init_fields = {f.name for f in fields(target_cls) if f.init}
-    return {
-        name: getattr(source_obj, name)
-        for name in target_init_fields
-        if hasattr(source_obj, name)
-    }
 
 
 @define
@@ -46,8 +38,9 @@ class ConfNote(Analysis):
 
     @classmethod
     def from_analysis_and_dict(cls, base: Analysis, _dict: dict[str, str]):
+        """Create a CONF note instance from an analysis and a dictionary."""
         parsed = {}
-        for key, (col, func) in FIELD_MAP_CONF.items():
+        for key, (col, func) in FIELD_MAP_CONFNOTE.items():
             raw = _dict.get(col, "") if col else ""
             parsed[key] = func(raw) if func else raw
 

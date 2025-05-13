@@ -6,7 +6,7 @@ fields.PAPER_DATA_COLUMNS dictionary are required inputs.
 
 """
 
-from attrs import define, field, fields, validators
+from attrs import define, field, validators
 import logging
 
 from ..lookup_dicts import journal_refs
@@ -15,6 +15,7 @@ from . import utils
 from .analysis import Analysis
 from .enums import PaperPubState
 from .field_maps import FIELD_MAP_PAPER
+from .utils import get_init_fields
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +65,7 @@ class Paper(Analysis):
 
     @classmethod
     def from_analysis_and_dict(cls, base: Analysis, _dict: dict[str, str]):
-        def get_init_fields(source_obj, target_cls):
-            """Return fields from source_obj that are init=True in target_cls."""
-            target_init_fields = {f.name for f in fields(target_cls) if f.init}
-            return {
-                name: getattr(source_obj, name)
-                for name in target_init_fields
-                if hasattr(source_obj, name)
-            }
-
+        """Create a Paper instance from an analysis and a dictionary."""
         paper_fields = {}
         for key, (col, func) in FIELD_MAP_PAPER.items():
             raw = _dict.get(col, "") if col else ""

@@ -3,6 +3,8 @@
 
 """
 
+from attrs import fields as attrs_fields
+
 
 def format_contacts(contacts: str, end_dates: str) -> str:
     """Return the current analysis contacts of an analysis.
@@ -97,6 +99,25 @@ def format_url_inspire(urls: str) -> str:
     urls = ["http" + x for x in urls.split("http")[1:]]
     urls = list(filter(lambda a: "inspirehep.net" in a, urls))
     return urls[0] if urls else ""
+
+
+def get_init_fields(source_obj, target_cls):
+    """Return a dict of field values from source_obj that are init=True in target_cls.
+
+    Parameters:
+        source_obj: The source object from which to extract field values.
+        target_cls: The target class whose fields are to be matched.
+
+    Returns: A dictionary with field names as keys and their corresponding values from
+    source_obj.
+
+    """
+    target_init_fields = {f.name for f in attrs_fields(target_cls) if f.init}
+    return {
+        name: getattr(source_obj, name)
+        for name in target_init_fields
+        if hasattr(source_obj, name)
+    }
 
 
 def glance_analysis_url(ref_code: str) -> str:
