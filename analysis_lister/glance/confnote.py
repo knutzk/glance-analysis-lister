@@ -6,7 +6,7 @@ fields.CONF_DATA_COLUMNS dictionary are required inputs.
 
 """
 
-from attrs import define, field, validators
+from attrs import define
 import logging
 
 from .enums import PublicationState
