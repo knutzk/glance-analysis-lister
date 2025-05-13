@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 import logging
 
 from analysis_lister.glance import analysis, confnote, paper, pubnote, subgroups
+from analysis_lister.glance.enums import PublicationState
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
@@ -93,9 +94,6 @@ def load_promoted_data(file_name, cls, base_lookup, ref_extractor):
                 base_ref = ref_extractor(row)
                 base = base_lookup.get(base_ref)
                 if not base:
-                    logging.warning(
-                        f"No matching analysis found for {base_ref}. Skipping."
-                    )
                     continue
                 result.append(cls.from_analysis_and_dict(base, row))
             logging.info(f"Loaded {len(result)} enriched entries from {file_name}.")
@@ -112,9 +110,9 @@ def filter_papers(papers, threshold, top_groups):
         for p in papers
         if any(x in p.subgroups for x in top_groups)
         and (
-            p.al_pub_state == paper.PaperPubState.SUBMITTED
+            p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
             or (
-                p.al_pub_state == paper.PaperPubState.PUBLISHED
+                p.pub_state == PublicationState.PUBLISHED
                 and p.date_publication >= threshold
             )
         )
@@ -133,12 +131,12 @@ def filter_analyses(analyses, top_groups):
         a
         for a in analyses
         if any(x in a.subgroups for x in top_groups)
-        and a.al_analysis_state
+        and a.pub_state
         in [
-            analysis.AnalysisPubState.ONGOING_WO_EB,
-            analysis.AnalysisPubState.WITH_EB,
-            analysis.AnalysisPubState.PRE_APPROVED,
-            analysis.AnalysisPubState.PUB_PREPARATION,
+            PublicationState.ONGOING_WO_EB,
+            PublicationState.ONGOING_WITH_EB,
+            PublicationState.PREAPPROVED,
+            PublicationState.PHASE1_OR_2,
         ]
     ]
     logging.info(f"Filtered {len(filtered_analyses)} active analyses.")
@@ -155,7 +153,7 @@ def filter_confnotes(confnotes, top_groups):
         c
         for c in confnotes
         if any(x in c.subgroups for x in top_groups)
-        and c.al_pub_state == confnote.ConfNotePubState.PUBLISHED
+        and c.pub_state == confnote.ConfNotePubState.PUBLISHED
     ]
     logging.info(f"Filtered {len(filtered_confnotes)} confnotes.")
     logging.debug(f"Filter criteria: {top_groups}")
@@ -168,7 +166,7 @@ def filter_pubnotes(pubnotes, top_groups):
         p
         for p in pubnotes
         if any(x in p.subgroups for x in top_groups)
-        and p.al_pub_state == pubnote.PubNotePubState.PUBLISHED
+        and p.pub_state == PublicationState.PUBLISHED
     ]
     logging.info(f"Filtered {len(filtered_pubnotes)} pubnotes.")
     logging.debug(f"Filter criteria: {top_groups}")
@@ -260,16 +258,12 @@ if __name__ == "__main__":
     # Go through all analyses that finished phase 0 and check if their publication
     # entries are created but not finished. If so, set the publication state to
     # "unpublished" and the publication type accordingly.
-    for a in [
-        x
-        for x in analyses
-        if x.al_analysis_state == analysis.AnalysisPubState.PAST_PHASE0
-    ]:
+    for a in [x for x in analyses if x.pub_state == PublicationState.PAST_PHASE0]:
         ref_code = a.ref_code
         if ref_code in {
-            p.ref_code for p in papers if p.al_pub_state == paper.PaperPubState.ONGOING
+            p.ref_code for p in papers if p.pub_state == PublicationState.PHASE1_OR_2
         }:
-            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.pub_state = PublicationState.PHASE1_OR_2
             a.glance_url_publ = (
                 "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
                 f"ref_code={a.ref_code}"
@@ -278,9 +272,9 @@ if __name__ == "__main__":
         elif ref_code in {
             c.tmp_ref_code.replace("CONF-", "")
             for c in confnotes
-            if c.al_pub_state == confnote.ConfNotePubState.ONGOING
+            if c.pub_state == PublicationState.PHASE1_OR_2
         }:
-            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.pub_state = PublicationState.PHASE1_OR_2
             a.glance_url_publ = (
                 "https://atlas-glance.cern.ch/atlas/analysis/confnotes/details.php?"
                 f"ref_code=CONF-{a.ref_code}"
@@ -289,9 +283,9 @@ if __name__ == "__main__":
         elif ref_code in {
             p.tmp_ref_code.replace("PUB-", "")
             for p in pubnotes
-            if p.al_pub_state == pubnote.PubNotePubState.ONGOING
+            if p.pub_state == PublicationState.PHASE1_OR_2
         }:
-            a.al_analysis_state = analysis.AnalysisPubState.PUB_PREPARATION
+            a.pub_state = PublicationState.PHASE1_OR_2
             a.glance_url_publ = (
                 "https://atlas-glance.cern.ch/atlas/analysis/pubnotes/details.php?"
                 f"ref_code=PUB-{a.ref_code}"

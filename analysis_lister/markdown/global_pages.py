@@ -7,6 +7,7 @@ from typing import List
 import logging
 from pathlib import Path
 from analysis_lister.glance import analysis, paper, subgroups
+from analysis_lister.glance.enums import PublicationState
 from . import utils
 
 # Set up logging
@@ -30,11 +31,9 @@ def published(
     """
     logger.info("Generating published papers overview.")
 
-    n_published = sum(
-        x.al_pub_state == paper.PaperPubState.PUBLISHED for x in list_of_papers
-    )
+    n_published = sum(x.pub_state == PublicationState.PUBLISHED for x in list_of_papers)
     n_submitted = sum(
-        x.al_pub_state == paper.PaperPubState.SUBMITTED for x in list_of_papers
+        x.pub_state == PublicationState.SUBMITTED_TO_JOURNAL for x in list_of_papers
     )
 
     logger.debug(f"Found {n_published} published and {n_submitted} submitted papers.")
@@ -67,15 +66,14 @@ def published(
             count = sum(
                 1
                 for x in list_of_papers
-                if g in x.top_subgroups
-                and x.al_pub_state == paper.PaperPubState.PUBLISHED
+                if g in x.top_subgroups and x.pub_state == PublicationState.PUBLISHED
             )
             _f.write(f"published: {count}, ")
             count = sum(
                 1
                 for x in list_of_papers
                 if g in x.top_subgroups
-                and x.al_pub_state == paper.PaperPubState.SUBMITTED
+                and x.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
             )
             _f.write(f"submitted: {count})\n")
 
@@ -171,10 +169,10 @@ def ongoing_analyses(
                 1
                 for x in list_of_analyses
                 if g in x.top_subgroups
-                and x.al_analysis_state
+                and x.pub_state
                 in [
-                    analysis.AnalysisPubState.PRE_APPROVED,
-                    analysis.AnalysisPubState.PUB_PREPARATION,
+                    PublicationState.PREAPPROVED,
+                    PublicationState.PHASE1_OR_2,
                 ]
             )
             _f.write(f"pre-approved: {count}, ")
@@ -182,14 +180,14 @@ def ongoing_analyses(
                 1
                 for x in list_of_analyses
                 if g in x.top_subgroups
-                and x.al_analysis_state == analysis.AnalysisPubState.WITH_EB
+                and x.pub_state == PublicationState.ONGOING_WITH_EB
             )
             _f.write(f"with EdBoard: {count}, ")
             count = sum(
                 1
                 for x in list_of_analyses
                 if g in x.top_subgroups
-                and x.al_analysis_state == analysis.AnalysisPubState.ONGOING_WO_EB
+                and x.pub_state == PublicationState.ONGOING_WO_EB
             )
             _f.write(f"no EdBoard: {count})\n")
 
@@ -202,30 +200,28 @@ def ongoing_analyses(
         _f.write(
             provide_counts(
                 list_of_analyses,
-                lambda x: x.al_analysis_state
-                == analysis.AnalysisPubState.PUB_PREPARATION,
+                lambda x: x.pub_state == PublicationState.PHASE1_OR_2,
             )
         )
         _f.write("\n        * Pre-approved: ")
         _f.write(
             provide_counts(
                 list_of_analyses,
-                lambda x: x.al_analysis_state == analysis.AnalysisPubState.PRE_APPROVED,
+                lambda x: x.pub_state == PublicationState.PREAPPROVED,
             )
         )
         _f.write("\n        * With EdBoard: ")
         _f.write(
             provide_counts(
                 list_of_analyses,
-                lambda x: x.al_analysis_state == analysis.AnalysisPubState.WITH_EB,
+                lambda x: x.pub_state == PublicationState.ONGOING_WITH_EB,
             )
         )
         _f.write("\n        * No EdBoard: ")
         _f.write(
             provide_counts(
                 list_of_analyses,
-                lambda x: x.al_analysis_state
-                == analysis.AnalysisPubState.ONGOING_WO_EB,
+                lambda x: x.pub_state == PublicationState.ONGOING_WO_EB,
             )
         )
         _f.write("\n\n\n")
@@ -243,11 +239,11 @@ def ongoing_analyses(
 
             tickmark = "&#10003;&nbsp;"
             state_to_n_ticks = {
-                analysis.AnalysisPubState.PAST_PHASE0: 3,
-                analysis.AnalysisPubState.PRE_APPROVED: 2,
-                analysis.AnalysisPubState.WITH_EB: 1,
+                PublicationState.PAST_PHASE0: 3,
+                PublicationState.PREAPPROVED: 2,
+                PublicationState.ONGOING_WITH_EB: 1,
             }
-            n_ticks = state_to_n_ticks.get(a.al_analysis_state, 0)
+            n_ticks = state_to_n_ticks.get(a.pub_state, 0)
 
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '

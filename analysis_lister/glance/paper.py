@@ -13,7 +13,7 @@ from ..lookup_dicts import journal_refs
 
 from . import utils
 from .analysis import Analysis
-from .enums import PaperPubState
+from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
 from .utils import get_init_fields
 
@@ -25,7 +25,6 @@ class Paper(Analysis):
     """A class representing a published analysis with additional paper metadata.
 
     Attributes:
-        al_pub_state: Enum for the publication state of the paper.
         arxiv_number: String with the arXiv number of the paper.
         arxiv_url: String with the arXiv URL of the paper.
         date_acceptance: String with the journal acceptance date.
@@ -44,9 +43,6 @@ class Paper(Analysis):
 
     """
 
-    al_pub_state: PaperPubState = field(
-        validator=validators.instance_of(PaperPubState), init=False
-    )
     arxiv_number: str
     arxiv_url: str
     date_acceptance: str
@@ -84,20 +80,20 @@ class Paper(Analysis):
         # the paper is considered ongoing (which means that the corresponding
         # analysis entry will be listed). )
         if self.status_paper == " Phase 1 is  Active ":
-            self.al_pub_state = PaperPubState.ONGOING
+            self.pub_state = PublicationState.PHASE1_OR_2
         elif self.status_paper == " Phase 2 is  Active ":
-            self.al_pub_state = PaperPubState.ONGOING
+            self.pub_state = PublicationState.PHASE1_OR_2
         elif self.date_submission and not self.date_publication:
-            self.al_pub_state = PaperPubState.SUBMITTED
+            self.pub_state = PublicationState.SUBMITTED_TO_JOURNAL
         elif self.date_publication:
-            self.al_pub_state = PaperPubState.PUBLISHED
+            self.pub_state = PublicationState.PUBLISHED
         else:
-            self.al_pub_state = PaperPubState.UNKNOWN
+            self.pub_state = PublicationState.UNKNOWN
             logger.error("Paper %s has unknown publication state", self.ref_code)
 
-        logger.debug("Paper %s state %s", self.ref_code, self.al_pub_state)
+        logger.debug("Paper %s state %s", self.ref_code, self.pub_state)
 
-        if self.al_pub_state == PaperPubState.SUBMITTED and self.journal:
+        if self.pub_state == PublicationState.SUBMITTED_TO_JOURNAL and self.journal:
             self.journal_ref = f"Submitted to {self.journal}"
         elif self.doi in journal_refs.JournalRefs:
             self.journal_ref = journal_refs.JournalRefs[self.doi]

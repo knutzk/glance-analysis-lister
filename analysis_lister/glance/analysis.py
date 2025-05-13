@@ -17,7 +17,7 @@ import logging
 from typing import List
 
 from . import subgroups, utils
-from .enums import AnalysisPubState
+from .enums import PublicationState
 from .field_maps import FIELD_MAP_ANALYSIS
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class Analysis:
     """A class to hold information about a glance analysis entry.
 
     Attributes:
-        al_analysis_state: Enum for the publication state of the analysis.
+        pub_state: Enum for the publication state of the analysis.
         contacts: String with the analysis contacts.
         contact_editors: String with the contact editors.
         date_approval: String with the date of approval meetings.
@@ -45,8 +45,8 @@ class Analysis:
 
     """
 
-    al_analysis_state: AnalysisPubState = field(
-        validator=validators.instance_of(AnalysisPubState), init=False
+    pub_state: PublicationState = field(
+        validator=validators.instance_of(PublicationState), init=False
     )
     contacts: str
     contact_editors: str
@@ -103,17 +103,17 @@ class Analysis:
 
         # Determine the state of the analysis.
         if self.status == " Analysis is  Closed ":
-            self.al_analysis_state = AnalysisPubState.CLOSED
+            self.pub_state = PublicationState.CLOSED
         elif self.status == " Phase 0 is  Finished ":
-            self.al_analysis_state = AnalysisPubState.PAST_PHASE0
+            self.pub_state = PublicationState.PAST_PHASE0
         elif self.date_preapproval_signoff != "":
-            self.al_analysis_state = AnalysisPubState.PRE_APPROVED
+            self.pub_state = PublicationState.PREAPPROVED
         elif self.date_eb_formed != "":
-            self.al_analysis_state = AnalysisPubState.WITH_EB
+            self.pub_state = PublicationState.ONGOING_WITH_EB
         elif self.status == " Phase 0 is  Active ":
-            self.al_analysis_state = AnalysisPubState.ONGOING_WO_EB
+            self.pub_state = PublicationState.ONGOING_WO_EB
         else:
-            self.al_analysis_state = AnalysisPubState.UNKNOWN
+            self.pub_state = PublicationState.UNKNOWN
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
 
-        logger.debug("Analysis %s state: %s", self.ref_code, self.al_analysis_state)
+        logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)

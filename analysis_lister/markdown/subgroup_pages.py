@@ -6,6 +6,7 @@
 from . import utils
 from pathlib import Path
 from analysis_lister.glance import analysis, paper
+from analysis_lister.glance.enums import PublicationState
 import logging
 
 # Set up logging
@@ -56,22 +57,22 @@ def ongoing_analyses(
         )
         _f.write("## Analyses beyond pre-approval\n\n\n")
         for a in subgroup_analyses:
-            if a.al_analysis_state in [
-                analysis.AnalysisPubState.PRE_APPROVED,
-                analysis.AnalysisPubState.PUB_PREPARATION,
+            if a.pub_state in [
+                PublicationState.PREAPPROVED,
+                PublicationState.PHASE1_OR_2,
             ]:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses with EdBoard\n\n\n")
         for a in subgroup_analyses:
-            if a.al_analysis_state == analysis.AnalysisPubState.WITH_EB:
+            if a.pub_state == PublicationState.ONGOING_WITH_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses w/o EdBoard\n\n\n")
         for a in subgroup_analyses:
-            if a.al_analysis_state == analysis.AnalysisPubState.ONGOING_WO_EB:
+            if a.pub_state == PublicationState.ONGOING_WO_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
@@ -143,11 +144,11 @@ def overview(
 
             tickmark = "&#10003;&nbsp;"
             state_to_n_ticks = {
-                analysis.AnalysisPubState.PAST_PHASE0: 3,
-                analysis.AnalysisPubState.PRE_APPROVED: 2,
-                analysis.AnalysisPubState.WITH_EB: 1,
+                PublicationState.PAST_PHASE0: 3,
+                PublicationState.PREAPPROVED: 2,
+                PublicationState.ONGOING_WITH_EB: 1,
             }
-            n_ticks = state_to_n_ticks.get(a.al_analysis_state, 0)
+            n_ticks = state_to_n_ticks.get(a.pub_state, 0)
 
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
@@ -215,10 +216,10 @@ def published_papers(
     """
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
     n_submitted = sum(
-        p.al_pub_state == paper.PaperPubState.SUBMITTED for p in subgroup_papers
+        p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL for p in subgroup_papers
     )
     n_published = sum(
-        p.al_pub_state == paper.PaperPubState.PUBLISHED for p in subgroup_papers
+        p.pub_state == PublicationState.PUBLISHED for p in subgroup_papers
     )
 
     logger.info(f'Writing output file "{output_dir}/published.md"')
@@ -240,13 +241,13 @@ def published_papers(
         )
         _f.write("## Submitted papers\n\n")
         for p in subgroup_papers:
-            if p.al_pub_state == paper.PaperPubState.SUBMITTED:
+            if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL:
                 logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
 
         _f.write("## Published papers\n\n")
         for p in subgroup_papers:
-            if p.al_pub_state == paper.PaperPubState.PUBLISHED:
+            if p.pub_state == PublicationState.PUBLISHED:
                 logger.debug(f"Writing paper block for {p.ref_code}.")
                 _f.write(utils.paper_block(p))
 

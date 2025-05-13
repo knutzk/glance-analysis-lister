@@ -31,8 +31,6 @@ ANALYSIS_DATA_COLUMNS = {
 CONF_DATA_COLUMNS = {
     "Final URL": None,
     "Reference Code": None,
-    "Short Title": None,
-    "Subroups": None,
     "Superseded By": None,
     "Temporary Reference Code": None,
 }
@@ -68,9 +66,7 @@ PAPER_DATA_COLUMNS = {
 PUB_DATA_COLUMNS = {
     "Final URL": None,
     "Reference Code": None,
-    "Short Title": None,
     "Status": None,
-    "Subroups": None,
     "Superseded By": None,
     "Temporary Reference Code": None,
 }

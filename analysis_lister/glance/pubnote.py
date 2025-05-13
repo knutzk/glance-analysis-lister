@@ -1,7 +1,7 @@
 from attrs import define, field, validators, fields
 import logging
 
-from .enums import PubNotePubState
+from .enums import PublicationState
 from .analysis import Analysis
 from .field_maps import FIELD_MAP_PUBNOTE
 from .utils import get_init_fields
@@ -14,7 +14,6 @@ class PubNote(Analysis):
     """A class representing a PUB note publication derived from an analysis.
 
     Attributes:
-        al_pub_state: Enum for the publication state of the PUB note.
         final_url: The final URL of the PUB note.
         status_pub: The status of the PUB note.
         superseded_by: The reference code of the note that supersedes this one.
@@ -22,9 +21,6 @@ class PubNote(Analysis):
 
     """
 
-    al_pub_state: PubNotePubState = field(
-        validator=validators.instance_of(PubNotePubState), init=False
-    )
     final_url: str
     status_pub: str
     superseded_by: str
@@ -46,14 +42,17 @@ class PubNote(Analysis):
 
         # Determine the publication state of the PUB note.
         if self.status_pub == " Phase 1 is  Not started ":
-            self.al_pub_state = PubNotePubState.INACTIVE
+            self.pub_state = PublicationState.UNKNOWN
+            logger.warning(
+                "PUB note %s has status 'Phase 1 is Not started'", self.ref_code
+            )
         elif self.superseded_by:
-            self.al_pub_state = PubNotePubState.SUPERSEDED
+            self.pub_state = PublicationState.SUPERSEDED
         elif self.final_url:
-            self.al_pub_state = PubNotePubState.PUBLISHED
+            self.pub_state = PublicationState.PUBLISHED
         elif self.tmp_ref_code != self.ref_code:
-            self.al_pub_state = PubNotePubState.ONGOING
+            self.pub_state = PublicationState.PHASE1_OR_2
         else:
-            self.al_pub_state = PubNotePubState.UNKNOWN
+            self.pub_state = PublicationState.UNKNOWN
 
-        logger.debug("PUB note %s state: %s", self.ref_code, self.al_pub_state)
+        logger.debug("PUB note %s state: %s", self.ref_code, self.pub_state)

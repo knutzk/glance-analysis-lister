@@ -9,7 +9,7 @@ fields.CONF_DATA_COLUMNS dictionary are required inputs.
 from attrs import define, field, validators
 import logging
 
-from .enums import ConfNotePubState
+from .enums import PublicationState
 from .analysis import Analysis
 from .field_maps import FIELD_MAP_CONFNOTE
 from .utils import get_init_fields
@@ -22,16 +22,12 @@ class ConfNote(Analysis):
     """A class representing a CONF note publication derived from an analysis.
 
     Attributes:
-        al_pub_state: Enum for the publication state of the CONF note.
         final_url: The final URL of the CONF note.
         superseded_by: The reference code of the note that supersedes this one.
         tmp_ref_code: The temporary reference code of the CONF note.
 
     """
 
-    al_pub_state: ConfNotePubState = field(
-        validator=validators.instance_of(ConfNotePubState), init=False
-    )
     final_url: str
     superseded_by: str
     tmp_ref_code: str
@@ -52,12 +48,12 @@ class ConfNote(Analysis):
 
         # Determine the publication state of the CONF note.
         if self.superseded_by:
-            self.al_pub_state = ConfNotePubState.SUPERSEDED
+            self.pub_state = PublicationState.SUPERSEDED
         elif self.final_url:
-            self.al_pub_state = ConfNotePubState.PUBLISHED
+            self.pub_state = PublicationState.PUBLISHED
         elif self.tmp_ref_code != self.ref_code:
-            self.al_pub_state = ConfNotePubState.ONGOING
+            self.pub_state = PublicationState.PHASE1_OR_2
         else:
-            self.al_pub_state = ConfNotePubState.UNKNOWN
+            self.pub_state = PublicationState.UNKNOWN
 
-        logger.debug("CONF note %s state: %s", self.ref_code, self.al_pub_state)
+        logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)
