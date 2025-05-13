@@ -1,6 +1,9 @@
 """Store information about PUB notes from glance.
 
 
+Extract table from GLANCE web UI. All columns listed in the
+fields.PUB_DATA_COLUMNS dictionary are required inputs.
+
 """
 
 from attrs import define, field, validators
@@ -10,17 +13,6 @@ from .enums import PubNotePubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
-
-
-PUB_DATA_COLUMNS = {
-    "Final URL": None,
-    "Reference Code": None,
-    "Short Title": None,
-    "Status": None,
-    "Subroups": None,
-    "Superseded By": None,
-    "Temporary Reference Code": None,
-}
 
 
 @define

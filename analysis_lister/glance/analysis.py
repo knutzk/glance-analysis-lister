@@ -8,7 +8,7 @@ GLANCE fields are converted into slightly more useful attributes that can be
 used to print information about collections of analyses.
 
 Extract table from the glance web UI. All columns listed in the
-ANALYSIS_DATA_COLUMNS dictionary are required inputs.
+fields.ANALYSIS_DATA_COLUMNS dictionary are required inputs.
 
 """
 
@@ -21,33 +21,6 @@ from .enums import AnalysisPubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
-
-
-ANALYSIS_DATA_COLUMNS = {
-    "Reference Code": None,
-    "Short Title": None,
-    "Public Short Title": None,
-    "Full Title": None,
-    "Status": None,
-    "Run": None,
-    "Leading Group": None,
-    "Subgroups": None,
-    "Contact Editors": None,
-    "Supporting Documents": None,
-    "Keywords": None,
-    "Phase State": None,
-    "Phase 0 Start Date": None,
-    "Analysis Contacts": None,
-    "Analysis Contacts' Start Date": None,
-    "Analysis Contacts' End Date": None,
-    "Internal Note Editors": None,
-    "Editorial Board": None,
-    "Chairs": None,
-    "Editorial Board Formed On": None,
-    "Pre approval Meetings Dates": None,
-    "PGC or SGC sign-off date": None,
-    "Approval Meetings Dates": None,
-}
 
 
 @define

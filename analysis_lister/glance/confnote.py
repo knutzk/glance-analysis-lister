@@ -1,6 +1,9 @@
 """Store information about CONF notes from glance.
 
 
+Extract table from GLANCE web UI. All columns listed in the
+fields.CONF_DATA_COLUMNS dictionary are required inputs.
+
 """
 
 from attrs import define, field, validators
@@ -10,16 +13,6 @@ from .enums import ConfNotePubState
 from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
-
-
-CONF_DATA_COLUMNS = {
-    "Final URL": None,
-    "Reference Code": None,
-    "Short Title": None,
-    "Subroups": None,
-    "Superseded By": None,
-    "Temporary Reference Code": None,
-}
 
 
 @define
