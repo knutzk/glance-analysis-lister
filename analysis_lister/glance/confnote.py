@@ -43,7 +43,17 @@ class ConfNote(Analysis):
         """Post-initialization of CONF note instance."""
         super().__attrs_post_init__()
 
-        # Determine the publication state of the CONF note.
+        # Determine the publication state of the CONF note. As this class
+        # should only be instantiated for finished analysis records, issue
+        # a warning if the publication state is not set to PAST_PHASE0.
+        if self.pub_state != PublicationState.PAST_PHASE0:
+            logger.warning(
+                "CONF note %s has state '%s' while it should be '%s'",
+                self.ref_code,
+                self.pub_state,
+                PublicationState.PAST_PHASE0,
+            )
+
         if self.superseded_by:
             self.pub_state = PublicationState.SUPERSEDED
         elif self.final_url:

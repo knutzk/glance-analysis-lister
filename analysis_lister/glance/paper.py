@@ -73,9 +73,17 @@ class Paper(Analysis):
         self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
         self.glance_url_publ = utils.glance_paper_url(self.ref_code)
 
-        # Determine the paper publication state. If phase 1 or phase 2 are active,
-        # the paper is considered ongoing (which means that the corresponding
-        # analysis entry will be listed). )
+        # Determine the publication state of the paper. As this class should
+        # only be instantiated for finished analysis records, issue a warning
+        # if the publication state is not set to PAST_PHASE0.
+        if self.pub_state != PublicationState.PAST_PHASE0:
+            logger.warning(
+                "Paper %s has state '%s' while it should be '%s'",
+                self.ref_code,
+                self.pub_state,
+                PublicationState.PAST_PHASE0,
+            )
+
         if self.status_paper == " Phase 1 is  Active ":
             self.pub_state = PublicationState.PHASE1_OR_2
         elif self.status_paper == " Phase 2 is  Active ":

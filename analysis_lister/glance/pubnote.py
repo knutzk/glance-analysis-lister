@@ -45,7 +45,17 @@ class PubNote(Analysis):
         """Post-initialization of PUB note instance."""
         super().__attrs_post_init__()
 
-        # Determine the publication state of the PUB note.
+        # Determine the publication state of the PUB note. As this class
+        # should only be instantiated for finished analysis records, issue
+        # a warning if the publication state is not set to PAST_PHASE0.
+        if self.pub_state != PublicationState.PAST_PHASE0:
+            logger.warning(
+                "PUB note %s has state '%s' while it should be '%s'",
+                self.ref_code,
+                self.pub_state,
+                PublicationState.PAST_PHASE0,
+            )
+
         if self.status_pub == " Phase 1 is  Not started ":
             self.pub_state = PublicationState.UNKNOWN
             logger.warning(

@@ -102,6 +102,7 @@ class Analysis:
         if self.status == " Analysis is  Closed ":
             self.pub_state = PublicationState.CLOSED
         elif self.status == " Phase 0 is  Finished ":
+            # This may later be changed by an associated paper/CONF/PUB entry.
             self.pub_state = PublicationState.PAST_PHASE0
         elif self.date_preapproval_signoff != "":
             self.pub_state = PublicationState.PREAPPROVED
