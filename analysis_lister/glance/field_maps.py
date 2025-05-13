@@ -53,6 +53,21 @@ FIELD_MAP_ANALYSIS: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "title_short": ("Short Title", None),
 }
 
+# Not initialised in the constructor, but in the post-init method.
+EXTRA_COLUMNS_ANALYSIS = [
+    "Analysis Contacts",
+    "Analysis Contacts' Start Date",
+    "Analysis Contacts' End Date",
+    "Editorial Board",
+    "Chairs",
+]
+
+# Required columns in the analysis CSV file.
+REQUIRED_COLUMNS_ANALYSIS = [
+    *(col for col, _ in FIELD_MAP_ANALYSIS.values()),
+    *EXTRA_COLUMNS_ANALYSIS,
+]
+
 FIELD_MAP_PAPER: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "arxiv_number": ("ArXiv Reference Number", None),
     "arxiv_url": ("ArXiv Reference URLs", None),
@@ -68,11 +83,45 @@ FIELD_MAP_PAPER: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "title_final_tex": ("Final Title (Tex)", None),
 }
 
+# Not initialised in the constructor, but in the post-init method.
+EXTRA_COLUMNS_PAPER = [
+    "Chairs",
+    "Contact Editors",
+    "Current Paper Draft",
+    "Editorial Board",
+    "Full Title",
+    "Keywords",
+    "Leading Group",
+    "Phase State",
+    "Public Short Title",
+    "Reference Code",
+    "Run",
+    "Short Title",
+    "Status",
+    "Subgroups",
+    "Supporting Documents",
+]
+
+# Required columns in the paper CSV file.
+REQUIRED_COLUMNS_PAPER = [
+    *(col for col, _ in FIELD_MAP_PAPER.values()),
+    *EXTRA_COLUMNS_PAPER,
+]
+
 FIELD_MAP_CONFNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "final_url": ("Final URL", None),
     "superseded_by": ("Superseded By", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
+
+# Not initialised in the constructor, but in the post-init method.
+EXTRA_COLUMNS_CONFNOTE = ["Reference Code"]
+
+# Required columns in the confnote CSV file.
+REQUIRED_COLUMNS_CONFNOTE = [
+    *(col for col, _ in FIELD_MAP_CONFNOTE.values()),
+    *EXTRA_COLUMNS_CONFNOTE,
+]
 
 FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "final_url": ("Final URL", None),
@@ -80,3 +129,12 @@ FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "superseded_by": ("Superseded By", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
+
+# Not initialised in the constructor, but in the post-init method.
+EXTRA_COLUMNS_PUBNOTE = ["Reference Code"]
+
+# Required columns in the pubnote CSV file.
+REQUIRED_COLUMNS_PUBNOTE = [
+    *(col for col, _ in FIELD_MAP_PUBNOTE.values()),
+    *EXTRA_COLUMNS_PUBNOTE,
+]

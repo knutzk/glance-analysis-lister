@@ -7,9 +7,6 @@ instantiated from a CSV file that is pulled from the GLANCE database. The
 GLANCE fields are converted into slightly more useful attributes that can be
 used to print information about collections of analyses.
 
-Extract table from the glance web UI. All columns listed in the
-fields.ANALYSIS_DATA_COLUMNS dictionary are required inputs.
-
 """
 
 from attrs import define, field, validators

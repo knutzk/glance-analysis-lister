@@ -1,3 +1,8 @@
+"""Store information about PUB notes from glance.
+
+
+"""
+
 from attrs import define
 import logging
 

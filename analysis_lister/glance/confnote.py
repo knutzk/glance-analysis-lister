@@ -1,9 +1,6 @@
 """Store information about CONF notes from glance.
 
 
-Extract table from GLANCE web UI. All columns listed in the
-fields.CONF_DATA_COLUMNS dictionary are required inputs.
-
 """
 
 from attrs import define
