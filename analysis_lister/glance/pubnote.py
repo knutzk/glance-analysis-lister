@@ -56,7 +56,7 @@ class PubNote(Analysis):
         # Determine the publication state of the PUB note. As this class
         # should only be instantiated for finished analysis records, issue
         # a warning if the publication state is not set to PAST_PHASE0.
-        if self.pub_state != PublicationState.PAST_PHASE0:
+        if self.pub_state not in [PublicationState.PAST_PHASE0, PublicationState.CLOSED]:
             logger.warning(
                 "PUB note %s has state '%s' while it should be '%s'",
                 self.ref_code,
@@ -64,16 +64,15 @@ class PubNote(Analysis):
                 PublicationState.PAST_PHASE0,
             )
 
-        self.pub_state = self.determine_pubnote_status()
+        if self.pub_state == PublicationState.PAST_PHASE0:
+            self.pub_state = self.determine_pubnote_status()
         logger.debug("PUB note %s state: %s", self.ref_code, self.pub_state)
-
-    def __str__(self):
-        """Return a string representation of the PUB note instance."""
-        return f"PUB note {self.ref_code} ({self.pub_state})"
 
     def determine_pubnote_status(self):
         """Determine the status of the PUB note."""
-        if self.superseded_by:
+        if self.status_pub == " Phase 1 is  Not started ":
+            return PublicationState.INACTIVE
+        elif self.superseded_by:
             return PublicationState.SUPERSEDED
         elif self.final_url:
             return PublicationState.PUBLISHED

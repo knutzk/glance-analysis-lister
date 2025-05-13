@@ -10,6 +10,7 @@ class PublicationState(Enum):
     """
 
     CLOSED = auto()
+    INACTIVE = auto()
     ONGOING_WO_EB = auto()
     ONGOING_WITH_EB = auto()
     PREAPPROVED = auto()

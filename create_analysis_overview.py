@@ -25,7 +25,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 import logging
 
-from analysis_lister.glance import analysis, confnote, paper, pubnote, subgroups
+from analysis_lister.glance import analysis, confnote, paper, pubnote, subgroups, utils
 from analysis_lister.glance.enums import PublicationState
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
@@ -141,13 +141,39 @@ def filter_analyses(analyses, top_groups):
     return filtered_analyses
 
 
+def update_analysis_states_from_publications(
+    analyses: dict[str, analysis.Analysis],
+    papers: list[paper.Paper],
+    confnotes: list[confnote.ConfNote],
+    pubnotes: list[pubnote.PubNote],
+):
+    """Update the pub_state of each analysis based on associated PUB/CONF/paper entries."""
+    for a in analyses.values():
+        ref = a.ref_code
+
+        # Check for ongoing paper
+        if any(p.ref_code == ref and p.pub_state == PublicationState.PHASE1_OR_2 for p in papers):
+            a.pub_state = PublicationState.PHASE1_OR_2
+            a.glance_url_publ = utils.glance_paper_url(ref)
+
+        # Check for ongoing CONF note
+        elif any(c.tmp_ref_code.replace("CONF-", "") == ref and c.pub_state == PublicationState.PHASE1_OR_2 for c in confnotes):
+            a.pub_state = PublicationState.PHASE1_OR_2
+            a.glance_url_publ = utils.glance_confnote_url(ref)
+
+        # Check for ongoing PUB note
+        elif any(p.tmp_ref_code.replace("PUB-", "") == ref and p.pub_state == PublicationState.PHASE1_OR_2 for p in pubnotes):
+            a.pub_state = PublicationState.PHASE1_OR_2
+            a.glance_url_publ = utils.glance_pubnote_url(ref)
+
+
 def filter_confnotes(confnotes, top_groups):
     """Prepares a filtered list of confnotes for overview pages."""
     filtered_confnotes = [
         c
         for c in confnotes
         if any(x in c.subgroups for x in top_groups)
-        and c.pub_state == confnote.ConfNotePubState.PUBLISHED
+        and c.pub_state == PublicationState.PUBLISHED
     ]
     logging.info(f"Filtered {len(filtered_confnotes)} confnotes.")
     logging.debug(f"Filter criteria: {top_groups}")
@@ -235,7 +261,7 @@ if __name__ == "__main__":
         "confnotes.csv",
         confnote.ConfNote,
         analyses_by_ref,
-        ref_extractor=lambda row: row["Reference Code"],
+        ref_extractor=lambda row: row["Temporary Reference Code"].removeprefix("CONF-"),
     )
 
     pubnotes = load_promoted_data(
@@ -252,9 +278,13 @@ if __name__ == "__main__":
     top_groups = [x.id for x in subgroups.TopGroups]
     logging.debug(f"Top groups: {top_groups}")
 
+    update_analysis_states_from_publications(
+        analyses_by_ref, papers, confnotes, pubnotes
+    )
+
     # Filter papers and analyses.
+    analyses = filter_analyses(analyses_by_ref.values(), top_groups)
     papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
-    analyses = filter_analyses(analyses, top_groups)
     confnotes = filter_confnotes(confnotes, top_groups)
     pubnotes = filter_pubnotes(pubnotes, top_groups)
 

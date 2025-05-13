@@ -108,10 +108,6 @@ class Analysis:
         self.pub_state = self.determine_status()
         logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)
 
-    def __str__(self):
-        """Return a string representation of the analysis instance."""
-        return f"Analysis {self.ref_code} ({self.pub_state})"
-
     def determine_status(self):
         """Determine the status of the analysis."""
         if self.status == " Analysis is  Closed ":

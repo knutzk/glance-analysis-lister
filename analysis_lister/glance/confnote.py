@@ -54,7 +54,9 @@ class ConfNote(Analysis):
         # Determine the publication state of the CONF note. As this class
         # should only be instantiated for finished analysis records, issue
         # a warning if the publication state is not set to PAST_PHASE0.
-        if self.pub_state != PublicationState.PAST_PHASE0:
+        if self.pub_state not in [
+            PublicationState.PAST_PHASE0,
+            PublicationState.CLOSED]:
             logger.warning(
                 "CONF note %s has state '%s' while it should be '%s'",
                 self.ref_code,
@@ -62,16 +64,15 @@ class ConfNote(Analysis):
                 PublicationState.PAST_PHASE0,
             )
 
-        self.pub_state = self.determine_confnote_status()
+        if self.pub_state == PublicationState.PAST_PHASE0:
+            self.pub_state = self.determine_confnote_status()
         logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)
-
-    def __str__(self):
-        """Return a string representation of the CONF note instance."""
-        return f"CONF note {self.ref_code} ({self.pub_state})"
 
     def determine_confnote_status(self):
         """Determine the status of the CONF note."""
-        if self.superseded_by:
+        if self.status == " Phase 1 is  Not started ":
+            return PublicationState.INACTIVE
+        elif self.superseded_by:
             return PublicationState.SUPERSEDED
         elif self.final_url:
             return PublicationState.PUBLISHED
