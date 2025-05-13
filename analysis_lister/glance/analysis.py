@@ -14,17 +14,17 @@ fields.ANALYSIS_DATA_COLUMNS dictionary are required inputs.
 
 from attrs import define, field, validators
 import logging
+from typing import List
 
-from . import utils
+from . import subgroups, utils
 from .enums import AnalysisPubState
-from .glance_base import GlanceEntry
 from .field_maps import FIELD_MAP_ANALYSIS
 
 logger = logging.getLogger(__name__)
 
 
 @define
-class Analysis(GlanceEntry):
+class Analysis:
     """A class to hold information about a glance analysis entry.
 
     Attributes:
@@ -51,16 +51,26 @@ class Analysis(GlanceEntry):
     contacts: str
     contact_editors: str
     date_approval: str
-    date_start: str
     date_eb_formed: str
-    date_preapproval: str
     date_preapproval_signoff: str
+    date_preapproval: str
+    date_start: str
     editorial_board: str
+    glance_url_analysis: str = field(init=False)
     glance_url_publ: str
     int_note_editors: str
+    keywords: List[str]
     leading_group: str
+    phase_state: str
+    ref_code: str
     run: str
+    status: str
+    subgroups: List[str]
     supporting_docs: str
+    title_full: str
+    title_short_public: str
+    title_short: str
+    top_subgroups: List[str] = field(init=False)
 
     @classmethod
     def from_dict(cls, _dict):
@@ -82,8 +92,14 @@ class Analysis(GlanceEntry):
         return cls(**parsed)
 
     def __attrs_post_init__(self):
-        """Post-initialisation of the analysis instance."""
-        super().__attrs_post_init__()
+        """Post-initialization of analysis instance."""
+        self.glance_url_analysis = utils.glance_analysis_url(self.ref_code)
+        self.title_full, self.title_short, self.title_short_public = utils.clean_titles(
+            self.title_full, self.title_short, self.title_short_public
+        )
+        self.top_subgroups = utils.get_top_subgroups(
+            self.subgroups, subgroups.TopGroups
+        )
 
         # Determine the state of the analysis.
         if self.status == " Analysis is  Closed ":
