@@ -68,12 +68,6 @@ def load_data(file_name, cls):
         raise SystemExit(f"Required CSV file '{file_name}' is missing.")
 
 
-def load_analysis_dict() -> dict[str, analysis.Analysis]:
-    """Load analyses and return a lookup dictionary by ref_code."""
-    analyses = load_data("analyses.csv", analysis.Analysis)
-    return {a.ref_code: a for a in analyses}
-
-
 def load_promoted_data(file_name, cls, base_lookup, ref_extractor):
     """Load and promote entries with analysis enrichment.
 
@@ -228,7 +222,7 @@ if __name__ == "__main__":
     # Load papers and analyses data, exit if any file is missing.
     analyses = load_data("analyses.csv", analysis.Analysis)
 
-    analyses_by_ref = load_analysis_dict()
+    analyses_by_ref = {a.ref_code: a for a in analyses}
 
     papers = load_promoted_data(
         "papers.csv",

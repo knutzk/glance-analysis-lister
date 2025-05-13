@@ -98,20 +98,26 @@ class Analysis:
             self.subgroups, subgroups.TopGroups
         )
 
-        # Determine the state of the analysis.
-        if self.status == " Analysis is  Closed ":
-            self.pub_state = PublicationState.CLOSED
-        elif self.status == " Phase 0 is  Finished ":
-            # This may later be changed by an associated paper/CONF/PUB entry.
-            self.pub_state = PublicationState.PAST_PHASE0
-        elif self.date_preapproval_signoff != "":
-            self.pub_state = PublicationState.PREAPPROVED
-        elif self.date_eb_formed != "":
-            self.pub_state = PublicationState.ONGOING_WITH_EB
-        elif self.status == " Phase 0 is  Active ":
-            self.pub_state = PublicationState.ONGOING_WO_EB
-        else:
-            self.pub_state = PublicationState.UNKNOWN
-            logger.error("Unknown analysis state for analysis %s", self.ref_code)
-
+        # Determine the publication state of the analysis.
+        self.pub_state = self.determine_status()
         logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)
+
+    def __str__(self):
+        """Return a string representation of the analysis instance."""
+        return f"Analysis {self.ref_code} ({self.pub_state})"
+
+    def determine_status(self):
+        """Determine the status of the analysis."""
+        if self.status == " Analysis is  Closed ":
+            return PublicationState.CLOSED
+        elif self.status == " Phase 0 is  Finished ":
+            return PublicationState.PAST_PHASE0
+        elif self.date_preapproval_signoff != "":
+            return PublicationState.PREAPPROVED
+        elif self.date_eb_formed != "":
+            return PublicationState.ONGOING_WITH_EB
+        elif self.status == " Phase 0 is  Active ":
+            return PublicationState.ONGOING_WO_EB
+        else:
+            logger.error("Unknown analysis state for analysis %s", self.ref_code)
+            return PublicationState.UNKNOWN

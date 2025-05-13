@@ -54,13 +54,21 @@ class ConfNote(Analysis):
                 PublicationState.PAST_PHASE0,
             )
 
-        if self.superseded_by:
-            self.pub_state = PublicationState.SUPERSEDED
-        elif self.final_url:
-            self.pub_state = PublicationState.PUBLISHED
-        elif self.tmp_ref_code != self.ref_code:
-            self.pub_state = PublicationState.PHASE1_OR_2
-        else:
-            self.pub_state = PublicationState.UNKNOWN
-
+        self.pub_state = self.determine_confnote_status()
         logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)
+
+    def __str__(self):
+        """Return a string representation of the CONF note instance."""
+        return f"CONF note {self.ref_code} ({self.pub_state})"
+
+    def determine_confnote_status(self):
+        """Determine the status of the CONF note."""
+        if self.superseded_by:
+            return PublicationState.SUPERSEDED
+        elif self.final_url:
+            return PublicationState.PUBLISHED
+        elif self.tmp_ref_code != self.ref_code:
+            return PublicationState.PHASE1_OR_2
+        else:
+            logger.error("CONF note %s has unknown publication state", self.ref_code)
+            return PublicationState.UNKNOWN
