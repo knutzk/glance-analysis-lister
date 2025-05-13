@@ -1,6 +1,14 @@
 """Store information about CONF notes from glance.
 
 
+The ConfNote class derives from the Analysis class and adds additional
+attributes specific to CONF notes. The class is instantiated with a CSV file
+scraped from the GLANCE web interface. The list of required fields is stored
+in .field_maps.REQUIRED_COLUMNS_CONFNOTE.
+
+Most attributes are direct translations of the column names in the CSV file,
+others require more intricate parsing, handled in the post-init method.
+
 """
 
 from attrs import define

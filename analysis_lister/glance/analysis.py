@@ -1,11 +1,12 @@
 """Store information about a glance analysis entry.
 
 
-This module provides a class that stores attributes of an analysis, the full
-list is documented in the docstring of the class below. The class can be
-instantiated from a CSV file that is pulled from the GLANCE database. The
-GLANCE fields are converted into slightly more useful attributes that can be
-used to print information about collections of analyses.
+This module provides a class that stores attributes of an analysis. The class
+gets instantiated with a CSV file scraped from the GLANCE web interface. The
+list of required fields is stored in .field_maps.REQUIRED_COLUMNS_ANALYSIS.
+
+Most attributes are direct translations of the column names in the CSV file,
+others require more intricate parsing, handled in the post-init method.
 
 """
 
