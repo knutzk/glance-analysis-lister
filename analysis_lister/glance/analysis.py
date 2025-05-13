@@ -13,9 +13,16 @@ from attrs import define, field, validators
 import logging
 from typing import List
 
-from . import subgroups, utils
+from . import subgroups
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_ANALYSIS
+from .utils import (
+    clean_titles,
+    format_contacts,
+    format_editorial_board,
+    get_top_subgroups,
+    glance_analysis_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +85,10 @@ class Analysis:
             parsed[key] = func(raw) if func else raw
 
         # special fields with multi-column dependencies
-        parsed["contacts"] = utils.format_contacts(
+        parsed["contacts"] = format_contacts(
             _dict["Analysis Contacts"], _dict["Analysis Contacts' End Date"]
         )
-        parsed["editorial_board"] = utils.format_editorial_board(
+        parsed["editorial_board"] = format_editorial_board(
             _dict["Editorial Board"], _dict["Chairs"]
         )
         parsed["glance_url_publ"] = None
@@ -90,13 +97,11 @@ class Analysis:
 
     def __attrs_post_init__(self):
         """Post-initialization of analysis instance."""
-        self.glance_url_analysis = utils.glance_analysis_url(self.ref_code)
-        self.title_full, self.title_short, self.title_short_public = utils.clean_titles(
+        self.glance_url_analysis = glance_analysis_url(self.ref_code)
+        self.title_full, self.title_short, self.title_short_public = clean_titles(
             self.title_full, self.title_short, self.title_short_public
         )
-        self.top_subgroups = utils.get_top_subgroups(
-            self.subgroups, subgroups.TopGroups
-        )
+        self.top_subgroups = get_top_subgroups(self.subgroups, subgroups.TopGroups)
 
         # Determine the publication state of the analysis.
         self.pub_state = self.determine_status()

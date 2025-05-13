@@ -6,8 +6,8 @@
 from attrs import define
 import logging
 
-from .enums import PublicationState
 from .analysis import Analysis
+from .enums import PublicationState
 from .field_maps import FIELD_MAP_CONFNOTE
 from .utils import get_init_fields
 

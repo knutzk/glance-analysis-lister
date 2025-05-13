@@ -249,43 +249,6 @@ if __name__ == "__main__":
         [CSV_DIR / "papers.csv", CSV_DIR / "analyses.csv"]
     )
 
-    # Go through all analyses that finished phase 0 and check if their publication
-    # entries are created but not finished. If so, set the publication state to
-    # "unpublished" and the publication type accordingly.
-    for a in [x for x in analyses if x.pub_state == PublicationState.PAST_PHASE0]:
-        ref_code = a.ref_code
-        if ref_code in {
-            p.ref_code for p in papers if p.pub_state == PublicationState.PHASE1_OR_2
-        }:
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = (
-                "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
-                f"ref_code={a.ref_code}"
-            )
-            logging.debug(f"Found ongoing paper for analysis {a.ref_code}")
-        elif ref_code in {
-            c.tmp_ref_code.replace("CONF-", "")
-            for c in confnotes
-            if c.pub_state == PublicationState.PHASE1_OR_2
-        }:
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = (
-                "https://atlas-glance.cern.ch/atlas/analysis/confnotes/details.php?"
-                f"ref_code=CONF-{a.ref_code}"
-            )
-            logging.debug(f"Found ongoing CONF note for analysis {a.ref_code}")
-        elif ref_code in {
-            p.tmp_ref_code.replace("PUB-", "")
-            for p in pubnotes
-            if p.pub_state == PublicationState.PHASE1_OR_2
-        }:
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = (
-                "https://atlas-glance.cern.ch/atlas/analysis/pubnotes/details.php?"
-                f"ref_code=PUB-{a.ref_code}"
-            )
-            logging.debug(f"Found ongoing PUB note for analysis {a.ref_code}")
-
     top_groups = [x.id for x in subgroups.TopGroups]
     logging.debug(f"Top groups: {top_groups}")
 

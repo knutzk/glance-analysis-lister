@@ -8,11 +8,10 @@ import logging
 
 from ..lookup_dicts import journal_refs
 
-from . import utils
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
-from .utils import get_init_fields
+from .utils import get_init_fields, glance_paper_url
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,7 @@ class Paper(Analysis):
         super().__attrs_post_init__()
 
         self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
-        self.glance_url_publ = utils.glance_paper_url(self.ref_code)
+        self.glance_url_publ = glance_paper_url(self.ref_code)
 
         # Determine the publication state of the paper. As this class should
         # only be instantiated for finished analysis records, issue a warning
