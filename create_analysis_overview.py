@@ -67,6 +67,44 @@ def load_data(file_name, cls):
         raise SystemExit(f"Required CSV file '{file_name}' is missing.")
 
 
+def load_analysis_dict() -> dict[str, analysis.Analysis]:
+    """Load analyses and return a lookup dictionary by ref_code."""
+    analyses = load_data("analyses.csv", analysis.Analysis)
+    return {a.ref_code: a for a in analyses}
+
+
+def load_promoted_data(file_name, cls, base_lookup, ref_extractor):
+    """Load and promote entries with analysis enrichment.
+
+    Args:
+        file_name (str): The CSV file name.
+        cls (Type): Target class supporting from_analysis_and_dict().
+        base_lookup (dict): Dictionary of base Analysis entries keyed by ref_code.
+        ref_extractor (Callable[[dict], str]): Function to extract analysis ref_code from the row.
+
+    Returns:
+        list: List of promoted instances.
+    """
+    try:
+        with open(CSV_DIR / file_name, encoding="utf8") as f:
+            logging.info(f"Loading data from {file_name}.")
+            result = []
+            for row in csv.DictReader(f):
+                base_ref = ref_extractor(row)
+                base = base_lookup.get(base_ref)
+                if not base:
+                    logging.warning(
+                        f"No matching analysis found for {base_ref}. Skipping."
+                    )
+                    continue
+                result.append(cls.from_analysis_and_dict(base, row))
+            logging.info(f"Loaded {len(result)} enriched entries from {file_name}.")
+            return sorted(result, key=lambda x: x.ref_code)
+    except FileNotFoundError:
+        logging.error(f"File {file_name} not found in {CSV_DIR}.")
+        raise SystemExit(f"Required CSV file '{file_name}' is missing.")
+
+
 def filter_papers(papers, threshold, top_groups):
     """Prepares a filtered list of papers for overview pages."""
     filtered_papers = [
@@ -190,11 +228,30 @@ if __name__ == "__main__":
     logging.info("Script started.")
 
     # Load papers and analyses data, exit if any file is missing.
-    papers = load_data("papers.csv", paper.Paper)
     analyses = load_data("analyses.csv", analysis.Analysis)
-    confnotes = load_data("confnotes.csv", confnote.ConfNote)
-    pubnotes = load_data("pubnotes.csv", pubnote.PubNote)
 
+    analyses_by_ref = load_analysis_dict()
+
+    papers = load_promoted_data(
+        "papers.csv",
+        paper.Paper,
+        analyses_by_ref,
+        ref_extractor=lambda row: row["Reference Code"],
+    )
+
+    confnotes = load_promoted_data(
+        "confnotes.csv",
+        confnote.ConfNote,
+        analyses_by_ref,
+        ref_extractor=lambda row: row["Reference Code"],
+    )
+
+    pubnotes = load_promoted_data(
+        "pubnotes.csv",
+        pubnote.PubNote,
+        analyses_by_ref,
+        ref_extractor=lambda row: row["Temporary Reference Code"].removeprefix("PUB-"),
+    )
     # Get modification time of the CSV files.
     mtime = determine_last_modified_time(
         [CSV_DIR / "papers.csv", CSV_DIR / "analyses.csv"]

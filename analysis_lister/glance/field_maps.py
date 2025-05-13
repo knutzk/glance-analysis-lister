@@ -56,52 +56,27 @@ FIELD_MAP_ANALYSIS: dict[str, tuple[str, Callable[[str], Any] | None]] = {
 FIELD_MAP_PAPER: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "arxiv_number": ("ArXiv Reference Number", None),
     "arxiv_url": ("ArXiv Reference URLs", None),
-    "contact_editors": ("Contact Editors", None),
     "date_acceptance": ("Journal Acceptance Date", None),
     "date_phase_one": ("Phase 1 Start Date", None),
     "date_publication": ("Publication Date", None),
     "date_submission": ("arXiv Submission Date", None),
     "doi_url": ("Final Journal Publication URLs", utils.format_url_doi),
-    # "editorial_board" needs special handling
     "figure_url": ("Figures", None),
     "inspire_url": ("Final Journal Publication URLs", utils.format_url_inspire),
     "journal": ("Journal of Final Submission", None),
-    "keywords": ("Keywords", lambda s: s.split(", ")),
-    "phase_state": ("Phase State", None),
-    "ref_code": ("Reference Code", utils.format_ref_code),
-    "run": ("Run", None),
-    "status": ("Status", None),
-    "subgroups": ("Subgroups", lambda s: s.split(",")),
+    "status_paper": ("Status", None),
     "title_final_tex": ("Final Title (Tex)", None),
-    "title_full": ("Full Title", None),
-    "title_short_public": ("Public Short Title", None),
-    "title_short": ("Short Title", None),
 }
 
 FIELD_MAP_CONFNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "final_url": ("Final URL", None),
-    "keywords": ("", lambda _: []),                # Dummy field for now
-    "phase_state": ("", lambda _: ""),             # Dummy field for now
-    "ref_code": ("Reference Code", None),
-    "status": ("", lambda _: ""),                  # Dummy field for now
-    "subgroups": ("Subroups", lambda s: s.split(",")),
     "superseded_by": ("Superseded By", None),
-    "title_full": ("Short Title", None),           # Dummy field for now
-    "title_short_public": ("Short Title", None),   # Dummy field for now
-    "title_short": ("Short Title", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
 
 FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "final_url": ("Final URL", None),
-    "keywords": ("", lambda _: []),                 # Dummy field for now
-    "phase_state": ("", lambda _: ""),              # Dummy field for now
-    "ref_code": ("Reference Code", None),
-    "status": ("Status", None),
-    "subgroups": ("Subroups", lambda s: s.split(",")),
+    "status_pub": ("Status", None),
     "superseded_by": ("Superseded By", None),
-    "title_full": ("Short Title", None),            # Dummy field for now
-    "title_short_public": ("Short Title", None),    # Dummy field for now
-    "title_short": ("Short Title", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
