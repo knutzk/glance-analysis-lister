@@ -16,9 +16,9 @@ from attrs import define, field, validators
 from enum import Enum, auto
 import logging
 import re
-from typing import List
 
-from . import subgroups, utils
+from . import utils
+from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
 
@@ -63,33 +63,25 @@ class AnalysisPubState(Enum):
 
 
 @define
-class Analysis:
+class Analysis(GlanceEntry):
     """A class to hold information about a glance analysis entry.
 
     Attributes:
-        al_analysis_state: String with the analysis-lister analysis state.
-        contacts: Comma-separated list of analysis contacts.
-        contact_editors: Comma-separated list of contact editors.
-        date_approval: String with the approval date.
-        date_start: String with the start date.
-        date_eb_formed: String with the date on which the EB was formed.
-        date_preapproval: String with the  pre-approval date.
-        editorial_board: Comma-separated list of EdBoard members.
-        glance_url_analysis: String with the analysis GLANCE URL.
-        glance_url_publ: String with the publication GLANCE URL.
-        int_note_editors: Comma-separated list of INT note editors.
-        keywords: List of strings with keywords from GLANCE.
-        leading_group: String with the name of the leading physics group.
-        ref_code: String with the reference code (no preceding ANA-).
-        run: String with the dataset run number the analysis uses.
-        phase_state: String with the current phase state.
-        status: String with the current status.
-        subgroups: Comma-separated list of subgroups the analysis is in.
-        supporting_docs: Comma-separated list of links to supporting documents.
-        title_full: String with the full title.
-        title_public_short: String with the short public title.
-        title_short: String with the short title.
-        top_subgroups: List of glance.subgroups.Subgroup objects.
+        al_analysis_state: Enum for the publication state of the analysis.
+        contacts: String with the analysis contacts.
+        contact_editors: String with the contact editors.
+        date_approval: String with the date of approval meetings.
+        date_start: String with the start date of phase 0.
+        date_eb_formed: String with the date when editorial board was formed.
+        date_preapproval: String with the date of pre-approval meetings.
+        date_preapproval_signoff: String with the date of sign-off by PGC or SGC.
+        editorial_board: String with the editorial board members.
+        glance_url_publ: String with the URL to the publication in GLANCE.
+        int_note_editors: String with internal note editors.
+        leading_group: String with the leading group.
+        run: String with the run number.
+        supporting_docs: String with supporting documents.
+
     """
 
     al_analysis_state: AnalysisPubState = field(
@@ -103,21 +95,11 @@ class Analysis:
     date_preapproval: str
     date_preapproval_signoff: str
     editorial_board: str
-    glance_url_analysis: str = field(init=False)
     glance_url_publ: str
     int_note_editors: str
-    keywords: List[str]
     leading_group: str
-    ref_code: str
     run: str
-    phase_state: str
-    status: str
-    subgroups: str
     supporting_docs: str
-    title_full: str
-    title_public_short: str
-    title_short: str
-    top_subgroups: List[str] = field(init=False)
 
     @classmethod
     def from_dict(cls, _dict):
@@ -158,16 +140,13 @@ class Analysis:
             subgroups=re.split(r",(?=\S)", _dict["Subgroups"]),
             supporting_docs=utils.format_supporting_docs(_dict["Supporting Documents"]),
             title_full=_dict["Full Title"],
-            title_public_short=_dict["Public Short Title"],
+            title_short_public=_dict["Public Short Title"],
             title_short=_dict["Short Title"],
         )
 
     def __attrs_post_init__(self):
-        """Initialise those attributes derived from others."""
-        self.glance_url_analysis = (
-            "https://atlas-glance.cern.ch/atlas/analysis/analyses/details.php?"
-            f"ref_code=ANA-{self.ref_code}"
-        )
+        """Post-initialisation of the analysis instance."""
+        super().__attrs_post_init__()
 
         # Determine the state of the analysis.
         if self.status == " Analysis is  Closed ":
@@ -184,15 +163,4 @@ class Analysis:
             self.al_analysis_state = AnalysisPubState.UNKNOWN
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
 
-        logger.debug(f"Analysis {self.ref_code} state: {self.al_analysis_state}")
-
-        # Remove problematic characters from the titles.
-        self.title_full = self.title_full.replace("|", "/")
-        self.title_public_short = self.title_public_short.replace("|", "/")
-        self.title_short = self.title_short.replace("|", "/")
-
-        # Determine the top subgroups this analysis is associated with.
-        self.top_subgroups = []
-        for group in subgroups.TopGroups:
-            if group.id in self.subgroups:
-                self.top_subgroups.append(group)
+        logger.debug("Analysis %s state: %s", self.ref_code, self.al_analysis_state)

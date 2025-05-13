@@ -7,6 +7,8 @@ from attrs import define, field, validators
 from enum import Enum, auto
 import logging
 
+from .glance_base import GlanceEntry
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,30 +34,22 @@ class PubNotePubState(Enum):
 
 
 @define
-class PubNote:
+class PubNote(GlanceEntry):
     """A class to hold information about a glance PUB note entry.
 
     Attributes:
         al_pub_state: Enum for the publication state of the PUB note.
-        final_url: String with the final URL of the PUB note.
-        ref_code: String with the paper reference code.
-        subgroups: String with the subgroups.
-        superseded_by: String with the reference code of superseding entry.
-        tmp_ref_code: String with the temporary reference code.
-        title_short: String with the short title.
+        final_url: The final URL of the PUB note.
+        superseded_by: The reference code of the note that supersedes this one.
+        tmp_ref_code: The temporary reference code of the PUB note.
 
     """
-
     al_pub_state: PubNotePubState = field(
         validator=validators.instance_of(PubNotePubState), init=False
     )
     final_url: str
-    ref_code: str
-    status: str
-    subgroups: str
     superseded_by: str
     tmp_ref_code: str
-    title_short: str
 
     @classmethod
     def from_dict(cls, _dict):
@@ -78,10 +72,15 @@ class PubNote:
             superseded_by=_dict["Superseded By"],
             tmp_ref_code=_dict["Temporary Reference Code"],
             title_short=_dict["Short Title"],
+            title_full=_dict["Short Title"],  # Reuse as placeholder
+            title_short_public=_dict["Short Title"],  # Reuse as placeholder
+            phase_state="",
+            keywords=[],
         )
 
     def __attrs_post_init__(self):
-        """Initialise those attributes derived from others."""
+        """Post-initialization processing for PUB note."""
+        super().__attrs_post_init__()
 
         # Determine the publication state of the PUB note.
         if self.status == " Phase 1 is  Not started ":
@@ -95,4 +94,4 @@ class PubNote:
         else:
             self.al_pub_state = PubNotePubState.UNKNOWN
 
-        logger.debug(f"PUB note {self.ref_code} state: {self.al_pub_state}")
+        logger.debug("PUB note %s state: %s", self.ref_code, self.al_pub_state)

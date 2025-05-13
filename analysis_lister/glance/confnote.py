@@ -7,6 +7,8 @@ from attrs import define, field, validators
 from enum import Enum, auto
 import logging
 
+from .glance_base import GlanceEntry
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,28 +32,22 @@ class ConfNotePubState(Enum):
 
 
 @define
-class ConfNote:
+class ConfNote(GlanceEntry):
     """A class to hold information about a glance CONF note entry.
 
     Attributes:
-        final_url: String with the final URL of the CONF note.
-        ref_code: String with the paper reference code.
-        subgroups: String with the subgroups.
-        superseded_by: String with the reference code of superseding entry.
-        tmp_ref_code: String with the temporary reference code.
-        title_short: String with the short title.
+        al_pub_state: Enum for the publication state of the CONF note.
+        final_url: The final URL of the CONF note.
+        superseded_by: The reference code of the note that supersedes this one.
+        tmp_ref_code: The temporary reference code of the CONF note.
 
     """
-
     al_pub_state: ConfNotePubState = field(
         validator=validators.instance_of(ConfNotePubState), init=False
     )
     final_url: str
-    ref_code: str
-    subgroups: str
     superseded_by: str
     tmp_ref_code: str
-    title_short: str
 
     @classmethod
     def from_dict(cls, _dict):
@@ -73,10 +69,16 @@ class ConfNote:
             superseded_by=_dict["Superseded By"],
             tmp_ref_code=_dict["Temporary Reference Code"],
             title_short=_dict["Short Title"],
+            title_full=_dict["Short Title"],  # Reuse as placeholder
+            title_short_public=_dict["Short Title"],  # Reuse as placeholder
+            status="",
+            phase_state="",
+            keywords=[],
         )
 
     def __attrs_post_init__(self):
-        """Initialise those attributes derived from others."""
+        """Post-initialization of CONF note instance."""
+        super().__attrs_post_init__()
 
         # Determine the publication state of the CONF note.
         if self.superseded_by != "":
@@ -88,4 +90,4 @@ class ConfNote:
         else:
             self.al_pub_state = ConfNotePubState.UNKNOWN
 
-        logger.debug(f"CONF note {self.ref_code} state: {self.al_pub_state}")
+        logger.debug("CONF note %s state: %s", self.ref_code, self.al_pub_state)

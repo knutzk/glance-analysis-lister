@@ -203,7 +203,11 @@ if __name__ == "__main__":
     # Go through all analyses that finished phase 0 and check if their publication
     # entries are created but not finished. If so, set the publication state to
     # "unpublished" and the publication type accordingly.
-    for a in [x for x in analyses if x.al_analysis_state == analysis.AnalysisPubState.PAST_PHASE0]:
+    for a in [
+        x
+        for x in analyses
+        if x.al_analysis_state == analysis.AnalysisPubState.PAST_PHASE0
+    ]:
         ref_code = a.ref_code
         if ref_code in {
             p.ref_code for p in papers if p.al_pub_state == paper.PaperPubState.ONGOING

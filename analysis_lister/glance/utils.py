@@ -97,3 +97,58 @@ def format_url_inspire(urls: str) -> str:
     urls = ["http" + x for x in urls.split("http")[1:]]
     urls = list(filter(lambda a: "inspirehep.net" in a, urls))
     return urls[0] if urls else ""
+
+
+def glance_analysis_url(ref_code: str) -> str:
+    """Return the GLANCE URL of an analysis.
+
+    Parameters:
+        ref_code: String with the reference code of the analysis.
+
+    Returns: String with the GLANCE URL of the analysis.
+
+    """
+    return (
+        "https://atlas-glance.cern.ch/atlas/analysis/analyses/details.php?"
+        f"ref_code=ANA-{ref_code}"
+    )
+
+
+def glance_paper_url(ref_code: str) -> str:
+    """Return the GLANCE URL of a paper.
+
+    Parameters:
+        ref_code: String with the reference code of the paper.
+
+    Returns: String with the GLANCE URL of the paper.
+
+    """
+    return (
+        "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
+        f"ref_code={ref_code}"
+    )
+
+
+def clean_titles(*titles: str) -> list[str]:
+    """Clean the titles of an analysis/publication.
+
+    Parameters:
+        titles: Tuple with the different title strings.
+
+    Returns: List with the cleaned titles.
+
+    """
+    return [t.replace("|", "/") for t in titles]
+
+
+def get_top_subgroups(subgroup_ids: list[str], topgroups: list) -> list:
+    """Return the top subgroups of a list of subgroups.
+
+    Parameters:
+        subgroup_ids: List with the IDs of the subgroups.
+        topgroups: List with the top groups.
+
+    Returns: List with the top subgroups.
+
+    """
+    return [group for group in topgroups if group.id in subgroup_ids]

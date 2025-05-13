@@ -14,6 +14,7 @@ from typing import List
 from ..lookup_dicts import journal_refs
 
 from . import subgroups, utils
+from .glance_base import GlanceEntry
 
 logger = logging.getLogger(__name__)
 
@@ -57,38 +58,29 @@ class PaperPubState(Enum):
 
 
 @define
-class Paper:
+class Paper(GlanceEntry):
     """A class to hold information about a glance paper entry.
 
     Attributes:
-        al_pub_state: String with the analysis-lister publication state.
-        arxiv_number: String with the arXiv identifier of the paper.
-        arxiv_url: String with the URL to the arXiv entry.
-        contact_editors: Comma-separated list of contact editors.
+        al_pub_state: Enum for the publication state of the paper.
+        arxiv_number: String with the arXiv number of the paper.
+        arxiv_url: String with the arXiv URL of the paper.
+        contact_editors: String with the contact editors of the paper.
         date_acceptance: String with the journal acceptance date.
-        date_phase_one: String with the start date of Phase 1.
-        date_publication: String with the publication date of the paper.
-        date_submission: String with the (arXiv) submission date of the paper.
-        doi: String with the DOI identifier.
-        doi_url: String with the DOI identifier converted to an http link.
-        editorial_board: Comma-separated list of EdBoard members.
-        figure_url: String with the URL to the figures webpage.
-        glance_url_analysis: String with the analysis GLANCE URL.
-        glance_url_publ: String with the publication GLANCE URL.
-        inspire_url: String with the Inspire HEP URL.
-        journal: String with the name of the journal of publication.
-        journal_ref: String that holds the full journal reference.
-        keywords: List of strings with keywords from GLANCE.
-        phase_state: String with the "Phase State" field from GLANCE.
-        ref_code: String with the paper reference code.
-        run: String with the dataset run number used for the paper.
-        status: String with the "Status" field from GLANCE.
-        subgroups: Comma-separated list of subgroups associated to the paper.
+        date_phase_one: String with the phase 1 start date.
+        date_publication: String with the publication date.
+        date_submission: String with the arXiv submission date.
+        doi: String with the DOI of the paper.
+        doi_url: String with the DOI URL of the paper.
+        editorial_board: String with the editorial board of the paper.
+        figure_url: String with the figure URL of the paper.
+        glance_url_publ: String with the glance URL of the paper.
+        inspire_url: String with the inspire URL of the paper.
+        journal: String with the journal of final submission.
+        journal_ref: String with the journal reference of the paper.
+        run: String with the run of the paper.
         title_final_tex: String with the final title in TeX format.
-        title_full: String with the full title.
-        title_short_public: String with the short public title.
-        title_short: String with the short title.
-        top_subgroups: List of glance.subgroups.Subgroup objects.
+
     """
 
     al_pub_state: PaperPubState = field(
@@ -105,22 +97,12 @@ class Paper:
     doi_url: str
     editorial_board: str
     figure_url: str
-    glance_url_analysis: str = field(init=False)
     glance_url_publ: str = field(init=False)
     inspire_url: str
     journal: str
     journal_ref: str = field(init=False)
-    keywords: List[str]
-    phase_state: str
-    ref_code: str
     run: str
-    status: str
-    subgroups: str
     title_final_tex: str
-    title_full: str
-    title_short: str
-    title_short_public: str
-    top_subgroups: List[str] = field(init=False)
 
     @classmethod
     def from_dict(cls, _dict):
@@ -150,7 +132,7 @@ class Paper:
             ),
             figure_url=_dict["Figures"],
             inspire_url=utils.format_url_inspire(
-                _dict["Final Journal Publication URLs"],
+                _dict["Final Journal Publication URLs"]
             ),
             journal=_dict["Journal of Final Submission"],
             keywords=_dict["Keywords"].split(", "),
@@ -167,24 +149,14 @@ class Paper:
 
     def __attrs_post_init__(self):
         """Initialise those attributes derived from others."""
-        # Determine the DOI from the DOI URL.
-        self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
+        super().__attrs_post_init__()
 
-        # Determine the GLANCE URLs for analysis and paper.
-        self.glance_url_analysis = (
-            "https://atlas-glance.cern.ch/atlas/analysis/analyses/details.php?"
-            f"ref_code=ANA-{self.ref_code}"
-        )
-        self.glance_url_publ = (
-            "https://atlas-glance.cern.ch/atlas/analysis/papers/details.php?"
-            f"ref_code={self.ref_code}"
-        )
+        self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
+        self.glance_url_publ = utils.glance_paper_url(self.ref_code)
 
         # Determine the paper publication state. If phase 1 or phase 2 are active,
         # the paper is considered ongoing (which means that the corresponding
-        # analysis entry will be listed). Set to SUBMITTED if the paper if the
-        # submission date is set but the publication date is not. Set to PUBLISHED
-        # if the publication date is set. Set to UNKNOWN as a fallback.
+        # analysis entry will be listed). )
         if self.status == " Phase 1 is  Active ":
             self.al_pub_state = PaperPubState.ONGOING
         elif self.status == " Phase 2 is  Active ":
@@ -198,7 +170,6 @@ class Paper:
 
         logger.debug("Paper %s state %s", self.ref_code, self.al_pub_state)
 
-        # Determine the journal reference string.
         if self.al_pub_state == PaperPubState.SUBMITTED and self.journal != "":
             self.journal_ref = f"Submitted to {self.journal}"
         elif self.doi in journal_refs.JournalRefs:
@@ -208,14 +179,3 @@ class Paper:
 
         if self.journal_ref == "" and self.doi != "":
             logger.warning("No journal reference found for DOI: %s", self.doi)
-
-        # Remove problematic characters from the titles.
-        self.title_short = self.title_short.replace("|", "/")
-        self.title_full = self.title_full.replace("|", "/")
-        self.title_short_public = self.title_short_public.replace("|", "/")
-
-        # Determine the top subgroups this paper is associated with.
-        self.top_subgroups = []
-        for group in subgroups.TopGroups:
-            if group.id in self.subgroups:
-                self.top_subgroups.append(group)
