@@ -168,19 +168,28 @@ def ongoing_analyses(
             count = sum(1 for x in list_of_analyses if g in x.top_subgroups)
             _f.write(f"        * {g.title}: {count} (")
             count = sum(
-                1 for x in list_of_analyses if g in x.top_subgroups and x.is_preapproved
+                1
+                for x in list_of_analyses
+                if g in x.top_subgroups
+                and x.al_analysis_state
+                in [
+                    analysis.AnalysisPubState.PRE_APPROVED,
+                    analysis.AnalysisPubState.PUB_PREPARATION,
+                ]
             )
             _f.write(f"pre-approved: {count}, ")
             count = sum(
                 1
                 for x in list_of_analyses
-                if g in x.top_subgroups and not x.is_preapproved and x.is_with_edboard
+                if g in x.top_subgroups
+                and x.al_analysis_state == analysis.AnalysisPubState.WITH_EB
             )
             _f.write(f"with EdBoard: {count}, ")
             count = sum(
                 1
                 for x in list_of_analyses
-                if g in x.top_subgroups and not x.is_with_edboard
+                if g in x.top_subgroups
+                and x.al_analysis_state == analysis.AnalysisPubState.ONGOING_WO_EB
             )
             _f.write(f"no EdBoard: {count})\n")
 
@@ -190,21 +199,35 @@ def ongoing_analyses(
         logger.info("Writing status counts for ongoing analyses.")
         _f.write("    * **Split by status**:")
         _f.write("\n        * Approved: ")
-        _f.write(provide_counts(list_of_analyses, lambda x: x.is_approved))
+        _f.write(
+            provide_counts(
+                list_of_analyses,
+                lambda x: x.al_analysis_state
+                == analysis.AnalysisPubState.PUB_PREPARATION,
+            )
+        )
         _f.write("\n        * Pre-approved: ")
         _f.write(
             provide_counts(
-                list_of_analyses, lambda x: x.is_preapproved and not x.is_approved
+                list_of_analyses,
+                lambda x: x.al_analysis_state == analysis.AnalysisPubState.PRE_APPROVED,
             )
         )
         _f.write("\n        * With EdBoard: ")
         _f.write(
             provide_counts(
-                list_of_analyses, lambda x: not x.is_preapproved and x.is_with_edboard
+                list_of_analyses,
+                lambda x: x.al_analysis_state == analysis.AnalysisPubState.WITH_EB,
             )
         )
         _f.write("\n        * No EdBoard: ")
-        _f.write(provide_counts(list_of_analyses, lambda x: not x.is_with_edboard))
+        _f.write(
+            provide_counts(
+                list_of_analyses,
+                lambda x: x.al_analysis_state
+                == analysis.AnalysisPubState.ONGOING_WO_EB,
+            )
+        )
         _f.write("\n\n\n")
 
         _f.write("| Identifier | Title | EB PA A | Subgroups | Rel. | Start |\n")
@@ -218,12 +241,18 @@ def ongoing_analyses(
             elif "R21" in a.keywords:
                 release_str = "R21"
 
+            tickmark = "&#10003;&nbsp;"
+            state_to_n_ticks = {
+                analysis.AnalysisPubState.PAST_PHASE0: 3,
+                analysis.AnalysisPubState.PRE_APPROVED: 2,
+                analysis.AnalysisPubState.WITH_EB: 1,
+            }
+            n_ticks = state_to_n_ticks.get(a.al_analysis_state, 0)
+
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
                 f"| {a.title_short} "
-                f'| {"&#10003;&nbsp;" if a.is_with_edboard else ""}'
-                f'{"&#10003;&nbsp;" if a.is_preapproved else ""}'
-                f'{"&#10003;&nbsp;" if a.is_approved else ""}'
+                f"| {tickmark * n_ticks} "
                 f'| {", ".join([g.code for g in a.top_subgroups])} '
                 f"| {release_str} "
                 f'| {a.date_start.replace("-", "&#8209;")} '

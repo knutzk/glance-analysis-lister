@@ -56,19 +56,22 @@ def ongoing_analyses(
         )
         _f.write("## Analyses beyond pre-approval\n\n\n")
         for a in subgroup_analyses:
-            if a.is_preapproved:
+            if a.al_analysis_state in [
+                analysis.AnalysisPubState.PRE_APPROVED,
+                analysis.AnalysisPubState.PUB_PREPARATION,
+            ]:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses with EdBoard\n\n\n")
         for a in subgroup_analyses:
-            if a.is_with_edboard and not a.is_preapproved:
+            if a.al_analysis_state == analysis.AnalysisPubState.WITH_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
         _f.write("## Analyses w/o EdBoard\n\n\n")
         for a in subgroup_analyses:
-            if not a.is_with_edboard:
+            if a.al_analysis_state == analysis.AnalysisPubState.ONGOING_WO_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(utils.analysis_block(a))
 
@@ -137,12 +140,19 @@ def overview(
                 release_str = "R25"
             elif "R21" in a.keywords:
                 release_str = "R21"
+
+            tickmark = "&#10003;&nbsp;"
+            state_to_n_ticks = {
+                analysis.AnalysisPubState.PAST_PHASE0: 3,
+                analysis.AnalysisPubState.PRE_APPROVED: 2,
+                analysis.AnalysisPubState.WITH_EB: 1,
+            }
+            n_ticks = state_to_n_ticks.get(a.al_analysis_state, 0)
+
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
                 f'| {a.title_short.replace("|", "/")} '
-                f'| {"&#10003;&nbsp;" if a.is_with_edboard else ""}'
-                f'{"&#10003;&nbsp;" if a.is_preapproved else ""}'
-                f'{"&#10003;&nbsp;" if a.is_approved else ""}'
+                f"| {tickmark * n_ticks} "
                 f"| {release_str} "
                 f'| {a.date_start.replace("-", "&#8209;")} '
                 f"|\n",

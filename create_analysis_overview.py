@@ -95,11 +95,13 @@ def filter_analyses(analyses, top_groups):
         a
         for a in analyses
         if any(x in a.subgroups for x in top_groups)
-        and (
-            a.is_in_phase0
-            or a.al_analysis_state == analysis.AnalysisPubState.PUB_PREPARATION
-        )
-        and not a.is_closed
+        and a.al_analysis_state
+        in [
+            analysis.AnalysisPubState.ONGOING_WO_EB,
+            analysis.AnalysisPubState.WITH_EB,
+            analysis.AnalysisPubState.PRE_APPROVED,
+            analysis.AnalysisPubState.PUB_PREPARATION,
+        ]
     ]
     logging.info(f"Filtered {len(filtered_analyses)} active analyses.")
     logging.debug(
@@ -201,7 +203,7 @@ if __name__ == "__main__":
     # Go through all analyses that finished phase 0 and check if their publication
     # entries are created but not finished. If so, set the publication state to
     # "unpublished" and the publication type accordingly.
-    for a in [x for x in analyses if x.is_approved]:
+    for a in [x for x in analyses if x.al_analysis_state == analysis.AnalysisPubState.PAST_PHASE0]:
         ref_code = a.ref_code
         if ref_code in {
             p.ref_code for p in papers if p.al_pub_state == paper.PaperPubState.ONGOING

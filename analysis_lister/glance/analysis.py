@@ -57,8 +57,8 @@ class AnalysisPubState(Enum):
     ONGOING_WO_EB = auto()
     WITH_EB = auto()
     PRE_APPROVED = auto()
-    APPROVED = auto()
     PUB_PREPARATION = auto()
+    PAST_PHASE0 = auto()
     UNKNOWN = auto()
 
 
@@ -78,11 +78,6 @@ class Analysis:
         glance_url_analysis: String with the analysis GLANCE URL.
         glance_url_publ: String with the publication GLANCE URL.
         int_note_editors: Comma-separated list of INT note editors.
-        is_approved: Boolean whether the analysis is approved.
-        is_closed: Boolean whether the analysis is closed.
-        is_in_phase0: Boolean whether analysis is in the Phase 0 state.
-        is_preapproved: Boolean whether analysis is pre-approved.
-        is_with_edboard: Boolean whether an EdBoard is assigned to the analysis.
         keywords: List of strings with keywords from GLANCE.
         leading_group: String with the name of the leading physics group.
         ref_code: String with the reference code (no preceding ANA-).
@@ -111,11 +106,6 @@ class Analysis:
     glance_url_analysis: str = field(init=False)
     glance_url_publ: str
     int_note_editors: str
-    is_approved: str
-    is_closed: str
-    is_in_phase0: bool
-    is_preapproved: bool
-    is_with_edboard: bool
     keywords: List[str]
     leading_group: str
     ref_code: str
@@ -159,11 +149,6 @@ class Analysis:
             ),
             glance_url_publ=None,
             int_note_editors=_dict["Internal Note Editors"],
-            is_approved=_dict["Status"] == " Phase 0 is  Finished ",
-            is_closed=_dict["Status"] == " Analysis is  Closed ",
-            is_in_phase0=_dict["Status"] == " Phase 0 is  Active ",
-            is_preapproved=_dict["PGC or SGC sign-off date"] != "",
-            is_with_edboard=_dict["Editorial Board Formed On"] != "",
             keywords=_dict["Keywords"].split(", "),
             leading_group=_dict["Leading Group"],
             ref_code=utils.format_ref_code(_dict["Reference Code"]),
@@ -185,10 +170,10 @@ class Analysis:
         )
 
         # Determine the state of the analysis.
-        if self.status == "Analysis is  Closed ":
+        if self.status == " Analysis is  Closed ":
             self.al_analysis_state = AnalysisPubState.CLOSED
         elif self.status == " Phase 0 is  Finished ":
-            self.al_analysis_state = AnalysisPubState.APPROVED
+            self.al_analysis_state = AnalysisPubState.PAST_PHASE0
         elif self.date_preapproval_signoff != "":
             self.al_analysis_state = AnalysisPubState.PRE_APPROVED
         elif self.date_eb_formed != "":
@@ -197,6 +182,7 @@ class Analysis:
             self.al_analysis_state = AnalysisPubState.ONGOING_WO_EB
         else:
             self.al_analysis_state = AnalysisPubState.UNKNOWN
+            logger.error("Unknown analysis state for analysis %s", self.ref_code)
 
         logger.debug(f"Analysis {self.ref_code} state: {self.al_analysis_state}")
 
