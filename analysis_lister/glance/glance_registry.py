@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class _FilteringMixin:
+    """Mixin class to provide filtering methods for analyses."""
+
     def _filter_by_type(self, cls) -> list:
         return [a for a in self._analyses.values() if isinstance(a, cls)]
 
@@ -49,6 +51,7 @@ class GlanceRegistry(_FilteringMixin):
         csv_dir="csv",
         threshold_year="2020",
     ):
+        logger.info("Initializing GlanceRegistry...")
         self.analysis_path = Path(csv_dir) / analysis_csv
         self.paper_path = Path(csv_dir) / paper_csv
         self.confnote_path = Path(csv_dir) / confnote_csv
@@ -113,7 +116,7 @@ class GlanceRegistry(_FilteringMixin):
         return self._filter_by_type_and_state(ConfNote, {PublicationState.PUBLISHED})
 
     @property
-    def entries(self) -> dict[str, GlanceEntry]:
+    def entries(self) -> dict[str, Union[Analysis, Paper, ConfNote, PubNote]]:
         """Direct access to the internal registry dictionary."""
         return self._analyses.copy()
 
@@ -148,28 +151,44 @@ class GlanceRegistry(_FilteringMixin):
     # --- Internal Load and Enrich ---
 
     def _enrich(self, path: Path, cls, key: str, prefix: str = ""):
+        n_enriched = 0
         for row in self._read_csv_rows(path):
             ref = row[key].removeprefix(prefix)
             if ref in self._analyses:
                 base = self._analyses[ref]
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
+                n_enriched += 1
 
     def _load_and_enrich(self):
+        # Load the analysis database from the CSV file.
+        logger.info("Loading list of analyses from file %s", self.analysis_path.name)
         self._analyses = {
             a.ref_code: a for a in self._load_data(self.analysis_path, Analysis)
         }
+        logger.info("Loaded %d analysis base entries.", len(self._analyses))
+
+        # Load papers from the CSV file and enrich corresponding analysis entries.
+        logger.info("Loading list of papers from file %s", self.paper_path.name)
         self._enrich(self.paper_path, Paper, key="Reference Code")
+        logger.info("Enriched %d analyses with paper data.", len(self.papers))
+
+        # Load CONF notes from the CSV files and enrich corresponding analysis entries.
+        logger.info("Loading list of CONF notes from file %s", self.confnote_path.name)
         self._enrich(
             self.confnote_path, ConfNote, key="Temporary Reference Code", prefix="CONF-"
         )
+        logger.info("Enriched %d analyses with CONF note data.", len(self.confnotes))
+
+        # Load PUB notes from the CSV files and enrich corresponding analysis entries.
+        logger.info("Loading list of PUB notes from file %s", self.pubnote_path.name)
         self._enrich(
             self.pubnote_path, PubNote, key="Temporary Reference Code", prefix="PUB-"
         )
+        logger.info("Enriched %d analyses with PUB note data.", len(self.pubnotes))
 
     def _load_data(self, path: Path, cls):
         rows = self._read_csv_rows(path)
         data = [cls.from_dict(row) for row in rows]
-        logger.info(f"Loaded {len(data)} items from {path.name}.")
         return sorted(data, key=lambda x: x.ref_code)
 
     def _read_csv_rows(self, path: Path):
