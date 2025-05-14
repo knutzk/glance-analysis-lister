@@ -7,6 +7,7 @@ from ..render import utils
 
 logger = logging.getLogger(__name__)
 
+
 def overview(
     list_of_papers: list[GlancePaper],
     list_of_analyses: list[GlanceAnalysis],

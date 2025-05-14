@@ -7,6 +7,7 @@ from ..render import utils
 
 logger = logging.getLogger(__name__)
 
+
 def ongoing_analyses(
     list_of_analyses: list[GlanceAnalysis],
     output_dir: Path,

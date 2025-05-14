@@ -7,6 +7,7 @@ from ..render import utils
 
 logger = logging.getLogger(__name__)
 
+
 def published_papers(
     list_of_papers: list[GlancePaper],
     output_dir: Path,

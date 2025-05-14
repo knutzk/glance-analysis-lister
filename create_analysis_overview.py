@@ -21,8 +21,16 @@ from pathlib import Path
 import logging
 
 from analysis_lister.glance import subgroups
-from analysis_lister.markdown import global_pages
-from analysis_lister.markdown.subgroup_pages import ongoing, published, overview
+from analysis_lister.markdown.subgroup_pages import (
+    ongoing as sub_ongoing,
+    published as sub_published,
+    overview as sub_overview,
+)
+from analysis_lister.markdown.global_pages import (
+    ongoing as glob_ongoing,
+    published as glob_published,
+    overview as glob_overview,
+)
 
 
 CSV_DIR = Path("csv/")
@@ -41,7 +49,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
     """Generate the subgroup overview pages in Markdown format."""
     for g in subgroups:
         logging.info(f"Generating pages for subgroup: {g.title}")
-        published.published_papers(
+        sub_published.published_papers(
             papers,
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
@@ -49,14 +57,14 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
             last_modified=last_modified,
             threshold=threshold,
         )
-        ongoing.ongoing_analyses(
+        sub_ongoing.ongoing_analyses(
             analyses,
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             last_modified=last_modified,
         )
-        overview.overview(
+        sub_overview.overview(
             papers,
             analyses,
             output_dir=OUTPUT_DIR / g.output_dir,
@@ -94,11 +102,11 @@ if __name__ == "__main__":
     logging.info("=" * 80)
     logging.info("Generating global pages for the top group.")
     logging.info("=" * 80)
-    global_pages.overview(output_dir=OUTPUT_DIR)
-    global_pages.published(
+    glob_overview.overview(output_dir=OUTPUT_DIR)
+    glob_published.published(
         papers, output_dir=OUTPUT_DIR, last_modified=mtime, threshold=THRESHOLD_YEAR
     )
-    global_pages.ongoing_analyses(analyses, last_modified=mtime, output_dir=OUTPUT_DIR)
+    glob_ongoing.ongoing_analyses(analyses, last_modified=mtime, output_dir=OUTPUT_DIR)
 
     # Generate subgroup pages.
     logging.info("=" * 80)
