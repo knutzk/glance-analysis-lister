@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class _FilteringMixin:
-    """Mixin class to provide filtering methods for analyses."""
+    """Mixin class to provide filtering and counting methods for analyses."""
 
     def _filter_by_type(self, cls) -> list:
         return [a for a in self._analyses.values() if isinstance(a, cls)]
@@ -26,6 +26,35 @@ class _FilteringMixin:
             for a in self._analyses.values()
             if isinstance(a, cls) and a.pub_state in states
         ]
+
+    def count(
+        self,
+        cls: type = Analysis,
+        *,
+        pub_state: PublicationState | None = None,
+        subgroup_id: str | None = None,
+    ) -> int:
+        """Count entries matching type, publication state, and subgroup."""
+        results = self._filter_by_type(cls)
+
+        if pub_state:
+            results = [e for e in results if e.pub_state == pub_state]
+
+        if subgroup_id:
+            results = [e for e in results if subgroup_id in e.subgroups]
+
+        return len(results)
+
+    def count_by_state(
+        self, cls: type = Analysis, *, subgroup_id: str | None = None
+    ) -> dict[PublicationState, int]:
+        """Return a count of entries grouped by publication state."""
+        counts = {state: 0 for state in PublicationState}
+        for entry in self._filter_by_type(cls):
+            if subgroup_id and subgroup_id not in entry.subgroups:
+                continue
+            counts[entry.pub_state] += 1
+        return counts
 
 
 class GlanceRegistry(_FilteringMixin):
@@ -63,6 +92,14 @@ class GlanceRegistry(_FilteringMixin):
 
     def __repr__(self):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
+
+    def __str__(self):
+        summary = f"GlanceRegistry: "
+        summary += f"{len(self.analyses_filtered)} ongoing analyses, "
+        summary += f"{len(self.papers_filtered)} submitted/published papers, "
+        summary += f"{len(self.confnotes_filtered)} CONF notes, "
+        summary += f"{len(self.pubnotes_filtered)} PUB notes"
+        return summary
 
     # --- Public API Methods ---
 

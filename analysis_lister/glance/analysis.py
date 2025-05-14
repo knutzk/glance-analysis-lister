@@ -14,7 +14,6 @@ from attrs import define, field, validators
 import logging
 from typing import List
 
-from . import subgroups
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_ANALYSIS
 from .utils import (
