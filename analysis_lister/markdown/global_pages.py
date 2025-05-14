@@ -84,9 +84,7 @@ def published(
 
         def _get_top_subgroup_codes(grps: List[str]) -> str:
             """Get the top subgroup codes from a list of subgroup codes."""
-            top_subgroups = [
-                g.code for g in subgroups.TopGroups if g.id in grps
-            ]
+            top_subgroups = [g.code for g in subgroups.TopGroups if g.id in grps]
             return ", ".join(top_subgroups) if top_subgroups else "None"
 
         for p in list_of_papers:
@@ -94,7 +92,7 @@ def published(
             _f.write(
                 f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
                 f"| {p.title_short} "
-                f'| {_get_top_subgroup_codes(p.subgroups)} '
+                f"| {_get_top_subgroup_codes(p.subgroups)} "
                 f'| {p.date_submission.replace("-", "&#8209;")} '
                 f'| {p.date_publication.replace("-", "&#8209;")} '
                 f"|\n",
@@ -194,8 +192,7 @@ def ongoing_analyses(
             count = sum(
                 1
                 for x in list_of_analyses
-                if g.id in x.subgroups
-                and x.pub_state == PublicationState.ONGOING_WO_EB
+                if g.id in x.subgroups and x.pub_state == PublicationState.ONGOING_WO_EB
             )
             _f.write(f"no EdBoard: {count})\n")
 
@@ -255,16 +252,14 @@ def ongoing_analyses(
 
             def _get_top_subgroup_codes(grps: List[str]) -> str:
                 """Get the top subgroup codes from a list of subgroup codes."""
-                top_subgroups = [
-                    g.code for g in subgroups.TopGroups if g.id in grps
-                ]
+                top_subgroups = [g.code for g in subgroups.TopGroups if g.id in grps]
                 return ", ".join(top_subgroups) if top_subgroups else "None"
 
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
                 f"| {a.title_short} "
                 f"| {tickmark * n_ticks} "
-                f'| {_get_top_subgroup_codes(a.subgroups)} '
+                f"| {_get_top_subgroup_codes(a.subgroups)} "
                 f"| {release_str} "
                 f'| {a.date_start.replace("-", "&#8209;")} '
                 f"|\n",
