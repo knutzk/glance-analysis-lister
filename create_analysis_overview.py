@@ -17,16 +17,10 @@ The script performs the following tasks:
 
 """
 
-import csv
-from datetime import datetime
-import git
-import os
 from pathlib import Path
-from zoneinfo import ZoneInfo
 import logging
 
-from analysis_lister.glance import analysis, confnote, paper, pubnote, subgroups, utils
-from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance import subgroups
 from analysis_lister.markdown import global_pages
 from analysis_lister.markdown import subgroup_pages
 
@@ -41,175 +35,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-
-def load_data(file_name, cls):
-    """Load data from a CSV file and return a sorted list of objects.
-
-    These CSV files are extracted from the GLANCE database and (at the moment) need
-    to be updated manually. The function returns a sorted list of objects instantiated
-    from the CSV file data, sorted by the 'ref_code' attribute.
-
-    Args:
-        file_name (str): The name of the CSV file to load.
-
-    Returns:
-        list: Sorted list of objects instantiated from the CSV file data
-
-    """
-    try:
-        with open(CSV_DIR / file_name, encoding="utf8") as f:
-            logging.info(f"Loading data from {file_name}.")
-            data = [cls.from_dict(item) for item in csv.DictReader(f)]
-            logging.info(f"Loaded {len(data)} items from {file_name}.")
-            return sorted(data, key=lambda x: x.ref_code)
-    except FileNotFoundError:
-        logging.error(f"File {file_name} not found in {CSV_DIR}.")
-        raise SystemExit(f"Required CSV file '{file_name}' is missing.")
-
-
-def load_promoted_data(file_name, cls, base_lookup, ref_extractor):
-    """Load and promote entries with analysis enrichment.
-
-    Args:
-        file_name (str): The CSV file name.
-        cls (Type): Target class supporting from_analysis_and_dict().
-        base_lookup (dict): Dictionary of base Analysis entries keyed by ref_code.
-        ref_extractor (Callable[[dict], str]): Function to extract analysis ref_code from the row.
-
-    Returns:
-        list: List of promoted instances.
-    """
-    try:
-        with open(CSV_DIR / file_name, encoding="utf8") as f:
-            logging.info(f"Loading data from {file_name}.")
-            result = []
-            for row in csv.DictReader(f):
-                base_ref = ref_extractor(row)
-                base = base_lookup.get(base_ref)
-                if not base:
-                    continue
-                result.append(cls.from_analysis_and_dict(base, row))
-            logging.info(f"Loaded {len(result)} enriched entries from {file_name}.")
-            return sorted(result, key=lambda x: x.ref_code)
-    except FileNotFoundError:
-        logging.error(f"File {file_name} not found in {CSV_DIR}.")
-        raise SystemExit(f"Required CSV file '{file_name}' is missing.")
-
-
-def filter_papers(papers, threshold, top_groups):
-    """Prepares a filtered list of papers for overview pages."""
-    filtered_papers = [
-        p
-        for p in papers
-        if any(x in p.subgroups for x in top_groups)
-        and (
-            p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
-            or (
-                p.pub_state == PublicationState.PUBLISHED
-                and p.date_publication >= threshold
-            )
-        )
-    ]
-    logging.info(f"Filtered {len(filtered_papers)} papers with threshold {threshold}.")
-    logging.debug(
-        f"Filter criteria: {top_groups} && "
-        f"submitted && (not published || published after {threshold})"
-    )
-    return filtered_papers
-
-
-def filter_analyses(analyses, top_groups):
-    """Prepares a filtered list of analyses for overview pages."""
-    filtered_analyses = [
-        a
-        for a in analyses
-        if any(x in a.subgroups for x in top_groups)
-        and a.pub_state
-        in [
-            PublicationState.ONGOING_WO_EB,
-            PublicationState.ONGOING_WITH_EB,
-            PublicationState.PREAPPROVED,
-            PublicationState.PHASE1_OR_2,
-        ]
-    ]
-    logging.info(f"Filtered {len(filtered_analyses)} active analyses.")
-    logging.debug(
-        f"Filter criteria: {top_groups} && "
-        "(in phase 0 || unpublished publication entry) && not closed"
-    )
-    return filtered_analyses
-
-
-def update_analysis_states_from_publications(
-    analyses: dict[str, analysis.Analysis],
-    papers: list[paper.Paper],
-    confnotes: list[confnote.ConfNote],
-    pubnotes: list[pubnote.PubNote],
-):
-    """Update the pub_state of each analysis based on associated PUB/CONF/paper entries."""
-    for a in analyses.values():
-        ref = a.ref_code
-
-        # Check for ongoing paper
-        if any(p.ref_code == ref and p.pub_state == PublicationState.PHASE1_OR_2 for p in papers):
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = utils.glance_paper_url(ref)
-
-        # Check for ongoing CONF note
-        elif any(c.tmp_ref_code.replace("CONF-", "") == ref and c.pub_state == PublicationState.PHASE1_OR_2 for c in confnotes):
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = utils.glance_confnote_url(ref)
-
-        # Check for ongoing PUB note
-        elif any(p.tmp_ref_code.replace("PUB-", "") == ref and p.pub_state == PublicationState.PHASE1_OR_2 for p in pubnotes):
-            a.pub_state = PublicationState.PHASE1_OR_2
-            a.glance_url_publ = utils.glance_pubnote_url(ref)
-
-
-def filter_confnotes(confnotes, top_groups):
-    """Prepares a filtered list of confnotes for overview pages."""
-    filtered_confnotes = [
-        c
-        for c in confnotes
-        if any(x in c.subgroups for x in top_groups)
-        and c.pub_state == PublicationState.PUBLISHED
-    ]
-    logging.info(f"Filtered {len(filtered_confnotes)} confnotes.")
-    logging.debug(f"Filter criteria: {top_groups}")
-    return filtered_confnotes
-
-
-def filter_pubnotes(pubnotes, top_groups):
-    """Prepares a filtered list of pubnotes for overview pages."""
-    filtered_pubnotes = [
-        p
-        for p in pubnotes
-        if any(x in p.subgroups for x in top_groups)
-        and p.pub_state == PublicationState.PUBLISHED
-    ]
-    logging.info(f"Filtered {len(filtered_pubnotes)} pubnotes.")
-    logging.debug(f"Filter criteria: {top_groups}")
-    return filtered_pubnotes
-
-
-def determine_last_modified_time(files):
-    """Determine the last modification time of a list of files."""
-    repo = git.Repo(os.getcwd())
-    max_timestamp = 0
-
-    for f in files:
-        # Get the timestamp of the most recent commit affecting the file
-        file_commits = list(repo.iter_commits(paths=f))
-        max_timestamp = max(
-            max_timestamp, file_commits[0].committed_datetime.timestamp()
-        )
-
-    last_modified_time = datetime.fromtimestamp(
-        max_timestamp, tz=ZoneInfo("Europe/Zurich")
-    )
-    logging.info(f"Determined last modification time: {last_modified_time}")
-    return last_modified_time.strftime("%b %d, %Y, %H:%M (%Z)")
 
 
 def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshold):
@@ -245,48 +70,25 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
 if __name__ == "__main__":
     logging.info("Script started.")
 
-    # Load papers and analyses data, exit if any file is missing.
-    analyses = load_data("analyses.csv", analysis.Analysis)
+    from analysis_lister.glance import glance_registry
 
-    analyses_by_ref = {a.ref_code: a for a in analyses}
-
-    papers = load_promoted_data(
-        "papers.csv",
-        paper.Paper,
-        analyses_by_ref,
-        ref_extractor=lambda row: row["Reference Code"],
+    registry = glance_registry.GlanceRegistry(
+        analysis_csv="analyses.csv",
+        paper_csv="papers.csv",
+        confnote_csv="confnotes.csv",
+        pubnote_csv="pubnotes.csv",
+        csv_dir=CSV_DIR,
+        threshold_year=THRESHOLD_YEAR,
     )
 
-    confnotes = load_promoted_data(
-        "confnotes.csv",
-        confnote.ConfNote,
-        analyses_by_ref,
-        ref_extractor=lambda row: row["Temporary Reference Code"].removeprefix("CONF-"),
+    analyses, papers, confnotes, pubnotes = (
+        registry.analyses_filtered,
+        registry.papers_filtered,
+        registry.confnotes_filtered,
+        registry.pubnotes_filtered,
     )
 
-    pubnotes = load_promoted_data(
-        "pubnotes.csv",
-        pubnote.PubNote,
-        analyses_by_ref,
-        ref_extractor=lambda row: row["Temporary Reference Code"].removeprefix("PUB-"),
-    )
-    # Get modification time of the CSV files.
-    mtime = determine_last_modified_time(
-        [CSV_DIR / "papers.csv", CSV_DIR / "analyses.csv"]
-    )
-
-    top_groups = [x.id for x in subgroups.TopGroups]
-    logging.debug(f"Top groups: {top_groups}")
-
-    update_analysis_states_from_publications(
-        analyses_by_ref, papers, confnotes, pubnotes
-    )
-
-    # Filter papers and analyses.
-    analyses = filter_analyses(analyses_by_ref.values(), top_groups)
-    papers = filter_papers(papers, THRESHOLD_YEAR, top_groups)
-    confnotes = filter_confnotes(confnotes, top_groups)
-    pubnotes = filter_pubnotes(pubnotes, top_groups)
+    mtime = registry.determine_last_modified_time()
 
     # Generate global overview pages.
     logging.info("=" * 80)
