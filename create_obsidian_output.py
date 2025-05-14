@@ -8,10 +8,10 @@ from pathlib import Path
 import re
 import unicodedata
 
-from analysis_lister.glance import analysis, paper, subgroups
-from analysis_lister.markdown import utils
+from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.markdown.render.analysis import render_analysis_block
+from analysis_lister.markdown.render.paper import render_paper_block
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
-from create_analysis_overview import load_data, filter_papers, filter_analyses
 
 # Configure logging
 logging.basicConfig(
@@ -72,7 +72,7 @@ summary: {entry.title_short_public if entry_type == "paper" else entry.title_sho
 {"date: " + entry.date_start if entry_type == "analysis" else ""}
 ---
 
-{utils.paper_block(entry, attribute_tag=False, heading_level=1) if entry_type == "paper" else utils.analysis_block(entry, attribute_tag=False, heading_level=1)}
+{render_paper_block(entry, attribute_tag=False, heading_level=1) if entry_type == "paper" else render_analysis_block(entry, attribute_tag=False, heading_level=1)}
 
 ## Relevant meetings
 
@@ -109,20 +109,14 @@ def generate_filename(ref_code):
 if __name__ == "__main__":
     # Load papers and analyses data, exit if any file is missing.
     logger.info("Loading papers and analyses data.")
-    papers = load_data("papers.csv", paper.Paper)
-    analyses = load_data("analyses.csv", analysis.Analysis)
-
-    # Create a set of analyses where a paper entry is already created, but the paper
-    # is not yet submitted. In those cases, the analysis should be listed as ongoing
-    # even if it is not in phase 0.
-    ref_codes_unpublished = [p.ref_code for p in papers if p.date_submission == ""]
-    tx_group = [subgroups.TX.id]
-
-    # Filter papers and analyses.
-    logger.info("Filtering papers and analyses.")
-    logger.info("Filter criteria: threshold year: 2020, subgroup: TX")
-    papers = filter_papers(papers, THRESHOLD_YEAR, tx_group)
-    analyses = filter_analyses(analyses, ref_codes_unpublished, tx_group)
+    registry = GlanceRegistry(
+        analysis_csv="analyses.csv",
+        paper_csv="papers.csv",
+        confnote_csv="confnotes.csv",
+        pubnote_csv="pubnotes.csv",
+        csv_dir=CSV_DIR,
+        threshold_year=THRESHOLD_YEAR,
+    )
 
     # Ensure output directories exist.
     logger.info(f"Creating output directories if they do not exist: {OUTPUT_DIR}")
@@ -130,14 +124,14 @@ if __name__ == "__main__":
     ONGOING_DIR.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Markdown files for published papers.")
-    for p in papers:
+    for p in registry.papers_filtered:
         filename = generate_filename(p.ref_code)
         write_markdown_file(
             entry=p, directory=PUBLISHED_DIR, filename=filename, entry_type="paper"
         )
 
     logger.info("Generating Markdown files for ongoing analyses.")
-    for a in analyses:
+    for a in registry.analyses_filtered:
         filename = generate_filename(a.ref_code)
         write_markdown_file(
             entry=a, directory=ONGOING_DIR, filename=filename, entry_type="analysis"
