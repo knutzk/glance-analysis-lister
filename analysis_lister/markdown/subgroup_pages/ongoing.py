@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from analysis_lister.glance import analysis as glance_analysis
+from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
 from analysis_lister.glance.enums import PublicationState
 from ..render.analysis import render_analysis_block
 from ..render import utils
@@ -8,7 +8,7 @@ from ..render import utils
 logger = logging.getLogger(__name__)
 
 def ongoing_analyses(
-    list_of_analyses: list[glance_analysis.Analysis],
+    list_of_analyses: list[GlanceAnalysis],
     output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,

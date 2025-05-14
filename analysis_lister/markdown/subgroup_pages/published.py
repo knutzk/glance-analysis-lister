@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from analysis_lister.glance import paper as glance_paper
+from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.glance.enums import PublicationState
 from ..render.paper import render_paper_block
 from ..render import utils
@@ -8,7 +8,7 @@ from ..render import utils
 logger = logging.getLogger(__name__)
 
 def published_papers(
-    list_of_papers: list[glance_paper.Paper],
+    list_of_papers: list[GlancePaper],
     output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,

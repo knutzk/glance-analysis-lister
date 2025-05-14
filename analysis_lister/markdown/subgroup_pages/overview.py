@@ -1,15 +1,15 @@
 import logging
 from pathlib import Path
-from analysis_lister.glance import analysis as glance_analysis
-from analysis_lister.glance import paper as glance_paper
+from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
+from analysis_lister.glance.paper import Paper as GlancePaper
 from ..render.tables import render_analysis_table, render_paper_table
 from ..render import utils
 
 logger = logging.getLogger(__name__)
 
 def overview(
-    list_of_papers: list[glance_paper.Paper],
-    list_of_analyses: list[glance_analysis.Analysis],
+    list_of_papers: list[GlancePaper],
+    list_of_analyses: list[GlanceAnalysis],
     output_dir: Path,
     subgroup_title: str,
     subgroup_id: str,
