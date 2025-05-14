@@ -104,10 +104,6 @@ class Paper(Analysis):
         if not self.journal_ref and self.doi:
             logger.warning("No journal reference found for DOI: %s", self.doi)
 
-    def __str__(self):
-        """Return a string representation of the paper instance."""
-        return f"Paper {self.ref_code} ({self.pub_state})"
-
     def determine_paper_status(self):
         """Determine the status of the paper."""
         if self.status_paper == " Phase 1 is  Active ":

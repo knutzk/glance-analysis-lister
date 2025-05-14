@@ -17,7 +17,7 @@ import logging
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PUBNOTE
-from .utils import get_init_fields
+from .utils import get_init_fields, glance_pubnote_url
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,10 @@ class PubNote(Analysis):
         # Determine the publication state of the PUB note. As this class
         # should only be instantiated for finished analysis records, issue
         # a warning if the publication state is not set to PAST_PHASE0.
-        if self.pub_state not in [PublicationState.PAST_PHASE0, PublicationState.CLOSED]:
+        if self.pub_state not in [
+            PublicationState.PAST_PHASE0,
+            PublicationState.CLOSED,
+        ]:
             logger.warning(
                 "PUB note %s has state '%s' while it should be '%s'",
                 self.ref_code,
@@ -67,6 +70,9 @@ class PubNote(Analysis):
         if self.pub_state == PublicationState.PAST_PHASE0:
             self.pub_state = self.determine_pubnote_status()
         logger.debug("PUB note %s state: %s", self.ref_code, self.pub_state)
+
+        # Set the glance URL for the PUB note.
+        self.glance_url_publ = glance_pubnote_url(self.ref_code)
 
     def determine_pubnote_status(self):
         """Determine the status of the PUB note."""

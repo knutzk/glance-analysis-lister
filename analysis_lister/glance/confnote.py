@@ -56,7 +56,8 @@ class ConfNote(Analysis):
         # a warning if the publication state is not set to PAST_PHASE0.
         if self.pub_state not in [
             PublicationState.PAST_PHASE0,
-            PublicationState.CLOSED]:
+            PublicationState.CLOSED,
+        ]:
             logger.warning(
                 "CONF note %s has state '%s' while it should be '%s'",
                 self.ref_code,

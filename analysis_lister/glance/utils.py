@@ -77,7 +77,7 @@ def glance_analysis_url(ref_code: str) -> str:
 def glance_confnote_url(ref_code: str) -> str:
     """Return the GLANCE URL of a CONF note."""
     return (
-        "https://atlas-glance.cern.ch/atlas/analysis/confnotes/details.php?"""
+        "https://atlas-glance.cern.ch/atlas/analysis/confnotes/details.php?"
         f"ref_code=CONF-{ref_code}"
     )
 
