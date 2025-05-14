@@ -14,7 +14,7 @@ from attrs import define, field, validators
 import logging
 from typing import List
 
-from .enums import PublicationState
+from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS
 from .utils import (
     clean_titles,
@@ -48,6 +48,7 @@ class Analysis:
         pub_state: Enum for the publication state of the analysis.
         ref_code: String with the reference code.
         run: String with the run number.
+        software_release: Enum with the software release of the analysis.
         status: String with the status of the analysis.
         subgroups: List of subgroups associated with the analysis.
         supporting_docs: String with supporting documents.
@@ -76,6 +77,7 @@ class Analysis:
     )
     ref_code: str
     run: str
+    software_release: str = field(init=False)
     status: str
     subgroups: List[str]
     supporting_docs: str
@@ -109,6 +111,20 @@ class Analysis:
         parsed["glance_url_publ"] = None
 
         return cls(**parsed)
+
+    def determine_release(self):
+        """Get the software release associated with the analysis.
+
+        Returns:
+            str: The software release associated with the analysis.
+
+        """
+        if "R22" in self.keywords:
+            return SoftwareRelease.R25
+        elif "R21" in self.keywords:
+            return SoftwareRelease.R21
+        else:
+            return SoftwareRelease.UNKNOWN
 
     def determine_status(self):
         """Determine the publication status of the analysis.
@@ -145,3 +161,9 @@ class Analysis:
         # Determine the publication state of the analysis.
         self.pub_state = self.determine_status()
         logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)
+
+        # Determine the software release of the analysis.
+        self.software_release = self.determine_release()
+        logger.debug(
+            "Analysis %s software release: %s", self.ref_code, self.software_release
+        )

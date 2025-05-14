@@ -35,3 +35,20 @@ class PublicationState(Enum):
     PUBLISHED = auto()
     SUPERSEDED = auto()
     UNKNOWN = auto()
+
+
+class SoftwareRelease(Enum):
+    """Enum class for software release types.
+
+    This enum class represents the different types of software releases.
+
+    Attributes:
+        R21 (str): Represents the R21 software release.
+        R25 (str): Represents the R25 software release.
+        UNKNOWN (str): Represents an unknown software release.
+
+    """
+
+    R21 = "R21"
+    R25 = "R25"
+    UNKNOWN = ""

@@ -19,16 +19,13 @@ def render_analysis_table(analyses: List[Analysis]) -> str:
 
     for a in analyses:
         title = a.title_short.replace("|", "/")
-        release_str = (
-            "R25" if "R22" in a.keywords else "R21" if "R21" in a.keywords else ""
-        )
         n_ticks = state_to_n_ticks.get(a.pub_state, 0)
 
         row = (
             f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
             f"| {title} "
             f"| {tickmark * n_ticks} "
-            f"| {release_str} "
+            f"| {str(a.software_release.value)} "
             f'| {a.date_start.replace("-", "&#8209;")} |'
         )
         lines.append(row)

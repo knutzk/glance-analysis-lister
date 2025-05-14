@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List
 
 from analysis_lister.glance import subgroups
-from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.enums import PublicationState, SoftwareRelease
 from analysis_lister.glance.analysis import Analysis
 from ..render import utils
 
@@ -52,8 +52,8 @@ def ongoing_analyses(
         def provide_counts(alist: List[Analysis], criteria):
             """Provide total count and count per release."""
             filtered = [x for x in alist if criteria(x)]
-            f_R21 = sum(1 for x in filtered if "R21" in x.keywords)
-            f_R25 = sum(1 for x in filtered if "R22" in x.keywords)
+            f_R21 = sum(x.software_release == SoftwareRelease.R21 for x in filtered)
+            f_R25 = sum(x.software_release == SoftwareRelease.R25 for x in filtered)
             return (
                 f"{len(filtered)} ({f_R21} analyses in R21, {f_R25} analyses "
                 f"in R25, {len(filtered) - f_R21 - f_R25} unknown)"
@@ -135,11 +135,6 @@ def ongoing_analyses(
 
         for a in list_of_analyses:
             logger.debug(f"Writing table row for analysis {a.ref_code}.")
-            release_str = ""
-            if "R22" in a.keywords:
-                release_str = "R25"
-            elif "R21" in a.keywords:
-                release_str = "R21"
 
             tickmark = "&#10003;&nbsp;"
             state_to_n_ticks = {
@@ -159,7 +154,7 @@ def ongoing_analyses(
                 f"| {a.title_short} "
                 f"| {tickmark * n_ticks} "
                 f"| {_get_top_subgroup_codes(a.subgroups)} "
-                f"| {release_str} "
+                f"| {a.software_release.value} "
                 f'| {a.date_start.replace("-", "&#8209;")} '
                 f"|\n",
             )
