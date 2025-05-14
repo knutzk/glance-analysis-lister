@@ -65,13 +65,44 @@ class Paper(Analysis):
 
     @classmethod
     def from_analysis_and_dict(cls, base: Analysis, _dict: dict[str, str]):
-        """Create a Paper instance from an analysis and a dictionary."""
+        """Create a Paper instance from an analysis and a dictionary.
+
+        Args:
+            base (Analysis): The base analysis instance.
+            _dict (dict[str, str]): A dictionary containing the paper data.
+
+        Returns:
+            Paper: An instance of the Paper class.
+
+        """
         paper_fields = {}
         for key, (col, func) in FIELD_MAP_PAPER.items():
             raw = _dict.get(col, "") if col else ""
             paper_fields[key] = func(raw) if func else raw
 
         return cls(**get_init_fields(base, cls), **paper_fields)
+
+    def determine_paper_status(self):
+        """Determine the status of the paper.
+
+        This method checks the status of the paper based on its attributes
+        and updates the publication state of the instance accordingly.
+
+        Returns:
+            PublicationState: The publication state of the paper.
+
+        """
+        if self.status_paper == " Phase 1 is  Active ":
+            return PublicationState.PHASE1_OR_2
+        elif self.status_paper == " Phase 2 is  Active ":
+            return PublicationState.PHASE1_OR_2
+        elif self.date_submission and not self.date_publication:
+            return PublicationState.SUBMITTED_TO_JOURNAL
+        elif self.date_publication:
+            return PublicationState.PUBLISHED
+        else:
+            logger.error("Paper %s has unknown publication state", self.ref_code)
+            return PublicationState.UNKNOWN
 
     def __attrs_post_init__(self):
         """Post-initialization of paper instance."""
@@ -103,17 +134,3 @@ class Paper(Analysis):
 
         if not self.journal_ref and self.doi:
             logger.warning("No journal reference found for DOI: %s", self.doi)
-
-    def determine_paper_status(self):
-        """Determine the status of the paper."""
-        if self.status_paper == " Phase 1 is  Active ":
-            return PublicationState.PHASE1_OR_2
-        elif self.status_paper == " Phase 2 is  Active ":
-            return PublicationState.PHASE1_OR_2
-        elif self.date_submission and not self.date_publication:
-            return PublicationState.SUBMITTED_TO_JOURNAL
-        elif self.date_publication:
-            return PublicationState.PUBLISHED
-        else:
-            logger.error("Paper %s has unknown publication state", self.ref_code)
-            return PublicationState.UNKNOWN

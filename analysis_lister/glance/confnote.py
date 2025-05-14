@@ -39,13 +39,44 @@ class ConfNote(Analysis):
 
     @classmethod
     def from_analysis_and_dict(cls, base: Analysis, _dict: dict[str, str]):
-        """Create a CONF note instance from an analysis and a dictionary."""
+        """Create a CONF note instance from an analysis and a dictionary.
+
+        Args:
+            base (Analysis): The base analysis instance.
+            _dict (dict[str, str]): A dictionary containing the CONF note data.
+
+        Returns:
+            ConfNote: An instance of the ConfNote class.
+
+        """
         parsed = {}
         for key, (col, func) in FIELD_MAP_CONFNOTE.items():
             raw = _dict.get(col, "") if col else ""
             parsed[key] = func(raw) if func else raw
 
         return cls(**get_init_fields(base, cls), **parsed)
+
+    def determine_confnote_status(self):
+        """Determine the status of the CONF note.
+
+        This method checks the status of the CONF note based on its attributes
+        and updates the publication state of the instance accordingly.
+
+        Returns:
+            PublicationState: The publication state of the CONF note.
+
+        """
+        if self.status == " Phase 1 is  Not started ":
+            return PublicationState.INACTIVE
+        elif self.superseded_by:
+            return PublicationState.SUPERSEDED
+        elif self.final_url:
+            return PublicationState.PUBLISHED
+        elif self.tmp_ref_code != self.ref_code:
+            return PublicationState.PHASE1_OR_2
+        else:
+            logger.error("CONF note %s has unknown publication state", self.ref_code)
+            return PublicationState.UNKNOWN
 
     def __attrs_post_init__(self):
         """Post-initialization of CONF note instance."""
@@ -67,18 +98,5 @@ class ConfNote(Analysis):
 
         if self.pub_state == PublicationState.PAST_PHASE0:
             self.pub_state = self.determine_confnote_status()
-        logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)
 
-    def determine_confnote_status(self):
-        """Determine the status of the CONF note."""
-        if self.status == " Phase 1 is  Not started ":
-            return PublicationState.INACTIVE
-        elif self.superseded_by:
-            return PublicationState.SUPERSEDED
-        elif self.final_url:
-            return PublicationState.PUBLISHED
-        elif self.tmp_ref_code != self.ref_code:
-            return PublicationState.PHASE1_OR_2
-        else:
-            logger.error("CONF note %s has unknown publication state", self.ref_code)
-            return PublicationState.UNKNOWN
+        logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)

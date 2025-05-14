@@ -15,12 +15,25 @@ logger = logging.getLogger(__name__)
 
 
 class _FilteringMixin:
-    """Mixin class to provide filtering and counting methods for analyses."""
+    """Mixin class to provide filtering and counting methods for analyses.
+
+    Methods:
+        _filter_by_type(cls): Filter analyses by type.
+        _filter_by_type_and_state(cls, states): Filter analyses by type and publication
+            state.
+        count(cls, pub_state=None, subgroup_id=None): Count entries matching type,
+            publication state, and subgroup.
+        count_by_state(cls, subgroup_id=None): Count entries grouped by publication
+            state.
+
+    """
 
     def _filter_by_type(self, cls) -> list:
+        """Filters the analyses by the specified type."""
         return [a for a in self._analyses.values() if isinstance(a, cls)]
 
     def _filter_by_type_and_state(self, cls, states: set[PublicationState]) -> list:
+        """Filters analyses based on their type and publication state."""
         return [
             a
             for a in self._analyses.values()

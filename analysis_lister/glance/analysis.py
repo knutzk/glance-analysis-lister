@@ -31,28 +31,34 @@ class Analysis:
     """A class to hold information about a glance analysis entry.
 
     Attributes:
-        pub_state: Enum for the publication state of the analysis.
-        contacts: String with the analysis contacts.
         contact_editors: String with the contact editors.
+        contacts: String with the analysis contacts.
         date_approval: String with the date of approval meetings.
-        date_start: String with the start date of phase 0.
         date_eb_formed: String with the date when editorial board was formed.
-        date_preapproval: String with the date of pre-approval meetings.
         date_preapproval_signoff: String with the date of sign-off by PGC or SGC.
+        date_preapproval: String with the date of pre-approval meetings.
+        date_start: String with the start date of phase 0.
         editorial_board: String with the editorial board members.
+        glance_url_analysis: String with the URL to the analysis in GLANCE.
         glance_url_publ: String with the URL to the publication in GLANCE.
         int_note_editors: String with internal note editors.
+        keywords: List of keywords associated with the analysis.
         leading_group: String with the leading group.
+        phase_state: String with the phase state.
+        pub_state: Enum for the publication state of the analysis.
+        ref_code: String with the reference code.
         run: String with the run number.
+        status: String with the status of the analysis.
+        subgroups: List of subgroups associated with the analysis.
         supporting_docs: String with supporting documents.
+        title_full: String with the full title of the analysis.
+        title_short_public: String with the short public title of the analysis.
+        title_short: String with the short title of the analysis.
 
     """
 
-    pub_state: PublicationState = field(
-        validator=validators.instance_of(PublicationState), init=False
-    )
-    contacts: str
     contact_editors: str
+    contacts: str
     date_approval: str
     date_eb_formed: str
     date_preapproval_signoff: str
@@ -65,6 +71,9 @@ class Analysis:
     keywords: List[str]
     leading_group: str
     phase_state: str
+    pub_state: PublicationState = field(
+        validator=validators.instance_of(PublicationState), init=False
+    )
     ref_code: str
     run: str
     status: str
@@ -76,7 +85,15 @@ class Analysis:
 
     @classmethod
     def from_dict(cls, _dict):
-        """Initialise the analysis instance through a dictionary."""
+        """Initialise the analysis instance through a dictionary.
+
+        Args:
+            _dict (dict): Dictionary containing the analysis data.
+
+        Returns:
+            Analysis: An instance of the Analysis class.
+
+        """
         parsed = {}
         for key, (col, func) in FIELD_MAP_ANALYSIS.items():
             raw = _dict.get(col, "") if col else ""
@@ -93,19 +110,17 @@ class Analysis:
 
         return cls(**parsed)
 
-    def __attrs_post_init__(self):
-        """Post-initialization of analysis instance."""
-        self.glance_url_analysis = glance_analysis_url(self.ref_code)
-        self.title_full, self.title_short, self.title_short_public = clean_titles(
-            self.title_full, self.title_short, self.title_short_public
-        )
-
-        # Determine the publication state of the analysis.
-        self.pub_state = self.determine_status()
-        logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)
-
     def determine_status(self):
-        """Determine the status of the analysis."""
+        """Determine the publication status of the analysis.
+
+        The status is determined based on the values of various attributes,
+        e.g., whether the analysis is closed, in phase 0, or whether its
+        preapproval sign-off has been completed.
+
+        Returns:
+            PublicationState: The publication state of the analysis.
+
+        """
         if self.status == " Analysis is  Closed ":
             return PublicationState.CLOSED
         elif self.status == " Phase 0 is  Finished ":
@@ -119,3 +134,14 @@ class Analysis:
         else:
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
             return PublicationState.UNKNOWN
+
+    def __attrs_post_init__(self):
+        """Post-initialization of analysis instance."""
+        self.glance_url_analysis = glance_analysis_url(self.ref_code)
+        self.title_full, self.title_short, self.title_short_public = clean_titles(
+            self.title_full, self.title_short, self.title_short_public
+        )
+
+        # Determine the publication state of the analysis.
+        self.pub_state = self.determine_status()
+        logger.debug("Analysis %s state: %s", self.ref_code, self.pub_state)

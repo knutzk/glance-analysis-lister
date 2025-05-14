@@ -41,13 +41,44 @@ class PubNote(Analysis):
 
     @classmethod
     def from_analysis_and_dict(cls, base: Analysis, _dict: dict[str, str]):
-        """Create a PUB note instance from an analysis and a dictionary."""
+        """Create a PUB note instance from an analysis and a dictionary.
+
+        Args:
+            base (Analysis): The base analysis instance.
+            _dict (dict[str, str]): A dictionary containing the PUB note data.
+
+        Returns:
+            PubNote: An instance of the PubNote class.
+
+        """
         parsed = {}
         for key, (col, func) in FIELD_MAP_PUBNOTE.items():
             raw = _dict.get(col, "") if col else ""
             parsed[key] = func(raw) if func else raw
 
         return cls(**get_init_fields(base, cls), **parsed)
+
+    def determine_pubnote_status(self):
+        """Determine the status of the PUB note.
+
+        This method checks the status of the PUB note and returns the
+        corresponding publication state of the instance accordingly.
+
+        Returns:
+            PublicationState: The publication state of the PUB note.
+
+        """
+        if self.status_pub == " Phase 1 is  Not started ":
+            return PublicationState.INACTIVE
+        elif self.superseded_by:
+            return PublicationState.SUPERSEDED
+        elif self.final_url:
+            return PublicationState.PUBLISHED
+        elif self.tmp_ref_code != self.ref_code:
+            return PublicationState.PHASE1_OR_2
+        else:
+            logger.error("PUB note %s has unknown publication state", self.ref_code)
+            return PublicationState.UNKNOWN
 
     def __attrs_post_init__(self):
         """Post-initialization of PUB note instance."""
@@ -69,21 +100,8 @@ class PubNote(Analysis):
 
         if self.pub_state == PublicationState.PAST_PHASE0:
             self.pub_state = self.determine_pubnote_status()
+
         logger.debug("PUB note %s state: %s", self.ref_code, self.pub_state)
 
         # Set the glance URL for the PUB note.
         self.glance_url_publ = glance_pubnote_url(self.ref_code)
-
-    def determine_pubnote_status(self):
-        """Determine the status of the PUB note."""
-        if self.status_pub == " Phase 1 is  Not started ":
-            return PublicationState.INACTIVE
-        elif self.superseded_by:
-            return PublicationState.SUPERSEDED
-        elif self.final_url:
-            return PublicationState.PUBLISHED
-        elif self.tmp_ref_code != self.ref_code:
-            return PublicationState.PHASE1_OR_2
-        else:
-            logger.error("PUB note %s has unknown publication state", self.ref_code)
-            return PublicationState.UNKNOWN
