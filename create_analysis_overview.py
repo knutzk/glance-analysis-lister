@@ -22,7 +22,7 @@ import logging
 
 from analysis_lister.glance import subgroups
 from analysis_lister.markdown import global_pages
-from analysis_lister.markdown import subgroup_pages
+from analysis_lister.markdown.subgroup_pages import ongoing, published, overview
 
 
 CSV_DIR = Path("csv/")
@@ -41,7 +41,7 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
     """Generate the subgroup overview pages in Markdown format."""
     for g in subgroups:
         logging.info(f"Generating pages for subgroup: {g.title}")
-        subgroup_pages.published_papers(
+        published.published_papers(
             papers,
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
@@ -49,14 +49,14 @@ def generate_subgroup_pages(subgroups, papers, analyses, last_modified, threshol
             last_modified=last_modified,
             threshold=threshold,
         )
-        subgroup_pages.ongoing_analyses(
+        ongoing.ongoing_analyses(
             analyses,
             output_dir=OUTPUT_DIR / g.output_dir,
             subgroup_title=g.title,
             subgroup_id=g.id,
             last_modified=last_modified,
         )
-        subgroup_pages.overview(
+        overview.overview(
             papers,
             analyses,
             output_dir=OUTPUT_DIR / g.output_dir,

@@ -1,21 +1,18 @@
-"""Create global overview pages in Markdown for the entire top WG.
-
-
-"""
-
-from typing import List
 import logging
 from pathlib import Path
-from analysis_lister.glance import analysis, paper, subgroups
-from analysis_lister.glance.enums import PublicationState
-from . import utils
+from typing import List
 
-# Set up logging
+from analysis_lister.glance import subgroups
+from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.paper import Paper
+from analysis_lister.glance.analysis import Analysis
+from .render import utils
+
 logger = logging.getLogger(__name__)
 
 
 def published(
-    list_of_papers: list[paper.Paper],
+    list_of_papers: list[Paper],
     output_dir: Path,
     last_modified: str,
     threshold: str = "2020",
@@ -100,7 +97,7 @@ def published(
 
 
 def ongoing_analyses(
-    list_of_analyses: list[analysis.Analysis],
+    list_of_analyses: list[Analysis],
     output_dir: Path,
     last_modified: str,
 ):
@@ -138,17 +135,8 @@ def ongoing_analyses(
             "on the keywords assigned to the analysis on GLANCE.\n\n"
         )
 
-        def provide_counts(alist: List[analysis.Analysis], criteria: bool):
-            """Provide total count and count per release.
-
-            Parameters:
-                alist: The list of analyses to consider.
-                criteria: The criteria to apply for filtering.
-
-            Returns: String with analysis counts fulfilling these criteria
-                (total count, count in R21, count in R25, unknown).
-
-            """
+        def provide_counts(alist: List[Analysis], criteria):
+            """Provide total count and count per release."""
             filtered = [x for x in alist if criteria(x)]
             f_R21 = sum(1 for x in filtered if "R21" in x.keywords)
             f_R25 = sum(1 for x in filtered if "R22" in x.keywords)
@@ -176,10 +164,7 @@ def ongoing_analyses(
                 for x in list_of_analyses
                 if g.id in x.subgroups
                 and x.pub_state
-                in [
-                    PublicationState.PREAPPROVED,
-                    PublicationState.PHASE1_OR_2,
-                ]
+                in [PublicationState.PREAPPROVED, PublicationState.PHASE1_OR_2]
             )
             _f.write(f"pre-approved: {count}, ")
             count = sum(
@@ -200,8 +185,8 @@ def ongoing_analyses(
         # Split by status
         # =====================================================================
         logger.info("Writing status counts for ongoing analyses.")
-        _f.write("    * **Split by status**:")
-        _f.write("\n        * Approved: ")
+        _f.write("    * **Split by status**:\n")
+        _f.write("        * Approved: ")
         _f.write(
             provide_counts(
                 list_of_analyses,
@@ -296,7 +281,7 @@ def overview(output_dir: Path):
             "* [Top Quarks + X](topx/index.md)\n"
             "    * [Ongoing Analyses](topx/ongoing.md)\n"
             "    * [Submitted/Published Papers](topx/published.md)\n"
-            "\n",
+            "\n"
         )
 
     logger.info("Finished generating overview page.")
