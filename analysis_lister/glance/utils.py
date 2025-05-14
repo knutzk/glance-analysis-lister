@@ -4,14 +4,19 @@
 """
 
 from attrs import fields as attrs_fields
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def format_contacts(contacts: str, end_dates: str) -> str:
     """Return the current analysis contacts of an analysis."""
     contacts = contacts.split(", ")
-    contacts = [
-        contacts[k] for k, d in enumerate(end_dates.split(", ")) if d == "No end date"
-    ]
+    end_dates = end_dates.split(", ")
+    if len(contacts) != len(end_dates):
+        logger.warning("Cannot resolve analysis contacts: %s.", contacts)
+
+    contacts = [c for c, d in zip(contacts, end_dates) if d == "No end date"]
     return ", ".join(contacts)
 
 
