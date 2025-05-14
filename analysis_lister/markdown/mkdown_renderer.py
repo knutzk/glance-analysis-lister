@@ -4,7 +4,6 @@ from ..glance.subgroups import TopGroups
 
 from .global_pages import (
     ongoing as glob_ongoing,
-    overview as glob_overview,
     published as glob_published,
 )
 from .subgroup_pages import (
@@ -22,7 +21,6 @@ class MarkdownPageRenderer:
         self.mtime = registry.determine_last_modified_time()
 
     def write_global_pages(self):
-        glob_overview.overview(output_dir=self.output_dir)
         glob_published.published(
             self.registry.papers_filtered,
             output_dir=self.output_dir,
