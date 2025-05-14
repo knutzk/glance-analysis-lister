@@ -10,17 +10,18 @@ Each FIELD_MAP_* dictionary maps class attribute names to a 2-tuple:
     `None`.
 
 This structure allows each class (Analysis, Paper, etc.) to define its
-`from_dict()` logic in a generic and consistent way.
-
-Fields that require information from multiple CSV columns (e.g., 'contacts' or
+`from_dict()` logic in a generic and consistent way. Fields that require
+information from multiple CSV columns (e.g., 'contacts' or
 'editorial_board') are handled separately.
 
-Example:
-    FIELD_MAP_ANALYSIS = {
-        "ref_code": ("Reference Code", utils.format_ref_code),
-        "keywords": ("Keywords", lambda s: s.split(", ")),
-        "title_short": ("Short Title", None),
-    }
+EXTRA_COLUMNS_* lists are used to add additional fields that are not
+initialised in the constructor but are required for the class to function
+correctly. These fields are typically derived from the CSV data but are not
+directly represented in the CSV file.
+
+The `REQUIRED_COLUMNS_*` lists are used to validate the presence of
+required fields in the CSV file. They are constructed by combining the
+fields from the `FIELD_MAP_*` dictionaries and the `EXTRA_COLUMNS_*` lists.
 
 """
 
