@@ -101,8 +101,3 @@ def glance_pubnote_url(ref_code: str) -> str:
 def clean_titles(*titles: str) -> list[str]:
     """Clean the titles of an analysis/publication (replacing pipe chars)."""
     return [t.replace("|", "/") for t in titles]
-
-
-def get_top_subgroups(subgroup_ids: list[str], topgroups: list) -> list:
-    """Return the top subgroups of a list of subgroups."""
-    return [group for group in topgroups if group.id in subgroup_ids]

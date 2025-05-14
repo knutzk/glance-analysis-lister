@@ -61,18 +61,18 @@ def published(
         logger.info("Writing detailed paper counts for published papers.")
         _f.write(f'!!! info "Counts per subgroup (since {threshold})"\n\n')
         for g in subgroups.TopGroups:
-            count = sum(1 for x in list_of_papers if g in x.top_subgroups)
+            count = sum(g.id in x.subgroups for x in list_of_papers)
             _f.write(f"    * {g.title}: {count} (")
             count = sum(
                 1
                 for x in list_of_papers
-                if g in x.top_subgroups and x.pub_state == PublicationState.PUBLISHED
+                if g.id in x.subgroups and x.pub_state == PublicationState.PUBLISHED
             )
             _f.write(f"published: {count}, ")
             count = sum(
                 1
                 for x in list_of_papers
-                if g in x.top_subgroups
+                if g.id in x.subgroups
                 and x.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
             )
             _f.write(f"submitted: {count})\n")
@@ -81,12 +81,20 @@ def published(
 
         _f.write("| Identifier | Title | Subgroup | Submission | Publication |\n")
         _f.write("| --- | --- | --- | --- | --- |\n")
+
+        def _get_top_subgroup_codes(grps: List[str]) -> str:
+            """Get the top subgroup codes from a list of subgroup codes."""
+            top_subgroups = [
+                g.code for g in subgroups.TopGroups if g.id in grps
+            ]
+            return ", ".join(top_subgroups) if top_subgroups else "None"
+
         for p in list_of_papers:
             logger.debug(f"Writing table row for paper {p.ref_code}.")
             _f.write(
                 f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
                 f"| {p.title_short} "
-                f'| {", ".join([g.code for g in p.top_subgroups])} '
+                f'| {_get_top_subgroup_codes(p.subgroups)} '
                 f'| {p.date_submission.replace("-", "&#8209;")} '
                 f'| {p.date_publication.replace("-", "&#8209;")} '
                 f"|\n",
@@ -163,12 +171,12 @@ def ongoing_analyses(
         logger.info("Writing subgroup counts for ongoing analyses.")
         _f.write("    * **Split by subgroup** (double-counts possible):\n")
         for g in subgroups.TopGroups:
-            count = sum(1 for x in list_of_analyses if g in x.top_subgroups)
+            count = sum(g.id in x.subgroups for x in list_of_analyses)
             _f.write(f"        * {g.title}: {count} (")
             count = sum(
                 1
                 for x in list_of_analyses
-                if g in x.top_subgroups
+                if g.id in x.subgroups
                 and x.pub_state
                 in [
                     PublicationState.PREAPPROVED,
@@ -179,14 +187,14 @@ def ongoing_analyses(
             count = sum(
                 1
                 for x in list_of_analyses
-                if g in x.top_subgroups
+                if g.id in x.subgroups
                 and x.pub_state == PublicationState.ONGOING_WITH_EB
             )
             _f.write(f"with EdBoard: {count}, ")
             count = sum(
                 1
                 for x in list_of_analyses
-                if g in x.top_subgroups
+                if g.id in x.subgroups
                 and x.pub_state == PublicationState.ONGOING_WO_EB
             )
             _f.write(f"no EdBoard: {count})\n")
@@ -245,11 +253,18 @@ def ongoing_analyses(
             }
             n_ticks = state_to_n_ticks.get(a.pub_state, 0)
 
+            def _get_top_subgroup_codes(grps: List[str]) -> str:
+                """Get the top subgroup codes from a list of subgroup codes."""
+                top_subgroups = [
+                    g.code for g in subgroups.TopGroups if g.id in grps
+                ]
+                return ", ".join(top_subgroups) if top_subgroups else "None"
+
             _f.write(
                 f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
                 f"| {a.title_short} "
                 f"| {tickmark * n_ticks} "
-                f'| {", ".join([g.code for g in a.top_subgroups])} '
+                f'| {_get_top_subgroup_codes(a.subgroups)} '
                 f"| {release_str} "
                 f'| {a.date_start.replace("-", "&#8209;")} '
                 f"|\n",

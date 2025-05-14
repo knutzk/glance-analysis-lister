@@ -21,7 +21,6 @@ from .utils import (
     clean_titles,
     format_contacts,
     format_editorial_board,
-    get_top_subgroups,
     glance_analysis_url,
 )
 
@@ -75,7 +74,6 @@ class Analysis:
     title_full: str
     title_short_public: str
     title_short: str
-    top_subgroups: List[str] = field(init=False)
 
     @classmethod
     def from_dict(cls, _dict):
@@ -102,7 +100,6 @@ class Analysis:
         self.title_full, self.title_short, self.title_short_public = clean_titles(
             self.title_full, self.title_short, self.title_short_public
         )
-        self.top_subgroups = get_top_subgroups(self.subgroups, subgroups.TopGroups)
 
         # Determine the publication state of the analysis.
         self.pub_state = self.determine_status()
