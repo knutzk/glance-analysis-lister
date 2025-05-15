@@ -4,7 +4,7 @@ from pathlib import Path
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.enums import PublicationState, SoftwareRelease
 from analysis_lister.glance.subgroups import TopGroups
-from ..render import utils
+from .. import utils
 
 logger = logging.getLogger(__name__)
 
