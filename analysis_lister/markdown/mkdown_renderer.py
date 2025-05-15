@@ -1,11 +1,7 @@
 from pathlib import Path
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
-
-from .global_pages import (
-    ongoing as glob_ongoing,
-    published as glob_published,
-)
+from .global_pages import ongoing as glob_ongoing, published as glob_published
 from .subgroup_pages import (
     ongoing as sub_ongoing,
     overview as sub_overview,
@@ -20,9 +16,14 @@ class MarkdownPageRenderer:
         self.threshold = threshold_year
         self.mtime = registry.determine_last_modified_time()
 
+        # Cache the commonly used data
+        self.analyses = registry.analyses
+        self.papers = registry.papers
+
     def write_global_pages(self):
+        """Generate global overview pages (ongoing + published)."""
         glob_published.published(
-            self.registry.papers,
+            self.papers,
             output_dir=self.output_dir,
             last_modified=self.mtime,
             threshold=self.threshold,
@@ -34,10 +35,13 @@ class MarkdownPageRenderer:
         )
 
     def write_subgroup_pages(self):
+        """Generate ongoing, published, and overview pages for each subgroup."""
         for g in TopGroups:
             sub_output = self.output_dir / g.output_dir
+            sub_output.mkdir(parents=True, exist_ok=True)
+
             sub_published.published_papers(
-                self.registry.papers,
+                self.papers,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,
@@ -45,15 +49,15 @@ class MarkdownPageRenderer:
                 threshold=self.threshold,
             )
             sub_ongoing.ongoing_analyses(
-                self.registry.analyses,
+                self.analyses,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,
                 last_modified=self.mtime,
             )
             sub_overview.overview(
-                self.registry.papers,
-                self.registry.analyses,
+                self.papers,
+                self.analyses,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,
@@ -62,5 +66,6 @@ class MarkdownPageRenderer:
             )
 
     def write_all(self):
+        """Generate both global and subgroup pages."""
         self.write_global_pages()
         self.write_subgroup_pages()
