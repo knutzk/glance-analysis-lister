@@ -17,7 +17,7 @@ import logging
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_CONFNOTE
-from .utils import get_init_fields
+from .utils import get_init_fields, glance_confnote_url
 
 logger = logging.getLogger(__name__)
 
@@ -100,3 +100,5 @@ class ConfNote(Analysis):
             self.pub_state = self.determine_confnote_status()
 
         logger.debug("CONF note %s state: %s", self.ref_code, self.pub_state)
+
+        self.glance_url_publ = glance_confnote_url(self.ref_code)
