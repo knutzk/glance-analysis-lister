@@ -1,8 +1,9 @@
 import logging
 from pathlib import Path
+from typing import List
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
 from analysis_lister.glance.paper import Paper as GlancePaper
-from ..render.tables import render_analysis_table, render_paper_table
+from analysis_lister.glance.enums import PublicationState
 from ..render import utils
 
 logger = logging.getLogger(__name__)
@@ -60,3 +61,51 @@ def overview(
         _f.write(render_paper_table(subgroup_papers))
 
     logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
+
+
+def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
+    lines = [
+        "| Identifier | Title | EB PA A | Rel. | Start |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+
+    tickmark = "&#10003;&nbsp;"
+    state_to_n_ticks = {
+        PublicationState.PAST_PHASE0: 3,
+        PublicationState.PREAPPROVED: 2,
+        PublicationState.ONGOING_WITH_EB: 1,
+    }
+
+    for a in analyses:
+        title = a.title_short.replace("|", "/")
+        n_ticks = state_to_n_ticks.get(a.pub_state, 0)
+
+        row = (
+            f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
+            f"| {title} "
+            f"| {tickmark * n_ticks} "
+            f"| {str(a.software_release.value)} "
+            f'| {a.date_start.replace("-", "&#8209;")} |'
+        )
+        lines.append(row)
+
+    return "\n".join(lines) + "\n"
+
+
+def render_paper_table(papers: List[GlancePaper]) -> str:
+    lines = [
+        "| Identifier | Title | Submission | Publication |",
+        "| --- | --- | --- | --- |",
+    ]
+
+    for p in papers:
+        title = p.title_short.replace("|", "/")
+        row = (
+            f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
+            f"| {title} "
+            f'| {p.date_submission.replace("-", "&#8209;")} '
+            f'| {p.date_publication.replace("-", "&#8209;")} |'
+        )
+        lines.append(row)
+
+    return "\n".join(lines) + "\n"
