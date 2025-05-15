@@ -22,13 +22,13 @@ class MarkdownPageRenderer:
 
     def write_global_pages(self):
         glob_published.published(
-            self.registry.papers_filtered,
+            self.registry.papers,
             output_dir=self.output_dir,
             last_modified=self.mtime,
             threshold=self.threshold,
         )
         glob_ongoing.ongoing_analyses(
-            self.registry.analyses_filtered,
+            self.registry,
             output_dir=self.output_dir,
             last_modified=self.mtime,
         )
@@ -37,7 +37,7 @@ class MarkdownPageRenderer:
         for g in TopGroups:
             sub_output = self.output_dir / g.output_dir
             sub_published.published_papers(
-                self.registry.papers_filtered,
+                self.registry.papers,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,
@@ -45,15 +45,15 @@ class MarkdownPageRenderer:
                 threshold=self.threshold,
             )
             sub_ongoing.ongoing_analyses(
-                self.registry.analyses_filtered,
+                self.registry.analyses,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,
                 last_modified=self.mtime,
             )
             sub_overview.overview(
-                self.registry.papers_filtered,
-                self.registry.analyses_filtered,
+                self.registry.papers,
+                self.registry.analyses,
                 output_dir=sub_output,
                 subgroup_title=g.title,
                 subgroup_id=g.id,

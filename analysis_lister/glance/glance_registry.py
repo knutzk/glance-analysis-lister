@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import Union
+from typing import Callable, Union
 
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -15,59 +15,25 @@ logger = logging.getLogger(__name__)
 
 
 class _FilteringMixin:
-    """Mixin class to provide filtering and counting methods for analyses.
+    """Mixin class to provide filtering and counting methods for analyses."""
 
-    Methods:
-        _filter_by_type(cls): Filter analyses by type.
-        _filter_by_type_and_state(cls, states): Filter analyses by type and publication
-            state.
-        count(cls, pub_state=None, subgroup_id=None): Count entries matching type,
-            publication state, and subgroup.
-        count_by_state(cls, subgroup_id=None): Count entries grouped by publication
-            state.
-
-    """
-
-    def _filter_by_type(self, cls) -> list:
-        """Filters the analyses by the specified type."""
-        return [a for a in self._analyses.values() if isinstance(a, cls)]
-
-    def _filter_by_type_and_state(self, cls, states: set[PublicationState]) -> list:
-        """Filters analyses based on their type and publication state."""
-        return [
-            a
-            for a in self._analyses.values()
-            if isinstance(a, cls) and a.pub_state in states
-        ]
-
-    def count(
-        self,
-        cls: type = Analysis,
-        *,
-        pub_state: PublicationState | None = None,
-        subgroup_id: str | None = None,
-    ) -> int:
-        """Count entries matching type, publication state, and subgroup."""
-        results = self._filter_by_type(cls)
-
-        if pub_state:
-            results = [e for e in results if e.pub_state == pub_state]
-
-        if subgroup_id:
-            results = [e for e in results if subgroup_id in e.subgroups]
-
-        return len(results)
+    def count(self, predicate: Callable[[Analysis], bool]) -> int:
+        """Count entries matching a custom filter predicate."""
+        return len(self.filter(predicate))
 
     def count_by_state(
-        self, cls: type = Analysis, *, subgroup_id: str | None = None
+        self, predicate: Callable[[Analysis], bool]
     ) -> dict[PublicationState, int]:
-        """Return a count of entries grouped by publication state."""
+        """Count entries matching a custom filter predicate grouped by publication state."""
         counts = {state: 0 for state in PublicationState}
-        for entry in self._filter_by_type(cls):
-            if subgroup_id and subgroup_id not in entry.subgroups:
-                continue
-            counts[entry.pub_state] += 1
+        for entry in self._analyses.values():
+            if predicate(entry):
+                counts[entry.pub_state] += 1
         return counts
+
+    def filter(self, predicate: Callable[[Analysis], bool]) -> list[Analysis]:
+        """Filter analyses based on a custom predicate function."""
+        return [a for a in self._analyses.values() if predicate(a)]
 
 
 class GlanceRegistry(_FilteringMixin):
@@ -108,10 +74,10 @@ class GlanceRegistry(_FilteringMixin):
 
     def __str__(self):
         summary = f"GlanceRegistry: "
-        summary += f"{len(self.analyses_filtered)} ongoing analyses, "
-        summary += f"{len(self.papers_filtered)} submitted/published papers, "
-        summary += f"{len(self.confnotes_filtered)} CONF notes, "
-        summary += f"{len(self.pubnotes_filtered)} PUB notes"
+        summary += f"{len(self.analyses)} ongoing analyses, "
+        summary += f"{len(self.papers)} submitted/published papers, "
+        summary += f"{len(self.confnotes)} CONF notes, "
+        summary += f"{len(self.pubnotes)} PUB notes"
         return summary
 
     # --- Public API Methods ---
@@ -135,35 +101,46 @@ class GlanceRegistry(_FilteringMixin):
         )
         return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
 
+    def store_json(self, path: Path):
+        """Store the registry as a JSON file with serialized entries."""
+        import json
+        from attrs import asdict
+        from enum import Enum
+
+        def serializer(instance, field, value):
+            if isinstance(value, Enum):
+                return value.value
+            return value
+
+        serializable_registry = {
+            ref_code: asdict(entry, value_serializer=serializer)
+            for ref_code, entry in self._analyses.items()
+        }
+
+        with open(path, "w", encoding="utf8") as f:
+            json.dump(serializable_registry, f, indent=4, ensure_ascii=False)
+
+        logger.info("Stored registry as JSON file at %s", path)
+
     # --- Public Properties: Access to Data ---
 
     @property
-    def analyses(self) -> list[Analysis]:
-        """All analyses, including enriched entries (papers/notes)."""
-        return list(self._analyses.values())
+    def analyses(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+        """All analyses that are ongoing/under review.
 
-    @property
-    def analyses_filtered(self) -> list[Analysis]:
-        """Analyses in an ongoing or review state."""
-        return self._filter_by_type_and_state(
-            Analysis,
-            {
-                PublicationState.ONGOING_WITH_EB,
-                PublicationState.ONGOING_WO_EB,
-                PublicationState.PREAPPROVED,
-                PublicationState.PHASE1_OR_2,
-            },
-        )
+        Some of these entries may have been promoted to papers or notes, but
+        if they are still in the review process, they are included here.
+
+        """
+        return self.filter(lambda a: a.is_ongoing())
 
     @property
     def confnotes(self) -> list[ConfNote]:
-        """All entries promoted to CONF note."""
-        return self._filter_by_type(ConfNote)
-
-    @property
-    def confnotes_filtered(self) -> list[ConfNote]:
-        """CONF notes in published state."""
-        return self._filter_by_type_and_state(ConfNote, {PublicationState.PUBLISHED})
+        """All entries that should be listed as CONF note."""
+        return self.filter(
+            lambda a: isinstance(a, ConfNote)
+            and a.pub_state == PublicationState.PUBLISHED
+        )
 
     @property
     def entries(self) -> dict[str, Union[Analysis, Paper, ConfNote, PubNote]]:
@@ -171,32 +148,31 @@ class GlanceRegistry(_FilteringMixin):
         return self._analyses.copy()
 
     @property
-    def pubnotes(self) -> list[PubNote]:
-        """All entries promoted to PUB note."""
-        return self._filter_by_type(PubNote)
-
-    @property
-    def pubnotes_filtered(self) -> list[PubNote]:
-        """PUB notes in published state."""
-        return self._filter_by_type_and_state(PubNote, {PublicationState.PUBLISHED})
-
-    @property
     def papers(self) -> list[Paper]:
-        """All entries promoted to Paper."""
-        return self._filter_by_type(Paper)
+        """All entries that should be listed as paper.
+
+        This includes all papers that are either in SUBMITTED_TO_JOURNAL state
+        or PUBLISHED with a publication date greater than the threshold year.
+
+        """
+        return self.filter(
+            lambda a: isinstance(a, Paper)
+            and (
+                a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
+                or (
+                    a.pub_state == PublicationState.PUBLISHED
+                    and a.date_publication >= self.threshold_year
+                )
+            )
+        )
 
     @property
-    def papers_filtered(self) -> list[Paper]:
-        """Submitted or recently published papers (since threshold year)."""
-        return [
-            a
-            for a in self._filter_by_type(Paper)
-            if a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
-            or (
-                a.pub_state == PublicationState.PUBLISHED
-                and a.date_publication >= self.threshold_year
-            )
-        ]
+    def pubnotes(self) -> list[PubNote]:
+        """All entries that should be listed as PUB note."""
+        return self.filter(
+            lambda a: isinstance(a, PubNote)
+            and a.pub_state == PublicationState.PUBLISHED
+        )
 
     # --- Internal Load and Enrich ---
 

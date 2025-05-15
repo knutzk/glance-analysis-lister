@@ -124,14 +124,14 @@ if __name__ == "__main__":
     ONGOING_DIR.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Markdown files for published papers.")
-    for p in registry.papers_filtered:
+    for p in registry.papers:
         filename = generate_filename(p.ref_code)
         write_markdown_file(
             entry=p, directory=PUBLISHED_DIR, filename=filename, entry_type="paper"
         )
 
     logger.info("Generating Markdown files for ongoing analyses.")
-    for a in registry.analyses_filtered:
+    for a in registry.analyses:
         filename = generate_filename(a.ref_code)
         write_markdown_file(
             entry=a, directory=ONGOING_DIR, filename=filename, entry_type="analysis"

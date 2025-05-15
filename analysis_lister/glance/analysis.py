@@ -151,6 +151,26 @@ class Analysis:
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
             return PublicationState.UNKNOWN
 
+    def is_ongoing(self) -> bool:
+        """Check if the analysis is ongoing.
+
+        The following states are considered ongoing:
+        - ONGOING_WITH_EB
+        - ONGOING_WO_EB
+        - PREAPPROVED
+        - PHASE1_OR_2
+
+        Returns:
+            bool: True if the analysis is ongoing, False otherwise.
+
+        """
+        return self.pub_state in {
+            PublicationState.ONGOING_WITH_EB,
+            PublicationState.ONGOING_WO_EB,
+            PublicationState.PREAPPROVED,
+            PublicationState.PHASE1_OR_2,
+        }
+
     def __attrs_post_init__(self):
         """Post-initialization of analysis instance."""
         self.glance_url_analysis = glance_analysis_url(self.ref_code)
