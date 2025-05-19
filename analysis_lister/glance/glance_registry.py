@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -94,7 +94,7 @@ class GlanceRegistry(_FilteringMixin):
 
     # --- Public API Methods ---
 
-    def get(self, ref_code: str) -> Analysis | None:
+    def get(self, ref_code: str) -> Optional[Analysis]:
         """Get an analysis by its reference code."""
         return self._analyses.get(ref_code)
 
