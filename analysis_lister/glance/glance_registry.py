@@ -1,3 +1,15 @@
+"""Glance registry module.
+
+
+This module provides the GlanceRegistry class, which is responsible for
+loading and enriching ATLAS analysis records from CSV files. It provides
+programmatic access to the complete and filtered sets of analyses,
+papers, CONF notes, and PUB notes. The class supports filtering by
+publication state and type, and includes utilities to determine file
+modification timestamps.
+
+"""
+
 import csv
 import logging
 from pathlib import Path

@@ -1,3 +1,8 @@
+"""Produce Markdown pages for published papers of the ATLAS top WG.
+
+
+"""
+
 import logging
 from pathlib import Path
 from typing import List
@@ -16,7 +21,15 @@ def published(
     last_modified: str,
     threshold: str = "2020",
 ):
-    """Create a Markdown page listing submitted and published top papers."""
+    """Create a Markdown page listing submitted and published top papers.
+
+    Args:
+        papers: List of all papers.
+        output_dir: Directory to write the output file.
+        last_modified: Last modified date for the page.
+        threshold: Year threshold for papers to be included.
+
+    """
     logger.info("Generating published papers overview.")
 
     output_file = output_dir / "published.md"
@@ -30,12 +43,14 @@ def published(
 
 
 def _write_header(_f, last_modified: str):
+    """Write the header for the published papers page."""
     _f.write("---\nhide:\n -toc\n---\n\n\n")
     _f.write("# Submitted/published papers\n\n")
     _f.write(utils.print_header_timestamp(last_modified))
 
 
 def _write_summary(_f, papers: List[Paper], threshold: str):
+    """Write a summary of the submitted and published papers."""
     n_submitted = sum(
         p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL for p in papers
     )
@@ -54,6 +69,7 @@ def _write_summary(_f, papers: List[Paper], threshold: str):
 
 
 def _write_subgroup_counts(_f, papers: List[Paper], threshold: str):
+    """Write the counts of papers per subgroup since a given threshold."""
     logger.info("Writing subgroup paper counts.")
     _f.write(f'!!! info "Counts per subgroup (since {threshold})"\n\n')
 
@@ -74,6 +90,7 @@ def _write_subgroup_counts(_f, papers: List[Paper], threshold: str):
 
 
 def _write_table(_f, papers: List[Paper]):
+    """Write the table of submitted and published papers."""
     logger.info("Writing paper table.")
 
     _f.write("| Identifier | Title | Subgroup | Submission | Publication |\n")

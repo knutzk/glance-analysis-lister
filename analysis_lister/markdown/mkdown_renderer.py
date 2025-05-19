@@ -1,3 +1,8 @@
+"""Generate Markdown pages for analyses and papers.
+
+
+"""
+
 from pathlib import Path
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
@@ -10,6 +15,32 @@ from .subgroup_pages import (
 
 
 class MarkdownPageRenderer:
+    """Class to generate Markdown pages for analyses and papers.
+
+    This class generates Markdown pages for analyses and papers, both
+    globally and for specific subgroups. It uses the GlanceRegistry
+    to access the necessary data and creates the pages in the specified
+    output directory. The pages include information about ongoing
+    analyses, published papers, and an overview of all analyses and
+    papers for each subgroup.
+
+    The generated pages are saved in the specified output directory.
+
+    Attributes:
+        registry (GlanceRegistry): The GlanceRegistry instance to access data.
+        output_dir (Path): The directory where the generated pages will be saved.
+        threshold (str): The year threshold for filtering papers.
+        mtime (str): The last modified time for the pages.
+        analyses (list): Cached list of analyses.
+        papers (list): Cached list of papers.
+
+    Methods:
+        write_global_pages(): Generate global overview pages (ongoing + published).
+        write_subgroup_pages(): Generate ongoing, published, and overview pages for
+        each subgroup.
+        write_all(): Generate both global and subgroup pages.
+
+    """
     def __init__(self, registry: GlanceRegistry, output_dir: Path, threshold_year: str):
         self.registry = registry
         self.output_dir = output_dir

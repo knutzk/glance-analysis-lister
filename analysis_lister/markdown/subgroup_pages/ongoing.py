@@ -1,3 +1,8 @@
+"""Produce Markdown pages for ongoing analyses of a subgroup.
+
+
+"""
+
 import logging
 from pathlib import Path
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
@@ -15,7 +20,16 @@ def ongoing_analyses(
     subgroup_id: str,
     last_modified: str,
 ):
-    """Create a page with ongoing analyses for one subgroup."""
+    """Create a page with ongoing analyses for one subgroup.
+
+    Args:
+        list_of_analyses: List of all analyses.
+        output_dir: Directory to write the output file.
+        subgroup_title: Title of the subgroup.
+        subgroup_id: ID of the subgroup.
+        last_modified: Last modified date for the page.
+
+    """
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
     logger.info(f'Writing output file "{output_dir}/ongoing.md"')

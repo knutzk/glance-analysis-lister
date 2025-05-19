@@ -1,3 +1,8 @@
+"""Produce Markdown pages for published papers of a subgroup.
+
+
+"""
+
 import logging
 from pathlib import Path
 from analysis_lister.glance.paper import Paper as GlancePaper
@@ -16,7 +21,17 @@ def published_papers(
     last_modified: str,
     threshold: str = "2020",
 ):
-    """Create an overview page with publications for one subgroup."""
+    """Create an overview page with publications for one subgroup.
+
+    Args:
+        list_of_papers: List of all papers.
+        output_dir: Directory to write the output file.
+        subgroup_title: Title of the subgroup.
+        subgroup_id: ID of the subgroup.
+        last_modified: Last modified date for the page.
+        threshold: Year threshold for papers to be included.
+
+    """
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
     n_submitted = sum(
         p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL for p in subgroup_papers
@@ -103,6 +118,7 @@ def render_paper_block(
 
 
 def render_submission_status(p: GlancePaper) -> str:
+    """Render the submission status of a paper."""
     if p.date_publication:
         return f"**Status:** published since {p.date_publication}\n\n"
     elif p.date_acceptance:
@@ -115,6 +131,7 @@ def render_submission_status(p: GlancePaper) -> str:
 
 
 def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
+    """Render the citation block for a paper."""
     s = f"{prepend}ATLAS Collaboration<br>\n"
     s += f"{prepend}{p.title_final_tex}<br>\n"
     s += f"{prepend}{p.journal_ref}, {p.arxiv_number}<br>\n"

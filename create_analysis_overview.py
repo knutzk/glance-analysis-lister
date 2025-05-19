@@ -1,7 +1,15 @@
 """Module that creates analysis overview pages in Markdown format.
 
 
-This script generates analysis overview pages in Markdown format for the top Working Group (WG) subgroups.
+This script generates analysis overview pages in Markdown format for the top Working
+Group (WG) and its subgroups. It uses the GlanceRegistry class to access the necessary
+data and creates the pages in the specified output directory. The pages include
+information about ongoing analyses, published papers, and an overview of all analyses
+and papers for each subgroup.
+
+The generated pages are saved in the specified output directory.
+
+Optionally, the script can also generate a JSON file containing the registry data.
 
 """
 
@@ -35,6 +43,8 @@ if __name__ == "__main__":
         csv_dir=CSV_DIR,
         threshold_year=THRESHOLD_YEAR,
     )
+
+    # registry.store_json(OUTPUT_DIR / "registry.json")
 
     renderer = MarkdownPageRenderer(
         registry=registry,

@@ -1,3 +1,8 @@
+"""Produce Markdown pages for ongoing analyses in the ATLAS top WG.
+
+
+"""
+
 import logging
 from pathlib import Path
 
@@ -10,7 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 def ongoing_analyses(registry: GlanceRegistry, output_dir: Path, last_modified: str):
-    """Create a page with ongoing analyses in the ATLAS top WG."""
+    """Create a page with ongoing analyses in the ATLAS top WG.
+
+    Args:
+        registry: GlanceRegistry object containing all analyses.
+        output_dir: Directory to write the output file.
+        last_modified: Last modified date for the page.
+
+    """
     logger.info("Generating ongoing analyses overview.")
 
     output_file = output_dir / "ongoing.md"
@@ -25,6 +37,7 @@ def ongoing_analyses(registry: GlanceRegistry, output_dir: Path, last_modified: 
 
 
 def _write_header(_f, last_modified: str):
+    """Write the header for the ongoing analyses page."""
     _f.write("---\nhide:\n -toc\n---\n\n\n")
     _f.write("# Ongoing analyses\n\n\n")
     _f.write(utils.print_header_timestamp(last_modified))
@@ -42,6 +55,7 @@ def _write_header(_f, last_modified: str):
 
 
 def _write_global_counts(_f, registry: GlanceRegistry):
+    """Write global counts for ongoing analyses."""
     logger.info("Writing detailed analysis counts for ongoing analyses.")
 
     analysis_count = registry.count(lambda a: a.is_ongoing())
@@ -58,6 +72,7 @@ def _write_global_counts(_f, registry: GlanceRegistry):
 
 
 def _write_subgroup_breakdown(_f, registry: GlanceRegistry):
+    """Write subgroup breakdown for ongoing analyses."""
     logger.info("Writing subgroup counts for ongoing analyses.")
     _f.write("    * **Split by subgroup** (double-counts possible):\n")
 
@@ -80,6 +95,7 @@ def _write_subgroup_breakdown(_f, registry: GlanceRegistry):
 
 
 def _write_status_breakdown(_f, registry: GlanceRegistry):
+    """Write status breakdown for ongoing analyses."""
     logger.info("Writing status counts for ongoing analyses.")
 
     def write_line(state: PublicationState, label: str):
@@ -106,6 +122,7 @@ def _write_status_breakdown(_f, registry: GlanceRegistry):
 
 
 def _write_table(_f, registry: GlanceRegistry):
+    """Write the main analysis table for ongoing analyses."""
     logger.info("Writing main analysis table.")
     _f.write("\n\n| Identifier | Title | EB PA A | Subgroups | Rel. | Start |\n")
     _f.write("| --- | --- | --- | --- | --- | --- |\n")

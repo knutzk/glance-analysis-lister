@@ -1,3 +1,8 @@
+"""Produce Markdown page with all analyses and papers for a subgroup.
+
+
+"""
+
 import logging
 from pathlib import Path
 from typing import List
@@ -18,7 +23,18 @@ def overview(
     last_modified: str,
     threshold: str = "2020",
 ):
-    """Create an analysis/paper overview page for one subgroup."""
+    """Create an analysis/paper overview page for one subgroup.
+
+    Args:
+        list_of_papers: List of all papers.
+        list_of_analyses: List of all analyses.
+        output_dir: Directory to write the output file.
+        subgroup_title: Title of the subgroup.
+        subgroup_id: ID of the subgroup.
+        last_modified: Last modified date for the page.
+        threshold: Year threshold for papers to be included.
+
+    """
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
@@ -64,6 +80,15 @@ def overview(
 
 
 def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
+    """Render a Markdown table with analyses.
+
+    Args:
+        analyses: List of analyses.
+
+    Returns:
+        str: Markdown table with analyses.
+
+    """
     lines = [
         "| Identifier | Title | EB PA A | Rel. | Start |",
         "| --- | --- | --- | --- | --- |",
@@ -93,6 +118,15 @@ def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
 
 
 def render_paper_table(papers: List[GlancePaper]) -> str:
+    """Render a Markdown table with papers.
+
+    Args:
+        papers: List of papers.
+
+    Returns:
+        str: Markdown table with papers.
+
+    """
     lines = [
         "| Identifier | Title | Submission | Publication |",
         "| --- | --- | --- | --- |",

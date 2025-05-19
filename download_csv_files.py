@@ -1,5 +1,6 @@
 """Script to download CSV files for analysis lister.
 
+
 This script fetches data from specified URLs, parses HTML table data, and
 saves it to CSV files. It uses cookies for authentication and can generate
 new cookies using Selenium if needed.

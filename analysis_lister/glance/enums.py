@@ -1,4 +1,7 @@
-"""Enum classes for glance entries."""
+"""Enum classes for glance entries.
+
+
+"""
 
 from enum import Enum, auto
 
