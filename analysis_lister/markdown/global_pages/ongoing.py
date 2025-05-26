@@ -129,6 +129,7 @@ def _write_table(_f, registry: GlanceRegistry):
 
     tickmark = "&#10003;&nbsp;"
     state_to_n_ticks = {
+        PublicationState.PHASE1_OR_2: 3,
         PublicationState.PAST_PHASE0: 3,
         PublicationState.PREAPPROVED: 2,
         PublicationState.ONGOING_WITH_EB: 1,
