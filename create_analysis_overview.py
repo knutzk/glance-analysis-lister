@@ -22,6 +22,7 @@ from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
 
 CSV_DIR = Path("csv/")
 OUTPUT_DIR = Path("docs/analyses/")
+OUTPUT_DIR_JSON = Path("json/")
 THRESHOLD_YEAR = "2020"
 
 # Configure logging
@@ -44,7 +45,7 @@ if __name__ == "__main__":
         threshold_year=THRESHOLD_YEAR,
     )
 
-    # registry.store_json(OUTPUT_DIR / "registry.json")
+    registry.store_json(OUTPUT_DIR_JSON / "glance_registry.json")
 
     renderer = MarkdownPageRenderer(
         registry=registry,
