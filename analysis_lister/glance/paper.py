@@ -107,7 +107,10 @@ class Paper(Analysis):
             return PublicationState.PHASE1_OR_2
         elif self.status_paper == " Phase 2 is  Active ":
             return PublicationState.PHASE1_OR_2
-        elif self.status_paper == " Submission is  Active ":
+        elif (
+            self.status_paper == " Submission is  Active "
+            and self.date_submission == ""
+        ):
             return PublicationState.PHASE1_OR_2
         elif self.date_submission and not self.date_publication:
             return PublicationState.SUBMITTED_TO_JOURNAL

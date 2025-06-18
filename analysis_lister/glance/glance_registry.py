@@ -134,8 +134,8 @@ class GlanceRegistry(_FilteringMixin):
             entry_cls = cls_map.get(type_str, Analysis)
             self._analyses[ref_code] = entry_cls.from_json(entry_dict)
 
-        self.last_modified_time = raw_data.get("_last_modified_time", "")
-        self.threshold_year = raw_data.get("_threshold_year", "")
+        self.last_modified_time = raw_data.get("last_modified_time", "")
+        self.threshold_year = raw_data.get("threshold_year", "")
 
         return self
 
