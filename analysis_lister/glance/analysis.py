@@ -77,7 +77,9 @@ class Analysis:
     )
     ref_code: str
     run: str
-    software_release: str = field(init=False)
+    software_release: SoftwareRelease = field(
+        validator=validators.instance_of(SoftwareRelease), init=False
+    )
     status: str
     subgroups: List[str]
     supporting_docs: str
@@ -86,7 +88,7 @@ class Analysis:
     title_short: str
 
     @classmethod
-    def from_dict(cls, _dict):
+    def from_csv_dict(cls, _dict):
         """Initialise the analysis instance through a dictionary.
 
         Args:
@@ -111,6 +113,15 @@ class Analysis:
         parsed["glance_url_publ"] = None
 
         return cls(**parsed)
+
+    @classmethod
+    def from_json(cls, data: dict) -> "Analysis":
+        data = data.copy()
+        data.pop("glance_url_analysis", None)
+        data.pop("pub_state", None)
+        data.pop("software_release", None)
+
+        return cls(**data)
 
     def determine_release(self):
         """Get the software release associated with the analysis.
