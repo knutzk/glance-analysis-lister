@@ -100,7 +100,7 @@ class GlanceRegistry(_FilteringMixin):
         return self._analyses.get(ref_code)
 
     def store_json(self, path: Path):
-        """Store the registry as a JSON file with serialized entries."""
+        """Store the registry as a JSON file with serialized entries and metadata."""
         import json
         from attrs import asdict
         from enum import Enum
@@ -111,9 +111,14 @@ class GlanceRegistry(_FilteringMixin):
             return value
 
         serializable_registry = {
-            ref_code: asdict(entry, value_serializer=serializer)
+            ref_code: {
+                "_entrytype": type(entry).__name__,
+                **asdict(entry, value_serializer=serializer),
+            }
             for ref_code, entry in self._analyses.items()
         }
+
+        serializable_registry |= {"_last_modified_time": self.last_modified_time}
 
         with open(path, "w", encoding="utf8") as f:
             json.dump(serializable_registry, f, indent=4, ensure_ascii=False)
