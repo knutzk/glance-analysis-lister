@@ -79,6 +79,7 @@ class GlanceRegistry(_FilteringMixin):
         self.threshold_year = threshold_year
         self._analyses: dict[str, Analysis] = {}
 
+        self.last_modified_time = self._determine_last_modified_time()
         self._load_and_enrich()
 
     def __repr__(self):
@@ -97,21 +98,6 @@ class GlanceRegistry(_FilteringMixin):
     def get(self, ref_code: str) -> Optional[Analysis]:
         """Get an analysis by its reference code."""
         return self._analyses.get(ref_code)
-
-    def determine_last_modified_time(self) -> str:
-        """Return the latest modification timestamp for CSV files as string."""
-        max_timestamp = 0
-        for path in [self.analysis_path, self.paper_path]:
-            try:
-                ts = path.stat().st_mtime
-                max_timestamp = max(max_timestamp, ts)
-            except FileNotFoundError:
-                continue
-
-        last_modified = datetime.fromtimestamp(
-            max_timestamp, tz=ZoneInfo("Europe/Zurich")
-        )
-        return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
 
     def store_json(self, path: Path):
         """Store the registry as a JSON file with serialized entries."""
@@ -187,6 +173,21 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     # --- Internal Load and Enrich ---
+
+    def _determine_last_modified_time(self) -> str:
+        """Return the latest modification timestamp for CSV files as string."""
+        max_timestamp = 0
+        for path in [self.analysis_path, self.paper_path]:
+            try:
+                ts = path.stat().st_mtime
+                max_timestamp = max(max_timestamp, ts)
+            except FileNotFoundError:
+                continue
+
+        last_modified = datetime.fromtimestamp(
+            max_timestamp, tz=ZoneInfo("Europe/Zurich")
+        )
+        return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
 
     def _enrich(self, path: Path, cls, key: str, prefix: str = ""):
         n_enriched = 0
