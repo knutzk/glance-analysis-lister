@@ -82,6 +82,17 @@ class Paper(Analysis):
 
         return cls(**get_init_fields(base, cls), **paper_fields)
 
+    @classmethod
+    def from_json(cls, data: dict) -> "Paper":
+        data.pop("glance_url_analysis", None)
+        data.pop("pub_state", None)
+        data.pop("software_release", None)
+        data.pop("doi", None)
+        data.pop("glance_url_publ", None)
+        data.pop("journal_ref", None)
+
+        return cls(**data)
+
     def determine_paper_status(self):
         """Determine the status of the paper.
 
@@ -96,7 +107,10 @@ class Paper(Analysis):
             return PublicationState.PHASE1_OR_2
         elif self.status_paper == " Phase 2 is  Active ":
             return PublicationState.PHASE1_OR_2
-        elif self.status_paper == " Submission is  Active ":
+        elif (
+            self.status_paper == " Submission is  Active "
+            and self.date_submission == ""
+        ):
             return PublicationState.PHASE1_OR_2
         elif self.date_submission and not self.date_publication:
             return PublicationState.SUBMITTED_TO_JOURNAL

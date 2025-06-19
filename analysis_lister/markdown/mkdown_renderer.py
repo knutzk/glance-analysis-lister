@@ -41,11 +41,12 @@ class MarkdownPageRenderer:
         write_all(): Generate both global and subgroup pages.
 
     """
+
     def __init__(self, registry: GlanceRegistry, output_dir: Path, threshold_year: str):
         self.registry = registry
         self.output_dir = output_dir
         self.threshold = threshold_year
-        self.mtime = registry.determine_last_modified_time()
+        self.mtime = registry.last_modified_time
 
         # Cache the commonly used data
         self.analyses = registry.analyses

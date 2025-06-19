@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 class _FilteringMixin:
     """Mixin class to provide filtering and counting methods for analyses."""
 
+    def __init__(self):
+        """Initialize the mixin with an empty analyses dictionary."""
+        self._analyses: dict[str, Analysis] = {}
+
     def count(self, predicate: Callable[[Analysis], bool]) -> int:
         """Count entries matching a custom filter predicate."""
         return len(self.filter(predicate))
@@ -79,6 +83,7 @@ class GlanceRegistry(_FilteringMixin):
         self.threshold_year = threshold_year
         self._analyses: dict[str, Analysis] = {}
 
+        self.last_modified_time = self._determine_last_modified_time()
         self._load_and_enrich()
 
     def __repr__(self):
@@ -94,27 +99,52 @@ class GlanceRegistry(_FilteringMixin):
 
     # --- Public API Methods ---
 
+    @classmethod
+    def from_json(cls, path: Path):
+        """Create a GlanceRegistry instance from a previously stored JSON file."""
+        import json
+        from .analysis import Analysis
+        from .paper import Paper
+        from .confnote import ConfNote
+        from .pubnote import PubNote
+
+        # Mapping from string type to class
+        cls_map = {
+            "Analysis": Analysis,
+            "Paper": Paper,
+            "ConfNote": ConfNote,
+            "PubNote": PubNote,
+        }
+
+        # Load JSON data
+        with open(path, "r", encoding="utf8") as f:
+            raw_data = json.load(f)
+
+        # Create a new instance without calling __init__
+        self = cls.__new__(cls)
+        self.analysis_path = None
+        self.paper_path = None
+        self.confnote_path = None
+        self.pubnote_path = None
+        self._analyses = {}
+
+        # Reconstruct the entries using type tags
+        for ref_code, entry_dict in raw_data["entries"].items():
+            type_str = entry_dict.pop("_entrytype", "Analysis")
+            entry_cls = cls_map.get(type_str, Analysis)
+            self._analyses[ref_code] = entry_cls.from_json(entry_dict)
+
+        self.last_modified_time = raw_data.get("last_modified_time", "")
+        self.threshold_year = raw_data.get("threshold_year", "")
+
+        return self
+
     def get(self, ref_code: str) -> Optional[Analysis]:
         """Get an analysis by its reference code."""
         return self._analyses.get(ref_code)
 
-    def determine_last_modified_time(self) -> str:
-        """Return the latest modification timestamp for CSV files as string."""
-        max_timestamp = 0
-        for path in [self.analysis_path, self.paper_path]:
-            try:
-                ts = path.stat().st_mtime
-                max_timestamp = max(max_timestamp, ts)
-            except FileNotFoundError:
-                continue
-
-        last_modified = datetime.fromtimestamp(
-            max_timestamp, tz=ZoneInfo("Europe/Zurich")
-        )
-        return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
-
     def store_json(self, path: Path):
-        """Store the registry as a JSON file with serialized entries."""
+        """Store the registry as a JSON file with serialized entries and metadata."""
         import json
         from attrs import asdict
         from enum import Enum
@@ -124,13 +154,22 @@ class GlanceRegistry(_FilteringMixin):
                 return value.value
             return value
 
-        serializable_registry = {
-            ref_code: asdict(entry, value_serializer=serializer)
+        serializable_analyses = {
+            ref_code: {
+                "_entrytype": type(entry).__name__,
+                **asdict(entry, value_serializer=serializer),
+            }
             for ref_code, entry in self._analyses.items()
         }
 
+        registry = {
+            "entries": serializable_analyses,
+            "last_modified_time": self.last_modified_time,
+            "threshold_year": self.threshold_year,
+        }
+
         with open(path, "w", encoding="utf8") as f:
-            json.dump(serializable_registry, f, indent=4, ensure_ascii=False)
+            json.dump(registry, f, indent=4, ensure_ascii=False)
 
         logger.info("Stored registry as JSON file at %s", path)
 
@@ -188,6 +227,21 @@ class GlanceRegistry(_FilteringMixin):
 
     # --- Internal Load and Enrich ---
 
+    def _determine_last_modified_time(self) -> str:
+        """Return the latest modification timestamp for CSV files as string."""
+        max_timestamp = 0
+        for path in [self.analysis_path, self.paper_path]:
+            try:
+                ts = path.stat().st_mtime
+                max_timestamp = max(max_timestamp, ts)
+            except FileNotFoundError:
+                continue
+
+        last_modified = datetime.fromtimestamp(
+            max_timestamp, tz=ZoneInfo("Europe/Zurich")
+        )
+        return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
+
     def _enrich(self, path: Path, cls, key: str, prefix: str = ""):
         n_enriched = 0
         for row in self._read_csv_rows(path):
@@ -226,7 +280,7 @@ class GlanceRegistry(_FilteringMixin):
 
     def _load_data(self, path: Path, cls):
         rows = self._read_csv_rows(path)
-        data = [cls.from_dict(row) for row in rows]
+        data = [cls.from_csv_dict(row) for row in rows]
         return sorted(data, key=lambda x: x.ref_code)
 
     def _read_csv_rows(self, path: Path):
