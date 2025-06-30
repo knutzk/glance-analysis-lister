@@ -1,0 +1,6 @@
+# Ignore all files in the csv subdirectory
+csv/*.csv
+
+# Ignore any PNG and PDF files in this directory
+*.png
+*.pdf

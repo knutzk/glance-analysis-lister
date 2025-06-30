@@ -29,7 +29,7 @@ logging.basicConfig(
 
 # Constants
 COOKIE_FILE = Path("cookies.json")
-CSV_DIR = Path("csv")
+CSV_DIR = Path("deploy_tools/analysis_lists/csv")
 DEBUG_DIR = Path("debug")
 URLS = {
     "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",

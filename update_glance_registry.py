@@ -13,7 +13,7 @@ import logging
 from analysis_lister.glance.glance_registry import GlanceRegistry
 
 
-CSV_DIR = Path("csv/")
+CSV_DIR = Path("deploy_tools/analysis_lists/csv/")
 OUTPUT_DIR_JSON = Path("json/")
 THRESHOLD_YEAR = "2020"
 
