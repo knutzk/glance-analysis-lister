@@ -47,10 +47,14 @@ def format_supporting_docs(supporting_docs: str) -> str:
     return supporting_docs
 
 
-def format_url_doi(urls: str) -> str:
+def format_url_doi(url_str: str) -> str:
     """Return the DOI URL of a paper."""
-    urls = ["http" + x for x in urls.split("http")[1:]]
+    urls = ["http" + x for x in url_str.split("http")[1:]]
     urls = list(filter(lambda a: "doi.org" in a, urls))
+    urls = list(dict.fromkeys(urls))  # Remove duplicates
+    urls.sort()
+    if len(urls) > 1:
+        logger.warning("Multiple DOI URLs found: %s", urls)
     return urls[0] if urls else ""
 
 
