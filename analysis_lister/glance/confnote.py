@@ -27,12 +27,14 @@ class ConfNote(Analysis):
     """A class representing a CONF note publication derived from an analysis.
 
     Attributes:
+        date_signoff: The date the CONF note was signed off.
         final_url: The final URL of the CONF note.
         superseded_by: The reference code of the note that supersedes this one.
         tmp_ref_code: The temporary reference code of the CONF note.
 
     """
 
+    date_signoff: str
     final_url: str
     superseded_by: str
     tmp_ref_code: str

@@ -27,6 +27,7 @@ class PubNote(Analysis):
     """A class representing a PUB note publication derived from an analysis.
 
     Attributes:
+        date_signoff: The date the PUB note was signed off.
         final_url: The final URL of the PUB note.
         status_pub: The status of the PUB note.
         superseded_by: The reference code of the note that supersedes this one.
@@ -34,6 +35,7 @@ class PubNote(Analysis):
 
     """
 
+    date_signoff: str
     final_url: str
     status_pub: str
     superseded_by: str

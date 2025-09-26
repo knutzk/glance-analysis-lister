@@ -110,6 +110,7 @@ REQUIRED_COLUMNS_PAPER = [
 ]
 
 FIELD_MAP_CONFNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+    "date_signoff": ("Second Sign Off Date", None),
     "final_url": ("Final URL", None),
     "superseded_by": ("Superseded By", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
@@ -128,6 +129,7 @@ FIELD_MAP_PUBNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     "final_url": ("Final URL", None),
     "status_pub": ("Status", None),
     "superseded_by": ("Superseded By", None),
+    "date_signoff": ("Second Reader Sign Off Date", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
 
