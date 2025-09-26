@@ -6,7 +6,12 @@
 from pathlib import Path
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
-from .global_pages import ongoing as glob_ongoing, published as glob_published
+from .global_pages import (
+    ongoing as glob_ongoing,
+    published as glob_published,
+    confnotes as glob_confnotes,
+    pubnotes as glob_pubnotes,
+)
 from .subgroup_pages import (
     ongoing as sub_ongoing,
     overview as sub_overview,
@@ -51,6 +56,8 @@ class MarkdownPageRenderer:
         # Cache the commonly used data
         self.analyses = registry.analyses
         self.papers = registry.papers
+        self.confnotes = registry.confnotes
+        self.pubnotes = registry.pubnotes
 
     def write_global_pages(self):
         """Generate global overview pages (ongoing + published)."""
@@ -64,6 +71,18 @@ class MarkdownPageRenderer:
             self.registry,
             output_dir=self.output_dir,
             last_modified=self.mtime,
+        )
+        glob_confnotes.confnotes(
+            self.confnotes,
+            output_dir=self.output_dir,
+            last_modified=self.mtime,
+            threshold=self.threshold,
+        )
+        glob_pubnotes.pubnotes(
+            self.pubnotes,
+            output_dir=self.output_dir,
+            last_modified=self.mtime,
+            threshold=self.threshold,
         )
 
     def write_subgroup_pages(self):
