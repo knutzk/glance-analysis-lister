@@ -5,6 +5,7 @@
 
 from attrs import fields as attrs_fields
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,12 @@ def format_ref_code(ref_code: str) -> str:
         ref_code = ref_code[4:]
 
     return ref_code
+
+
+def format_date(date_str: str) -> str:
+    """Return the date string, truncated after YYYY-MM-DD."""
+    match = re.search(r"(\d{4}-\d{2}-\d{2})", date_str)
+    return match.group(1) if match else date_str
 
 
 def format_supporting_docs(supporting_docs: str) -> str:
