@@ -4,6 +4,7 @@
 """
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.glance.enums import PublicationState
@@ -55,17 +56,26 @@ def published_papers(
             f"In addition, there are {n_published} papers of this subgroup "
             f"that were published in {threshold} or later.\n\n\n"
         )
+        submitted = sorted(
+            (p for p in subgroup_papers if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL),
+            key=lambda p: p.date_submission or "",
+            reverse=True,
+        )
+        published = sorted(
+            (p for p in subgroup_papers if p.pub_state == PublicationState.PUBLISHED),
+            key=lambda p: p.date_publication or "",
+            reverse=True,
+        )
+
         _f.write("## Submitted papers\n\n")
-        for p in subgroup_papers:
-            if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL:
-                logger.debug(f"Writing paper block for {p.ref_code}.")
-                _f.write(render_paper_block(p))
+        for p in submitted:
+            logger.debug(f"Writing paper block for {p.ref_code}.")
+            _f.write(render_paper_block(p))
 
         _f.write("## Published papers\n\n")
-        for p in subgroup_papers:
-            if p.pub_state == PublicationState.PUBLISHED:
-                logger.debug(f"Writing paper block for {p.ref_code}.")
-                _f.write(render_paper_block(p))
+        for p in published:
+            logger.debug(f"Writing paper block for {p.ref_code}.")
+            _f.write(render_paper_block(p))
 
     logger.info(f"Finished writing published papers page for subgroup '{subgroup_id}'.")
 
@@ -117,16 +127,24 @@ def render_paper_block(
     return s + "\n\n"
 
 
+def _fmt(date_str: str) -> str:
+    """Convert YYYY-MM-DD to '5 Jan 2025', falling back to the raw string."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%-d %b %Y")
+    except (ValueError, TypeError):
+        return date_str
+
+
 def render_submission_status(p: GlancePaper) -> str:
     """Render the submission status of a paper."""
     if p.date_publication:
-        return f"**Status:** published since {p.date_publication}\n\n"
+        return f"**Status:** published since {_fmt(p.date_publication)}\n\n"
     elif p.date_acceptance:
-        return f"**Status:** submitted to {p.journal} on {p.date_submission} and accepted on {p.date_acceptance}\n\n"
+        return f"**Status:** submitted to {p.journal} on {_fmt(p.date_submission)} and accepted on {_fmt(p.date_acceptance)}\n\n"
     elif p.date_submission and p.journal:
-        return f"**Status:** submitted to {p.journal} on {p.date_submission}\n\n"
+        return f"**Status:** submitted to {p.journal} on {_fmt(p.date_submission)}\n\n"
     elif p.date_submission:
-        return f"**Status:** submitted to [JOURNAL] on {p.date_submission}\n\n"
+        return f"**Status:** submitted to [JOURNAL] on {_fmt(p.date_submission)}\n\n"
     return "**Status:** not submitted\n\n"
 
 
