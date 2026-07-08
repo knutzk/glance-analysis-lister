@@ -82,6 +82,7 @@ JournalRefs = {
     "10.1103/PhysRevD.110.012014": "Phys. Rev. D 110 (2024) 012014",
     "10.1103/PhysRevD.110.072010": "Phys. Rev. D 110 (2024) 072010",
     "10.1103/PhysRevD.110.112004": "Phys. Rev. D 110 (2024) 112004",
+    "10.1103/p5nz-95m3": "Phys. Rev. D 114 (2026) 012001",
     "10.1103/PhysRevLett.131.181901": "Phys. Rev. Lett. 131 (2023) 181901",
     "10.1103/PhysRevLett.132.261902": "Phys. Rev. Lett. 132 (2024) 261902",
     "10.1103/PhysRevLett.134.142301": "Phys. Rev. Lett. 134 (2025) 142301",
