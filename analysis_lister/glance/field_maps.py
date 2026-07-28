@@ -76,7 +76,7 @@ FIELD_MAP_PAPER: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     "date_phase_one": ("Phase 1 Start Date", None),
     "date_publication": ("Publication Date", utils.format_date),
     "date_submission": ("arXiv Submission Date", utils.format_date),
-    "doi_url": ("Final Journal Publication URLs", utils.format_url_doi),
+    "doi_urls": ("Final Journal Publication URLs", utils.format_url_dois),
     "figure_url": ("Figures", None),
     "inspire_url": ("Final Journal Publication URLs", utils.format_url_inspire),
     "journal": ("Journal of Final Submission", None),

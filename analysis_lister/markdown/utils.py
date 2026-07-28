@@ -52,8 +52,9 @@ def render_pub_links(p: Paper, prepend: str = ""):
     if p.inspire_url != "":
         s += f"{prepend}[inspire]({p.inspire_url}), \n"
 
-    if p.doi_url != "":
-        s += f"{prepend}[DOI]({p.doi_url}), \n"
+    for i, doi_url in enumerate(p.doi_urls):
+        label = "DOI" if i == 0 else "DOI (erratum/addendum)"
+        s += f"{prepend}[{label}]({doi_url}), \n"
 
     if p.arxiv_url != "":
         s += f"{prepend}[arXiv]({p.arxiv_url}), \n"

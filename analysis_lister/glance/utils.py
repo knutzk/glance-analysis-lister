@@ -54,15 +54,71 @@ def format_supporting_docs(supporting_docs: str) -> str:
     return supporting_docs
 
 
-def format_url_doi(url_str: str) -> str:
-    """Return the DOI URL of a paper."""
+# Patterns to recover the publication date that a publisher encodes in its
+# DOIs. GLANCE lists the DOIs of a paper and of its erratum/addendum in
+# arbitrary order, so they have to be sorted by publication date to tell the
+# original article from the later correction.
+_DOI_DATE_PATTERNS = (
+    # JHEP, e.g. 10.1007/JHEP07(2023)203
+    re.compile(r"/JHEP(?P<month>\d{2})\((?P<year>\d{4})\)"),
+    # Springer EPJ, e.g. 10.1140/epjc/s10052-023-11573-0 (year modulo 1000)
+    re.compile(r"/epj\w*/s\d+-(?P<year>\d{3})-"),
+    # Elsevier, e.g. 10.1016/j.physletb.2022.137379
+    re.compile(r"^10\.1016/j\.\w+\.(?P<year>\d{4})\."),
+)
+
+
+def doi_from_url(url: str) -> str:
+    """Return the bare DOI of a doi.org URL (empty string if there is none)."""
+    index = url.find("doi.org/")
+    return url[index + 8 :] if index >= 0 else ""
+
+
+def _doi_date(doi: str) -> tuple[int, int]:
+    """Return the (year, month) encoded in a DOI, or (0, 0) if undecodable."""
+    for pattern in _DOI_DATE_PATTERNS:
+        match = pattern.search(doi)
+        if not match:
+            continue
+
+        year = int(match.group("year"))
+        if year < 1000:  # Springer writes the year modulo 1000.
+            year += 2000
+
+        groups = match.groupdict()
+        return year, int(groups.get("month") or 0)
+
+    return 0, 0
+
+
+def format_url_dois(url_str: str) -> list[str]:
+    """Return the DOI URLs of a paper, earliest publication first.
+
+    A paper carries more than one DOI once an erratum or an addendum has been
+    published: the journal assigns those their own DOI and GLANCE lists them
+    alongside the original one. The list is therefore ordered by the
+    publication date encoded in the DOI, so that the original article comes
+    first and any correction follows.
+
+    """
     urls = ["http" + x for x in url_str.split("http")[1:]]
-    urls = list(filter(lambda a: "doi.org" in a, urls))
-    urls = list(dict.fromkeys(urls))  # Remove duplicates
-    urls.sort()
-    if len(urls) > 1:
-        logger.warning("Multiple DOI URLs found: %s", urls)
-    return urls[0] if urls else ""
+    urls = [u for u in urls if "doi.org/" in u]
+
+    # The same DOI may be listed several times, and under both the doi.org and
+    # the dx.doi.org host. Deduplicate on the DOI, keeping the first URL.
+    by_doi: dict[str, str] = {}
+    for url in urls:
+        by_doi.setdefault(doi_from_url(url), url)
+
+    if len(by_doi) > 1 and any(_doi_date(doi) == (0, 0) for doi in by_doi):
+        logger.warning(
+            "No publication date encoded in all of these DOIs, cannot tell "
+            "the original paper from an erratum: %s",
+            list(by_doi),
+        )
+
+    # sorted() is stable, so DOIs without a decodable date keep GLANCE's order.
+    return sorted(by_doi.values(), key=lambda u: _doi_date(doi_from_url(u)))
 
 
 def format_url_inspire(urls: str) -> str:

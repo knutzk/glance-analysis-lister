@@ -153,6 +153,12 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
     s = f"{prepend}ATLAS Collaboration<br>\n"
     s += f"{prepend}{p.title_final_tex}<br>\n"
     s += f"{prepend}{p.journal_ref}, {p.arxiv_number}<br>\n"
-    if p.doi:
-        s += f"{prepend}DOI: {p.doi}<br>\n"
+    if p.dois:
+        s += f"{prepend}DOI: {p.dois[0]}<br>\n"
+
+    # Errata and addenda are cited below the paper, each on its own line.
+    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:]):
+        cite = ", ".join(x for x in (ref, f"DOI: {doi}") if x)
+        s += f"{prepend}[{cite}]<br>\n"
+
     return s + "\n"
