@@ -8,8 +8,64 @@ from typing import Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
+from analysis_lister.glance.subgroups import GroupsById, canonical_subgroup
 
 logger = logging.getLogger(__name__)
+
+
+def anchor_id(ref_code: str, subgroup_id: str) -> str:
+    """Return the anchor of an entry on the page of one subgroup.
+
+    An entry can belong to several subgroups and is then rendered on
+    several subgroup pages. Prefixing the anchor with the subgroup code
+    keeps the anchors unique across the whole site, which mkdocs-autorefs
+    needs in order to resolve reference-style links unambiguously.
+
+    Args:
+        ref_code: Reference code of the entry, e.g. "TOPQ-2023-33".
+        subgroup_id: GLANCE id of the subgroup whose page is rendered.
+
+    Returns:
+        str object with the anchor, e.g. "xs-TOPQ-2023-33".
+
+    """
+    group = GroupsById.get(subgroup_id)
+    if group is None:
+        logger.warning(f'Unknown subgroup "{subgroup_id}", using unprefixed anchor.')
+        return ref_code
+    return f"{group.code.lower()}-{ref_code}"
+
+
+def render_ref_link(p: Union[Analysis, Paper], subgroup_id: str = "") -> str:
+    """Return the link to the detailed block of an analysis or a paper.
+
+    The link is a reference-style link that mkdocs-autorefs resolves to
+    whichever page carries the anchor. Hyphens in the label are replaced
+    by non-breaking ones to keep the reference code on a single line.
+
+    Args:
+        p: Analysis or Paper instance to link to.
+        subgroup_id: GLANCE id of the subgroup page to link to. If empty
+            (the default, used by the global pages), the canonical
+            subgroup of the entry is used.
+
+    Returns:
+        str object with the link, or the plain reference code if the entry
+        belongs to no top WG subgroup and hence has no anchor anywhere.
+
+    """
+    label = p.ref_code.replace("-", "&#8209;")
+
+    if not subgroup_id:
+        group = canonical_subgroup(p.subgroups)
+        if group is None:
+            logger.warning(
+                f"{p.ref_code} belongs to no top WG subgroup, cannot link to it."
+            )
+            return label
+        subgroup_id = group.id
+
+    return f"[{label}][{anchor_id(p.ref_code, subgroup_id)}]"
 
 
 def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):

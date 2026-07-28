@@ -143,7 +143,7 @@ def _write_table(_f, registry: GlanceRegistry):
         )
 
         _f.write(
-            f"| [{a.ref_code.replace('-', '&#8209;')}][{a.ref_code}] "
+            f"| {utils.render_ref_link(a)} "
             f"| {a.title_short} "
             f"| {tickmark * n_ticks} "
             f"| {subgroups_str} "

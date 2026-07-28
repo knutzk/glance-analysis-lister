@@ -60,7 +60,7 @@ def overview(
             "on the keywords assigned to the analysis on GLANCE.\n"
             '- "**Start**" is the date the analysis started.\n\n'
         )
-        _f.write(render_analysis_table(subgroup_analyses))
+        _f.write(render_analysis_table(subgroup_analyses, subgroup_id))
         _f.write("\n\n\n")
 
         logger.info(
@@ -74,16 +74,18 @@ def overview(
             "additional subgroup (only considering papers published in "
             f"{threshold} or after).\n\n"
         )
-        _f.write(render_paper_table(subgroup_papers))
+        _f.write(render_paper_table(subgroup_papers, subgroup_id))
 
     logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
 
 
-def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
+def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> str:
     """Render a Markdown table with analyses.
 
     Args:
         analyses: List of analyses.
+        subgroup_id: ID of the subgroup, used to link to the analysis
+            blocks on the pages of this very subgroup.
 
     Returns:
         str: Markdown table with analyses.
@@ -107,7 +109,7 @@ def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
         n_ticks = state_to_n_ticks.get(a.pub_state, 0)
 
         row = (
-            f'| [{a.ref_code.replace("-", "&#8209;")}][{a.ref_code}] '
+            f"| {utils.render_ref_link(a, subgroup_id)} "
             f"| {title} "
             f"| {tickmark * n_ticks} "
             f"| {str(a.software_release.value)} "
@@ -118,11 +120,13 @@ def render_analysis_table(analyses: List[GlanceAnalysis]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_paper_table(papers: List[GlancePaper]) -> str:
+def render_paper_table(papers: List[GlancePaper], subgroup_id: str) -> str:
     """Render a Markdown table with papers.
 
     Args:
         papers: List of papers.
+        subgroup_id: ID of the subgroup, used to link to the paper blocks
+            on the pages of this very subgroup.
 
     Returns:
         str: Markdown table with papers.
@@ -136,7 +140,7 @@ def render_paper_table(papers: List[GlancePaper]) -> str:
     for p in papers:
         title = p.title_short.replace("|", "/")
         row = (
-            f'| [{p.ref_code.replace("-", "&#8209;")}][{p.ref_code}] '
+            f"| {utils.render_ref_link(p, subgroup_id)} "
             f"| {title} "
             f'| {p.date_submission.replace("-", "&#8209;")} '
             f'| {p.date_publication.replace("-", "&#8209;")} |'
