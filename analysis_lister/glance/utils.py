@@ -46,6 +46,30 @@ def format_date(date_str: str) -> str:
     return match.group(1) if match else date_str
 
 
+# A subgroup as listed by GLANCE, e.g. "TOPQ - Cross-section": a working
+# group code, a dash, and the name of the subgroup.
+_SUBGROUP_SEPARATOR = re.compile(r",(?=[A-Z][A-Z0-9]{1,5} - )")
+
+
+def format_subgroups(subgroups: str) -> list[str]:
+    """Return the list of subgroups of an analysis or a paper.
+
+    GLANCE joins the subgroups with a bare comma and does not escape the
+    commas inside their names, so "STDM - W,Z Physics,TOPQ - Cross-section"
+    is ambiguous. Splitting only before a working group code keeps such
+    names intact.
+
+    Args:
+        subgroups: Comma-separated subgroups, as taken from GLANCE.
+
+    Returns:
+        The individual subgroups; a list with one empty string if the
+        input is empty, matching the behaviour of str.split().
+
+    """
+    return _SUBGROUP_SEPARATOR.split(subgroups)
+
+
 def format_supporting_docs(supporting_docs: str) -> str:
     """Return comma-separated list of supporting documents."""
     if supporting_docs != "":
