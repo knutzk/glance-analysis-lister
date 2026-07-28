@@ -246,10 +246,66 @@ class GlanceRegistry(_FilteringMixin):
         n_enriched = 0
         for row in self._read_csv_rows(path):
             ref = row[key].removeprefix(prefix)
-            if ref in self._analyses:
-                base = self._analyses[ref]
+            base = self._analyses.get(ref)
+            if base is not None and self._may_enrich(base, cls, ref):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
                 n_enriched += 1
+
+    def _may_enrich(self, base: Analysis, cls, ref: str) -> bool:
+        """Return whether an entry may be (re-)enriched with `cls` data.
+
+        A record can be listed in several GLANCE tables, and enriching it
+        replaces it wholesale: ConfNote and PubNote derive from Analysis, not
+        from Paper, so enriching a paper with note data would drop everything
+        the paper knows. Enriching a bare analysis is the normal case; beyond
+        that only the paper may take over, as it supersedes its own CONF note.
+        Any other collision is unexpected and leaves the entry as it is.
+
+        Every collision is reported: the paper/CONF note pair as INFO, since
+        it is a normal step of the publication life cycle, everything else as
+        a warning.
+
+        Args:
+            base: The entry that is already stored for this reference code.
+            cls: The class the entry would be enriched with.
+            ref: Reference code of the entry, for the log messages.
+
+        Returns:
+            True if the entry may be replaced, False if it must be kept.
+
+        """
+        if type(base) is Analysis:
+            return True
+
+        # The paper wins over its CONF note, no matter which of the two GLANCE
+        # tables is read first.
+        if {type(base), cls} == {Paper, ConfNote}:
+            logger.info(
+                "%s is listed as paper and as CONF note, keeping the paper "
+                "and dropping the CONF note data.",
+                ref,
+            )
+            return cls is Paper
+
+        if type(base) is cls:
+            logger.warning(
+                "%s is listed twice as %s, keeping the first entry. "
+                "Check the GLANCE record.",
+                ref,
+                cls.__name__,
+            )
+            return False
+
+        logger.warning(
+            "%s is listed as %s and as %s, keeping the %s and dropping the "
+            "%s data. Check the GLANCE record.",
+            ref,
+            type(base).__name__,
+            cls.__name__,
+            type(base).__name__,
+            cls.__name__,
+        )
+        return False
 
     def _load_and_enrich(self):
         # Load the analysis database from the CSV file.
