@@ -230,7 +230,12 @@ class GlanceRegistry(_FilteringMixin):
     def _determine_last_modified_time(self) -> str:
         """Return the latest modification timestamp for CSV files as string."""
         max_timestamp = 0
-        for path in [self.analysis_path, self.paper_path]:
+        for path in [
+            self.analysis_path,
+            self.paper_path,
+            self.confnote_path,
+            self.pubnote_path,
+        ]:
             try:
                 ts = path.stat().st_mtime
                 max_timestamp = max(max_timestamp, ts)

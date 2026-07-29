@@ -81,7 +81,8 @@ def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
     """
     s = f"{prepend}**Glance:**\n"
     s += f"{prepend}[ANA-{p.ref_code}]({p.glance_url_analysis}) (analysis)\n"
-    if isinstance(p, Analysis) and not ("Phase 0" and "Finished" in p.status):
+    # A record only gets a publication of its own once it has left phase 0.
+    if "Finished" not in p.status:
         return s + f"{prepend}\n"
 
     if p.glance_url_publ and "confnotes/" in p.glance_url_publ:

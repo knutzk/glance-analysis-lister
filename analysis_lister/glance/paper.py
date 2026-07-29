@@ -91,6 +91,7 @@ class Paper(Analysis):
 
     @classmethod
     def from_json(cls, data: dict) -> "Paper":
+        data = data.copy()
         data.pop("glance_url_analysis", None)
         data.pop("pub_state", None)
         data.pop("software_release", None)

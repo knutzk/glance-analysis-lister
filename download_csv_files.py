@@ -54,7 +54,8 @@ COMMON_PARAMS = {
     "only_deleted_input": "false",
 }
 
-# Disable SSL warnings
+# Certificate verification is switched off below, so silence the warning that
+# requests emits for it on every single fetch.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -109,6 +110,17 @@ class DataFetcher:
         """Fetch HTML content from a URL."""
         try:
             logging.info(f"Fetching data from {url} with params: {params}")
+            # verify=False is deliberate: atlas-glance.cern.ch sends its leaf
+            # certificate without the Sectigo intermediate that signed it, so
+            # the chain cannot be verified. Browsers hide this by fetching the
+            # intermediate from the URL in the certificate, requests does not
+            # and fails with "unable to get local issuer certificate". Turning
+            # verification back on therefore breaks every download unless the
+            # intermediate is supplied along with it. Check whether GLANCE has
+            # fixed its side with
+            #   echo | openssl s_client -connect atlas-glance.cern.ch:443 \
+            #       -servername atlas-glance.cern.ch
+            # which currently returns a single certificate and verify error 21.
             response = requests.get(url, params=params, cookies=cookies, verify=False)
             response.raise_for_status()
             if "Sign in to your account" in response.text:

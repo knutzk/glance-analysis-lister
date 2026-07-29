@@ -64,13 +64,15 @@ class ConfNote(Analysis):
         This method checks the status of the CONF note based on its attributes
         and updates the publication state of the instance accordingly.
 
+        Unlike PubNote, this has no INACTIVE case: the CSV of the CONF notes
+        carries no status column of its own, and this method only runs for
+        records whose analysis has finished phase 0.
+
         Returns:
             PublicationState: The publication state of the CONF note.
 
         """
-        if self.status == " Phase 1 is  Not started ":
-            return PublicationState.INACTIVE
-        elif self.superseded_by:
+        if self.superseded_by:
             return PublicationState.SUPERSEDED
         elif self.final_url:
             return PublicationState.PUBLISHED
