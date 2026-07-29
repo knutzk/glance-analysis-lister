@@ -9,8 +9,8 @@ import re
 import unicodedata
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.markdown.render.analysis import render_analysis_block
-from analysis_lister.markdown.render.paper import render_paper_block
+from analysis_lister.markdown.subgroup_pages.ongoing import render_analysis_block
+from analysis_lister.markdown.subgroup_pages.published import render_paper_block
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 # Configure logging
@@ -23,11 +23,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-CSV_DIR = Path("csv/")
+JSON_DIR = Path("json/")
 OUTPUT_DIR = Path("deploy_tools/analysis_lists/obsidian_output/")
 PUBLISHED_DIR = OUTPUT_DIR / "obs_published"
 ONGOING_DIR = OUTPUT_DIR / "obs_ongoing"
-THRESHOLD_YEAR = "2020"
 
 
 def tagify_string(value):
@@ -56,21 +55,64 @@ def tagify_string(value):
     return value
 
 
+def note_date(entry, entry_type: str) -> str:
+    """Return the date an Obsidian note is sorted by.
+
+    Args:
+        entry: The Analysis or Paper instance the note describes.
+        entry_type: Either "paper" or "analysis".
+
+    Returns:
+        The publication date of a paper, falling back to its submission
+        date, or the start date of an analysis.
+
+    """
+    if entry_type == "analysis":
+        return entry.date_start
+
+    return entry.date_publication or entry.date_submission
+
+
+def render_front_matter(entry, filename: str, entry_type: str) -> str:
+    """Return the YAML front matter of one Obsidian note.
+
+    Args:
+        entry: The Analysis or Paper instance the note describes.
+        filename: Name of the note, which doubles as its Obsidian tag.
+        entry_type: Either "paper" or "analysis".
+
+    Returns:
+        str object with the front matter, delimiters included.
+
+    """
+    title = entry.ref_code
+    if entry.ref_code in ShortTitles:
+        title += f" – {ShortTitles[entry.ref_code]}"
+
+    lines = [
+        "---",
+        "tags:",
+        "  - TopPlusX",
+        f"  - {filename}",
+        f"glance-id: {entry.ref_code}",
+        f"title: {title}",
+        f"summary: {entry.title_short_public if entry_type == 'paper' else entry.title_short}",
+    ]
+
+    date = note_date(entry, entry_type)
+    if date:
+        lines.append(f"date: {date}")
+
+    return "\n".join(lines + ["---"])
+
+
 def write_markdown_file(entry, directory: Path, filename: str, entry_type: str):
     """Generalized function to write Markdown files for papers and analyses."""
     try:
         logger.info(f"Writing {entry_type} file: {filename}.md")
         with open(directory / f"{filename}.md", "w") as f:
             f.write(
-                f"""---
-tags:
-  - TopPlusX
-  - {filename}
-glance-id: {entry.ref_code}
-title: {entry.ref_code}{f" – {ShortTitles[entry.ref_code]}" if entry.ref_code in ShortTitles else ""}
-summary: {entry.title_short_public if entry_type == "paper" else entry.title_short}
-{"date: " + entry.date_start if entry_type == "analysis" else ""}
----
+                f"""{render_front_matter(entry, filename, entry_type)}
 
 {render_paper_block(entry, attribute_tag=False, heading_level=1) if entry_type == "paper" else render_analysis_block(entry, attribute_tag=False, heading_level=1)}
 
@@ -106,17 +148,38 @@ def generate_filename(ref_code):
     return filename
 
 
-if __name__ == "__main__":
-    # Load papers and analyses data, exit if any file is missing.
-    logger.info("Loading papers and analyses data.")
-    registry = GlanceRegistry(
-        analysis_csv="analyses.csv",
-        paper_csv="papers.csv",
-        confnote_csv="confnotes.csv",
-        pubnote_csv="pubnotes.csv",
-        csv_dir=CSV_DIR,
-        threshold_year=THRESHOLD_YEAR,
+def warn_about_stale_notes(directory: Path, written: set):
+    """Report notes in an output directory that this run did not write.
+
+    The name of a note carries its short title, so renaming one in
+    `short_titles.py` leaves the note under the old name behind, and entries
+    that drop out of the registry keep their note as well. Neither is removed
+    here: the directory may be part of a vault, so the deleting is left to
+    whoever knows what else lives in it.
+
+    Args:
+        directory: Output directory to check.
+        written: Names of the files this run has written.
+
+    """
+    stale = sorted(p.name for p in directory.glob("*.md") if p.name not in written)
+    if not stale:
+        return
+
+    logger.warning(
+        "%d notes in %s were not written by this run and are probably "
+        "outdated: %s",
+        len(stale),
+        directory,
+        ", ".join(stale),
     )
+
+
+if __name__ == "__main__":
+    # Read the same snapshot that the website is rendered from, so that the
+    # notes need no CSV files and cannot drift away from the pages.
+    logger.info("Loading papers and analyses data.")
+    registry = GlanceRegistry.from_json(JSON_DIR / "glance_registry.json")
 
     # Ensure output directories exist.
     logger.info(f"Creating output directories if they do not exist: {OUTPUT_DIR}")
@@ -124,18 +187,25 @@ if __name__ == "__main__":
     ONGOING_DIR.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Markdown files for published papers.")
+    written_papers = set()
     for p in registry.papers:
         filename = generate_filename(p.ref_code)
         write_markdown_file(
             entry=p, directory=PUBLISHED_DIR, filename=filename, entry_type="paper"
         )
+        written_papers.add(f"{filename}.md")
 
     logger.info("Generating Markdown files for ongoing analyses.")
+    written_analyses = set()
     for a in registry.analyses:
         filename = generate_filename(a.ref_code)
         write_markdown_file(
             entry=a, directory=ONGOING_DIR, filename=filename, entry_type="analysis"
         )
+        written_analyses.add(f"{filename}.md")
+
+    warn_about_stale_notes(PUBLISHED_DIR, written_papers)
+    warn_about_stale_notes(ONGOING_DIR, written_analyses)
 
     logger.info("Script finished.")
     logger.info(f"Output directory: {OUTPUT_DIR}")
