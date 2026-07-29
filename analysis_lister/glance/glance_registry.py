@@ -20,6 +20,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Callable, Union, Optional
 
+from ..lookup_dicts.known_duplicates import KnownDuplicates
+
 from .analysis import Analysis
 from .confnote import ConfNote
 from .paper import Paper
@@ -385,17 +387,68 @@ class GlanceRegistry(_FilteringMixin):
         self.log_unaccounted()
 
     def log_unaccounted(self):
-        """Report the entries that end up on no page at all."""
-        unaccounted = self.unaccounted
-        if not unaccounted:
-            return
+        """Report the entries that end up on no page at all.
 
-        logger.warning(
-            "%d entries appear on no page, because they finished phase 0 "
-            "without a paper, CONF note or PUB note record in GLANCE: %s",
-            len(unaccounted),
-            ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in unaccounted),
-        )
+        Entries listed in `lookup_dicts.known_duplicates` are reported as
+        INFO instead: they duplicate another GLANCE record and only closing
+        them there would settle it, so warning about them every run would
+        only bury a record that is genuinely incomplete.
+
+        """
+        unaccounted = self.unaccounted
+        duplicates = [a for a in unaccounted if a.ref_code in KnownDuplicates]
+        incomplete = [a for a in unaccounted if a.ref_code not in KnownDuplicates]
+
+        if incomplete:
+            logger.warning(
+                "%d entries appear on no page, because they finished phase 0 "
+                "without a paper, CONF note or PUB note record in GLANCE: %s",
+                len(incomplete),
+                ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
+            )
+
+        if duplicates:
+            logger.info(
+                "%d further entries appear on no page, but are known to "
+                "duplicate a record that does: %s",
+                len(duplicates),
+                ", ".join(
+                    f"{a.ref_code} (superseded by {KnownDuplicates[a.ref_code]})"
+                    for a in duplicates
+                ),
+            )
+
+        self._log_stale_duplicates({a.ref_code for a in unaccounted})
+
+    def _log_stale_duplicates(self, unaccounted_refs: set):
+        """Report entries of the known-duplicates table that no longer apply.
+
+        The table exists because the duplicates cannot be closed in GLANCE.
+        Once one of them is, it stops being unaccounted for and its entry
+        here is dead weight that would go on suppressing a warning nobody
+        asked it to.
+
+        Args:
+            unaccounted_refs: Reference codes that no page lists.
+
+        """
+        stale = []
+        for ref, superseded_by in KnownDuplicates.items():
+            if ref not in self._analyses:
+                stale.append(f"{ref} (no longer in GLANCE)")
+            elif ref not in unaccounted_refs:
+                stale.append(f"{ref} ({self._analyses[ref].pub_state.value} now)")
+
+            if superseded_by not in self._analyses:
+                stale.append(f"{ref} (superseding {superseded_by} is not in GLANCE)")
+
+        if stale:
+            logger.warning(
+                "%d entries of known_duplicates.py no longer apply and can be "
+                "removed: %s",
+                len(stale),
+                ", ".join(stale),
+            )
 
     @staticmethod
     def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
