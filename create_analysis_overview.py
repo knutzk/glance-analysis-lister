@@ -27,10 +27,11 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    logging.info("Script started.")
+    logger.info("Script started.")
 
     registry = GlanceRegistry.from_json(JSON_DIR / "glance_registry.json")
     registry.log_unaccounted()
@@ -43,4 +44,4 @@ if __name__ == "__main__":
 
     renderer.write_all()
 
-    logging.info("All Markdown pages created. Finished successfully.")
+    logger.info("All Markdown pages created. Finished successfully.")

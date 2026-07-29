@@ -26,6 +26,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+logger = logging.getLogger(__name__)
 
 # Constants
 COOKIE_FILE = Path("cookies.json")
@@ -64,21 +65,21 @@ class CookieManager:
     def load_cookies():
         """Load cookies from a JSON file if available."""
         if COOKIE_FILE.exists():
-            logging.info(f"Loading cookies from {COOKIE_FILE}")
+            logger.info(f"Loading cookies from {COOKIE_FILE}")
             return json.loads(COOKIE_FILE.read_text())
-        logging.info("No cookie file found.")
+        logger.info("No cookie file found.")
         return None
 
     @staticmethod
     def save_cookies(cookies):
         """Save cookies to a JSON file."""
         COOKIE_FILE.write_text(json.dumps(cookies))
-        logging.info(f"Cookies successfully saved to {COOKIE_FILE}")
+        logger.info(f"Cookies successfully saved to {COOKIE_FILE}")
 
     @staticmethod
     def generate_cookies():
         """Use Selenium to retrieve new cookies after logging in manually."""
-        logging.info("Starting Selenium to retrieve new cookies.")
+        logger.info("Starting Selenium to retrieve new cookies.")
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
@@ -86,21 +87,21 @@ class CookieManager:
         driver = webdriver.Chrome(service=Service(), options=chrome_options)
         try:
             url = URLS["analyses"]
-            logging.info(f"Opening URL: {url}")
+            logger.info(f"Opening URL: {url}")
             driver.get(url)
-            logging.info("Please log in manually if required.")
+            logger.info("Please log in manually if required.")
             input("Press Enter after completing login...")
             cookies = driver.get_cookies()
             CookieManager.save_cookies(cookies)
             return cookies
         finally:
             driver.quit()
-            logging.info("Selenium session ended.")
+            logger.info("Selenium session ended.")
 
     @staticmethod
     def to_requests_format(cookies):
         """Convert cookies from Selenium format to Requests format."""
-        logging.info("Converting cookies to Requests-compatible format.")
+        logger.info("Converting cookies to Requests-compatible format.")
         return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
@@ -109,7 +110,7 @@ class DataFetcher:
     def fetch_html(url, params, cookies):
         """Fetch HTML content from a URL."""
         try:
-            logging.info(f"Fetching data from {url} with params: {params}")
+            logger.info(f"Fetching data from {url} with params: {params}")
             # verify=False is deliberate: atlas-glance.cern.ch sends its leaf
             # certificate without the Sectigo intermediate that signed it, so
             # the chain cannot be verified. Browsers hide this by fetching the
@@ -124,11 +125,11 @@ class DataFetcher:
             response = requests.get(url, params=params, cookies=cookies, verify=False)
             response.raise_for_status()
             if "Sign in to your account" in response.text:
-                logging.error("Invalid or expired cookies detected.")
+                logger.error("Invalid or expired cookies detected.")
                 sys.exit(1)
             return response.text
         except requests.RequestException as e:
-            logging.error(f"Error fetching data from {url}: {e}")
+            logger.error(f"Error fetching data from {url}: {e}")
             raise
 
 
@@ -148,7 +149,7 @@ class HTMLParser:
     @staticmethod
     def parse_to_csv(html, output_csv, debug_filename=None, column_filter=None):
         """Parse the HTML table data and save it to a CSV file."""
-        logging.info(f"Parsing HTML content to extract table data for {output_csv}")
+        logger.info(f"Parsing HTML content to extract table data for {output_csv}")
 
         # Fix malformed <td> tags (glance tables seem to have a lot of these).
         html = HTMLParser.fix_malformed_td(html)
@@ -157,7 +158,7 @@ class HTMLParser:
         table = soup.find("table")
 
         if not table:
-            logging.error(f"No table found in the HTML for {output_csv}")
+            logger.error(f"No table found in the HTML for {output_csv}")
             raise ValueError("No table found")
 
         if debug_filename:
@@ -165,7 +166,7 @@ class HTMLParser:
             debug_path = DEBUG_DIR / debug_filename
             with open(debug_path, "w", encoding="utf-8") as f:
                 f.write(str(table) + "\n")
-            logging.debug(f"All table rows saved to {debug_path}")
+            logger.debug(f"All table rows saved to {debug_path}")
 
         rows = table.find_all("tr")
 
@@ -177,7 +178,7 @@ class HTMLParser:
             # empty field for every single entry, so stop right here.
             missing = sorted({col for col in column_filter if col not in headers})
             if missing:
-                logging.error(
+                logger.error(
                     f"Columns missing from the table for {output_csv}: {missing}. "
                     "GLANCE has probably renamed them; update the field maps in "
                     "analysis_lister/glance/field_maps.py."
@@ -189,7 +190,7 @@ class HTMLParser:
                 for index, header in enumerate(headers)
                 if header in column_filter
             }
-            logging.info(f"Filtering columns: {list(header_indices.values())}")
+            logger.info(f"Filtering columns: {list(header_indices.values())}")
         else:
             header_indices = {index: header for index, header in enumerate(headers)}
 
@@ -214,7 +215,7 @@ class HTMLParser:
             )
 
         if n_short_rows:
-            logging.warning(
+            logger.warning(
                 f"{n_short_rows} rows of the table for {output_csv} have fewer "
                 f"cells than the {len(headers)} of its header. Their missing "
                 "values were left empty; check the table in GLANCE."
@@ -224,7 +225,7 @@ class HTMLParser:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
 
-        logging.info(f"CSV file successfully generated: {output_csv}")
+        logger.info(f"CSV file successfully generated: {output_csv}")
 
 
 def main():
@@ -288,7 +289,7 @@ def main():
             HTMLParser.parse_to_csv(
                 html, task["output_csv"], None, task["column_filter"]
             )
-        logging.info("Completed processing from local HTML files.")
+        logger.info("Completed processing from local HTML files.")
         return
 
     if args.generate_new_cookies:
@@ -296,7 +297,7 @@ def main():
     else:
         cookies = CookieManager.load_cookies()
         if not cookies:
-            logging.error("No cookies found. Use --generate-new-cookies.")
+            logger.error("No cookies found. Use --generate-new-cookies.")
             sys.exit(1)
 
     cookies = CookieManager.to_requests_format(cookies)
