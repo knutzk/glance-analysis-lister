@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import List
 
 from analysis_lister.glance.confnote import ConfNote
-from analysis_lister.glance.subgroups import TopGroups
 from .. import utils
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ def confnotes(
     confnotes: List[ConfNote],
     output_dir: Path,
     last_modified: str,
-    threshold: str = "2020",
 ):
     """Create a Markdown page listing CONF notes.
 
@@ -26,7 +24,6 @@ def confnotes(
         confnotes: List of all CONF notes.
         output_dir: Directory to write the output file.
         last_modified: Last modified date for the page.
-        threshold: Year threshold for confnotes to be included.
 
     """
     logger.info("Generating confnotes overview.")
@@ -42,7 +39,7 @@ def confnotes(
 
 def _write_header(_f, last_modified: str):
     """Write the header for the CONF notes page."""
-    _f.write("---\nhide:\n -toc\n---\n\n\n")
+    _f.write(utils.HIDE_TOC)
     _f.write("# Conference notes\n\n")
     _f.write(utils.print_header_timestamp(last_modified))
 
@@ -71,12 +68,7 @@ def _write_confnote_table(_f, confnotes: List[ConfNote]):
             f"| [{utils.format_note_id(cn)}]({cn.final_url}) "
             f"| {cn.ref_code.replace('-', '&#8209;')} "
             f"| {cn.title_short.replace('|', '/')} "
-            f"| {_format_subgroups(cn.subgroups)} "
+            f"| {utils.format_subgroup_codes(cn.subgroups)} "
             f"| {cn.date_signoff.replace('-', '&#8209;')} |\n"
         )
 
-
-def _format_subgroups(grps: List[str]) -> str:
-    """Return a comma-separated string of top subgroup codes."""
-    codes = [g.code for g in TopGroups if g.id in grps]
-    return ", ".join(codes) if codes else "None"

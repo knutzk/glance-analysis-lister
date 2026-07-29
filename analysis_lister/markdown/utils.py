@@ -4,13 +4,37 @@
 """
 
 import logging
-from typing import Union
+from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
-from analysis_lister.glance.subgroups import GroupsById, canonical_subgroup
+from analysis_lister.glance.subgroups import (
+    GroupsById,
+    TopGroups,
+    canonical_subgroup,
+)
 
 logger = logging.getLogger(__name__)
+
+# Front matter that keeps the Material theme from rendering a table of
+# contents, used by the pages that are one large table and would only get an
+# empty one. The value has to be a YAML list, hence the "- ".
+HIDE_TOC = "---\nhide:\n  - toc\n---\n\n\n"
+
+
+def format_subgroup_codes(subgroups: List[str]) -> str:
+    """Return the top WG subgroups of an entry as a table cell.
+
+    Args:
+        subgroups: Subgroup ids of an entry, as taken from GLANCE.
+
+    Returns:
+        str object with the comma-separated subgroup codes, or "None" if the
+        entry belongs to no top WG subgroup.
+
+    """
+    codes = [g.code for g in TopGroups if g.id in subgroups]
+    return ", ".join(codes) if codes else "None"
 
 
 def anchor_id(ref_code: str, subgroup_id: str) -> str:
@@ -96,7 +120,7 @@ def format_note_id(note) -> str:
 def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
     """Return the glance link(s) for an analysis or a paper.
 
-    Parameters:
+    Args:
         p: Analysis or Paper instance for which to provide glance links.
         prepend: str to prepend to the returned string (for formatting).
 
@@ -123,7 +147,7 @@ def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
 def render_pub_links(p: Paper, prepend: str = ""):
     """Return the list of publication links for a paper.
 
-    Parameters:
+    Args:
         p: Paper instance for which to provide the publication links.
         prepend: str to prepend to the returned string (for formatting).
 
@@ -151,8 +175,8 @@ def render_pub_links(p: Paper, prepend: str = ""):
 def render_email_links(p: Union[Analysis, Paper], prepend: str = ""):
     """Return the email links for an analysis or a paper.
 
-    Parameters:
-        p: Analysis or Paper instnace for which to provide the email lists.
+    Args:
+        p: Analysis or Paper instance for which to provide the email lists.
         prepend: str to prepend to the returned string (for formatting).
 
     Returns:
