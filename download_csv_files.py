@@ -161,6 +161,17 @@ class HTMLParser:
 
         # Filter headers based on the column_filter, otherwise include all.
         if column_filter:
+            # A column that GLANCE has renamed would silently turn into an
+            # empty field for every single entry, so stop right here.
+            missing = sorted({col for col in column_filter if col not in headers})
+            if missing:
+                logging.error(
+                    f"Columns missing from the table for {output_csv}: {missing}. "
+                    "GLANCE has probably renamed them; update the field maps in "
+                    "analysis_lister/glance/field_maps.py."
+                )
+                raise ValueError(f"Missing columns for {output_csv}: {missing}")
+
             header_indices = {
                 index: header
                 for index, header in enumerate(headers)
@@ -172,13 +183,29 @@ class HTMLParser:
 
         csv_data = [[header_indices[idx] for idx in header_indices]]
 
+        n_short_rows = 0
         for row in rows[1:]:
             cells = row.find_all("td")
             if not cells:
                 continue
 
+            # Short rows are padded rather than shortened, which would shift
+            # the remaining values into the wrong columns.
+            if len(cells) < len(headers):
+                n_short_rows += 1
+
             csv_data.append(
-                [cells[idx].text for idx in header_indices if idx < len(cells)]
+                [
+                    cells[idx].text if idx < len(cells) else ""
+                    for idx in header_indices
+                ]
+            )
+
+        if n_short_rows:
+            logging.warning(
+                f"{n_short_rows} rows of the table for {output_csv} have fewer "
+                f"cells than the {len(headers)} of its header. Their missing "
+                "values were left empty; check the table in GLANCE."
             )
 
         with open(output_csv, "w", newline="", encoding="utf-8") as f:
