@@ -28,6 +28,8 @@ class ConfNote(Analysis):
 
     Attributes:
         date_signoff: The date the CONF note was signed off.
+        final_ref_code: The CONF note number, e.g. "ATLAS-CONF-2022-058",
+            as opposed to ref_code, which identifies the analysis.
         final_url: The final URL of the CONF note.
         superseded_by: The reference code of the note that supersedes this one.
         tmp_ref_code: The temporary reference code of the CONF note.
@@ -35,6 +37,7 @@ class ConfNote(Analysis):
     """
 
     date_signoff: str
+    final_ref_code: str
     final_url: str
     superseded_by: str
     tmp_ref_code: str

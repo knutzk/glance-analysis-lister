@@ -68,6 +68,31 @@ def render_ref_link(p: Union[Analysis, Paper], subgroup_id: str = "") -> str:
     return f"[{label}][{anchor_id(p.ref_code, subgroup_id)}]"
 
 
+def format_note_id(note) -> str:
+    """Return the number of a CONF/PUB note, ready for a table cell.
+
+    GLANCE pads the column and, as long as a note has no number of its own,
+    fills it with a placeholder such as "PUB-TOPQ-2019-24  TEMP ". Such notes
+    are not published and hence not listed, so seeing one here is worth a
+    warning rather than a silent workaround.
+
+    Args:
+        note: ConfNote or PubNote instance to label.
+
+    Returns:
+        str object with the note number, hyphens replaced by non-breaking
+        ones to keep it on a single line.
+
+    """
+    ref = " ".join(note.final_ref_code.split())
+    if not ref or "TEMP" in ref:
+        logger.warning(
+            "%s is listed with the temporary note number '%s'.", note.ref_code, ref
+        )
+
+    return ref.replace("-", "&#8209;")
+
+
 def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
     """Return the glance link(s) for an analysis or a paper.
 

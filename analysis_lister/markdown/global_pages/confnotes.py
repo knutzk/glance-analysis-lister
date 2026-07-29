@@ -36,6 +36,7 @@ def confnotes(
 
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)
+        _write_intro(_f, confnotes)
         _write_confnote_table(_f, confnotes)
 
 
@@ -46,19 +47,29 @@ def _write_header(_f, last_modified: str):
     _f.write(utils.print_header_timestamp(last_modified))
 
 
+def _write_intro(_f, confnotes: List[ConfNote]):
+    """Write the introductory paragraph for the CONF notes page."""
+    _f.write(
+        f"The following table lists the {len(confnotes)} CONF notes of the "
+        "ATLAS top WG that are still the most recent word on their analysis.\n"
+        "Notes that a later publication has superseded, and notes whose "
+        "analysis has been closed, are not listed.\n\n"
+    )
+
+
 def _write_confnote_table(_f, confnotes: List[ConfNote]):
     """Write the table of conference notes."""
     logger.info("Writing conference note table.")
 
     _f.write("\n\n")
-    _f.write("| Identifier | Title | Subgroup | Date |\n")
-    _f.write("| --- | --- | --- | --- |\n")
+    _f.write("| Identifier | Analysis | Title | Subgroup | Date |\n")
+    _f.write("| --- | --- | --- | --- | --- |\n")
 
     for cn in confnotes:
-        logger.debug(f"Adding conference note {cn.ref_code} to table.")
+        logger.debug(f"Adding conference note {cn.final_ref_code} to table.")
         _f.write(
+            f"| [{utils.format_note_id(cn)}]({cn.final_url}) "
             f"| {cn.ref_code.replace('-', '&#8209;')} "
-            f" ([public page]({cn.final_url})) "
             f"| {cn.title_short.replace('|', '/')} "
             f"| {_format_subgroups(cn.subgroups)} "
             f"| {cn.date_signoff.replace('-', '&#8209;')} |\n"
