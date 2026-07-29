@@ -11,7 +11,10 @@ modification timestamps.
 """
 
 import csv
+import json
 import logging
+from attrs import asdict
+from enum import Enum
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -27,11 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 class _FilteringMixin:
-    """Mixin class to provide filtering and counting methods for analyses."""
+    """Mixin class to provide filtering and counting methods for analyses.
 
-    def __init__(self):
-        """Initialize the mixin with an empty analyses dictionary."""
-        self._analyses: dict[str, Analysis] = {}
+    The class it is mixed into provides `_analyses`, the dictionary that all
+    methods here read.
+
+    """
 
     def count(self, predicate: Callable[[Analysis], bool]) -> int:
         """Count entries matching a custom filter predicate."""
@@ -90,7 +94,7 @@ class GlanceRegistry(_FilteringMixin):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
 
     def __str__(self):
-        summary = f"GlanceRegistry: "
+        summary = "GlanceRegistry: "
         summary += f"{len(self.analyses)} ongoing analyses, "
         summary += f"{len(self.papers)} submitted/published papers, "
         summary += f"{len(self.confnotes)} CONF notes, "
@@ -102,12 +106,6 @@ class GlanceRegistry(_FilteringMixin):
     @classmethod
     def from_json(cls, path: Path):
         """Create a GlanceRegistry instance from a previously stored JSON file."""
-        import json
-        from .analysis import Analysis
-        from .paper import Paper
-        from .confnote import ConfNote
-        from .pubnote import PubNote
-
         # Mapping from string type to class
         cls_map = {
             "Analysis": Analysis,
@@ -145,9 +143,6 @@ class GlanceRegistry(_FilteringMixin):
 
     def store_json(self, path: Path):
         """Store the registry as a JSON file with serialized entries and metadata."""
-        import json
-        from attrs import asdict
-        from enum import Enum
 
         def serializer(instance, field, value):
             if isinstance(value, Enum):
