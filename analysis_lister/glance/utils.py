@@ -70,12 +70,17 @@ def format_subgroups(subgroups: str) -> list[str]:
     return _SUBGROUP_SEPARATOR.split(subgroups)
 
 
-def format_supporting_docs(supporting_docs: str) -> str:
-    """Return comma-separated list of supporting documents."""
-    if supporting_docs != "":
-        supporting_docs = supporting_docs.split(",")
+def format_supporting_docs(supporting_docs: str) -> list[str]:
+    """Return the supporting documents of an entry.
 
-    return supporting_docs
+    Args:
+        supporting_docs: Comma-separated documents, as taken from GLANCE.
+
+    Returns:
+        The individual documents, empty if the entry has none.
+
+    """
+    return supporting_docs.split(",") if supporting_docs else []
 
 
 # Patterns to recover the publication date that a publisher encodes in its

@@ -51,7 +51,7 @@ class Analysis:
         software_release: Enum with the software release of the analysis.
         status: String with the status of the analysis.
         subgroups: List of subgroups associated with the analysis.
-        supporting_docs: String with supporting documents.
+        supporting_docs: List of supporting documents.
         title_full: String with the full title of the analysis.
         title_short_public: String with the short public title of the analysis.
         title_short: String with the short title of the analysis.
@@ -82,7 +82,7 @@ class Analysis:
     )
     status: str
     subgroups: List[str]
-    supporting_docs: str
+    supporting_docs: List[str]
     title_full: str
     title_short_public: str
     title_short: str
