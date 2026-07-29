@@ -11,11 +11,16 @@ modification timestamps.
 """
 
 import csv
+import json
 import logging
+from attrs import asdict
+from enum import Enum
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Callable, Union, Optional
+
+from ..lookup_dicts.known_duplicates import KnownDuplicates
 
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -25,13 +30,20 @@ from .enums import PublicationState
 
 logger = logging.getLogger(__name__)
 
+# Papers published before this year are left to the TWiki rather than listed.
+# Kept as a constant so that a snapshot written without one is restored with
+# the same cut instead of an empty string, which would compare smaller than
+# every date and quietly pull in every paper the top WG has ever published.
+DEFAULT_THRESHOLD_YEAR = "2020"
+
 
 class _FilteringMixin:
-    """Mixin class to provide filtering and counting methods for analyses."""
+    """Mixin class to provide filtering and counting methods for analyses.
 
-    def __init__(self):
-        """Initialize the mixin with an empty analyses dictionary."""
-        self._analyses: dict[str, Analysis] = {}
+    The class it is mixed into provides `_analyses`, the dictionary that all
+    methods here read.
+
+    """
 
     def count(self, predicate: Callable[[Analysis], bool]) -> int:
         """Count entries matching a custom filter predicate."""
@@ -73,7 +85,7 @@ class GlanceRegistry(_FilteringMixin):
         confnote_csv="confnotes.csv",
         pubnote_csv="pubnotes.csv",
         csv_dir="csv",
-        threshold_year="2020",
+        threshold_year=DEFAULT_THRESHOLD_YEAR,
     ):
         logger.info("Initializing GlanceRegistry...")
         self.analysis_path = Path(csv_dir) / analysis_csv
@@ -90,7 +102,7 @@ class GlanceRegistry(_FilteringMixin):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
 
     def __str__(self):
-        summary = f"GlanceRegistry: "
+        summary = "GlanceRegistry: "
         summary += f"{len(self.analyses)} ongoing analyses, "
         summary += f"{len(self.papers)} submitted/published papers, "
         summary += f"{len(self.confnotes)} CONF notes, "
@@ -102,12 +114,6 @@ class GlanceRegistry(_FilteringMixin):
     @classmethod
     def from_json(cls, path: Path):
         """Create a GlanceRegistry instance from a previously stored JSON file."""
-        import json
-        from .analysis import Analysis
-        from .paper import Paper
-        from .confnote import ConfNote
-        from .pubnote import PubNote
-
         # Mapping from string type to class
         cls_map = {
             "Analysis": Analysis,
@@ -135,7 +141,7 @@ class GlanceRegistry(_FilteringMixin):
             self._analyses[ref_code] = entry_cls.from_json(entry_dict)
 
         self.last_modified_time = raw_data.get("last_modified_time", "")
-        self.threshold_year = raw_data.get("threshold_year", "")
+        self.threshold_year = raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR
 
         return self
 
@@ -145,9 +151,6 @@ class GlanceRegistry(_FilteringMixin):
 
     def store_json(self, path: Path):
         """Store the registry as a JSON file with serialized entries and metadata."""
-        import json
-        from attrs import asdict
-        from enum import Enum
 
         def serializer(instance, field, value):
             if isinstance(value, Enum):
@@ -218,6 +221,24 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     @property
+    def unaccounted(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+        """All entries that no page lists and that no filter meant to drop.
+
+        Most entries the pages leave out are left out on purpose: an analysis
+        that was closed, a note that a later publication superseded, a paper
+        older than the threshold year. The two states below are different —
+        they mean that the record finished phase 0 without ever turning up in
+        the papers, CONF note or PUB note table, or that its status strings
+        made no sense to us. Either way the entry silently exists nowhere,
+        which is worth reporting rather than filtering away.
+
+        """
+        return self.filter(
+            lambda a: a.pub_state
+            in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+        )
+
+    @property
     def pubnotes(self) -> list[PubNote]:
         """All entries that should be listed as PUB note."""
         return self.filter(
@@ -241,6 +262,12 @@ class GlanceRegistry(_FilteringMixin):
                 max_timestamp = max(max_timestamp, ts)
             except FileNotFoundError:
                 continue
+
+        # Formatting a timestamp of 0 would put "Jan 01, 1970" on every page
+        # rather than admitting that there was nothing to read it from.
+        if not max_timestamp:
+            logger.warning("No CSV file found, cannot determine the sync time.")
+            return "unknown"
 
         last_modified = datetime.fromtimestamp(
             max_timestamp, tz=ZoneInfo("Europe/Zurich")
@@ -357,6 +384,72 @@ class GlanceRegistry(_FilteringMixin):
         )
         self._log_enrichment("PUB note", enriched, unmatched, len(self.pubnotes))
 
+        self.log_unaccounted()
+
+    def log_unaccounted(self):
+        """Report the entries that end up on no page at all.
+
+        Entries listed in `lookup_dicts.known_duplicates` are reported as
+        INFO instead: they duplicate another GLANCE record and only closing
+        them there would settle it, so warning about them every run would
+        only bury a record that is genuinely incomplete.
+
+        """
+        unaccounted = self.unaccounted
+        duplicates = [a for a in unaccounted if a.ref_code in KnownDuplicates]
+        incomplete = [a for a in unaccounted if a.ref_code not in KnownDuplicates]
+
+        if incomplete:
+            logger.warning(
+                "%d entries appear on no page, because they finished phase 0 "
+                "without a paper, CONF note or PUB note record in GLANCE: %s",
+                len(incomplete),
+                ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
+            )
+
+        if duplicates:
+            logger.info(
+                "%d further entries appear on no page, but are known to "
+                "duplicate a record that does: %s",
+                len(duplicates),
+                ", ".join(
+                    f"{a.ref_code} (superseded by {KnownDuplicates[a.ref_code]})"
+                    for a in duplicates
+                ),
+            )
+
+        self._log_stale_duplicates({a.ref_code for a in unaccounted})
+
+    def _log_stale_duplicates(self, unaccounted_refs: set):
+        """Report entries of the known-duplicates table that no longer apply.
+
+        The table exists because the duplicates cannot be closed in GLANCE.
+        Once one of them is, it stops being unaccounted for and its entry
+        here is dead weight that would go on suppressing a warning nobody
+        asked it to.
+
+        Args:
+            unaccounted_refs: Reference codes that no page lists.
+
+        """
+        stale = []
+        for ref, superseded_by in KnownDuplicates.items():
+            if ref not in self._analyses:
+                stale.append(f"{ref} (no longer in GLANCE)")
+            elif ref not in unaccounted_refs:
+                stale.append(f"{ref} ({self._analyses[ref].pub_state.value} now)")
+
+            if superseded_by not in self._analyses:
+                stale.append(f"{ref} (superseding {superseded_by} is not in GLANCE)")
+
+        if stale:
+            logger.warning(
+                "%d entries of known_duplicates.py no longer apply and can be "
+                "removed: %s",
+                len(stale),
+                ", ".join(stale),
+            )
+
     @staticmethod
     def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
         """Report the outcome of one enrichment step.
@@ -383,10 +476,38 @@ class GlanceRegistry(_FilteringMixin):
         data = [cls.from_csv_dict(row) for row in rows]
         return sorted(data, key=lambda x: x.ref_code)
 
-    def _read_csv_rows(self, path: Path):
+    def _read_csv_rows(self, path: Path) -> list[dict[str, str]]:
+        """Return the rows of one CSV file.
+
+        All four files are required. Carrying on without one of them used to
+        cost the pages a whole category — every paper, or every note — and
+        the run reported that as a plain count, which reads exactly like a
+        quiet week in the top WG. Failing here instead keeps a half-read
+        download out of the committed snapshot.
+
+        Args:
+            path: Path of the CSV file to read.
+
+        Returns:
+            One dictionary per row of the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file holds no rows.
+
+        """
         try:
             with open(path, encoding="utf8") as f:
-                return list(csv.DictReader(f))
+                rows = list(csv.DictReader(f))
         except FileNotFoundError:
-            logger.warning(f"File {path} not found.")
-            return []
+            raise FileNotFoundError(
+                f"{path} not found. Re-run download_csv_files.py (step 1)."
+            ) from None
+
+        if not rows:
+            raise ValueError(
+                f"{path} holds no rows. GLANCE probably returned a login page; "
+                "refresh the cookies and re-run download_csv_files.py (step 1)."
+            )
+
+        return rows

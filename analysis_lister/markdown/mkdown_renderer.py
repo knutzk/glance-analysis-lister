@@ -76,13 +76,11 @@ class MarkdownPageRenderer:
             self.confnotes,
             output_dir=self.output_dir,
             last_modified=self.mtime,
-            threshold=self.threshold,
         )
         glob_pubnotes.pubnotes(
             self.pubnotes,
             output_dir=self.output_dir,
             last_modified=self.mtime,
-            threshold=self.threshold,
         )
 
     def write_subgroup_pages(self):

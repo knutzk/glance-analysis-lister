@@ -4,13 +4,47 @@
 """
 
 import logging
-from typing import Union
+from datetime import datetime
+from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
-from analysis_lister.glance.subgroups import GroupsById, canonical_subgroup
+from analysis_lister.glance.utils import has_note_number
+from analysis_lister.glance.subgroups import (
+    GroupsById,
+    TopGroups,
+    canonical_subgroup,
+)
 
 logger = logging.getLogger(__name__)
+
+# Front matter that keeps the Material theme from rendering a table of
+# contents, used by the pages that are one large table and would only get an
+# empty one. The value has to be a YAML list, hence the "- ".
+HIDE_TOC = "---\nhide:\n  - toc\n---\n\n\n"
+
+
+def format_date_long(date_str: str) -> str:
+    """Convert YYYY-MM-DD to '5 Jan 2025', falling back to the raw string."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%-d %b %Y")
+    except (ValueError, TypeError):
+        return date_str
+
+
+def format_subgroup_codes(subgroups: List[str]) -> str:
+    """Return the top WG subgroups of an entry as a table cell.
+
+    Args:
+        subgroups: Subgroup ids of an entry, as taken from GLANCE.
+
+    Returns:
+        str object with the comma-separated subgroup codes, or "None" if the
+        entry belongs to no top WG subgroup.
+
+    """
+    codes = [g.code for g in TopGroups if g.id in subgroups]
+    return ", ".join(codes) if codes else "None"
 
 
 def anchor_id(ref_code: str, subgroup_id: str) -> str:
@@ -68,10 +102,35 @@ def render_ref_link(p: Union[Analysis, Paper], subgroup_id: str = "") -> str:
     return f"[{label}][{anchor_id(p.ref_code, subgroup_id)}]"
 
 
+def format_note_id(note) -> str:
+    """Return the number of a CONF/PUB note, ready for a table cell.
+
+    GLANCE pads the column and, as long as a note has no number of its own,
+    fills it with a placeholder such as "PUB-TOPQ-2019-24  TEMP ". Such notes
+    are not published and hence not listed, so seeing one here is worth a
+    warning rather than a silent workaround.
+
+    Args:
+        note: ConfNote or PubNote instance to label.
+
+    Returns:
+        str object with the note number, hyphens replaced by non-breaking
+        ones to keep it on a single line.
+
+    """
+    ref = " ".join(note.final_ref_code.split())
+    if not has_note_number(note.final_ref_code):
+        logger.warning(
+            "%s is listed with the temporary note number '%s'.", note.ref_code, ref
+        )
+
+    return ref.replace("-", "&#8209;")
+
+
 def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
     """Return the glance link(s) for an analysis or a paper.
 
-    Parameters:
+    Args:
         p: Analysis or Paper instance for which to provide glance links.
         prepend: str to prepend to the returned string (for formatting).
 
@@ -80,24 +139,25 @@ def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
 
     """
     s = f"{prepend}**Glance:**\n"
-    s += f"{prepend}[ANA-{p.ref_code}]({p.glance_url_analysis}) (analysis)\n"
-    # A record only gets a publication of its own once it has left phase 0.
-    if "Finished" not in p.status:
-        return s + f"{prepend}\n"
+    s += f"{prepend}[ANA-{p.ref_code}]({p.glance_url_analysis}) (analysis)"
 
-    if p.glance_url_publ and "confnotes/" in p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (CONF note)\n"
-    elif p.glance_url_publ and "pubnotes/" in p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (PUB note)\n"
-    elif p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (paper)\n"
-    return s + f"{prepend}\n"
+    # A record only gets a publication of its own once it has left phase 0.
+    if "Finished" in p.status and p.glance_url_publ:
+        if "confnotes/" in p.glance_url_publ:
+            kind = "CONF note"
+        elif "pubnotes/" in p.glance_url_publ:
+            kind = "PUB note"
+        else:
+            kind = "paper"
+        s += f",\n{prepend}[{p.ref_code}]({p.glance_url_publ}) ({kind})"
+
+    return s + f"\n{prepend}\n"
 
 
 def render_pub_links(p: Paper, prepend: str = ""):
     """Return the list of publication links for a paper.
 
-    Parameters:
+    Args:
         p: Paper instance for which to provide the publication links.
         prepend: str to prepend to the returned string (for formatting).
 
@@ -105,19 +165,26 @@ def render_pub_links(p: Paper, prepend: str = ""):
         str object with the publication links.
 
     """
-    s = f"{prepend}**Publication:**\n"
+    links = []
     if p.inspire_url != "":
-        s += f"{prepend}[inspire]({p.inspire_url}), \n"
+        links.append(f"[inspire]({p.inspire_url})")
 
     for i, doi_url in enumerate(p.doi_urls):
         label = "DOI" if i == 0 else "DOI (erratum/addendum)"
-        s += f"{prepend}[{label}]({doi_url}), \n"
+        links.append(f"[{label}]({doi_url})")
 
     if p.arxiv_url != "":
-        s += f"{prepend}[arXiv]({p.arxiv_url}), \n"
+        links.append(f"[arXiv]({p.arxiv_url})")
 
     if p.figure_url != "":
-        s += f"{prepend}[public page]({p.figure_url})\n"
+        links.append(f"[public page]({p.figure_url})")
+
+    # Joining rather than appending a separator to each link keeps the last
+    # one free of a trailing comma, whichever of them a paper happens to have.
+    s = f"{prepend}**Publication:**\n"
+    s += "".join(f"{prepend}{link}, \n" for link in links[:-1])
+    if links:
+        s += f"{prepend}{links[-1]}\n"
 
     return s + f"{prepend}\n"
 
@@ -125,19 +192,25 @@ def render_pub_links(p: Paper, prepend: str = ""):
 def render_email_links(p: Union[Analysis, Paper], prepend: str = ""):
     """Return the email links for an analysis or a paper.
 
-    Parameters:
-        p: Analysis or Paper instnace for which to provide the email lists.
+    Args:
+        p: Analysis or Paper instance for which to provide the email lists.
         prepend: str to prepend to the returned string (for formatting).
 
     Returns:
         str object with the email lists.
 
     """
+    # The e-groups of an analysis are named after its full reference code, so
+    # the working group code has to be taken from the entry: the top WG lists
+    # a good dozen analyses that another group leads (EXOT, STDM, BPHY, ...),
+    # and a hard-coded "topq" sends their readers to a list that exists for a
+    # different analysis, or for none at all.
+    egroup = p.ref_code.lower()
     s = f"{prepend}**Send an email to the:**\n{prepend}\n"
     s += f"{prepend}* Analysis team: "
-    s += f"<atlas-topq-{p.ref_code[5:]}-analysis-team@cern.ch><br>\n"
+    s += f"<atlas-{egroup}-analysis-team@cern.ch><br>\n"
     s += f"{prepend}* Editorial board & conveners: "
-    s += f"<atlas-topq-{p.ref_code[5:]}-edboard-conveners@cern.ch> (†)<br>\n"
+    s += f"<atlas-{egroup}-edboard-conveners@cern.ch> (†)<br>\n"
     s += f"{prepend}\n"
     if p.editorial_board == "":
         s += f"{prepend}(†) Members: editorial board (once assigned), "

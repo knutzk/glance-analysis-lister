@@ -17,7 +17,7 @@ import logging
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_CONFNOTE
-from .utils import get_init_fields, glance_confnote_url
+from .utils import get_init_fields, glance_confnote_url, has_note_number
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class ConfNote(Analysis):
 
     Attributes:
         date_signoff: The date the CONF note was signed off.
+        final_ref_code: The CONF note number, e.g. "ATLAS-CONF-2022-058",
+            as opposed to ref_code, which identifies the analysis.
         final_url: The final URL of the CONF note.
         superseded_by: The reference code of the note that supersedes this one.
         tmp_ref_code: The temporary reference code of the CONF note.
@@ -35,6 +37,7 @@ class ConfNote(Analysis):
     """
 
     date_signoff: str
+    final_ref_code: str
     final_url: str
     superseded_by: str
     tmp_ref_code: str
@@ -76,11 +79,20 @@ class ConfNote(Analysis):
             return PublicationState.SUPERSEDED
         elif self.final_url:
             return PublicationState.PUBLISHED
-        elif self.tmp_ref_code != self.ref_code:
-            return PublicationState.PHASE1_OR_2
-        else:
-            logger.error("CONF note %s has unknown publication state", self.ref_code)
+        elif has_note_number(self.final_ref_code):
+            # A note is only assigned a number of its own once it is out, so
+            # a number without a URL is a gap in the GLANCE record rather
+            # than a state of the note. Without the URL there is nothing to
+            # link to, so it cannot be listed as published either.
+            logger.error(
+                "CONF note %s carries the number %s but no final URL, so it "
+                "cannot be listed. Check the GLANCE record.",
+                self.ref_code,
+                self.final_ref_code.strip(),
+            )
             return PublicationState.UNKNOWN
+        else:
+            return PublicationState.PHASE1_OR_2
 
     def __attrs_post_init__(self):
         """Post-initialization of CONF note instance."""

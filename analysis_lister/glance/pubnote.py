@@ -17,7 +17,7 @@ import logging
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PUBNOTE
-from .utils import get_init_fields, glance_pubnote_url
+from .utils import get_init_fields, glance_pubnote_url, has_note_number
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class PubNote(Analysis):
 
     Attributes:
         date_signoff: The date the PUB note was signed off.
+        final_ref_code: The PUB note number, e.g. "ATL-PHYS-PUB-2015-010",
+            as opposed to ref_code, which identifies the analysis.
         final_url: The final URL of the PUB note.
         status_pub: The status of the PUB note.
         superseded_by: The reference code of the note that supersedes this one.
@@ -36,6 +38,7 @@ class PubNote(Analysis):
     """
 
     date_signoff: str
+    final_ref_code: str
     final_url: str
     status_pub: str
     superseded_by: str
@@ -76,11 +79,20 @@ class PubNote(Analysis):
             return PublicationState.SUPERSEDED
         elif self.final_url:
             return PublicationState.PUBLISHED
-        elif self.tmp_ref_code != self.ref_code:
-            return PublicationState.PHASE1_OR_2
-        else:
-            logger.error("PUB note %s has unknown publication state", self.ref_code)
+        elif has_note_number(self.final_ref_code):
+            # A note is only assigned a number of its own once it is out, so
+            # a number without a URL is a gap in the GLANCE record rather
+            # than a state of the note. Without the URL there is nothing to
+            # link to, so it cannot be listed as published either.
+            logger.error(
+                "PUB note %s carries the number %s but no final URL, so it "
+                "cannot be listed. Check the GLANCE record.",
+                self.ref_code,
+                self.final_ref_code.strip(),
+            )
             return PublicationState.UNKNOWN
+        else:
+            return PublicationState.PHASE1_OR_2
 
     def __attrs_post_init__(self):
         """Post-initialization of PUB note instance."""

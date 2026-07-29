@@ -4,7 +4,6 @@
 """
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.glance.enums import PublicationState
@@ -130,24 +129,16 @@ def render_paper_block(
     return s + "\n\n"
 
 
-def _fmt(date_str: str) -> str:
-    """Convert YYYY-MM-DD to '5 Jan 2025', falling back to the raw string."""
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%-d %b %Y")
-    except (ValueError, TypeError):
-        return date_str
-
-
 def render_submission_status(p: GlancePaper) -> str:
     """Render the submission status of a paper."""
     if p.date_publication:
-        return f"**Status:** published since {_fmt(p.date_publication)}\n\n"
+        return f"**Status:** published since {utils.format_date_long(p.date_publication)}\n\n"
     elif p.date_acceptance:
-        return f"**Status:** submitted to {p.journal} on {_fmt(p.date_submission)} and accepted on {_fmt(p.date_acceptance)}\n\n"
+        return f"**Status:** submitted to {p.journal} on {utils.format_date_long(p.date_submission)} and accepted on {utils.format_date_long(p.date_acceptance)}\n\n"
     elif p.date_submission and p.journal:
-        return f"**Status:** submitted to {p.journal} on {_fmt(p.date_submission)}\n\n"
+        return f"**Status:** submitted to {p.journal} on {utils.format_date_long(p.date_submission)}\n\n"
     elif p.date_submission:
-        return f"**Status:** submitted to [JOURNAL] on {_fmt(p.date_submission)}\n\n"
+        return f"**Status:** submitted to [JOURNAL] on {utils.format_date_long(p.date_submission)}\n\n"
     return "**Status:** not submitted\n\n"
 
 
@@ -155,7 +146,8 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
     """Render the citation block for a paper."""
     s = f"{prepend}ATLAS Collaboration<br>\n"
     s += f"{prepend}{p.title_final_tex}<br>\n"
-    s += f"{prepend}{p.journal_ref}, {p.arxiv_number}<br>\n"
+    reference = ", ".join(x for x in (p.journal_ref, p.arxiv_number) if x)
+    s += f"{prepend}{reference}<br>\n"
     if p.dois:
         s += f"{prepend}DOI: {p.dois[0]}<br>\n"
 

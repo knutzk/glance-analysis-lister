@@ -44,7 +44,7 @@ def published(
 
 def _write_header(_f, last_modified: str):
     """Write the header for the published papers page."""
-    _f.write("---\nhide:\n -toc\n---\n\n\n")
+    _f.write(utils.HIDE_TOC)
     _f.write("# Submitted/published papers\n\n")
     _f.write(utils.print_header_timestamp(last_modified))
 
@@ -101,13 +101,8 @@ def _write_table(_f, papers: List[Paper]):
         _f.write(
             f"| {utils.render_ref_link(p)} "
             f"| {p.title_short.replace('|', '/')} "
-            f"| {_format_subgroups(p.subgroups)} "
+            f"| {utils.format_subgroup_codes(p.subgroups)} "
             f"| {p.date_submission.replace('-', '&#8209;')} "
             f"| {p.date_publication.replace('-', '&#8209;')} |\n"
         )
 
-
-def _format_subgroups(grps: List[str]) -> str:
-    """Return a comma-separated string of top subgroup codes."""
-    codes = [g.code for g in TopGroups if g.id in grps]
-    return ", ".join(codes) if codes else "None"

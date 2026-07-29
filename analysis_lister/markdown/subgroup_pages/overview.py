@@ -40,7 +40,7 @@ def overview(
 
     logger.info(f'Writing output file "{output_dir}/index.md"')
     with open(output_dir / "index.md", "w", encoding="utf8") as _f:
-        _f.write("---\nhide:\n -toc\n---\n\n\n")
+        _f.write(utils.HIDE_TOC)
         _f.write(f"# {subgroup_title} – Analyses and Papers\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
@@ -112,7 +112,7 @@ def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> s
             f"| {utils.render_ref_link(a, subgroup_id)} "
             f"| {title} "
             f"| {tickmark * n_ticks} "
-            f"| {str(a.software_release.value)} "
+            f"| {a.software_release.value} "
             f'| {a.date_start.replace("-", "&#8209;")} |'
         )
         lines.append(row)

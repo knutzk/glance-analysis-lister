@@ -110,13 +110,14 @@ REQUIRED_COLUMNS_PAPER = [
 
 FIELD_MAP_CONFNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     "date_signoff": ("Second Sign Off Date", None),
+    "final_ref_code": ("Reference Code", None),
     "final_url": ("Final URL", None),
     "superseded_by": ("Superseded By", None),
     "tmp_ref_code": ("Temporary Reference Code", None),
 }
 
 # Not initialised in the constructor, but in the post-init method.
-EXTRA_COLUMNS_CONFNOTE = ["Reference Code"]
+EXTRA_COLUMNS_CONFNOTE = []
 
 # Required columns in the confnote CSV file.
 REQUIRED_COLUMNS_CONFNOTE = [
@@ -125,6 +126,7 @@ REQUIRED_COLUMNS_CONFNOTE = [
 ]
 
 FIELD_MAP_PUBNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+    "final_ref_code": ("Reference Code", None),
     "final_url": ("Final URL", None),
     "status_pub": ("Status", None),
     "superseded_by": ("Superseded By", None),
@@ -133,7 +135,7 @@ FIELD_MAP_PUBNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
 }
 
 # Not initialised in the constructor, but in the post-init method.
-EXTRA_COLUMNS_PUBNOTE = ["Reference Code"]
+EXTRA_COLUMNS_PUBNOTE = []
 
 # Required columns in the pubnote CSV file.
 REQUIRED_COLUMNS_PUBNOTE = [

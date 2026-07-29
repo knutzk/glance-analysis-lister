@@ -11,11 +11,26 @@ logger = logging.getLogger(__name__)
 
 
 def format_contacts(contacts: str, end_dates: str) -> str:
-    """Return the current analysis contacts of an analysis."""
+    """Return the current analysis contacts of an analysis.
+
+    Both GLANCE columns are comma-separated lists that have to be read in
+    parallel, so a contact whose name contains a comma throws them out of
+    step. Zipping them would then silently drop the tail of the longer list,
+    which loses current contacts; listing everybody instead keeps the page
+    usable and leaves the warning to say why it may show a past contact.
+
+    """
     contacts = contacts.split(", ")
     end_dates = end_dates.split(", ")
     if len(contacts) != len(end_dates):
-        logger.warning("Cannot resolve analysis contacts: %s.", contacts)
+        logger.warning(
+            "Cannot resolve analysis contacts, %d names against %d end dates: "
+            "%s. Listing all of them.",
+            len(contacts),
+            len(end_dates),
+            ", ".join(contacts),
+        )
+        return ", ".join(contacts)
 
     contacts = [c for c, d in zip(contacts, end_dates) if d == "No end date"]
     return ", ".join(contacts)
@@ -30,6 +45,23 @@ def format_editorial_board(ed_board: str, chairs: str) -> str:
     chairs = [x.strip() for x in chairs.split(",")]
     ed_board = [f"**{x}** (chair)" if x in chairs else x for x in ed_board]
     return ", ".join(ed_board)
+
+
+def has_note_number(final_ref_code: str) -> bool:
+    """Return whether a CONF/PUB note has a number of its own yet.
+
+    Until a note is assigned one, GLANCE fills its `Reference Code` column
+    with a padded placeholder built from the analysis code, such as
+    "PUB-TOPQ-2019-24  TEMP ".
+
+    Args:
+        final_ref_code: The `Reference Code` of a note, as taken from GLANCE.
+
+    Returns:
+        True if the column holds a real note number.
+
+    """
+    return bool(final_ref_code.strip()) and "TEMP" not in final_ref_code
 
 
 def format_ref_code(ref_code: str) -> str:
@@ -70,12 +102,17 @@ def format_subgroups(subgroups: str) -> list[str]:
     return _SUBGROUP_SEPARATOR.split(subgroups)
 
 
-def format_supporting_docs(supporting_docs: str) -> str:
-    """Return comma-separated list of supporting documents."""
-    if supporting_docs != "":
-        supporting_docs = supporting_docs.split(",")
+def format_supporting_docs(supporting_docs: str) -> list[str]:
+    """Return the supporting documents of an entry.
 
-    return supporting_docs
+    Args:
+        supporting_docs: Comma-separated documents, as taken from GLANCE.
+
+    Returns:
+        The individual documents, empty if the entry has none.
+
+    """
+    return supporting_docs.split(",") if supporting_docs else []
 
 
 # Patterns to recover the publication date that a publisher encodes in its
@@ -125,7 +162,10 @@ def format_url_dois(url_str: str) -> list[str]:
     first and any correction follows.
 
     """
-    urls = ["http" + x for x in url_str.split("http")[1:]]
+    # GLANCE concatenates the URLs without a separator, so splitting on the
+    # scheme is all there is to go by. Stripping guards the journal_refs
+    # lookup, which a trailing space would silently turn into a miss.
+    urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
     urls = [u for u in urls if "doi.org/" in u]
 
     # The same DOI may be listed several times, and under both the doi.org and
@@ -147,7 +187,7 @@ def format_url_dois(url_str: str) -> list[str]:
 
 def format_url_inspire(urls: str) -> str:
     """Return the Inspire HEP URL of a paper."""
-    urls = ["http" + x for x in urls.split("http")[1:]]
+    urls = ["http" + x.strip() for x in urls.split("http")[1:]]
     urls = list(filter(lambda a: "inspirehep.net" in a, urls))
     return urls[0] if urls else ""
 

@@ -38,7 +38,7 @@ def ongoing_analyses(registry: GlanceRegistry, output_dir: Path, last_modified: 
 
 def _write_header(_f, last_modified: str):
     """Write the header for the ongoing analyses page."""
-    _f.write("---\nhide:\n -toc\n---\n\n\n")
+    _f.write(utils.HIDE_TOC)
     _f.write("# Ongoing analyses\n\n\n")
     _f.write(utils.print_header_timestamp(last_modified))
     _f.write(
