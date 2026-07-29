@@ -19,7 +19,7 @@ from ..lookup_dicts import journal_refs
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
-from .utils import get_init_fields, glance_paper_url
+from .utils import doi_from_url, get_init_fields, glance_paper_url
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +35,21 @@ class Paper(Analysis):
         date_phase_one: String with the phase 1 start date.
         date_publication: String with the publication date.
         date_submission: String with the arXiv submission date.
-        doi: String with the DOI of the paper.
-        doi_url: String with the DOI URL of the paper.
+        dois: List of DOIs of the paper, original publication first.
+        doi_urls: List of DOI URLs of the paper, original publication first.
         figure_url: String with the figure URL of the paper.
         glance_url_publ: String with the glance URL of the paper.
         inspire_url: String with the inspire URL of the paper.
         journal: String with the journal of final submission.
         journal_ref: String with the journal reference of the paper.
+        journal_ref_corrections: List of journal references of the erratum/
+            addendum publications, aligned with dois[1:].
         status_paper: String with the status of the paper.
         title_final_tex: String with the final title in TeX format.
+
+    A paper carries more than one DOI once an erratum or an addendum has been
+    published, hence `dois` and `doi_urls` are lists. Their first entry is the
+    original article, any further entry a later correction.
 
     """
 
@@ -53,13 +59,14 @@ class Paper(Analysis):
     date_phase_one: str
     date_publication: str
     date_submission: str
-    doi: str = field(init=False)
-    doi_url: str
+    dois: list[str] = field(init=False)
+    doi_urls: list[str]
     figure_url: str
     glance_url_publ: str = field(init=False)
     inspire_url: str
     journal: str
     journal_ref: str = field(init=False)
+    journal_ref_corrections: list[str] = field(init=False)
     status_paper: str
     title_final_tex: str
 
@@ -84,12 +91,14 @@ class Paper(Analysis):
 
     @classmethod
     def from_json(cls, data: dict) -> "Paper":
+        data = data.copy()
         data.pop("glance_url_analysis", None)
         data.pop("pub_state", None)
         data.pop("software_release", None)
-        data.pop("doi", None)
+        data.pop("dois", None)
         data.pop("glance_url_publ", None)
         data.pop("journal_ref", None)
+        data.pop("journal_ref_corrections", None)
 
         return cls(**data)
 
@@ -124,7 +133,7 @@ class Paper(Analysis):
         """Post-initialization of paper instance."""
         super().__attrs_post_init__()
 
-        self.doi = self.doi_url[self.doi_url.find("doi.org") + 8 :]
+        self.dois = [doi_from_url(url) for url in self.doi_urls]
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
         # Determine the publication state of the paper. As this class should
@@ -141,12 +150,21 @@ class Paper(Analysis):
         self.pub_state = self.determine_paper_status()
         logger.debug("Paper %s state %s", self.ref_code, self.pub_state)
 
+        # Every DOI gets its own journal reference: the original article, and
+        # one per erratum/addendum. The corrections are kept apart from the
+        # original so that they can be cited on a line of their own. An empty
+        # string keeps them aligned with self.dois[1:].
+        refs = []
+        for doi in self.dois:
+            if doi in journal_refs.JournalRefs:
+                refs.append(journal_refs.JournalRefs[doi])
+            else:
+                logger.warning("No journal reference found for DOI: %s", doi)
+                refs.append("")
+
         if self.pub_state == PublicationState.SUBMITTED_TO_JOURNAL and self.journal:
             self.journal_ref = f"Submitted to {self.journal}"
-        elif self.doi in journal_refs.JournalRefs:
-            self.journal_ref = journal_refs.JournalRefs[self.doi]
         else:
-            self.journal_ref = ""
+            self.journal_ref = refs[0] if refs else ""
 
-        if not self.journal_ref and self.doi:
-            logger.warning("No journal reference found for DOI: %s", self.doi)
+        self.journal_ref_corrections = refs[1:]

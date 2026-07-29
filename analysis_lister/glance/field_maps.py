@@ -25,7 +25,6 @@ fields from the `FIELD_MAP_*` dictionaries and the `EXTRA_COLUMNS_*` lists.
 
 """
 
-import re
 from typing import Callable, Any, Union
 
 from . import utils
@@ -47,7 +46,7 @@ FIELD_MAP_ANALYSIS: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     "ref_code": ("Reference Code", utils.format_ref_code),
     "run": ("Run", None),
     "status": ("Status", None),
-    "subgroups": ("Subgroups", lambda s: re.split(r",(?=\S)", s)),
+    "subgroups": ("Subgroups", utils.format_subgroups),
     "supporting_docs": ("Supporting Documents", utils.format_supporting_docs),
     "title_full": ("Full Title", None),
     "title_short_public": ("Public Short Title", None),
@@ -76,7 +75,7 @@ FIELD_MAP_PAPER: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     "date_phase_one": ("Phase 1 Start Date", None),
     "date_publication": ("Publication Date", utils.format_date),
     "date_submission": ("arXiv Submission Date", utils.format_date),
-    "doi_url": ("Final Journal Publication URLs", utils.format_url_doi),
+    "doi_urls": ("Final Journal Publication URLs", utils.format_url_dois),
     "figure_url": ("Figures", None),
     "inspire_url": ("Final Journal Publication URLs", utils.format_url_inspire),
     "journal": ("Journal of Final Submission", None),

@@ -4,6 +4,10 @@
 They keys of the dictionary are the DOIs, the values are strings with the
 corresponding journal references.
 
+An erratum, corrigendum or addendum carries its own DOI and therefore needs
+its own entry here. Prefix its value accordingly ("Erratum: ..."), since the
+value is what ends up in the citation block next to the original reference.
+
 """
 
 JournalRefs = {
@@ -43,7 +47,8 @@ JournalRefs = {
     "10.1007/JHEP01(2025)068": "JHEP 01 (2025) 068",
     "10.1007/JHEP02(2025)084": "JHEP 02 (2025) 084",
     "10.1007/JHEP05(2025)038": "JHEP 05 (2025) 038",
-    "10.1007/JHEP05(2025)159": "JHEP 05 (2025) 159",
+    "10.1007/JHEP05(2025)159": "Erratum: JHEP 05 (2025) 159",
+    "10.1007/JHEP06(2025)024": "Erratum: JHEP 06 (2025) 024",
     "10.1007/JHEP12(2025)023": "JHEP 12 (2025) 023",
     "10.1007/JHEP01(2026)117": "JHEP 01 (2026) 117",
     "10.1007/JHEP02(2026)153": "JHEP 02 (2026) 153",
@@ -59,6 +64,7 @@ JournalRefs = {
     "10.1016/j.physletb.2022.137379": "Phys. Lett. B 842 (2023) 137379",
     "10.1016/j.physletb.2023.137829": "Phys. Lett. B 843 (2023) 137829",
     "10.1016/j.physletb.2023.137848": "Phys. Lett. B 843 (2023) 137848",
+    "10.1016/j.physletb.2023.138286": "Corrigendum: Phys. Lett. B 847 (2023) 138286",
     "10.1016/j.physletb.2023.138376": "Phys. Lett. B 848 (2024) 138376",
     "10.1016/j.physletb.2024.138726": "Phys. Lett. B 854 (2024) 138726",
     "10.1016/j.physletb.2024.139177": "Phys. Lett. B 860 (2025) 139177",
@@ -101,8 +107,9 @@ JournalRefs = {
     "10.1140/epjc/s10052-018-5904-z": "Eur. Phys. J. C 78 (2018) 487",
     "10.1140/epjc/s10052-018-5995-6": "Eur. Phys. J. C 78 (2018) 565",
     "10.1140/epjc/s10052-019-7512-y": "Eur. Phys. J. C 79 (2019) 1017",
+    "10.1140/epjc/s10052-019-7525-6": "Eur. Phys. J. C 79 (2019) 1028",
     "10.1140/epjc/s10052-020-08509-3": "Eur. Phys. J. C 80 (2020) 1085",
-    "10.1140/epjc/s10052-020-08541-3": "Eur. Phys. J. C 79 (2019) 1028",
+    "10.1140/epjc/s10052-020-08541-3": "Erratum: Eur. Phys. J. C 80 (2020) 1092",
     "10.1140/epjc/s10052-020-7907-9": "Eur. Phys. J. C 80 (2020) 528",
     "10.1140/epjc/s10052-021-09371-7": "Eur. Phys. J. C 81 (2021) 720",
     "10.1140/epjc/s10052-021-09439-4": "Eur. Phys. J. C 81 (2021) 737",
@@ -110,6 +117,7 @@ JournalRefs = {
     "10.1140/epjc/s10052-022-10182-7": "Eur. Phys. J. C 82 (2022) 334",
     "10.1140/epjc/s10052-023-11479-x": "Eur. Phys. J. C 83 (2023) 518",
     "10.1140/epjc/s10052-023-11573-0": "Eur. Phys. J. C 83 (2023) 496",
+    "10.1140/epjc/s10052-024-12458-6": "Erratum: Eur. Phys. J. C 84 (2024) 156",
     "10.1140/epjc/s10052-024-12994-1": "Eur. Phys. J. C 84 (2024) 757",
     "10.1140/epjc/s10052-024-13070-4": "Eur. Phys. J. C 84 (2024) 993",
     "10.1140/epjc/s10052-025-13924-5": "Eur. Phys. J. C 85 (2025) 416",

@@ -56,25 +56,26 @@ def ongoing_analyses(
                 PublicationState.PHASE1_OR_2,
             ]:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
-                _f.write(render_analysis_block(a))
+                _f.write(render_analysis_block(a, subgroup_id))
 
         _f.write("## Analyses with EdBoard\n\n\n")
         for a in subgroup_analyses:
             if a.pub_state == PublicationState.ONGOING_WITH_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
-                _f.write(render_analysis_block(a))
+                _f.write(render_analysis_block(a, subgroup_id))
 
         _f.write("## Analyses w/o EdBoard\n\n\n")
         for a in subgroup_analyses:
             if a.pub_state == PublicationState.ONGOING_WO_EB:
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
-                _f.write(render_analysis_block(a))
+                _f.write(render_analysis_block(a, subgroup_id))
 
     logger.info(f"Finished writing ongoing analyses page for subgroup '{subgroup_id}'.")
 
 
 def render_analysis_block(
     analysis: GlanceAnalysis,
+    subgroup_id: str = "",
     title: bool = True,
     attribute_tag: bool = True,
     heading_level: int = 3,
@@ -83,6 +84,8 @@ def render_analysis_block(
 
     Args:
         analysis: The Analysis object.
+        subgroup_id: ID of the subgroup whose page is rendered, needed for
+            the anchor tag.
         title: Whether to include the short title in the heading.
         attribute_tag: Whether to add an anchor tag for linking.
         heading_level: Heading level (e.g., 3 for ###).
@@ -95,7 +98,7 @@ def render_analysis_block(
     if title:
         heading += f" – {short_title}"
     if attribute_tag:
-        heading += f" {{: #{analysis.ref_code}}}"
+        heading += f" {{: #{utils.anchor_id(analysis.ref_code, subgroup_id)}}}"
 
     s = heading + "\n\n"
     s += f"> [!info] {analysis.title_short}\n> \n"

@@ -99,7 +99,7 @@ def _write_table(_f, papers: List[Paper]):
     for p in papers:
         logger.debug(f"Adding paper {p.ref_code} to table.")
         _f.write(
-            f"| [{p.ref_code.replace('-', '&#8209;')}][{p.ref_code}] "
+            f"| {utils.render_ref_link(p)} "
             f"| {p.title_short.replace('|', '/')} "
             f"| {_format_subgroups(p.subgroups)} "
             f"| {p.date_submission.replace('-', '&#8209;')} "

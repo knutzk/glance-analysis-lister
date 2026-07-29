@@ -54,7 +54,8 @@ COMMON_PARAMS = {
     "only_deleted_input": "false",
 }
 
-# Disable SSL warnings
+# Certificate verification is switched off below, so silence the warning that
+# requests emits for it on every single fetch.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -109,6 +110,17 @@ class DataFetcher:
         """Fetch HTML content from a URL."""
         try:
             logging.info(f"Fetching data from {url} with params: {params}")
+            # verify=False is deliberate: atlas-glance.cern.ch sends its leaf
+            # certificate without the Sectigo intermediate that signed it, so
+            # the chain cannot be verified. Browsers hide this by fetching the
+            # intermediate from the URL in the certificate, requests does not
+            # and fails with "unable to get local issuer certificate". Turning
+            # verification back on therefore breaks every download unless the
+            # intermediate is supplied along with it. Check whether GLANCE has
+            # fixed its side with
+            #   echo | openssl s_client -connect atlas-glance.cern.ch:443 \
+            #       -servername atlas-glance.cern.ch
+            # which currently returns a single certificate and verify error 21.
             response = requests.get(url, params=params, cookies=cookies, verify=False)
             response.raise_for_status()
             if "Sign in to your account" in response.text:
@@ -161,6 +173,17 @@ class HTMLParser:
 
         # Filter headers based on the column_filter, otherwise include all.
         if column_filter:
+            # A column that GLANCE has renamed would silently turn into an
+            # empty field for every single entry, so stop right here.
+            missing = sorted({col for col in column_filter if col not in headers})
+            if missing:
+                logging.error(
+                    f"Columns missing from the table for {output_csv}: {missing}. "
+                    "GLANCE has probably renamed them; update the field maps in "
+                    "analysis_lister/glance/field_maps.py."
+                )
+                raise ValueError(f"Missing columns for {output_csv}: {missing}")
+
             header_indices = {
                 index: header
                 for index, header in enumerate(headers)
@@ -172,13 +195,29 @@ class HTMLParser:
 
         csv_data = [[header_indices[idx] for idx in header_indices]]
 
+        n_short_rows = 0
         for row in rows[1:]:
             cells = row.find_all("td")
             if not cells:
                 continue
 
+            # Short rows are padded rather than shortened, which would shift
+            # the remaining values into the wrong columns.
+            if len(cells) < len(headers):
+                n_short_rows += 1
+
             csv_data.append(
-                [cells[idx].text for idx in header_indices if idx < len(cells)]
+                [
+                    cells[idx].text if idx < len(cells) else ""
+                    for idx in header_indices
+                ]
+            )
+
+        if n_short_rows:
+            logging.warning(
+                f"{n_short_rows} rows of the table for {output_csv} have fewer "
+                f"cells than the {len(headers)} of its header. Their missing "
+                "values were left empty; check the table in GLANCE."
             )
 
         with open(output_csv, "w", newline="", encoding="utf-8") as f:

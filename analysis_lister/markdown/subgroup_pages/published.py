@@ -70,18 +70,19 @@ def published_papers(
         _f.write("## Submitted papers\n\n")
         for p in submitted:
             logger.debug(f"Writing paper block for {p.ref_code}.")
-            _f.write(render_paper_block(p))
+            _f.write(render_paper_block(p, subgroup_id))
 
         _f.write("## Published papers\n\n")
         for p in published:
             logger.debug(f"Writing paper block for {p.ref_code}.")
-            _f.write(render_paper_block(p))
+            _f.write(render_paper_block(p, subgroup_id))
 
     logger.info(f"Finished writing published papers page for subgroup '{subgroup_id}'.")
 
 
 def render_paper_block(
     paper: GlancePaper,
+    subgroup_id: str = "",
     title: bool = True,
     attribute_tag: bool = True,
     heading_level: int = 3,
@@ -90,6 +91,8 @@ def render_paper_block(
 
     Args:
         paper: The Paper instance to render.
+        subgroup_id: ID of the subgroup whose page is rendered, needed for
+            the anchor tag.
         title: If True, include a heading with the paper title.
         attribute_tag: If True, attach a Markdown attribute tag for linking.
         heading_level: Heading level for the Markdown title.
@@ -108,7 +111,7 @@ def render_paper_block(
         s += heading_level * "#" + f" {paper.ref_code} – {paper.title_short}"
 
     if attribute_tag:
-        s += f" {{: #{paper.ref_code}}}"
+        s += f" {{: #{utils.anchor_id(paper.ref_code, subgroup_id)}}}"
     s += "\n\n"
 
     s += f"> [!info] {paper.title_short_public}\n> \n"
@@ -153,6 +156,12 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
     s = f"{prepend}ATLAS Collaboration<br>\n"
     s += f"{prepend}{p.title_final_tex}<br>\n"
     s += f"{prepend}{p.journal_ref}, {p.arxiv_number}<br>\n"
-    if p.doi:
-        s += f"{prepend}DOI: {p.doi}<br>\n"
+    if p.dois:
+        s += f"{prepend}DOI: {p.dois[0]}<br>\n"
+
+    # Errata and addenda are cited below the paper, each on its own line.
+    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:]):
+        cite = ", ".join(x for x in (ref, f"DOI: {doi}") if x)
+        s += f"{prepend}[{cite}]<br>\n"
+
     return s + "\n"

@@ -230,7 +230,12 @@ class GlanceRegistry(_FilteringMixin):
     def _determine_last_modified_time(self) -> str:
         """Return the latest modification timestamp for CSV files as string."""
         max_timestamp = 0
-        for path in [self.analysis_path, self.paper_path]:
+        for path in [
+            self.analysis_path,
+            self.paper_path,
+            self.confnote_path,
+            self.pubnote_path,
+        ]:
             try:
                 ts = path.stat().st_mtime
                 max_timestamp = max(max_timestamp, ts)
@@ -242,14 +247,88 @@ class GlanceRegistry(_FilteringMixin):
         )
         return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
 
-    def _enrich(self, path: Path, cls, key: str, prefix: str = ""):
+    def _enrich(self, path: Path, cls, key: str, prefix: str = "") -> tuple[int, int]:
+        """Enrich the stored analyses with the data of one CSV file.
+
+        Args:
+            path: Path of the CSV file to read.
+            cls: Class to enrich the matching analyses with.
+            key: Column that holds the reference code of a row.
+            prefix: Prefix to strip off that reference code.
+
+        Returns:
+            The number of enriched analyses, and the number of rows without
+            a matching analysis.
+
+        """
         n_enriched = 0
+        n_unmatched = 0
         for row in self._read_csv_rows(path):
             ref = row[key].removeprefix(prefix)
-            if ref in self._analyses:
-                base = self._analyses[ref]
+            base = self._analyses.get(ref)
+            if base is None:
+                n_unmatched += 1
+            elif self._may_enrich(base, cls, ref):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
                 n_enriched += 1
+
+        return n_enriched, n_unmatched
+
+    def _may_enrich(self, base: Analysis, cls, ref: str) -> bool:
+        """Return whether an entry may be (re-)enriched with `cls` data.
+
+        A record can be listed in several GLANCE tables, and enriching it
+        replaces it wholesale: ConfNote and PubNote derive from Analysis, not
+        from Paper, so enriching a paper with note data would drop everything
+        the paper knows. Enriching a bare analysis is the normal case; beyond
+        that only the paper may take over, as it supersedes its own CONF note.
+        Any other collision is unexpected and leaves the entry as it is.
+
+        Every collision is reported: the paper/CONF note pair as INFO, since
+        it is a normal step of the publication life cycle, everything else as
+        a warning.
+
+        Args:
+            base: The entry that is already stored for this reference code.
+            cls: The class the entry would be enriched with.
+            ref: Reference code of the entry, for the log messages.
+
+        Returns:
+            True if the entry may be replaced, False if it must be kept.
+
+        """
+        if type(base) is Analysis:
+            return True
+
+        # The paper wins over its CONF note, no matter which of the two GLANCE
+        # tables is read first.
+        if {type(base), cls} == {Paper, ConfNote}:
+            logger.info(
+                "%s is listed as paper and as CONF note, keeping the paper "
+                "and dropping the CONF note data.",
+                ref,
+            )
+            return cls is Paper
+
+        if type(base) is cls:
+            logger.warning(
+                "%s is listed twice as %s, keeping the first entry. "
+                "Check the GLANCE record.",
+                ref,
+                cls.__name__,
+            )
+            return False
+
+        logger.warning(
+            "%s is listed as %s and as %s, keeping the %s and dropping the "
+            "%s data. Check the GLANCE record.",
+            ref,
+            type(base).__name__,
+            cls.__name__,
+            type(base).__name__,
+            cls.__name__,
+        )
+        return False
 
     def _load_and_enrich(self):
         # Load the analysis database from the CSV file.
@@ -261,22 +340,43 @@ class GlanceRegistry(_FilteringMixin):
 
         # Load papers from the CSV file and enrich corresponding analysis entries.
         logger.info("Loading list of papers from file %s", self.paper_path.name)
-        self._enrich(self.paper_path, Paper, key="Reference Code")
-        logger.info("Enriched %d analyses with paper data.", len(self.papers))
+        enriched, unmatched = self._enrich(self.paper_path, Paper, key="Reference Code")
+        self._log_enrichment("paper", enriched, unmatched, len(self.papers))
 
         # Load CONF notes from the CSV files and enrich corresponding analysis entries.
         logger.info("Loading list of CONF notes from file %s", self.confnote_path.name)
-        self._enrich(
+        enriched, unmatched = self._enrich(
             self.confnote_path, ConfNote, key="Temporary Reference Code", prefix="CONF-"
         )
-        logger.info("Enriched %d analyses with CONF note data.", len(self.confnotes))
+        self._log_enrichment("CONF note", enriched, unmatched, len(self.confnotes))
 
         # Load PUB notes from the CSV files and enrich corresponding analysis entries.
         logger.info("Loading list of PUB notes from file %s", self.pubnote_path.name)
-        self._enrich(
+        enriched, unmatched = self._enrich(
             self.pubnote_path, PubNote, key="Temporary Reference Code", prefix="PUB-"
         )
-        logger.info("Enriched %d analyses with PUB note data.", len(self.pubnotes))
+        self._log_enrichment("PUB note", enriched, unmatched, len(self.pubnotes))
+
+    @staticmethod
+    def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
+        """Report the outcome of one enrichment step.
+
+        Args:
+            label: Name of the enrichment type, for the log message.
+            enriched: Number of analyses that were enriched.
+            unmatched: Number of rows without a matching analysis.
+            listed: Number of enriched entries that the pages end up listing.
+
+        """
+        logger.info(
+            "Enriched %d analyses with %s data, of which %d are listed on the "
+            "pages. %d %s rows had no matching analysis.",
+            enriched,
+            label,
+            listed,
+            unmatched,
+            label,
+        )
 
     def _load_data(self, path: Path, cls):
         rows = self._read_csv_rows(path)
