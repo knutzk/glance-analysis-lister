@@ -28,6 +28,12 @@ from .enums import PublicationState
 
 logger = logging.getLogger(__name__)
 
+# Papers published before this year are left to the TWiki rather than listed.
+# Kept as a constant so that a snapshot written without one is restored with
+# the same cut instead of an empty string, which would compare smaller than
+# every date and quietly pull in every paper the top WG has ever published.
+DEFAULT_THRESHOLD_YEAR = "2020"
+
 
 class _FilteringMixin:
     """Mixin class to provide filtering and counting methods for analyses.
@@ -77,7 +83,7 @@ class GlanceRegistry(_FilteringMixin):
         confnote_csv="confnotes.csv",
         pubnote_csv="pubnotes.csv",
         csv_dir="csv",
-        threshold_year="2020",
+        threshold_year=DEFAULT_THRESHOLD_YEAR,
     ):
         logger.info("Initializing GlanceRegistry...")
         self.analysis_path = Path(csv_dir) / analysis_csv
@@ -133,7 +139,7 @@ class GlanceRegistry(_FilteringMixin):
             self._analyses[ref_code] = entry_cls.from_json(entry_dict)
 
         self.last_modified_time = raw_data.get("last_modified_time", "")
-        self.threshold_year = raw_data.get("threshold_year", "")
+        self.threshold_year = raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR
 
         return self
 
@@ -236,6 +242,12 @@ class GlanceRegistry(_FilteringMixin):
                 max_timestamp = max(max_timestamp, ts)
             except FileNotFoundError:
                 continue
+
+        # Formatting a timestamp of 0 would put "Jan 01, 1970" on every page
+        # rather than admitting that there was nothing to read it from.
+        if not max_timestamp:
+            logger.warning("No CSV file found, cannot determine the sync time.")
+            return "unknown"
 
         last_modified = datetime.fromtimestamp(
             max_timestamp, tz=ZoneInfo("Europe/Zurich")
@@ -378,10 +390,38 @@ class GlanceRegistry(_FilteringMixin):
         data = [cls.from_csv_dict(row) for row in rows]
         return sorted(data, key=lambda x: x.ref_code)
 
-    def _read_csv_rows(self, path: Path):
+    def _read_csv_rows(self, path: Path) -> list[dict[str, str]]:
+        """Return the rows of one CSV file.
+
+        All four files are required. Carrying on without one of them used to
+        cost the pages a whole category — every paper, or every note — and
+        the run reported that as a plain count, which reads exactly like a
+        quiet week in the top WG. Failing here instead keeps a half-read
+        download out of the committed snapshot.
+
+        Args:
+            path: Path of the CSV file to read.
+
+        Returns:
+            One dictionary per row of the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file holds no rows.
+
+        """
         try:
             with open(path, encoding="utf8") as f:
-                return list(csv.DictReader(f))
+                rows = list(csv.DictReader(f))
         except FileNotFoundError:
-            logger.warning(f"File {path} not found.")
-            return []
+            raise FileNotFoundError(
+                f"{path} not found. Re-run download_csv_files.py (step 1)."
+            ) from None
+
+        if not rows:
+            raise ValueError(
+                f"{path} holds no rows. GLANCE probably returned a login page; "
+                "refresh the cookies and re-run download_csv_files.py (step 1)."
+            )
+
+        return rows
