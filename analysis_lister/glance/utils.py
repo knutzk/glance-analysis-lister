@@ -11,11 +11,26 @@ logger = logging.getLogger(__name__)
 
 
 def format_contacts(contacts: str, end_dates: str) -> str:
-    """Return the current analysis contacts of an analysis."""
+    """Return the current analysis contacts of an analysis.
+
+    Both GLANCE columns are comma-separated lists that have to be read in
+    parallel, so a contact whose name contains a comma throws them out of
+    step. Zipping them would then silently drop the tail of the longer list,
+    which loses current contacts; listing everybody instead keeps the page
+    usable and leaves the warning to say why it may show a past contact.
+
+    """
     contacts = contacts.split(", ")
     end_dates = end_dates.split(", ")
     if len(contacts) != len(end_dates):
-        logger.warning("Cannot resolve analysis contacts: %s.", contacts)
+        logger.warning(
+            "Cannot resolve analysis contacts, %d names against %d end dates: "
+            "%s. Listing all of them.",
+            len(contacts),
+            len(end_dates),
+            ", ".join(contacts),
+        )
+        return ", ".join(contacts)
 
     contacts = [c for c, d in zip(contacts, end_dates) if d == "No end date"]
     return ", ".join(contacts)
@@ -147,7 +162,10 @@ def format_url_dois(url_str: str) -> list[str]:
     first and any correction follows.
 
     """
-    urls = ["http" + x for x in url_str.split("http")[1:]]
+    # GLANCE concatenates the URLs without a separator, so splitting on the
+    # scheme is all there is to go by. Stripping guards the journal_refs
+    # lookup, which a trailing space would silently turn into a miss.
+    urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
     urls = [u for u in urls if "doi.org/" in u]
 
     # The same DOI may be listed several times, and under both the doi.org and
@@ -169,7 +187,7 @@ def format_url_dois(url_str: str) -> list[str]:
 
 def format_url_inspire(urls: str) -> str:
     """Return the Inspire HEP URL of a paper."""
-    urls = ["http" + x for x in urls.split("http")[1:]]
+    urls = ["http" + x.strip() for x in urls.split("http")[1:]]
     urls = list(filter(lambda a: "inspirehep.net" in a, urls))
     return urls[0] if urls else ""
 

@@ -110,7 +110,7 @@ def write_markdown_file(entry, directory: Path, filename: str, entry_type: str):
     """Generalized function to write Markdown files for papers and analyses."""
     try:
         logger.info(f"Writing {entry_type} file: {filename}.md")
-        with open(directory / f"{filename}.md", "w") as f:
+        with open(directory / f"{filename}.md", "w", encoding="utf8") as f:
             f.write(
                 f"""{render_front_matter(entry, filename, entry_type)}
 

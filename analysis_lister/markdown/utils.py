@@ -156,19 +156,26 @@ def render_pub_links(p: Paper, prepend: str = ""):
         str object with the publication links.
 
     """
-    s = f"{prepend}**Publication:**\n"
+    links = []
     if p.inspire_url != "":
-        s += f"{prepend}[inspire]({p.inspire_url}), \n"
+        links.append(f"[inspire]({p.inspire_url})")
 
     for i, doi_url in enumerate(p.doi_urls):
         label = "DOI" if i == 0 else "DOI (erratum/addendum)"
-        s += f"{prepend}[{label}]({doi_url}), \n"
+        links.append(f"[{label}]({doi_url})")
 
     if p.arxiv_url != "":
-        s += f"{prepend}[arXiv]({p.arxiv_url}), \n"
+        links.append(f"[arXiv]({p.arxiv_url})")
 
     if p.figure_url != "":
-        s += f"{prepend}[public page]({p.figure_url})\n"
+        links.append(f"[public page]({p.figure_url})")
+
+    # Joining rather than appending a separator to each link keeps the last
+    # one free of a trailing comma, whichever of them a paper happens to have.
+    s = f"{prepend}**Publication:**\n"
+    s += "".join(f"{prepend}{link}, \n" for link in links[:-1])
+    if links:
+        s += f"{prepend}{links[-1]}\n"
 
     return s + f"{prepend}\n"
 
