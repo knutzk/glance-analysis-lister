@@ -183,11 +183,17 @@ def render_email_links(p: Union[Analysis, Paper], prepend: str = ""):
         str object with the email lists.
 
     """
+    # The e-groups of an analysis are named after its full reference code, so
+    # the working group code has to be taken from the entry: the top WG lists
+    # a good dozen analyses that another group leads (EXOT, STDM, BPHY, ...),
+    # and a hard-coded "topq" sends their readers to a list that exists for a
+    # different analysis, or for none at all.
+    egroup = p.ref_code.lower()
     s = f"{prepend}**Send an email to the:**\n{prepend}\n"
     s += f"{prepend}* Analysis team: "
-    s += f"<atlas-topq-{p.ref_code[5:]}-analysis-team@cern.ch><br>\n"
+    s += f"<atlas-{egroup}-analysis-team@cern.ch><br>\n"
     s += f"{prepend}* Editorial board & conveners: "
-    s += f"<atlas-topq-{p.ref_code[5:]}-edboard-conveners@cern.ch> (†)<br>\n"
+    s += f"<atlas-{egroup}-edboard-conveners@cern.ch> (†)<br>\n"
     s += f"{prepend}\n"
     if p.editorial_board == "":
         s += f"{prepend}(†) Members: editorial board (once assigned), "
