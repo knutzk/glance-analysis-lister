@@ -5,9 +5,11 @@
 
 import logging
 from pathlib import Path
-from analysis_lister.glance.paper import Paper as GlancePaper
+
 from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
+
 from .. import utils
 
 logger = logging.getLogger(__name__)

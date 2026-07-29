@@ -9,12 +9,12 @@ from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
-from analysis_lister.glance.utils import has_note_number
 from analysis_lister.glance.subgroups import (
     GroupsById,
     TopGroups,
     canonical_subgroup,
 )
+from analysis_lister.glance.utils import has_note_number
 
 logger = logging.getLogger(__name__)
 

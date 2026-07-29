@@ -11,12 +11,11 @@ The generated pages are saved in the specified output directory.
 
 """
 
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
-
 
 OUTPUT_DIR = Path("docs/analyses/")
 JSON_DIR = Path("json/")

@@ -25,10 +25,9 @@ fields from the `FIELD_MAP_*` dictionaries and the `EXTRA_COLUMNS_*` lists.
 
 """
 
-from typing import Callable, Any, Union
+from typing import Any, Callable, Union
 
 from . import utils
-
 
 FIELD_MAP_ANALYSIS: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
     # "contacts" needs special handling

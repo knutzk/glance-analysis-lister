@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List
 
 from analysis_lister.glance.pubnote import PubNote
+
 from .. import utils
 
 logger = logging.getLogger(__name__)

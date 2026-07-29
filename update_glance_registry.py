@@ -14,11 +14,10 @@ drop stops the script instead of being written out.
 """
 
 import argparse
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
-
 
 CSV_DIR = Path("deploy_tools/analysis_lists/csv/")
 OUTPUT_DIR_JSON = Path("json/")

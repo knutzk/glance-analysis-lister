@@ -3,9 +3,10 @@
 
 """
 
-from attrs import fields as attrs_fields
 import logging
 import re
+
+from attrs import fields as attrs_fields
 
 logger = logging.getLogger(__name__)
 

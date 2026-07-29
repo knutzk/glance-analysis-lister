@@ -10,9 +10,10 @@ others require more intricate parsing, handled in the post-init method.
 
 """
 
-from attrs import define, field, validators
 import logging
 from typing import List, Optional
+
+from attrs import define, field, validators
 
 from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS

@@ -10,6 +10,7 @@ from typing import List
 from analysis_lister.glance.enums import PublicationState
 from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TopGroups
+
 from .. import utils
 
 logger = logging.getLogger(__name__)

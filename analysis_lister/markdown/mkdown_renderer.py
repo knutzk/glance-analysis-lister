@@ -4,12 +4,13 @@
 """
 
 from pathlib import Path
+
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
 from .global_pages import (
+    confnotes as glob_confnotes,
     ongoing as glob_ongoing,
     published as glob_published,
-    confnotes as glob_confnotes,
     pubnotes as glob_pubnotes,
 )
 from .subgroup_pages import (

@@ -13,20 +13,20 @@ modification timestamps.
 import csv
 import json
 import logging
-from attrs import asdict
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from datetime import datetime
+from typing import Callable, Optional, Union
 from zoneinfo import ZoneInfo
-from typing import Callable, Union, Optional
+
+from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
-
 from .analysis import Analysis
 from .confnote import ConfNote
+from .enums import PublicationState
 from .paper import Paper
 from .pubnote import PubNote
-from .enums import PublicationState
 
 logger = logging.getLogger(__name__)
 

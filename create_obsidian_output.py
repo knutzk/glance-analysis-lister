@@ -4,14 +4,14 @@
 """
 
 import logging
-from pathlib import Path
 import re
 import unicodedata
+from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.markdown.subgroup_pages.ongoing import render_analysis_block
 from analysis_lister.markdown.subgroup_pages.published import render_paper_block
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 # Configure logging
 logging.basicConfig(

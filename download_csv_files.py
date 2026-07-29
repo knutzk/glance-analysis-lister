@@ -10,14 +10,15 @@ import argparse
 import csv
 import json
 import logging
-import requests
 import sys
-import urllib3
 from pathlib import Path
+
+import requests
+import urllib3
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 from analysis_lister.glance import field_maps
 

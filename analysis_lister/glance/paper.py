@@ -11,11 +11,11 @@ others require more intricate parsing, handled in the post-init method.
 
 """
 
-from attrs import define, field
 import logging
 
-from ..lookup_dicts import journal_refs
+from attrs import define, field
 
+from ..lookup_dicts import journal_refs
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER

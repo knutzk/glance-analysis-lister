@@ -6,9 +6,11 @@
 import logging
 from pathlib import Path
 from typing import List
+
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
-from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.paper import Paper as GlancePaper
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
