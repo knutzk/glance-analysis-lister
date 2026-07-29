@@ -219,6 +219,24 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     @property
+    def unaccounted(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+        """All entries that no page lists and that no filter meant to drop.
+
+        Most entries the pages leave out are left out on purpose: an analysis
+        that was closed, a note that a later publication superseded, a paper
+        older than the threshold year. The two states below are different —
+        they mean that the record finished phase 0 without ever turning up in
+        the papers, CONF note or PUB note table, or that its status strings
+        made no sense to us. Either way the entry silently exists nowhere,
+        which is worth reporting rather than filtering away.
+
+        """
+        return self.filter(
+            lambda a: a.pub_state
+            in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+        )
+
+    @property
     def pubnotes(self) -> list[PubNote]:
         """All entries that should be listed as PUB note."""
         return self.filter(
@@ -363,6 +381,21 @@ class GlanceRegistry(_FilteringMixin):
             self.pubnote_path, PubNote, key="Temporary Reference Code", prefix="PUB-"
         )
         self._log_enrichment("PUB note", enriched, unmatched, len(self.pubnotes))
+
+        self.log_unaccounted()
+
+    def log_unaccounted(self):
+        """Report the entries that end up on no page at all."""
+        unaccounted = self.unaccounted
+        if not unaccounted:
+            return
+
+        logger.warning(
+            "%d entries appear on no page, because they finished phase 0 "
+            "without a paper, CONF note or PUB note record in GLANCE: %s",
+            len(unaccounted),
+            ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in unaccounted),
+        )
 
     @staticmethod
     def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):

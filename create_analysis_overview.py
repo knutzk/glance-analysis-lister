@@ -33,6 +33,7 @@ if __name__ == "__main__":
     logging.info("Script started.")
 
     registry = GlanceRegistry.from_json(JSON_DIR / "glance_registry.json")
+    registry.log_unaccounted()
 
     renderer = MarkdownPageRenderer(
         registry=registry,
