@@ -4,6 +4,7 @@
 """
 
 import logging
+from datetime import datetime
 from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
@@ -21,6 +22,14 @@ logger = logging.getLogger(__name__)
 # contents, used by the pages that are one large table and would only get an
 # empty one. The value has to be a YAML list, hence the "- ".
 HIDE_TOC = "---\nhide:\n  - toc\n---\n\n\n"
+
+
+def format_date_long(date_str: str) -> str:
+    """Convert YYYY-MM-DD to '5 Jan 2025', falling back to the raw string."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%-d %b %Y")
+    except (ValueError, TypeError):
+        return date_str
 
 
 def format_subgroup_codes(subgroups: List[str]) -> str:
