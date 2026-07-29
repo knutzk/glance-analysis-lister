@@ -32,6 +32,23 @@ def format_editorial_board(ed_board: str, chairs: str) -> str:
     return ", ".join(ed_board)
 
 
+def has_note_number(final_ref_code: str) -> bool:
+    """Return whether a CONF/PUB note has a number of its own yet.
+
+    Until a note is assigned one, GLANCE fills its `Reference Code` column
+    with a padded placeholder built from the analysis code, such as
+    "PUB-TOPQ-2019-24  TEMP ".
+
+    Args:
+        final_ref_code: The `Reference Code` of a note, as taken from GLANCE.
+
+    Returns:
+        True if the column holds a real note number.
+
+    """
+    return bool(final_ref_code.strip()) and "TEMP" not in final_ref_code
+
+
 def format_ref_code(ref_code: str) -> str:
     """Return the reference code of an analysis/paper."""
     if ref_code.startswith("ANA-"):

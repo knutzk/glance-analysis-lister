@@ -8,6 +8,7 @@ from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
+from analysis_lister.glance.utils import has_note_number
 from analysis_lister.glance.subgroups import (
     GroupsById,
     TopGroups,
@@ -109,7 +110,7 @@ def format_note_id(note) -> str:
 
     """
     ref = " ".join(note.final_ref_code.split())
-    if not ref or "TEMP" in ref:
+    if not has_note_number(note.final_ref_code):
         logger.warning(
             "%s is listed with the temporary note number '%s'.", note.ref_code, ref
         )
