@@ -12,7 +12,7 @@ others require more intricate parsing, handled in the post-init method.
 
 from attrs import define, field, validators
 import logging
-from typing import List
+from typing import List, Optional
 
 from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS
@@ -24,6 +24,17 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+# The review milestones GLANCE records, in the order an analysis passes them.
+# The two "... Meetings Dates" columns hold one date per meeting held, so a
+# single milestone can carry several of them.
+REVIEW_MILESTONES = (
+    ("date_start", "phase 0 started"),
+    ("date_eb_formed", "editorial board formed"),
+    ("date_preapproval", "pre-approval meeting"),
+    ("date_preapproval_signoff", "pre-approval sign-off"),
+    ("date_approval", "group approval"),
+)
 
 
 @define
@@ -161,6 +172,35 @@ class Analysis:
         else:
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
             return PublicationState.UNKNOWN
+
+    def last_milestone(self) -> Optional[tuple[str, str]]:
+        """Return the review milestone this analysis passed most recently.
+
+        GLANCE records a date per milestone and fills none of them in
+        advance, so the latest one is what last happened to the analysis
+        rather than what is next due. An analysis that has only started
+        reports that, which is the point: the date then says for how long
+        it has been sitting at the same milestone.
+
+        Returns:
+            The label of the milestone and its date, or None if the record
+            carries no date at all.
+
+        """
+        latest = None
+        for field_name, label in REVIEW_MILESTONES:
+            dates = [d.strip() for d in getattr(self, field_name).split(",")]
+            dates = [d for d in dates if d]
+            if not dates:
+                continue
+
+            # Milestones are listed in the order they are passed, so ">="
+            # resolves a shared date to the one further along the review.
+            date = max(dates)
+            if latest is None or date >= latest[1]:
+                latest = (label, date)
+
+        return latest
 
     def is_ongoing(self) -> bool:
         """Check if the analysis is ongoing.

@@ -119,8 +119,29 @@ def render_analysis_block(
     s += f"| Editorial Board | {analysis.editorial_board} |\n"
     s += "\n"
 
-    s += f"Status: {analysis.phase_state}\n\n\n"
-    return s
+    s += f"Status: {analysis.phase_state}\n\n"
+    s += _render_last_milestone(analysis)
+    return s + "\n"
+
+
+def _render_last_milestone(analysis: GlanceAnalysis) -> str:
+    """Return the line naming the review milestone passed most recently.
+
+    The status above it says where in the review an analysis stands, but not
+    since when. Every ongoing analysis has at least a phase 0 start date, so
+    the line is there even for one that has not moved since.
+
+    """
+    milestone = analysis.last_milestone()
+    if milestone is None:
+        logger.warning(
+            "%s carries no milestone date at all, not even a phase 0 start.",
+            analysis.ref_code,
+        )
+        return ""
+
+    label, date = milestone
+    return f"Last milestone: {label} on {utils.format_date_long(date)}\n\n"
 
 
 def _involved_subgroups(analysis: GlanceAnalysis, prepend: str = "") -> str:
