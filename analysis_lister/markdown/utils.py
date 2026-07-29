@@ -80,18 +80,19 @@ def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
 
     """
     s = f"{prepend}**Glance:**\n"
-    s += f"{prepend}[ANA-{p.ref_code}]({p.glance_url_analysis}) (analysis)\n"
-    # A record only gets a publication of its own once it has left phase 0.
-    if "Finished" not in p.status:
-        return s + f"{prepend}\n"
+    s += f"{prepend}[ANA-{p.ref_code}]({p.glance_url_analysis}) (analysis)"
 
-    if p.glance_url_publ and "confnotes/" in p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (CONF note)\n"
-    elif p.glance_url_publ and "pubnotes/" in p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (PUB note)\n"
-    elif p.glance_url_publ:
-        s += f"{prepend}, [{p.ref_code}]({p.glance_url_publ}) (paper)\n"
-    return s + f"{prepend}\n"
+    # A record only gets a publication of its own once it has left phase 0.
+    if "Finished" in p.status and p.glance_url_publ:
+        if "confnotes/" in p.glance_url_publ:
+            kind = "CONF note"
+        elif "pubnotes/" in p.glance_url_publ:
+            kind = "PUB note"
+        else:
+            kind = "paper"
+        s += f",\n{prepend}[{p.ref_code}]({p.glance_url_publ}) ({kind})"
+
+    return s + f"\n{prepend}\n"
 
 
 def render_pub_links(p: Paper, prepend: str = ""):

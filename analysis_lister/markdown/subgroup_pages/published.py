@@ -155,7 +155,8 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
     """Render the citation block for a paper."""
     s = f"{prepend}ATLAS Collaboration<br>\n"
     s += f"{prepend}{p.title_final_tex}<br>\n"
-    s += f"{prepend}{p.journal_ref}, {p.arxiv_number}<br>\n"
+    reference = ", ".join(x for x in (p.journal_ref, p.arxiv_number) if x)
+    s += f"{prepend}{reference}<br>\n"
     if p.dois:
         s += f"{prepend}DOI: {p.dois[0]}<br>\n"
 
