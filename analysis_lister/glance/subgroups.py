@@ -4,7 +4,6 @@
 """
 
 from collections import namedtuple
-from typing import List, Optional
 
 # Named tuple definition used for the subgroups, see below.
 Subgroup = namedtuple("Subgroup", "code id title output_dir")
@@ -21,7 +20,7 @@ TopGroups = [TX, XS, PM]
 GroupsById = {g.id: g for g in TopGroups}
 
 
-def top_subgroups(subgroups: List[str]) -> List[Subgroup]:
+def top_subgroups(subgroups: list[str]) -> list[Subgroup]:
     """Return the top WG subgroups of an entry, in the order of TopGroups.
 
     GLANCE lists the subgroups of an entry alphabetically and does not
@@ -39,7 +38,7 @@ def top_subgroups(subgroups: List[str]) -> List[Subgroup]:
     return [g for g in TopGroups if g.id in subgroups]
 
 
-def canonical_subgroup(subgroups: List[str]) -> Optional[Subgroup]:
+def canonical_subgroup(subgroups: list[str]) -> Subgroup | None:
     """Return the subgroup whose page is the canonical one for an entry.
 
     Entries that belong to several subgroups are rendered on several

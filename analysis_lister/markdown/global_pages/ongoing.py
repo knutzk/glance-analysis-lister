@@ -6,9 +6,10 @@
 import logging
 from pathlib import Path
 
-from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.enums import PublicationState, SoftwareRelease
+from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.subgroups import TopGroups
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
@@ -107,8 +108,9 @@ def _write_status_breakdown(_f, registry: GlanceRegistry):
             lambda a: a.pub_state == state and a.software_release == SoftwareRelease.R25
         )
         unknown = registry.count(
-            lambda a: a.pub_state == state
-            and a.software_release == SoftwareRelease.UNKNOWN
+            lambda a: (
+                a.pub_state == state and a.software_release == SoftwareRelease.UNKNOWN
+            )
         )
 
         _f.write(f"        * {label}: {total} ({r21} analyses in R21, ")

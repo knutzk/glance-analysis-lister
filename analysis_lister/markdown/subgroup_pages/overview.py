@@ -5,10 +5,11 @@
 
 import logging
 from pathlib import Path
-from typing import List
+
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
-from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.paper import Paper as GlancePaper
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ def overview(
     logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
 
 
-def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> str:
+def render_analysis_table(analyses: list[GlanceAnalysis], subgroup_id: str) -> str:
     """Render a Markdown table with analyses.
 
     Args:
@@ -113,14 +114,14 @@ def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> s
             f"| {title} "
             f"| {tickmark * n_ticks} "
             f"| {a.software_release.value} "
-            f'| {a.date_start.replace("-", "&#8209;")} |'
+            f"| {a.date_start.replace('-', '&#8209;')} |"
         )
         lines.append(row)
 
     return "\n".join(lines) + "\n"
 
 
-def render_paper_table(papers: List[GlancePaper], subgroup_id: str) -> str:
+def render_paper_table(papers: list[GlancePaper], subgroup_id: str) -> str:
     """Render a Markdown table with papers.
 
     Args:
@@ -142,8 +143,8 @@ def render_paper_table(papers: List[GlancePaper], subgroup_id: str) -> str:
         row = (
             f"| {utils.render_ref_link(p, subgroup_id)} "
             f"| {title} "
-            f'| {p.date_submission.replace("-", "&#8209;")} '
-            f'| {p.date_publication.replace("-", "&#8209;")} |'
+            f"| {p.date_submission.replace('-', '&#8209;')} "
+            f"| {p.date_publication.replace('-', '&#8209;')} |"
         )
         lines.append(row)
 

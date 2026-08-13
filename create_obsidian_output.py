@@ -4,14 +4,14 @@
 """
 
 import logging
-from pathlib import Path
 import re
 import unicodedata
+from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.markdown.subgroup_pages.ongoing import render_analysis_block
 from analysis_lister.markdown.subgroup_pages.published import render_paper_block
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 # Configure logging
 logging.basicConfig(
@@ -51,8 +51,7 @@ def tagify_string(value):
         unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     )
     value = re.sub(r"[^\w\s-]", "", value)
-    value = re.sub(r"[-\s]+", "-", value).strip("-_")
-    return value
+    return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
 def note_date(entry, entry_type: str) -> str:
@@ -135,9 +134,11 @@ SORT date desc
 """
             )
         logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write file {filename}.md in {directory}: {e}")
-        raise SystemExit(f"Failed to write file {filename}.md in {directory}: {e}")
+        raise SystemExit(
+            f"Failed to write file {filename}.md in {directory}: {e}"
+        ) from e
 
 
 def generate_filename(ref_code):
@@ -167,8 +168,7 @@ def warn_about_stale_notes(directory: Path, written: set):
         return
 
     logger.warning(
-        "%d notes in %s were not written by this run and are probably "
-        "outdated: %s",
+        "%d notes in %s were not written by this run and are probably outdated: %s",
         len(stale),
         directory,
         ", ".join(stale),

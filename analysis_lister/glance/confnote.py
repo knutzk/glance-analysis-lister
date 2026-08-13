@@ -11,8 +11,9 @@ others require more intricate parsing, handled in the post-init method.
 
 """
 
-from attrs import define
 import logging
+
+from attrs import define
 
 from .analysis import Analysis
 from .enums import PublicationState

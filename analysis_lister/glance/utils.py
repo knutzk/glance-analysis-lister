@@ -3,9 +3,10 @@
 
 """
 
-from attrs import fields as attrs_fields
 import logging
 import re
+
+from attrs import fields as attrs_fields
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,9 @@ def format_contacts(contacts: str, end_dates: str) -> str:
         )
         return ", ".join(contacts)
 
-    contacts = [c for c, d in zip(contacts, end_dates) if d == "No end date"]
+    contacts = [
+        c for c, d in zip(contacts, end_dates, strict=True) if d == "No end date"
+    ]
     return ", ".join(contacts)
 
 

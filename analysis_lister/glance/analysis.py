@@ -10,9 +10,9 @@ others require more intricate parsing, handled in the post-init method.
 
 """
 
-from attrs import define, field, validators
 import logging
-from typing import List, Optional
+
+from attrs import define, field, validators
 
 from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS
@@ -80,7 +80,7 @@ class Analysis:
     glance_url_analysis: str = field(init=False)
     glance_url_publ: str
     int_note_editors: str
-    keywords: List[str]
+    keywords: list[str]
     leading_group: str
     phase_state: str
     pub_state: PublicationState = field(
@@ -92,8 +92,8 @@ class Analysis:
         validator=validators.instance_of(SoftwareRelease), init=False
     )
     status: str
-    subgroups: List[str]
-    supporting_docs: List[str]
+    subgroups: list[str]
+    supporting_docs: list[str]
     title_full: str
     title_short_public: str
     title_short: str
@@ -173,7 +173,7 @@ class Analysis:
             logger.error("Unknown analysis state for analysis %s", self.ref_code)
             return PublicationState.UNKNOWN
 
-    def last_milestone(self) -> Optional[tuple[str, str]]:
+    def last_milestone(self) -> tuple[str, str] | None:
         """Return the review milestone this analysis passed most recently.
 
         GLANCE records a date per milestone and fills none of them in

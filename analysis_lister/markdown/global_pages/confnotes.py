@@ -5,16 +5,16 @@
 
 import logging
 from pathlib import Path
-from typing import List
 
 from analysis_lister.glance.confnote import ConfNote
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
 
 
 def confnotes(
-    confnotes: List[ConfNote],
+    confnotes: list[ConfNote],
     output_dir: Path,
     last_modified: str,
 ):
@@ -44,7 +44,7 @@ def _write_header(_f, last_modified: str):
     _f.write(utils.print_header_timestamp(last_modified))
 
 
-def _write_intro(_f, confnotes: List[ConfNote]):
+def _write_intro(_f, confnotes: list[ConfNote]):
     """Write the introductory paragraph for the CONF notes page."""
     _f.write(
         f"The following table lists the {len(confnotes)} CONF notes of the "
@@ -54,7 +54,7 @@ def _write_intro(_f, confnotes: List[ConfNote]):
     )
 
 
-def _write_confnote_table(_f, confnotes: List[ConfNote]):
+def _write_confnote_table(_f, confnotes: list[ConfNote]):
     """Write the table of conference notes."""
     logger.info("Writing conference note table.")
 
@@ -71,4 +71,3 @@ def _write_confnote_table(_f, confnotes: List[ConfNote]):
             f"| {utils.format_subgroup_codes(cn.subgroups)} "
             f"| {cn.date_signoff.replace('-', '&#8209;')} |\n"
         )
-

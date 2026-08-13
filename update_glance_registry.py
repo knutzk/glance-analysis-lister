@@ -14,11 +14,10 @@ drop stops the script instead of being written out.
 """
 
 import argparse
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
-
 
 CSV_DIR = Path("deploy_tools/analysis_lists/csv/")
 OUTPUT_DIR_JSON = Path("json/")
@@ -35,6 +34,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger(__name__)
 
 
 def counts(registry: GlanceRegistry) -> dict[str, int]:
@@ -62,7 +62,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
 
     """
     if not path.exists():
-        logging.info("No snapshot at %s yet, nothing to compare against.", path)
+        logger.info("No snapshot at %s yet, nothing to compare against.", path)
         return []
 
     old = counts(GlanceRegistry.from_json(path))
@@ -71,7 +71,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
     drops = []
     for label, old_count in old.items():
         new_count = new[label]
-        logging.info("%s: %d -> %d", label, old_count, new_count)
+        logger.info("%s: %d -> %d", label, old_count, new_count)
         if new_count < old_count * (1 - MAX_DROP):
             drops.append(f"{label} dropped from {old_count} to {new_count}")
 
@@ -87,7 +87,7 @@ def main():
     )
     args = parser.parse_args()
 
-    logging.info("Script started.")
+    logger.info("Script started.")
 
     registry = GlanceRegistry(
         analysis_csv="analyses.csv",
@@ -109,11 +109,11 @@ def main():
             "the drop is genuine."
         )
     if drops:
-        logging.warning("Writing the registry despite: %s", "; ".join(drops))
+        logger.warning("Writing the registry despite: %s", "; ".join(drops))
 
     registry.store_json(output_path)
 
-    logging.info("Analysis lists script finished successfully.")
+    logger.info("Analysis lists script finished successfully.")
 
 
 if __name__ == "__main__":

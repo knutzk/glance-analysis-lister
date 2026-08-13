@@ -13,20 +13,20 @@ modification timestamps.
 import csv
 import json
 import logging
-from attrs import asdict
+from collections.abc import Callable
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import Callable, Union, Optional
+
+from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
-
 from .analysis import Analysis
 from .confnote import ConfNote
+from .enums import PublicationState
 from .paper import Paper
 from .pubnote import PubNote
-from .enums import PublicationState
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class _FilteringMixin:
         self, predicate: Callable[[Analysis], bool]
     ) -> dict[PublicationState, int]:
         """Count entries matching a custom filter predicate grouped by publication state."""
-        counts = {state: 0 for state in PublicationState}
+        counts = dict.fromkeys(PublicationState, 0)
         for entry in self._analyses.values():
             if predicate(entry):
                 counts[entry.pub_state] += 1
@@ -123,7 +123,7 @@ class GlanceRegistry(_FilteringMixin):
         }
 
         # Load JSON data
-        with open(path, "r", encoding="utf8") as f:
+        with open(path, encoding="utf8") as f:
             raw_data = json.load(f)
 
         # Create a new instance without calling __init__
@@ -145,41 +145,68 @@ class GlanceRegistry(_FilteringMixin):
 
         return self
 
-    def get(self, ref_code: str) -> Optional[Analysis]:
+    def get(self, ref_code: str) -> Analysis | None:
         """Get an analysis by its reference code."""
         return self._analyses.get(ref_code)
 
     def store_json(self, path: Path):
-        """Store the registry as a JSON file with serialized entries and metadata."""
+        """Store the registry as a JSON file with serialized entries and metadata.
+
+        This file is committed and diffed on every GLANCE refresh, so each
+        analysis is written on its own single line rather than through a
+        blanket `indent=4`, which scatters every field of every entry across
+        its own line. One line per `ref_code` keeps the diff limited to the
+        analyses that actually changed. `json.dump` can't mix indent levels
+        within one call, so the outer `{"entries": {...}, ...}` skeleton is
+        assembled by hand here; every token in it still goes through
+        `json.dumps`, and the result is parsed back before being written to
+        catch any mistake in that assembly.
+
+        """
 
         def serializer(instance, field, value):
             if isinstance(value, Enum):
                 return value.value
             return value
 
-        serializable_analyses = {
-            ref_code: {
-                "_entrytype": type(entry).__name__,
-                **asdict(entry, value_serializer=serializer),
-            }
-            for ref_code, entry in self._analyses.items()
-        }
+        entry_lines = [
+            f"        {json.dumps(ref_code)}: "
+            + json.dumps(
+                {
+                    "_entrytype": type(entry).__name__,
+                    **asdict(entry, value_serializer=serializer),
+                },
+                ensure_ascii=False,
+            )
+            for ref_code, entry in sorted(self._analyses.items())
+        ]
 
-        registry = {
-            "entries": serializable_analyses,
-            "last_modified_time": self.last_modified_time,
-            "threshold_year": self.threshold_year,
-        }
+        content = (
+            "{\n"
+            '    "entries": {\n'
+            + ",\n".join(entry_lines)
+            + ("\n" if entry_lines else "")
+            + "    },\n"
+            f'    "last_modified_time": {json.dumps(self.last_modified_time)},\n'
+            f'    "threshold_year": {json.dumps(self.threshold_year)}\n'
+            "}\n"
+        )
+
+        # Guard against a mistake in the hand-assembled skeleton above: this
+        # must round-trip to the same entries the standard encoder would
+        # have produced.
+        parsed = json.loads(content)
+        assert parsed["entries"].keys() == self._analyses.keys()
 
         with open(path, "w", encoding="utf8") as f:
-            json.dump(registry, f, indent=4, ensure_ascii=False)
+            f.write(content)
 
         logger.info("Stored registry as JSON file at %s", path)
 
     # --- Public Properties: Access to Data ---
 
     @property
-    def analyses(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+    def analyses(self) -> list[Analysis | Paper | ConfNote | PubNote]:
         """All analyses that are ongoing/under review.
 
         Some of these entries may have been promoted to papers or notes, but
@@ -192,12 +219,13 @@ class GlanceRegistry(_FilteringMixin):
     def confnotes(self) -> list[ConfNote]:
         """All entries that should be listed as CONF note."""
         return self.filter(
-            lambda a: isinstance(a, ConfNote)
-            and a.pub_state == PublicationState.PUBLISHED
+            lambda a: (
+                isinstance(a, ConfNote) and a.pub_state == PublicationState.PUBLISHED
+            )
         )
 
     @property
-    def entries(self) -> dict[str, Union[Analysis, Paper, ConfNote, PubNote]]:
+    def entries(self) -> dict[str, Analysis | Paper | ConfNote | PubNote]:
         """Direct access to the internal registry dictionary."""
         return self._analyses.copy()
 
@@ -210,18 +238,20 @@ class GlanceRegistry(_FilteringMixin):
 
         """
         return self.filter(
-            lambda a: isinstance(a, Paper)
-            and (
-                a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
-                or (
-                    a.pub_state == PublicationState.PUBLISHED
-                    and a.date_publication >= self.threshold_year
+            lambda a: (
+                isinstance(a, Paper)
+                and (
+                    a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
+                    or (
+                        a.pub_state == PublicationState.PUBLISHED
+                        and a.date_publication >= self.threshold_year
+                    )
                 )
             )
         )
 
     @property
-    def unaccounted(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+    def unaccounted(self) -> list[Analysis | Paper | ConfNote | PubNote]:
         """All entries that no page lists and that no filter meant to drop.
 
         Most entries the pages leave out are left out on purpose: an analysis
@@ -234,16 +264,18 @@ class GlanceRegistry(_FilteringMixin):
 
         """
         return self.filter(
-            lambda a: a.pub_state
-            in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+            lambda a: (
+                a.pub_state in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+            )
         )
 
     @property
     def pubnotes(self) -> list[PubNote]:
         """All entries that should be listed as PUB note."""
         return self.filter(
-            lambda a: isinstance(a, PubNote)
-            and a.pub_state == PublicationState.PUBLISHED
+            lambda a: (
+                isinstance(a, PubNote) and a.pub_state == PublicationState.PUBLISHED
+            )
         )
 
     # --- Internal Load and Enrich ---

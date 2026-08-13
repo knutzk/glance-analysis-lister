@@ -5,18 +5,18 @@
 
 import logging
 from pathlib import Path
-from typing import List
 
 from analysis_lister.glance.enums import PublicationState
 from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TopGroups
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
 
 
 def published(
-    papers: List[Paper],
+    papers: list[Paper],
     output_dir: Path,
     last_modified: str,
     threshold: str = "2020",
@@ -49,7 +49,7 @@ def _write_header(_f, last_modified: str):
     _f.write(utils.print_header_timestamp(last_modified))
 
 
-def _write_summary(_f, papers: List[Paper], threshold: str):
+def _write_summary(_f, papers: list[Paper], threshold: str):
     """Write a summary of the submitted and published papers."""
     n_submitted = sum(
         p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL for p in papers
@@ -68,7 +68,7 @@ def _write_summary(_f, papers: List[Paper], threshold: str):
     )
 
 
-def _write_subgroup_counts(_f, papers: List[Paper], threshold: str):
+def _write_subgroup_counts(_f, papers: list[Paper], threshold: str):
     """Write the counts of papers per subgroup since a given threshold."""
     logger.info("Writing subgroup paper counts.")
     _f.write(f'!!! info "Counts per subgroup (since {threshold})"\n\n')
@@ -89,7 +89,7 @@ def _write_subgroup_counts(_f, papers: List[Paper], threshold: str):
     _f.write("\n\n")
 
 
-def _write_table(_f, papers: List[Paper]):
+def _write_table(_f, papers: list[Paper]):
     """Write the table of submitted and published papers."""
     logger.info("Writing paper table.")
 
@@ -105,4 +105,3 @@ def _write_table(_f, papers: List[Paper]):
             f"| {p.date_submission.replace('-', '&#8209;')} "
             f"| {p.date_publication.replace('-', '&#8209;')} |\n"
         )
-

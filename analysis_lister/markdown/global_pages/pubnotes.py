@@ -5,16 +5,16 @@
 
 import logging
 from pathlib import Path
-from typing import List
 
 from analysis_lister.glance.pubnote import PubNote
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
 
 
 def pubnotes(
-    pubnotes: List[PubNote],
+    pubnotes: list[PubNote],
     output_dir: Path,
     last_modified: str,
 ):
@@ -44,7 +44,7 @@ def _write_header(_f, last_modified: str):
     _f.write(utils.print_header_timestamp(last_modified))
 
 
-def _write_intro(_f, pubnotes: List[PubNote]):
+def _write_intro(_f, pubnotes: list[PubNote]):
     """Write the introductory paragraph for the PUB notes page."""
     _f.write(
         f"The following table lists the {len(pubnotes)} PUB notes of the "
@@ -54,7 +54,7 @@ def _write_intro(_f, pubnotes: List[PubNote]):
     )
 
 
-def _write_pubnote_table(_f, pubnotes: List[PubNote]):
+def _write_pubnote_table(_f, pubnotes: list[PubNote]):
     """Write the table of PUB notes."""
     logger.info("Writing PUB note table.")
 
@@ -71,4 +71,3 @@ def _write_pubnote_table(_f, pubnotes: List[PubNote]):
             f"| {utils.format_subgroup_codes(pn.subgroups)} "
             f"| {pn.date_signoff.replace('-', '&#8209;')} |\n"
         )
-

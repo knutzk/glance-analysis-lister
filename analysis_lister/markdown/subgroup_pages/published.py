@@ -5,9 +5,11 @@
 
 import logging
 from pathlib import Path
-from analysis_lister.glance.paper import Paper as GlancePaper
+
 from analysis_lister.glance.enums import PublicationState
+from analysis_lister.glance.paper import Paper as GlancePaper
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
+
 from .. import utils
 
 logger = logging.getLogger(__name__)
@@ -56,7 +58,11 @@ def published_papers(
             f"that were published in {threshold} or later.\n\n\n"
         )
         submitted = sorted(
-            (p for p in subgroup_papers if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL),
+            (
+                p
+                for p in subgroup_papers
+                if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
+            ),
             key=lambda p: p.date_submission or "",
             reverse=True,
         )
@@ -152,7 +158,7 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
         s += f"{prepend}DOI: {p.dois[0]}<br>\n"
 
     # Errata and addenda are cited below the paper, each on its own line.
-    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:]):
+    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:], strict=True):
         cite = ", ".join(x for x in (ref, f"DOI: {doi}") if x)
         s += f"{prepend}[{cite}]<br>\n"
 

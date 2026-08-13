@@ -25,12 +25,12 @@ fields from the `FIELD_MAP_*` dictionaries and the `EXTRA_COLUMNS_*` lists.
 
 """
 
-from typing import Callable, Any, Union
+from collections.abc import Callable
+from typing import Any
 
 from . import utils
 
-
-FIELD_MAP_ANALYSIS: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+FIELD_MAP_ANALYSIS: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     # "contacts" needs special handling
     "contact_editors": ("Contact Editors", None),
     "date_approval": ("Approval Meetings Dates", None),
@@ -68,7 +68,7 @@ REQUIRED_COLUMNS_ANALYSIS = [
     *EXTRA_COLUMNS_ANALYSIS,
 ]
 
-FIELD_MAP_PAPER: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+FIELD_MAP_PAPER: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "arxiv_number": ("ArXiv Reference Number", None),
     "arxiv_url": ("ArXiv Reference URLs", None),
     "date_acceptance": ("Journal Acceptance Date", None),
@@ -108,7 +108,7 @@ REQUIRED_COLUMNS_PAPER = [
     *EXTRA_COLUMNS_PAPER,
 ]
 
-FIELD_MAP_CONFNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+FIELD_MAP_CONFNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "date_signoff": ("Second Sign Off Date", None),
     "final_ref_code": ("Reference Code", None),
     "final_url": ("Final URL", None),
@@ -125,7 +125,7 @@ REQUIRED_COLUMNS_CONFNOTE = [
     *EXTRA_COLUMNS_CONFNOTE,
 ]
 
-FIELD_MAP_PUBNOTE: dict[str, tuple[str, Union[Callable[[str], Any], None]]] = {
+FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "final_ref_code": ("Reference Code", None),
     "final_url": ("Final URL", None),
     "status_pub": ("Status", None),
