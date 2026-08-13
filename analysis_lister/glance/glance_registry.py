@@ -150,29 +150,56 @@ class GlanceRegistry(_FilteringMixin):
         return self._analyses.get(ref_code)
 
     def store_json(self, path: Path):
-        """Store the registry as a JSON file with serialized entries and metadata."""
+        """Store the registry as a JSON file with serialized entries and metadata.
+
+        This file is committed and diffed on every GLANCE refresh, so each
+        analysis is written on its own single line rather than through a
+        blanket `indent=4`, which scatters every field of every entry across
+        its own line. One line per `ref_code` keeps the diff limited to the
+        analyses that actually changed. `json.dump` can't mix indent levels
+        within one call, so the outer `{"entries": {...}, ...}` skeleton is
+        assembled by hand here; every token in it still goes through
+        `json.dumps`, and the result is parsed back before being written to
+        catch any mistake in that assembly.
+
+        """
 
         def serializer(instance, field, value):
             if isinstance(value, Enum):
                 return value.value
             return value
 
-        serializable_analyses = {
-            ref_code: {
-                "_entrytype": type(entry).__name__,
-                **asdict(entry, value_serializer=serializer),
-            }
-            for ref_code, entry in self._analyses.items()
-        }
+        entry_lines = [
+            f"        {json.dumps(ref_code)}: "
+            + json.dumps(
+                {
+                    "_entrytype": type(entry).__name__,
+                    **asdict(entry, value_serializer=serializer),
+                },
+                ensure_ascii=False,
+            )
+            for ref_code, entry in sorted(self._analyses.items())
+        ]
 
-        registry = {
-            "entries": serializable_analyses,
-            "last_modified_time": self.last_modified_time,
-            "threshold_year": self.threshold_year,
-        }
+        content = (
+            "{\n"
+            '    "entries": {\n'
+            + ",\n".join(entry_lines)
+            + ("\n" if entry_lines else "")
+            + "    },\n"
+            f'    "last_modified_time": {json.dumps(self.last_modified_time)},\n'
+            f'    "threshold_year": {json.dumps(self.threshold_year)}\n'
+            "}\n"
+        )
+
+        # Guard against a mistake in the hand-assembled skeleton above: this
+        # must round-trip to the same entries the standard encoder would
+        # have produced.
+        parsed = json.loads(content)
+        assert parsed["entries"].keys() == self._analyses.keys()
 
         with open(path, "w", encoding="utf8") as f:
-            json.dump(registry, f, indent=4, ensure_ascii=False)
+            f.write(content)
 
         logger.info("Stored registry as JSON file at %s", path)
 
