@@ -71,4 +71,3 @@ def _write_confnote_table(_f, confnotes: list[ConfNote]):
             f"| {utils.format_subgroup_codes(cn.subgroups)} "
             f"| {cn.date_signoff.replace('-', '&#8209;')} |\n"
         )
-

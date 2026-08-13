@@ -58,7 +58,11 @@ def published_papers(
             f"that were published in {threshold} or later.\n\n\n"
         )
         submitted = sorted(
-            (p for p in subgroup_papers if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL),
+            (
+                p
+                for p in subgroup_papers
+                if p.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
+            ),
             key=lambda p: p.date_submission or "",
             reverse=True,
         )

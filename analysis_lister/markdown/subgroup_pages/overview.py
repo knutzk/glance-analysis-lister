@@ -114,7 +114,7 @@ def render_analysis_table(analyses: list[GlanceAnalysis], subgroup_id: str) -> s
             f"| {title} "
             f"| {tickmark * n_ticks} "
             f"| {a.software_release.value} "
-            f'| {a.date_start.replace("-", "&#8209;")} |'
+            f"| {a.date_start.replace('-', '&#8209;')} |"
         )
         lines.append(row)
 
@@ -143,8 +143,8 @@ def render_paper_table(papers: list[GlancePaper], subgroup_id: str) -> str:
         row = (
             f"| {utils.render_ref_link(p, subgroup_id)} "
             f"| {title} "
-            f'| {p.date_submission.replace("-", "&#8209;")} '
-            f'| {p.date_publication.replace("-", "&#8209;")} |'
+            f"| {p.date_submission.replace('-', '&#8209;')} "
+            f"| {p.date_publication.replace('-', '&#8209;')} |"
         )
         lines.append(row)
 

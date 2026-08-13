@@ -207,10 +207,7 @@ class HTMLParser:
                 n_short_rows += 1
 
             csv_data.append(
-                [
-                    cells[idx].text if idx < len(cells) else ""
-                    for idx in header_indices
-                ]
+                [cells[idx].text if idx < len(cells) else "" for idx in header_indices]
             )
 
         if n_short_rows:

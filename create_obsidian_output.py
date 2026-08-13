@@ -168,8 +168,7 @@ def warn_about_stale_notes(directory: Path, written: set):
         return
 
     logger.warning(
-        "%d notes in %s were not written by this run and are probably "
-        "outdated: %s",
+        "%d notes in %s were not written by this run and are probably outdated: %s",
         len(stale),
         directory,
         ", ".join(stale),

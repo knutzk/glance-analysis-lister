@@ -71,4 +71,3 @@ def _write_pubnote_table(_f, pubnotes: list[PubNote]):
             f"| {utils.format_subgroup_codes(pn.subgroups)} "
             f"| {pn.date_signoff.replace('-', '&#8209;')} |\n"
         )
-

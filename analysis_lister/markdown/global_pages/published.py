@@ -105,4 +105,3 @@ def _write_table(_f, papers: list[Paper]):
             f"| {p.date_submission.replace('-', '&#8209;')} "
             f"| {p.date_publication.replace('-', '&#8209;')} |\n"
         )
-

@@ -192,8 +192,9 @@ class GlanceRegistry(_FilteringMixin):
     def confnotes(self) -> list[ConfNote]:
         """All entries that should be listed as CONF note."""
         return self.filter(
-            lambda a: isinstance(a, ConfNote)
-            and a.pub_state == PublicationState.PUBLISHED
+            lambda a: (
+                isinstance(a, ConfNote) and a.pub_state == PublicationState.PUBLISHED
+            )
         )
 
     @property
@@ -210,12 +211,14 @@ class GlanceRegistry(_FilteringMixin):
 
         """
         return self.filter(
-            lambda a: isinstance(a, Paper)
-            and (
-                a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
-                or (
-                    a.pub_state == PublicationState.PUBLISHED
-                    and a.date_publication >= self.threshold_year
+            lambda a: (
+                isinstance(a, Paper)
+                and (
+                    a.pub_state == PublicationState.SUBMITTED_TO_JOURNAL
+                    or (
+                        a.pub_state == PublicationState.PUBLISHED
+                        and a.date_publication >= self.threshold_year
+                    )
                 )
             )
         )
@@ -234,16 +237,18 @@ class GlanceRegistry(_FilteringMixin):
 
         """
         return self.filter(
-            lambda a: a.pub_state
-            in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+            lambda a: (
+                a.pub_state in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+            )
         )
 
     @property
     def pubnotes(self) -> list[PubNote]:
         """All entries that should be listed as PUB note."""
         return self.filter(
-            lambda a: isinstance(a, PubNote)
-            and a.pub_state == PublicationState.PUBLISHED
+            lambda a: (
+                isinstance(a, PubNote) and a.pub_state == PublicationState.PUBLISHED
+            )
         )
 
     # --- Internal Load and Enrich ---
