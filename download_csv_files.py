@@ -143,9 +143,7 @@ class HTMLParser:
         # Look for <td> tags that do not have a closing tag
         malformed_td_pattern = r"(<td>.*?)(?=<td>)"
         fixed_html = re.sub(malformed_td_pattern, r"\1</td>", html, flags=re.DOTALL)
-        fixed_html = fixed_html.replace("\n", " ")
-
-        return fixed_html
+        return fixed_html.replace("\n", " ")
 
     @staticmethod
     def parse_to_csv(html, output_csv, debug_filename=None, column_filter=None):
@@ -193,7 +191,7 @@ class HTMLParser:
             }
             logger.info(f"Filtering columns: {list(header_indices.values())}")
         else:
-            header_indices = {index: header for index, header in enumerate(headers)}
+            header_indices = dict(enumerate(headers))
 
         csv_data = [[header_indices[idx] for idx in header_indices]]
 

@@ -53,7 +53,7 @@ class _FilteringMixin:
         self, predicate: Callable[[Analysis], bool]
     ) -> dict[PublicationState, int]:
         """Count entries matching a custom filter predicate grouped by publication state."""
-        counts = {state: 0 for state in PublicationState}
+        counts = dict.fromkeys(PublicationState, 0)
         for entry in self._analyses.values():
             if predicate(entry):
                 counts[entry.pub_state] += 1
@@ -123,7 +123,7 @@ class GlanceRegistry(_FilteringMixin):
         }
 
         # Load JSON data
-        with open(path, "r", encoding="utf8") as f:
+        with open(path, encoding="utf8") as f:
             raw_data = json.load(f)
 
         # Create a new instance without calling __init__

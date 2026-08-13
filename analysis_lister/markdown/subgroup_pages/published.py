@@ -154,7 +154,7 @@ def render_citation_block(p: GlancePaper, prepend: str = "") -> str:
         s += f"{prepend}DOI: {p.dois[0]}<br>\n"
 
     # Errata and addenda are cited below the paper, each on its own line.
-    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:]):
+    for ref, doi in zip(p.journal_ref_corrections, p.dois[1:], strict=True):
         cite = ", ".join(x for x in (ref, f"DOI: {doi}") if x)
         s += f"{prepend}[{cite}]<br>\n"
 

@@ -112,11 +112,10 @@ class Paper(Analysis):
             PublicationState: The publication state of the paper.
 
         """
-        if self.status_paper == " Phase 1 is  Active ":
-            return PublicationState.PHASE1_OR_2
-        elif self.status_paper == " Phase 2 is  Active ":
-            return PublicationState.PHASE1_OR_2
-        elif (
+        if self.status_paper in (
+            " Phase 1 is  Active ",
+            " Phase 2 is  Active ",
+        ) or (
             self.status_paper == " Publication Phase is  Active "
             and self.date_submission == ""
         ):

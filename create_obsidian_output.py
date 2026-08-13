@@ -51,8 +51,7 @@ def tagify_string(value):
         unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     )
     value = re.sub(r"[^\w\s-]", "", value)
-    value = re.sub(r"[-\s]+", "-", value).strip("-_")
-    return value
+    return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
 def note_date(entry, entry_type: str) -> str:
@@ -135,9 +134,11 @@ SORT date desc
 """
             )
         logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write file {filename}.md in {directory}: {e}")
-        raise SystemExit(f"Failed to write file {filename}.md in {directory}: {e}")
+        raise SystemExit(
+            f"Failed to write file {filename}.md in {directory}: {e}"
+        ) from e
 
 
 def generate_filename(ref_code):
