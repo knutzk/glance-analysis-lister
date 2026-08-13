@@ -5,7 +5,6 @@
 
 import logging
 from datetime import datetime
-from typing import List, Union
 
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.paper import Paper
@@ -32,7 +31,7 @@ def format_date_long(date_str: str) -> str:
         return date_str
 
 
-def format_subgroup_codes(subgroups: List[str]) -> str:
+def format_subgroup_codes(subgroups: list[str]) -> str:
     """Return the top WG subgroups of an entry as a table cell.
 
     Args:
@@ -70,7 +69,7 @@ def anchor_id(ref_code: str, subgroup_id: str) -> str:
     return f"{group.code.lower()}-{ref_code}"
 
 
-def render_ref_link(p: Union[Analysis, Paper], subgroup_id: str = "") -> str:
+def render_ref_link(p: Analysis | Paper, subgroup_id: str = "") -> str:
     """Return the link to the detailed block of an analysis or a paper.
 
     The link is a reference-style link that mkdocs-autorefs resolves to
@@ -127,7 +126,7 @@ def format_note_id(note) -> str:
     return ref.replace("-", "&#8209;")
 
 
-def render_glance_links(p: Union[Analysis, Paper], prepend: str = ""):
+def render_glance_links(p: Analysis | Paper, prepend: str = ""):
     """Return the glance link(s) for an analysis or a paper.
 
     Args:
@@ -189,7 +188,7 @@ def render_pub_links(p: Paper, prepend: str = ""):
     return s + f"{prepend}\n"
 
 
-def render_email_links(p: Union[Analysis, Paper], prepend: str = ""):
+def render_email_links(p: Analysis | Paper, prepend: str = ""):
     """Return the email links for an analysis or a paper.
 
     Args:

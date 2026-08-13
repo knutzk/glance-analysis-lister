@@ -13,10 +13,10 @@ modification timestamps.
 import csv
 import json
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional, Union
 from zoneinfo import ZoneInfo
 
 from attrs import asdict
@@ -145,7 +145,7 @@ class GlanceRegistry(_FilteringMixin):
 
         return self
 
-    def get(self, ref_code: str) -> Optional[Analysis]:
+    def get(self, ref_code: str) -> Analysis | None:
         """Get an analysis by its reference code."""
         return self._analyses.get(ref_code)
 
@@ -179,7 +179,7 @@ class GlanceRegistry(_FilteringMixin):
     # --- Public Properties: Access to Data ---
 
     @property
-    def analyses(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+    def analyses(self) -> list[Analysis | Paper | ConfNote | PubNote]:
         """All analyses that are ongoing/under review.
 
         Some of these entries may have been promoted to papers or notes, but
@@ -197,7 +197,7 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     @property
-    def entries(self) -> dict[str, Union[Analysis, Paper, ConfNote, PubNote]]:
+    def entries(self) -> dict[str, Analysis | Paper | ConfNote | PubNote]:
         """Direct access to the internal registry dictionary."""
         return self._analyses.copy()
 
@@ -221,7 +221,7 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     @property
-    def unaccounted(self) -> list[Union[Analysis, Paper, ConfNote, PubNote]]:
+    def unaccounted(self) -> list[Analysis | Paper | ConfNote | PubNote]:
         """All entries that no page lists and that no filter meant to drop.
 
         Most entries the pages leave out are left out on purpose: an analysis

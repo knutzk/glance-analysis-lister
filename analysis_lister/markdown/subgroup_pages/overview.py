@@ -5,7 +5,6 @@
 
 import logging
 from pathlib import Path
-from typing import List
 
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
 from analysis_lister.glance.enums import PublicationState
@@ -81,7 +80,7 @@ def overview(
     logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
 
 
-def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> str:
+def render_analysis_table(analyses: list[GlanceAnalysis], subgroup_id: str) -> str:
     """Render a Markdown table with analyses.
 
     Args:
@@ -122,7 +121,7 @@ def render_analysis_table(analyses: List[GlanceAnalysis], subgroup_id: str) -> s
     return "\n".join(lines) + "\n"
 
 
-def render_paper_table(papers: List[GlancePaper], subgroup_id: str) -> str:
+def render_paper_table(papers: list[GlancePaper], subgroup_id: str) -> str:
     """Render a Markdown table with papers.
 
     Args:
