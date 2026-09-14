@@ -103,15 +103,15 @@ def render_analysis_block(
         heading += f" {{: #{utils.anchor_id(analysis.ref_code, subgroup_id)}}}"
 
     s = heading + "\n\n"
-    s += f"> [!info] {analysis.title_short}\n> \n"
-    s += utils.render_glance_links(analysis, prepend="> ")
-    s += _involved_subgroups(analysis, prepend="> ")
-    s += "> **Supporting documents:**"
+    s += f"!!! info \"{analysis.title_short}\"\n\n"
+    s += utils.render_glance_links(analysis, prepend="    ")
+    s += _involved_subgroups(analysis, prepend="    ")
+    s += "    **Supporting documents:**"
     if analysis.supporting_docs:
-        s += " " + ", ".join(f"<{x}>" for x in analysis.supporting_docs) + "\n> \n"
+        s += " " + ", ".join(f"<{x}>" for x in analysis.supporting_docs) + "\n\n"
     else:
-        s += " (none)\n> \n"
-    s += utils.render_email_links(analysis, prepend="> ")
+        s += " (none)\n\n"
+    s += utils.render_email_links(analysis, prepend="    ")
 
     s += "| Position | Names |\n"
     s += "| --- | --- |\n"

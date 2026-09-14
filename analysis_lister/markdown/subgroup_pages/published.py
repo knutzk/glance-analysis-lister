@@ -119,10 +119,10 @@ def render_paper_block(
         s += f" {{: #{utils.anchor_id(paper.ref_code, subgroup_id)}}}"
     s += "\n\n"
 
-    s += f"> [!info] {paper.title_short_public}\n> \n"
-    s += utils.render_glance_links(paper, prepend="> ")
-    s += utils.render_pub_links(paper, prepend="> ")
-    s += utils.render_email_links(paper, prepend="> ")
+    s += f"!!! info \"{paper.title_short_public}\"\n\n"
+    s += utils.render_glance_links(paper, prepend="    ")
+    s += utils.render_pub_links(paper, prepend="    ")
+    s += utils.render_email_links(paper, prepend="    ")
 
     s += render_submission_status(paper)
     s += f"**Editorial Board:** {paper.editorial_board}\n\n"
