@@ -78,6 +78,32 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
     return drops
 
 
+def build_registry(csv_dir: Path, output_path: Path, *, force: bool = False):
+    """Build and validate a candidate registry without publishing it."""
+    registry = GlanceRegistry(
+        analysis_csv="analyses.csv",
+        paper_csv="papers.csv",
+        confnote_csv="confnotes.csv",
+        pubnote_csv="pubnotes.csv",
+        csv_dir=csv_dir,
+        threshold_year=THRESHOLD_YEAR,
+    )
+
+    drops = compare_to_snapshot(registry, output_path)
+    if drops and not force:
+        raise SystemExit(
+            "Refusing to overwrite the registry, because "
+            + ", and ".join(drops)
+            + ". Expired cookies and renamed GLANCE columns both look like "
+            "this — inspect the source data before trusting the numbers. Pass --force if "
+            "the drop is genuine."
+        )
+    if drops:
+        logger.warning("Writing the registry despite: %s", "; ".join(drops))
+
+    return registry
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -89,28 +115,8 @@ def main():
 
     logger.info("Script started.")
 
-    registry = GlanceRegistry(
-        analysis_csv="analyses.csv",
-        paper_csv="papers.csv",
-        confnote_csv="confnotes.csv",
-        pubnote_csv="pubnotes.csv",
-        csv_dir=CSV_DIR,
-        threshold_year=THRESHOLD_YEAR,
-    )
-
     output_path = OUTPUT_DIR_JSON / "glance_registry.json"
-    drops = compare_to_snapshot(registry, output_path)
-    if drops and not args.force:
-        raise SystemExit(
-            "Refusing to overwrite the registry, because "
-            + ", and ".join(drops)
-            + ". Expired cookies and renamed GLANCE columns both look like "
-            "this — check csv/ before trusting the numbers. Pass --force if "
-            "the drop is genuine."
-        )
-    if drops:
-        logger.warning("Writing the registry despite: %s", "; ".join(drops))
-
+    registry = build_registry(CSV_DIR, output_path, force=args.force)
     registry.store_json(output_path)
 
     logger.info("Analysis lists script finished successfully.")

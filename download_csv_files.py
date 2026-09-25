@@ -283,7 +283,7 @@ def publish_csv_batch(
 
     marker = output_dir / CSV_REFRESH_MARKER
     was_interrupted = marker.exists()
-    marker.write_text("CSV refresh incomplete; re-run download_csv_files.py.\n")
+    marker.write_text("Refresh incomplete; re-run refresh_analysis_lists.py.\n")
     replaced = []
     try:
         for name in filenames:

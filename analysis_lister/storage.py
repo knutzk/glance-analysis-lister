@@ -13,7 +13,8 @@ def require_complete_csv_batch(directory: Path):
     if (directory / CSV_REFRESH_MARKER).exists():
         raise ValueError(
             f"Incomplete CSV refresh in {directory}. "
-            "Re-run download_csv_files.py before building the registry."
+            "Re-run refresh_analysis_lists.py (or download_csv_files.py for "
+            "CSV-only recovery) before building the registry."
         )
 
 
