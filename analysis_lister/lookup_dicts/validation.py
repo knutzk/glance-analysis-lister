@@ -18,6 +18,17 @@ def _matches(pattern, value):
     return isinstance(value, str) and pattern.fullmatch(value) is not None
 
 
+def _has_provenance(lines, key_line):
+    """Require a reason or source in the comment block immediately above a key."""
+    for line in reversed(lines[: key_line - 1]):
+        text = line.strip()
+        if not text.startswith("#"):
+            break
+        if re.match(r"#\s*(Reason|Source):\s*\S", text):
+            return True
+    return False
+
+
 def _value_error(table, value):
     if table == "KnownDuplicates":
         return (
@@ -39,7 +50,8 @@ def _value_error(table, value):
 def _read_table(path, table, errors):
     """Read literal entries separately, retaining duplicate keys and line numbers."""
     try:
-        tree = ast.parse(path.read_text(encoding="utf8"), filename=str(path))
+        source = path.read_text(encoding="utf8")
+        tree = ast.parse(source, filename=str(path))
     except (OSError, SyntaxError) as exc:
         errors.append(f"{path}: {exc}")
         return {}
@@ -95,6 +107,13 @@ def _read_table(path, table, errors):
                 f"{location}: duplicate key {key!r}; first defined on line {first_lines[key]}"
             )
         first_lines.setdefault(key, line)
+        if table in {"KnownDuplicates", "DoiOrder"} and not _has_provenance(
+            source.splitlines(), line
+        ):
+            errors.append(
+                f"{location}: {key}: add a # Reason: or # Source: comment "
+                "immediately above this factual override"
+            )
         problem = _value_error(table, value)
         if problem:
             errors.append(f"{location}: {key}: {problem}")

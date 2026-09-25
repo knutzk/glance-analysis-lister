@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
+from ..lookup_dicts.review import lookup_review_notices
 from ..lookup_dicts.validation import validate_lookups
 from ..storage import atomic_write_text, require_complete_csv_batch
 from .analysis import Analysis
@@ -459,8 +460,8 @@ class GlanceRegistry(_FilteringMixin):
 
         if duplicates:
             logger.info(
-                "%d further entries appear on no page, but are known to "
-                "duplicate a record that does: %s",
+                "%d further entries appear on no page and have known duplicate "
+                "mappings: %s",
                 len(duplicates),
                 ", ".join(
                     f"{a.ref_code} (superseded by {KnownDuplicates[a.ref_code]})"
@@ -468,37 +469,8 @@ class GlanceRegistry(_FilteringMixin):
                 ),
             )
 
-        self._log_stale_duplicates({a.ref_code for a in unaccounted})
-
-    def _log_stale_duplicates(self, unaccounted_refs: set):
-        """Report entries of the known-duplicates table that no longer apply.
-
-        The table exists because the duplicates cannot be closed in GLANCE.
-        Once one of them is, it stops being unaccounted for and its entry
-        here is dead weight that would go on suppressing a warning nobody
-        asked it to.
-
-        Args:
-            unaccounted_refs: Reference codes that no page lists.
-
-        """
-        stale = []
-        for ref, superseded_by in KnownDuplicates.items():
-            if ref not in self._analyses:
-                stale.append(f"{ref} (no longer in GLANCE)")
-            elif ref not in unaccounted_refs:
-                stale.append(f"{ref} ({self._analyses[ref].pub_state.value} now)")
-
-            if superseded_by not in self._analyses:
-                stale.append(f"{ref} (superseding {superseded_by} is not in GLANCE)")
-
-        if stale:
-            logger.warning(
-                "%d entries of known_duplicates.py no longer apply and can be "
-                "removed: %s",
-                len(stale),
-                ", ".join(stale),
-            )
+        for level, message in lookup_review_notices(self):
+            logger.log(level, "%s", message)
 
     @staticmethod
     def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):

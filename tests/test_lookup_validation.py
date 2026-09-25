@@ -31,7 +31,7 @@ class LookupValidationTests(unittest.TestCase):
         )
         self.write(
             "doi_order.py",
-            'DoiOrder: dict[str, list[str]] = {"TOPQ-1999-01": ["10.1007/JHEP07(2023)203", "10.1007/JHEP05(2025)159"]}',
+            'DoiOrder: dict[str, list[str]] = {\n# Source: historical publisher record checked by maintainer\n"TOPQ-1999-01": ["10.1007/JHEP07(2023)203", "10.1007/JHEP05(2025)159"]}',
         )
         validate_lookups(self.directory)
 
@@ -43,6 +43,33 @@ class LookupValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, r"short_titles.py:3: duplicate key.*first defined on line 2"
         ):
+            validate_lookups(self.directory)
+
+    def test_factual_overrides_require_their_own_provenance_comment(self):
+        for filename, table, value in (
+            ("known_duplicates.py", "KnownDuplicates", '"TOPQ-2025-02"'),
+            ("doi_order.py", "DoiOrder", '["10.1007/example"]'),
+        ):
+            with self.subTest(table=table):
+                self.write(filename, f'{table} = {{\n"TOPQ-2025-01": {value}\n}}')
+                with self.assertRaisesRegex(ValueError, "add a # Reason: or # Source:"):
+                    validate_lookups(self.directory)
+                self.write(
+                    filename,
+                    f'{table} = {{\n# Reason: checked against the source record\n"TOPQ-2025-01": {value}\n}}',
+                )
+                validate_lookups(self.directory)
+
+    def test_comment_on_previous_entry_does_not_document_next_entry(self):
+        self.write(
+            "known_duplicates.py",
+            """KnownDuplicates = {
+    # Reason: record comparison
+    "TOPQ-2025-01": "TOPQ-2025-03",
+    "TOPQ-2025-02": "TOPQ-2025-03",
+}""",
+        )
+        with self.assertRaisesRegex(ValueError, "TOPQ-2025-02: add a # Reason:"):
             validate_lookups(self.directory)
 
     def test_errors_are_collected_across_files(self):
