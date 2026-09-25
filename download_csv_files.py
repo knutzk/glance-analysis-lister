@@ -10,11 +10,13 @@ import argparse
 import csv
 import json
 import logging
+import os
 import sys
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import requests
-import urllib3
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -33,6 +35,11 @@ logger = logging.getLogger(__name__)
 COOKIE_FILE = Path("cookies.json")
 CSV_DIR = Path("deploy_tools/analysis_lists/csv")
 DEBUG_DIR = Path("debug")
+REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
+INTERMEDIATE_CA = (
+    Path(__file__).resolve().parent
+    / "certs/sectigo-public-server-authentication-ca-ov-r36.pem"
+)
 URLS = {
     "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
     "papers": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
@@ -56,9 +63,26 @@ COMMON_PARAMS = {
     "only_deleted_input": "false",
 }
 
-# Certificate verification is switched off below, so silence the warning that
-# requests emits for it on every single fetch.
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+@contextmanager
+def trusted_ca_bundle():
+    """Complete GLANCE's chain without disabling certificate verification.
+
+    Preserve Requests' CA-bundle environment overrides. Otherwise supplement
+    its trusted roots with the intermediate GLANCE currently omits. The
+    temporary bundle stays available until the request and redirects finish.
+    """
+    override = os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("CURL_CA_BUNDLE")
+    if override:
+        yield override
+        return
+
+    with NamedTemporaryFile(suffix=".pem") as bundle:
+        bundle.write(Path(requests.certs.where()).read_bytes())
+        bundle.write(b"\n")
+        bundle.write(INTERMEDIATE_CA.read_bytes())
+        bundle.flush()
+        yield bundle.name
 
 
 class CookieManager:
@@ -112,23 +136,26 @@ class DataFetcher:
         """Fetch HTML content from a URL."""
         try:
             logger.info(f"Fetching data from {url} with params: {params}")
-            # verify=False is deliberate: atlas-glance.cern.ch sends its leaf
-            # certificate without the Sectigo intermediate that signed it, so
-            # the chain cannot be verified. Browsers hide this by fetching the
-            # intermediate from the URL in the certificate, requests does not
-            # and fails with "unable to get local issuer certificate". Turning
-            # verification back on therefore breaks every download unless the
-            # intermediate is supplied along with it. Check whether GLANCE has
-            # fixed its side with
-            #   echo | openssl s_client -connect atlas-glance.cern.ch:443 \
-            #       -servername atlas-glance.cern.ch
-            # which currently returns a single certificate and verify error 21.
-            response = requests.get(url, params=params, cookies=cookies, verify=False)
+            with trusted_ca_bundle() as ca_bundle:
+                response = requests.get(
+                    url,
+                    params=params,
+                    cookies=cookies,
+                    verify=ca_bundle,
+                    timeout=REQUEST_TIMEOUT,
+                )
             response.raise_for_status()
             if "Sign in to your account" in response.text:
                 logger.error("Invalid or expired cookies detected.")
                 sys.exit(1)
             return response.text
+        except requests.exceptions.SSLError:
+            logger.error(
+                "TLS verification failed for %s. Check the server certificate "
+                "chain or supply a trusted PEM bundle with REQUESTS_CA_BUNDLE.",
+                url,
+            )
+            raise
         except requests.RequestException as e:
             logger.error(f"Error fetching data from {url}: {e}")
             raise
