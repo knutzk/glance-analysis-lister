@@ -8,6 +8,8 @@ import re
 
 from attrs import fields as attrs_fields
 
+from ..lookup_dicts.doi_order import DoiOrder
+
 logger = logging.getLogger(__name__)
 
 
@@ -156,20 +158,21 @@ def _doi_date(doi: str) -> tuple[int, int]:
 
 
 def format_url_dois(url_str: str) -> list[str]:
-    """Return the DOI URLs of a paper, earliest publication first.
-
-    A paper carries more than one DOI once an erratum or an addendum has been
-    published: the journal assigns those their own DOI and GLANCE lists them
-    alongside the original one. The list is therefore ordered by the
-    publication date encoded in the DOI, so that the original article comes
-    first and any correction follows.
-
-    """
+    """Extract DOI URLs; Paper construction resolves their citation order."""
     # GLANCE concatenates the URLs without a separator, so splitting on the
     # scheme is all there is to go by. Stripping guards the journal_refs
     # lookup, which a trailing space would silently turn into a miss.
     urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
-    urls = [u for u in urls if "doi.org/" in u]
+    return [u for u in urls if "doi.org/" in u]
+
+
+def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
+    """Deduplicate and order DOIs, warning when dates cannot resolve the order.
+
+    Missing months cover the entire year, so they overlap any dated DOI in
+    that year. Unknown or overlapping dates retain input order unless a
+    verified override supplies the full order. Used for CSV and JSON loads.
+    """
 
     # The same DOI may be listed several times, and under both the doi.org and
     # the dx.doi.org host. Deduplicate on the DOI, keeping the first URL.
@@ -177,14 +180,31 @@ def format_url_dois(url_str: str) -> list[str]:
     for url in urls:
         by_doi.setdefault(doi_from_url(url), url)
 
-    if len(by_doi) > 1 and any(_doi_date(doi) == (0, 0) for doi in by_doi):
+    override = DoiOrder.get(ref_code)
+    if override is not None:
+        if len(override) != len(set(override)) or set(override) != set(by_doi):
+            raise ValueError(
+                f"{ref_code}: DOI order override does not match the record; "
+                "update lookup_dicts/doi_order.py"
+            )
+        return [by_doi[doi] for doi in override]
+
+    dates = [_doi_date(doi) for doi in by_doi]
+    ambiguous = any(date == (0, 0) for date in dates) or any(
+        year == other_year and (not month or not other_month or month == other_month)
+        for i, (year, month) in enumerate(dates)
+        for other_year, other_month in dates[i + 1 :]
+    )
+    if len(by_doi) > 1 and ambiguous:
         logger.warning(
-            "No publication date encoded in all of these DOIs, cannot tell "
-            "the original paper from an erratum: %s",
+            "%s: ambiguous DOI order (unknown or overlapping dates); keeping "
+            "input order. Verify the original article and add an override in "
+            "lookup_dicts/doi_order.py: %s",
+            ref_code,
             list(by_doi),
         )
+        return list(by_doi.values())
 
-    # sorted() is stable, so DOIs without a decodable date keep GLANCE's order.
     return sorted(by_doi.values(), key=lambda u: _doi_date(doi_from_url(u)))
 
 

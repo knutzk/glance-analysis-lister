@@ -19,7 +19,7 @@ from ..lookup_dicts import journal_refs
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
-from .utils import doi_from_url, get_init_fields, glance_paper_url
+from .utils import doi_from_url, get_init_fields, glance_paper_url, order_doi_urls
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ class Paper(Analysis):
         """Post-initialization of paper instance."""
         super().__attrs_post_init__()
 
+        self.doi_urls = order_doi_urls(self.doi_urls, self.ref_code)
         self.dois = [doi_from_url(url) for url in self.doi_urls]
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
