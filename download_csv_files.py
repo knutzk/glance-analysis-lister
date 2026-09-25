@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import sys
+from collections import Counter
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -201,6 +202,12 @@ class HTMLParser:
             raise ValueError(f"No rows in table for {output_csv}")
 
         headers = [th.text.strip() for th in rows[0].find_all("th")]
+        selected = [h for h in headers if not column_filter or h in column_filter]
+        duplicates = [h for h, n in Counter(selected).items() if n > 1]
+        if not headers or any(not h for h in selected) or duplicates:
+            raise ValueError(
+                f"Invalid table headers for {output_csv}: duplicates={duplicates}"
+            )
 
         # Filter headers based on the column_filter, otherwise include all.
         if column_filter:
@@ -226,27 +233,17 @@ class HTMLParser:
 
         csv_data = [[header_indices[idx] for idx in header_indices]]
 
-        n_short_rows = 0
-        for row in rows[1:]:
+        for row_number, row in enumerate(rows[1:], start=2):
             cells = row.find_all("td")
             if not cells:
                 continue
 
-            # Short rows are padded rather than shortened, which would shift
-            # the remaining values into the wrong columns.
-            if len(cells) < len(headers):
-                n_short_rows += 1
-
-            csv_data.append(
-                [cells[idx].text if idx < len(cells) else "" for idx in header_indices]
-            )
-
-        if n_short_rows:
-            logger.warning(
-                f"{n_short_rows} rows of the table for {output_csv} have fewer "
-                f"cells than the {len(headers)} of its header. Their missing "
-                "values were left empty; check the table in GLANCE."
-            )
+            if len(cells) != len(headers):
+                raise ValueError(
+                    f"{output_csv}: table row {row_number}: expected {len(headers)} "
+                    f"cells, found {len(cells)}; cannot safely align the columns"
+                )
+            csv_data.append([cells[idx].text for idx in header_indices])
 
         if len(csv_data) == 1:
             raise ValueError(f"No data rows in table for {output_csv}")

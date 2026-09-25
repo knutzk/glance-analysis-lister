@@ -13,6 +13,8 @@ modification timestamps.
 import csv
 import json
 import logging
+import re
+from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
@@ -26,6 +28,12 @@ from ..storage import atomic_write_text, require_complete_csv_batch
 from .analysis import Analysis
 from .confnote import ConfNote
 from .enums import PublicationState
+from .field_maps import (
+    REQUIRED_COLUMNS_ANALYSIS,
+    REQUIRED_COLUMNS_CONFNOTE,
+    REQUIRED_COLUMNS_PAPER,
+    REQUIRED_COLUMNS_PUBNOTE,
+)
 from .paper import Paper
 from .pubnote import PubNote
 
@@ -324,7 +332,12 @@ class GlanceRegistry(_FilteringMixin):
         """
         n_enriched = 0
         n_unmatched = 0
-        for row in self._read_csv_rows(path):
+        columns = {
+            Paper: REQUIRED_COLUMNS_PAPER,
+            ConfNote: REQUIRED_COLUMNS_CONFNOTE,
+            PubNote: REQUIRED_COLUMNS_PUBNOTE,
+        }[cls]
+        for row in self._read_csv_rows(path, columns, key=key, prefix=prefix):
             ref = row[key].removeprefix(prefix)
             base = self._analyses.get(ref)
             if base is None:
@@ -506,11 +519,15 @@ class GlanceRegistry(_FilteringMixin):
         )
 
     def _load_data(self, path: Path, cls):
-        rows = self._read_csv_rows(path)
+        rows = self._read_csv_rows(
+            path, REQUIRED_COLUMNS_ANALYSIS, key="Reference Code", prefix="ANA-"
+        )
         data = [cls.from_csv_dict(row) for row in rows]
         return sorted(data, key=lambda x: x.ref_code)
 
-    def _read_csv_rows(self, path: Path) -> list[dict[str, str]]:
+    def _read_csv_rows(
+        self, path: Path, required_columns=(), *, key=None, prefix=""
+    ) -> list[dict[str, str]]:
         """Return the rows of one CSV file.
 
         All four files are required. Carrying on without one of them used to
@@ -527,12 +544,46 @@ class GlanceRegistry(_FilteringMixin):
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If the file holds no rows.
+            ValueError: If headers, row widths, identifiers, or uniqueness are
+                invalid, or the file holds no rows. Values are never stripped.
 
         """
         try:
-            with open(path, encoding="utf8") as f:
-                rows = list(csv.DictReader(f))
+            with open(path, encoding="utf8", newline="") as f:
+                reader = csv.DictReader(f, strict=True)
+                headers = reader.fieldnames or []
+                duplicates = [h for h, n in Counter(headers).items() if n > 1]
+                missing = sorted(set(required_columns) - set(headers))
+                if duplicates or missing or any(not h for h in headers):
+                    raise ValueError(
+                        f"{path}: invalid CSV headers; missing={missing}, "
+                        f"duplicates={duplicates}, empty headers={'' in headers}"
+                    )
+                rows = []
+                seen = {}
+                for row in reader:
+                    line = reader.line_num
+                    if None in row or any(value is None for value in row.values()):
+                        raise ValueError(
+                            f"{path}: line {line}: wrong number of CSV fields"
+                        )
+                    if key is not None:
+                        ref = row[key].removeprefix(prefix)
+                        if not re.fullmatch(r"[A-Z][A-Z0-9]+-\d{4}-\d+", ref):
+                            raise ValueError(
+                                f"{path}: line {line}: invalid {key}: {row[key]!r}"
+                            )
+                        if ref in seen:
+                            raise ValueError(
+                                f"{path}: line {line}: duplicate identifier {ref}; "
+                                f"first seen on line {seen[ref]}"
+                            )
+                        seen[ref] = line
+                    rows.append(row)
+        except csv.Error as exc:
+            raise ValueError(
+                f"{path}: line {reader.line_num}: invalid CSV: {exc}"
+            ) from exc
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"{path} not found. Re-run download_csv_files.py (step 1)."

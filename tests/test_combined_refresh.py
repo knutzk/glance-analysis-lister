@@ -36,8 +36,11 @@ class CombinedRefreshTests(unittest.TestCase):
             columns = list(dict.fromkeys(task["column_filter"]))
             values = dict.fromkeys(columns, "")
             values["Reference Code"] = (
-                "ANA-TOPQ-2025-01" if task["name"] == "analyses" else "unmatched"
+                "ANA-TOPQ-2025-01" if task["name"] == "analyses" else "TOPQ-2000-01"
             )
+            if task["name"] in ("confnotes", "pubnotes"):
+                prefix = "CONF" if task["name"] == "confnotes" else "PUB"
+                values["Temporary Reference Code"] = f"{prefix}-TOPQ-2000-01"
             values["Status"] = " Phase 0 is  Active "
             values["Subgroups"] = "TOPQ - Cross-section"
             if task["name"] == "analyses":
