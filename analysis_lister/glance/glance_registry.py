@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
+from ..lookup_dicts.validation import validate_lookups
 from ..storage import atomic_write_text, require_complete_csv_batch
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -97,6 +98,7 @@ class GlanceRegistry(_FilteringMixin):
         threshold_year=DEFAULT_THRESHOLD_YEAR,
     ):
         logger.info("Initializing GlanceRegistry...")
+        validate_lookups()
         self.analysis_path = Path(csv_dir) / analysis_csv
         self.paper_path = Path(csv_dir) / paper_csv
         self.confnote_path = Path(csv_dir) / confnote_csv
@@ -125,6 +127,7 @@ class GlanceRegistry(_FilteringMixin):
     @classmethod
     def from_json(cls, path: Path):
         """Create a GlanceRegistry instance from a previously stored JSON file."""
+        validate_lookups()
         # Mapping from string type to class
         cls_map = {
             "Analysis": Analysis,
