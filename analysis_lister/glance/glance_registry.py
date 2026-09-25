@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
+from ..storage import atomic_write_text, require_complete_csv_batch
 from .analysis import Analysis
 from .confnote import ConfNote
 from .enums import PublicationState
@@ -95,8 +96,10 @@ class GlanceRegistry(_FilteringMixin):
         self.threshold_year = threshold_year
         self._analyses: dict[str, Analysis] = {}
 
+        require_complete_csv_batch(Path(csv_dir))
         self.last_modified_time = self._determine_last_modified_time()
         self._load_and_enrich()
+        require_complete_csv_batch(Path(csv_dir))
 
     def __repr__(self):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
@@ -198,8 +201,7 @@ class GlanceRegistry(_FilteringMixin):
         parsed = json.loads(content)
         assert parsed["entries"].keys() == self._analyses.keys()
 
-        with open(path, "w", encoding="utf8") as f:
-            f.write(content)
+        atomic_write_text(path, content)
 
         logger.info("Stored registry as JSON file at %s", path)
 

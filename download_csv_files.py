@@ -11,10 +11,11 @@ import csv
 import json
 import logging
 import os
+import shutil
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +24,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
 from analysis_lister.glance import field_maps
+from analysis_lister.storage import CSV_REFRESH_MARKER, atomic_write_text
 
 # Configure logging
 logging.basicConfig(
@@ -195,6 +197,8 @@ class HTMLParser:
             logger.debug(f"All table rows saved to {debug_path}")
 
         rows = table.find_all("tr")
+        if not rows:
+            raise ValueError(f"No rows in table for {output_csv}")
 
         headers = [th.text.strip() for th in rows[0].find_all("th")]
 
@@ -244,6 +248,9 @@ class HTMLParser:
                 "values were left empty; check the table in GLANCE."
             )
 
+        if len(csv_data) == 1:
+            raise ValueError(f"No data rows in table for {output_csv}")
+
         with open(output_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
@@ -251,8 +258,92 @@ class HTMLParser:
         logger.info(f"CSV file successfully generated: {output_csv}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Fetch data and generate CSV files.")
+def publish_csv_batch(
+    staging: Path,
+    output_dir: Path,
+    filenames: list[str],
+    *,
+    snapshot_path: Path | None = None,
+):
+    """Publish a validated batch, restoring the old files on a write failure.
+
+    The marker makes an interrupted promotion detectable by the registry loader.
+    Backups remain in the staging directory if the process is killed outright.
+    A fresh successful download repairs such an interrupted promotion.
+    An optional staged JSON snapshot is published last using an atomic write.
+    If that write fails, the CSV replacements are rolled back too.
+    Run downloading and registry building sequentially.
+    """
+    backup = staging / "previous"
+    backup.mkdir()
+    for name in filenames:
+        old = output_dir / name
+        if old.exists():
+            shutil.copy2(old, backup / name)
+
+    marker = output_dir / CSV_REFRESH_MARKER
+    was_interrupted = marker.exists()
+    marker.write_text("CSV refresh incomplete; re-run download_csv_files.py.\n")
+    replaced = []
+    try:
+        for name in filenames:
+            replaced.append(name)
+            (staging / name).replace(output_dir / name)
+        if snapshot_path is not None:
+            atomic_write_text(
+                snapshot_path, (staging / snapshot_path.name).read_text(encoding="utf8")
+            )
+    except BaseException:
+        for name in reversed(replaced):
+            previous = backup / name
+            if previous.exists():
+                previous.replace(output_dir / name)
+            else:
+                (output_dir / name).unlink(missing_ok=True)
+        if not was_interrupted:
+            marker.unlink()
+        raise
+    marker.unlink()
+
+
+@contextmanager
+def staged_csv_files(tasks, *, cookies=None, use_local_html=False, debug=False):
+    """Yield a complete CSV batch without modifying the current data."""
+    CSV_DIR.mkdir(parents=True, exist_ok=True)
+    # Stage on the same filesystem so individual replacements are atomic.
+    temporary = TemporaryDirectory(prefix=".refresh-", dir=CSV_DIR, delete=False)
+    staging = Path(temporary.name)
+    try:
+        for task in tasks:
+            if use_local_html:
+                html = (DEBUG_DIR / task["debug_file"]).read_text(encoding="utf-8")
+            else:
+                html = DataFetcher.fetch_html(
+                    task["url"], COMMON_PARAMS | task["custom_params"], cookies
+                )
+            HTMLParser.parse_to_csv(
+                html,
+                staging / task["output_csv"].name,
+                task["debug_file"] if debug and not use_local_html else None,
+                task["column_filter"],
+            )
+        yield staging
+    finally:
+        if (CSV_DIR / CSV_REFRESH_MARKER).exists():
+            logger.warning("Incomplete refresh; retaining staging files at %s", staging)
+        else:
+            temporary.cleanup()
+
+
+def refresh_csv_files(tasks, **options):
+    """Fetch and publish CSVs only, for the standalone download command."""
+    with staged_csv_files(tasks, **options) as staging:
+        publish_csv_batch(staging, CSV_DIR, [t["output_csv"].name for t in tasks])
+    logger.info("Published complete CSV batch.")
+
+
+def add_download_arguments(parser):
+    """Share download options with the combined refresh command."""
     parser.add_argument(
         "--generate-new-cookies",
         action="store_true",
@@ -268,9 +359,11 @@ def main():
         action="store_true",
         help="Read HTML from debug directory instead of fetching it.",
     )
-    args = parser.parse_args()
 
-    tasks = [
+
+def download_tasks():
+    """Return the four GLANCE table definitions."""
+    return [
         {
             "name": "analyses",
             "url": URLS["analyses"],
@@ -305,15 +398,11 @@ def main():
         },
     ]
 
-    cookies = None
+
+def download_options(args):
+    """Resolve authentication only for live downloads."""
     if args.use_local_html:
-        for task in tasks:
-            html = (DEBUG_DIR / task["debug_file"]).read_text(encoding="utf-8")
-            HTMLParser.parse_to_csv(
-                html, task["output_csv"], None, task["column_filter"]
-            )
-        logger.info("Completed processing from local HTML files.")
-        return
+        return {"use_local_html": True}
 
     if args.generate_new_cookies:
         cookies = CookieManager.generate_cookies()
@@ -323,17 +412,14 @@ def main():
             logger.error("No cookies found. Use --generate-new-cookies.")
             sys.exit(1)
 
-    cookies = CookieManager.to_requests_format(cookies)
-    for task in tasks:
-        html = DataFetcher.fetch_html(
-            task["url"], COMMON_PARAMS | task["custom_params"], cookies
-        )
-        HTMLParser.parse_to_csv(
-            html,
-            task["output_csv"],
-            task["debug_file"] if args.debug else None,
-            task["column_filter"],
-        )
+    return {"cookies": CookieManager.to_requests_format(cookies), "debug": args.debug}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Fetch data and generate CSV files.")
+    add_download_arguments(parser)
+    args = parser.parse_args()
+    refresh_csv_files(download_tasks(), **download_options(args))
 
 
 if __name__ == "__main__":
