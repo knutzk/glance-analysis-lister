@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.reporting import lookup_report
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
 
 OUTPUT_DIR = Path("docs/analyses/")
@@ -29,7 +30,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-if __name__ == "__main__":
+@lookup_report()
+def main():
     logger.info("Script started.")
 
     registry = GlanceRegistry.from_json(JSON_DIR / "glance_registry.json")
@@ -44,3 +46,7 @@ if __name__ == "__main__":
     renderer.write_all()
 
     logger.info("All Markdown pages created. Finished successfully.")
+
+
+if __name__ == "__main__":
+    main()

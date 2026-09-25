@@ -18,6 +18,7 @@ import logging
 from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.reporting import discard_lookup_notices, lookup_report
 
 CSV_DIR = Path("deploy_tools/analysis_lists/csv/")
 OUTPUT_DIR_JSON = Path("json/")
@@ -65,7 +66,8 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
         logger.info("No snapshot at %s yet, nothing to compare against.", path)
         return []
 
-    old = counts(GlanceRegistry.from_json(path))
+    with discard_lookup_notices():
+        old = counts(GlanceRegistry.from_json(path))
     new = counts(registry)
 
     drops = []
@@ -78,6 +80,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
     return drops
 
 
+@lookup_report()
 def build_registry(csv_dir: Path, output_path: Path, *, force: bool = False):
     """Build and validate a candidate registry without publishing it."""
     registry = GlanceRegistry(

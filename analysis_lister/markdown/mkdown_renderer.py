@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
+from ..lookup_dicts.reporting import lookup_report
 from .global_pages import (
     confnotes as glob_confnotes,
     ongoing as glob_ongoing,
@@ -115,6 +116,7 @@ class MarkdownPageRenderer:
                 threshold=self.threshold,
             )
 
+    @lookup_report()
     def write_all(self):
         """Generate both global and subgroup pages."""
         self.write_global_pages()

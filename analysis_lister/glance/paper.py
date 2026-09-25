@@ -16,6 +16,7 @@ import logging
 from attrs import define, field
 
 from ..lookup_dicts import journal_refs
+from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
@@ -159,7 +160,9 @@ class Paper(Analysis):
             if doi in journal_refs.JournalRefs:
                 refs.append(journal_refs.JournalRefs[doi])
             else:
-                logger.warning(
+                lookup_notice(
+                    logger,
+                    logging.WARNING,
                     "%s: no journal reference for %s DOI %s; add its citation "
                     "to analysis_lister/lookup_dicts/journal_refs.py",
                     self.ref_code,

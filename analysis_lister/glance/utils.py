@@ -9,6 +9,7 @@ import re
 from attrs import fields as attrs_fields
 
 from ..lookup_dicts.doi_order import DoiOrder
+from ..lookup_dicts.reporting import lookup_notice
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +201,9 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
         for other_year, other_month in dates[i + 1 :]
     )
     if len(by_doi) > 1 and ambiguous:
-        logger.warning(
+        lookup_notice(
+            logger,
+            logging.WARNING,
             "%s: ambiguous DOI order (unknown or overlapping dates); keeping "
             "input order. Verify the original article and add an override in "
             "analysis_lister/lookup_dicts/doi_order.py: %s",

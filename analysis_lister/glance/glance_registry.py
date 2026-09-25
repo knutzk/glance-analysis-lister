@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 from attrs import asdict
 
 from ..lookup_dicts.known_duplicates import KnownDuplicates
+from ..lookup_dicts.reporting import lookup_notice
 from ..lookup_dicts.review import lookup_review_notices
 from ..lookup_dicts.validation import validate_lookups
 from ..storage import atomic_write_text, require_complete_csv_batch
@@ -470,7 +471,7 @@ class GlanceRegistry(_FilteringMixin):
             )
 
         for level, message in lookup_review_notices(self):
-            logger.log(level, "%s", message)
+            lookup_notice(logger, level, "%s", message)
 
     @staticmethod
     def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
