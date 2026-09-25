@@ -155,11 +155,17 @@ class Paper(Analysis):
         # original so that they can be cited on a line of their own. An empty
         # string keeps them aligned with self.dois[1:].
         refs = []
-        for doi in self.dois:
+        for index, doi in enumerate(self.dois):
             if doi in journal_refs.JournalRefs:
                 refs.append(journal_refs.JournalRefs[doi])
             else:
-                logger.warning("No journal reference found for DOI: %s", doi)
+                logger.warning(
+                    "%s: no journal reference for %s DOI %s; add its citation "
+                    "to analysis_lister/lookup_dicts/journal_refs.py",
+                    self.ref_code,
+                    "original article" if index == 0 else "correction",
+                    doi,
+                )
                 refs.append("")
 
         if self.pub_state == PublicationState.SUBMITTED_TO_JOURNAL and self.journal:

@@ -112,7 +112,12 @@ def render_paper_block(
     elif paper.ref_code in ShortTitles:
         s += heading_level * "#" + f" {paper.ref_code} – {ShortTitles[paper.ref_code]}"
     else:
-        logger.warning(f"No short title found for {paper.ref_code}. Using fallback.")
+        logger.warning(
+            "%s: no short title in analysis_lister/lookup_dicts/short_titles.py; "
+            "using GLANCE title %r. Add an editorial title there if needed.",
+            paper.ref_code,
+            paper.title_short,
+        )
         s += heading_level * "#" + f" {paper.ref_code} – {paper.title_short}"
 
     if attribute_tag:

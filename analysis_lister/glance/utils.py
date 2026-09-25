@@ -182,10 +182,14 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
 
     override = DoiOrder.get(ref_code)
     if override is not None:
-        if len(override) != len(set(override)) or set(override) != set(by_doi):
+        repeated = sorted(doi for doi in set(override) if override.count(doi) > 1)
+        if repeated or set(override) != set(by_doi):
             raise ValueError(
                 f"{ref_code}: DOI order override does not match the record; "
-                "update lookup_dicts/doi_order.py"
+                "update analysis_lister/lookup_dicts/doi_order.py. "
+                f"Missing from override: {sorted(set(by_doi) - set(override))}; "
+                f"absent from record: {sorted(set(override) - set(by_doi))}; "
+                f"repeated DOI entries: {repeated}"
             )
         return [by_doi[doi] for doi in override]
 
@@ -199,7 +203,7 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
         logger.warning(
             "%s: ambiguous DOI order (unknown or overlapping dates); keeping "
             "input order. Verify the original article and add an override in "
-            "lookup_dicts/doi_order.py: %s",
+            "analysis_lister/lookup_dicts/doi_order.py: %s",
             ref_code,
             list(by_doi),
         )
