@@ -4,13 +4,14 @@ These tests exercise model construction and registry selection together. They do
 not depend on live GLANCE data or the maintained snapshot's current contents.
 """
 
-import csv
 import json
 import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+
+from attrs import asdict, define, field
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.glance.analysis import Analysis
@@ -100,13 +101,11 @@ def publication(cls, ref="TOPQ-2099-01", *, base_status=FINISHED, **changes):
 
 
 def registry(*entries, threshold="2020"):
-    # The production constructor reads four CSVs. Construct a collection directly
-    # for selection tests, without changing that API as part of this test work.
-    result = GlanceRegistry.__new__(GlanceRegistry)
-    result._analyses = {entry.ref_code: entry for entry in entries}
-    result.threshold_year = threshold
-    result.last_modified_time = "synthetic sync time"
-    return result
+    return GlanceRegistry(
+        {entry.ref_code: entry for entry in entries},
+        threshold_year=threshold,
+        last_modified_time="synthetic sync time",
+    )
 
 
 def refs(entries):
@@ -115,24 +114,14 @@ def refs(entries):
 
 class EnrichmentRulesTests(unittest.TestCase):
     def enrich(self, collection, cls, **changes):
-        with TemporaryDirectory() as directory:
-            path = Path(directory) / "publication.csv"
-            row = publication_row(cls, **changes)
-            with path.open("w", newline="") as stream:
-                writer = csv.DictWriter(
-                    stream, fieldnames=list(dict.fromkeys(COLUMNS[cls]))
-                )
-                writer.writeheader()
-                writer.writerow(row)
-            key, prefix = (
-                ("Reference Code", "")
-                if cls is Paper
-                else (
-                    "Temporary Reference Code",
-                    "CONF-" if cls is ConfNote else "PUB-",
-                )
-            )
-            return collection._enrich(path, cls, key=key, prefix=prefix)
+        key, prefix = (
+            ("Reference Code", "")
+            if cls is Paper
+            else ("Temporary Reference Code", "CONF-" if cls is ConfNote else "PUB-")
+        )
+        return collection.enrich(
+            [publication_row(cls, **changes)], cls, key=key, prefix=prefix
+        )
 
     def test_paper_wins_over_confnote_in_both_enrichment_orders(self):
         for order in ((Paper, ConfNote), (ConfNote, Paper)):
@@ -331,6 +320,36 @@ class PublicationSelectionTests(unittest.TestCase):
 
 
 class RegistryRoundTripTests(unittest.TestCase):
+    def test_inherited_json_loader_recomputes_new_derived_fields(self):
+        @define
+        class ExtendedAnalysis(Analysis):
+            summary: str = field(init=False)
+
+            def __attrs_post_init__(self):
+                super().__attrs_post_init__()
+                self.summary = f"{self.ref_code}: {self.status}"
+
+        original = analysis()
+        payload = asdict(original) | {"summary": "stale"}
+        restored = ExtendedAnalysis.from_json(payload)
+        self.assertEqual(restored.summary, f"{original.ref_code}: {original.status}")
+        self.assertEqual(payload["summary"], "stale")
+        self.assertEqual(restored.pub_state, original.pub_state)
+
+    def test_model_loaders_reject_unknown_fields_without_mutating_payload(self):
+        for entry in (
+            analysis(),
+            publication(Paper),
+            publication(ConfNote),
+            publication(PubNote),
+        ):
+            with self.subTest(kind=type(entry).__name__):
+                payload = asdict(entry) | {"unexpected_field": "not part of the model"}
+                original_payload = payload.copy()
+                with self.assertRaisesRegex(TypeError, "unexpected_field"):
+                    type(entry).from_json(payload)
+                self.assertEqual(payload, original_payload)
+
     def test_legacy_snapshot_without_threshold_keeps_the_default_cutoff(self):
         older = publication(
             Paper,

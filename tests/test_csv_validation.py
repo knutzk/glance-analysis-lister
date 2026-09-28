@@ -7,8 +7,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.glance.glance_registry import GlanceRegistry
-from download_csv_files import HTMLParser
+from analysis_lister.download import HTMLParser
+from analysis_lister.glance.csv_loader import read_csv_rows
+from analysis_lister.html_tables import parse_html_table, table_to_rows
 
 
 class CsvValidationTests(unittest.TestCase):
@@ -16,14 +17,13 @@ class CsvValidationTests(unittest.TestCase):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.path = Path(temporary.name) / "analyses.csv"
-        self.registry = GlanceRegistry.__new__(GlanceRegistry)
 
     def write_rows(self, rows):
         with self.path.open("w", newline="") as stream:
             csv.writer(stream).writerows(rows)
 
     def read_rows(self):
-        return self.registry._read_csv_rows(
+        return read_csv_rows(
             self.path, ["Reference Code", "Status"], key="Reference Code", prefix="ANA-"
         )
 
@@ -91,6 +91,17 @@ class CsvValidationTests(unittest.TestCase):
                     HTMLParser.parse_to_csv(html, self.path)
                 self.assertEqual(self.path.read_text(), "previous")
 
+    def test_invalid_table_is_saved_for_diagnostics_without_replacing_csv(self):
+        self.path.write_text("previous CSV")
+        diagnostic = self.path.parent / "debug" / "analyses.html"
+        html = "<table><tr><th>Renamed</th></tr><tr><td>entry</td></tr></table>"
+        with self.assertRaisesRegex(ValueError, "Missing columns"):
+            HTMLParser.parse_to_csv(
+                html, self.path, diagnostic, column_filter=["Reference Code"]
+            )
+        self.assertEqual(self.path.read_text(), "previous CSV")
+        self.assertEqual(diagnostic.read_text(), html + "\n")
+
     def test_duplicate_unused_html_headers_are_allowed(self):
         HTMLParser.parse_to_csv(
             "<table><tr><th>ID</th><th>Unused</th><th>Unused</th></tr>"
@@ -99,6 +110,34 @@ class CsvValidationTests(unittest.TestCase):
             column_filter=["ID"],
         )
         self.assertEqual(self.path.read_text(), '"ID"\n"one"\n')
+
+
+class HtmlTableParsingTests(unittest.TestCase):
+    def test_repaired_rows_preserve_cell_whitespace_and_source_column_order(self):
+        table = parse_html_table(
+            "<table><tr><th> Status </th><th>ID</th><th>Unused</th></tr>"
+            "<tr><td> Phase 0 is  Active <td>first<td>ignored</td></tr></table>",
+            source="synthetic table",
+        )
+        self.assertEqual(
+            table_to_rows(
+                table, source="synthetic table", column_filter=["ID", "Status"]
+            ),
+            [["Status", "ID"], [" Phase 0 is  Active ", "first"]],
+        )
+
+    def test_parser_diagnostics_identify_source_and_bad_row(self):
+        with self.assertRaisesRegex(ValueError, "No table found for synthetic source"):
+            parse_html_table("<html>login</html>", source="synthetic source")
+        table = parse_html_table(
+            "<table><tr><th>ID</th><th>Status</th></tr>"
+            "<tr><td>only one cell</td></tr></table>",
+            source="synthetic source",
+        )
+        with self.assertRaisesRegex(
+            ValueError, "synthetic source: table row 2: expected 2 cells, found 1"
+        ):
+            table_to_rows(table, source="synthetic source")
 
 
 if __name__ == "__main__":

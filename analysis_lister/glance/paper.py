@@ -18,9 +18,10 @@ from attrs import define, field
 from ..lookup_dicts import journal_refs
 from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
+from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
-from .field_maps import FIELD_MAP_PAPER
-from .utils import doi_from_url, get_init_fields, glance_paper_url, order_doi_urls
+from .field_maps import FIELD_MAP_PAPER, apply_field_map
+from .utils import get_init_fields, glance_paper_url
 
 logger = logging.getLogger(__name__)
 
@@ -83,25 +84,9 @@ class Paper(Analysis):
             Paper: An instance of the Paper class.
 
         """
-        paper_fields = {}
-        for key, (col, func) in FIELD_MAP_PAPER.items():
-            raw = _dict.get(col, "") if col else ""
-            paper_fields[key] = func(raw) if func else raw
+        paper_fields = apply_field_map(_dict, FIELD_MAP_PAPER)
 
         return cls(**get_init_fields(base, cls), **paper_fields)
-
-    @classmethod
-    def from_json(cls, data: dict) -> "Paper":
-        data = data.copy()
-        data.pop("glance_url_analysis", None)
-        data.pop("pub_state", None)
-        data.pop("software_release", None)
-        data.pop("dois", None)
-        data.pop("glance_url_publ", None)
-        data.pop("journal_ref", None)
-        data.pop("journal_ref_corrections", None)
-
-        return cls(**data)
 
     def determine_paper_status(self):
         """Determine the status of the paper.

@@ -9,8 +9,8 @@ from attrs import fields
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.glance.analysis import Analysis
+from analysis_lister.glance.doi import format_url_dois, order_doi_urls
 from analysis_lister.glance.paper import Paper
-from analysis_lister.glance.utils import format_url_dois, order_doi_urls
 from analysis_lister.lookup_dicts.doi_order import DoiOrder
 from analysis_lister.markdown.subgroup_pages.published import render_citation_block
 

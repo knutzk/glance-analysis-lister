@@ -11,11 +11,12 @@ others require more intricate parsing, handled in the post-init method.
 """
 
 import logging
+from typing import Self
 
-from attrs import define, field, validators
+from attrs import define, field, fields, validators
 
 from .enums import PublicationState, SoftwareRelease
-from .field_maps import FIELD_MAP_ANALYSIS
+from .field_maps import FIELD_MAP_ANALYSIS, apply_field_map
 from .utils import (
     clean_titles,
     format_contacts,
@@ -109,10 +110,7 @@ class Analysis:
             Analysis: An instance of the Analysis class.
 
         """
-        parsed = {}
-        for key, (col, func) in FIELD_MAP_ANALYSIS.items():
-            raw = _dict.get(col, "") if col else ""
-            parsed[key] = func(raw) if func else raw
+        parsed = apply_field_map(_dict, FIELD_MAP_ANALYSIS)
 
         # special fields with multi-column dependencies
         parsed["contacts"] = format_contacts(
@@ -126,12 +124,16 @@ class Analysis:
         return cls(**parsed)
 
     @classmethod
-    def from_json(cls, data: dict) -> "Analysis":
-        data = data.copy()
-        data.pop("glance_url_analysis", None)
-        data.pop("pub_state", None)
-        data.pop("software_release", None)
+    def from_json(cls, data: dict) -> Self:
+        """Reconstruct inputs and recompute all attrs-derived fields.
 
+        Only fields declared init=False are discarded. Unexpected input keys
+        still raise a constructor error rather than being silently ignored.
+        """
+        data = data.copy()
+        for attribute in fields(cls):
+            if not attribute.init:
+                data.pop(attribute.name, None)
         return cls(**data)
 
     def determine_release(self):

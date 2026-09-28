@@ -9,6 +9,7 @@ from pathlib import Path
 from analysis_lister.glance.pubnote import PubNote
 
 from .. import utils
+from .note_table import write_note_table
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def pubnotes(
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)
         _write_intro(_f, pubnotes)
-        _write_pubnote_table(_f, pubnotes)
+        write_note_table(_f, pubnotes)
 
 
 def _write_header(_f, last_modified: str):
@@ -52,22 +53,3 @@ def _write_intro(_f, pubnotes: list[PubNote]):
         "Notes that a later publication has superseded, and notes whose "
         "analysis has been closed or never started, are not listed.\n\n"
     )
-
-
-def _write_pubnote_table(_f, pubnotes: list[PubNote]):
-    """Write the table of PUB notes."""
-    logger.info("Writing PUB note table.")
-
-    _f.write("\n\n")
-    _f.write("| Identifier | Analysis | Title | Subgroup | Date |\n")
-    _f.write("| --- | --- | --- | --- | --- |\n")
-
-    for pn in pubnotes:
-        logger.debug(f"Adding PUB note {pn.final_ref_code} to table.")
-        _f.write(
-            f"| [{utils.format_note_id(pn)}]({pn.final_url}) "
-            f"| {pn.ref_code.replace('-', '&#8209;')} "
-            f"| {pn.title_short.replace('|', '/')} "
-            f"| {utils.format_subgroup_codes(pn.subgroups)} "
-            f"| {pn.date_signoff.replace('-', '&#8209;')} |\n"
-        )
