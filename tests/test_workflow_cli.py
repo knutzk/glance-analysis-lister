@@ -1,5 +1,6 @@
 """Check executable boundaries separately from reusable workflow operations."""
 
+import io
 import subprocess
 import sys
 import unittest
@@ -79,6 +80,43 @@ assert "bs4" not in sys.modules
                         debug=True,
                     )
 
+    def test_live_refresh_defaults_reach_workflow(self):
+        with (
+            patch.object(cli, "configure_logging"),
+            patch.object(
+                download, "resolve_cookies", return_value={"session": "synthetic"}
+            ) as auth,
+            patch("analysis_lister.refresh.refresh_analysis_lists") as refresh,
+        ):
+            cli.main(["refresh"])
+        auth.assert_called_once_with(cli.COOKIE_FILE, generate_new_cookies=False)
+        refresh.assert_called_once_with(
+            cli.CSV_DIR,
+            Path("debug"),
+            cli.SNAPSHOT_PATH,
+            force=False,
+            cookies={"session": "synthetic"},
+            use_local_html=False,
+            debug=False,
+        )
+
+    def test_lookup_command_reviews_explicit_snapshot(self):
+        with TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "empty.json"
+            snapshot.write_text('{"entries": {}, "threshold_year": "2020"}')
+            with (
+                patch.object(cli, "configure_logging"),
+                patch("sys.stdout", new_callable=io.StringIO) as output,
+            ):
+                cli.main(["validate-lookups", "--snapshot", str(snapshot)])
+            self.assertRegex(
+                output.getvalue(),
+                r"Snapshot review: \d+ notice\(s\); no entries changed\.",
+            )
+            self.assertIn(
+                "All analysis lookup dictionaries are valid.", output.getvalue()
+            )
+
     def test_registry_command_forwards_count_override(self):
         with (
             patch.object(cli, "configure_logging"),
@@ -117,6 +155,10 @@ assert "bs4" not in sys.modules
             ["download", "--allow-count-drop"],
             ["refresh", "--force"],
             ["download", "--debug"],
+            ["download", "--snapshot", "snapshot.json"],
+            ["refresh", "--output-dir", "pages"],
+            ["render", "--allow-count-drop"],
+            ["validate-lookups", "--csv-dir", "csv"],
         ):
             with (
                 self.subTest(flags=flags),
