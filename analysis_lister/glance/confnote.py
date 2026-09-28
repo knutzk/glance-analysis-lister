@@ -17,7 +17,7 @@ from attrs import define
 
 from .analysis import Analysis
 from .enums import PublicationState
-from .field_maps import FIELD_MAP_CONFNOTE
+from .field_maps import FIELD_MAP_CONFNOTE, apply_field_map
 from .utils import get_init_fields, glance_confnote_url, has_note_number
 
 logger = logging.getLogger(__name__)
@@ -55,10 +55,7 @@ class ConfNote(Analysis):
             ConfNote: An instance of the ConfNote class.
 
         """
-        parsed = {}
-        for key, (col, func) in FIELD_MAP_CONFNOTE.items():
-            raw = _dict.get(col, "") if col else ""
-            parsed[key] = func(raw) if func else raw
+        parsed = apply_field_map(_dict, FIELD_MAP_CONFNOTE)
 
         return cls(**get_init_fields(base, cls), **parsed)
 

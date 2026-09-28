@@ -9,8 +9,8 @@ Each FIELD_MAP_* dictionary maps class attribute names to a 2-tuple:
     returns a cleaned or converted value. If no transformation is needed, use
     `None`.
 
-This structure allows each class (Analysis, Paper, etc.) to define its
-`from_dict()` logic in a generic and consistent way. Fields that require
+The shared `apply_field_map()` function applies these transformations for
+Analysis, Paper, ConfNote, and PubNote. Fields that require
 information from multiple CSV columns (e.g., 'contacts' or
 'editorial_board') are handled separately.
 
@@ -25,10 +25,28 @@ fields from the `FIELD_MAP_*` dictionaries and the `EXTRA_COLUMNS_*` lists.
 
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from . import utils
+
+
+def apply_field_map(
+    row: Mapping[str, str],
+    field_map: Mapping[str, tuple[str, Callable[[str], Any] | None]],
+) -> dict[str, Any]:
+    """Transform mapped columns without modifying the source row.
+
+    Missing or unspecified columns supply an empty string to the transform.
+    Untransformed values retain GLANCE's exact whitespace. Required-column
+    validation belongs to the CSV loader; multi-column parsing stays in models.
+    """
+    parsed = {}
+    for key, (column, transform) in field_map.items():
+        raw = row.get(column, "") if column else ""
+        parsed[key] = transform(raw) if transform else raw
+    return parsed
+
 
 FIELD_MAP_ANALYSIS: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     # "contacts" needs special handling

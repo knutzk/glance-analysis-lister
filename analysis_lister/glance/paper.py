@@ -19,7 +19,7 @@ from ..lookup_dicts import journal_refs
 from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
 from .enums import PublicationState
-from .field_maps import FIELD_MAP_PAPER
+from .field_maps import FIELD_MAP_PAPER, apply_field_map
 from .utils import doi_from_url, get_init_fields, glance_paper_url, order_doi_urls
 
 logger = logging.getLogger(__name__)
@@ -83,10 +83,7 @@ class Paper(Analysis):
             Paper: An instance of the Paper class.
 
         """
-        paper_fields = {}
-        for key, (col, func) in FIELD_MAP_PAPER.items():
-            raw = _dict.get(col, "") if col else ""
-            paper_fields[key] = func(raw) if func else raw
+        paper_fields = apply_field_map(_dict, FIELD_MAP_PAPER)
 
         return cls(**get_init_fields(base, cls), **paper_fields)
 

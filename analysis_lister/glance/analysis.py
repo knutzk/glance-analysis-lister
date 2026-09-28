@@ -15,7 +15,7 @@ import logging
 from attrs import define, field, validators
 
 from .enums import PublicationState, SoftwareRelease
-from .field_maps import FIELD_MAP_ANALYSIS
+from .field_maps import FIELD_MAP_ANALYSIS, apply_field_map
 from .utils import (
     clean_titles,
     format_contacts,
@@ -109,10 +109,7 @@ class Analysis:
             Analysis: An instance of the Analysis class.
 
         """
-        parsed = {}
-        for key, (col, func) in FIELD_MAP_ANALYSIS.items():
-            raw = _dict.get(col, "") if col else ""
-            parsed[key] = func(raw) if func else raw
+        parsed = apply_field_map(_dict, FIELD_MAP_ANALYSIS)
 
         # special fields with multi-column dependencies
         parsed["contacts"] = format_contacts(
