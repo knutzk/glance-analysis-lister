@@ -4,7 +4,6 @@ These tests exercise model construction and registry selection together. They do
 not depend on live GLANCE data or the maintained snapshot's current contents.
 """
 
-import csv
 import json
 import sys
 import unittest
@@ -100,13 +99,11 @@ def publication(cls, ref="TOPQ-2099-01", *, base_status=FINISHED, **changes):
 
 
 def registry(*entries, threshold="2020"):
-    # The production constructor reads four CSVs. Construct a collection directly
-    # for selection tests, without changing that API as part of this test work.
-    result = GlanceRegistry.__new__(GlanceRegistry)
-    result._analyses = {entry.ref_code: entry for entry in entries}
-    result.threshold_year = threshold
-    result.last_modified_time = "synthetic sync time"
-    return result
+    return GlanceRegistry(
+        {entry.ref_code: entry for entry in entries},
+        threshold_year=threshold,
+        last_modified_time="synthetic sync time",
+    )
 
 
 def refs(entries):
@@ -115,24 +112,14 @@ def refs(entries):
 
 class EnrichmentRulesTests(unittest.TestCase):
     def enrich(self, collection, cls, **changes):
-        with TemporaryDirectory() as directory:
-            path = Path(directory) / "publication.csv"
-            row = publication_row(cls, **changes)
-            with path.open("w", newline="") as stream:
-                writer = csv.DictWriter(
-                    stream, fieldnames=list(dict.fromkeys(COLUMNS[cls]))
-                )
-                writer.writeheader()
-                writer.writerow(row)
-            key, prefix = (
-                ("Reference Code", "")
-                if cls is Paper
-                else (
-                    "Temporary Reference Code",
-                    "CONF-" if cls is ConfNote else "PUB-",
-                )
-            )
-            return collection._enrich(path, cls, key=key, prefix=prefix)
+        key, prefix = (
+            ("Reference Code", "")
+            if cls is Paper
+            else ("Temporary Reference Code", "CONF-" if cls is ConfNote else "PUB-")
+        )
+        return collection.enrich(
+            [publication_row(cls, **changes)], cls, key=key, prefix=prefix
+        )
 
     def test_paper_wins_over_confnote_in_both_enrichment_orders(self):
         for order in ((Paper, ConfNote), (ConfNote, Paper)):

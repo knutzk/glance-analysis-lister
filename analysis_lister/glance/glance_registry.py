@@ -1,25 +1,17 @@
 """Glance registry module.
 
 
-This module provides the GlanceRegistry class, which is responsible for
-loading and enriching ATLAS analysis records from CSV files. It provides
-programmatic access to the complete and filtered sets of analyses,
-papers, CONF notes, and PUB notes. The class supports filtering by
-publication state and type, and includes utilities to determine file
-modification timestamps.
+The registry holds analysis records, applies enrichment rules, and provides
+filtered views. Its constructor accepts in-memory entries. Explicit CSV and
+JSON factories handle loading; CSV validation and timestamps live in csv_loader.
 
 """
 
-import csv
 import json
 import logging
-import re
-from collections import Counter
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from attrs import asdict
 
@@ -27,16 +19,10 @@ from ..lookup_dicts.known_duplicates import KnownDuplicates
 from ..lookup_dicts.reporting import lookup_notice
 from ..lookup_dicts.review import lookup_review_notices
 from ..lookup_dicts.validation import validate_lookups
-from ..storage import atomic_write_text, require_complete_csv_batch
+from ..storage import atomic_write_text
 from .analysis import Analysis
 from .confnote import ConfNote
 from .enums import PublicationState
-from .field_maps import (
-    REQUIRED_COLUMNS_ANALYSIS,
-    REQUIRED_COLUMNS_CONFNOTE,
-    REQUIRED_COLUMNS_PAPER,
-    REQUIRED_COLUMNS_PUBNOTE,
-)
 from .paper import Paper
 from .pubnote import PubNote
 
@@ -77,41 +63,48 @@ class _FilteringMixin:
 
 
 class GlanceRegistry(_FilteringMixin):
-    """A class to manage and enrich analyses from CSV files.
-
-    This class loads and enriches ATLAS analysis records, and provides
-    programmatic access to the complete and filtered sets of:
-      - analyses
-      - papers
-      - CONF notes
-      - PUB notes
-
-    It supports filtering by publication state and type, and includes
-    utilities to determine file modification timestamps.
-    """
+    """In-memory analysis collection with explicit CSV and JSON loading factories."""
 
     def __init__(
         self,
+        entries: Mapping[str, Analysis] | None = None,
+        *,
+        threshold_year: str = DEFAULT_THRESHOLD_YEAR,
+        last_modified_time: str = "",
+    ):
+        """Create an in-memory registry, copying the supplied entry mapping.
+
+        Construction performs no file access, lookup validation, or reporting.
+        Entry objects are shared; the registry owns its mapping of them.
+        """
+        self._analyses = dict(entries) if entries is not None else {}
+        self.threshold_year = threshold_year
+        self.last_modified_time = last_modified_time
+
+    @classmethod
+    def from_csv(
+        cls,
+        csv_dir: Path,
+        *,
         analysis_csv="analyses.csv",
         paper_csv="papers.csv",
         confnote_csv="confnotes.csv",
         pubnote_csv="pubnotes.csv",
-        csv_dir="csv",
         threshold_year=DEFAULT_THRESHOLD_YEAR,
     ):
-        logger.info("Initializing GlanceRegistry...")
-        validate_lookups()
-        self.analysis_path = Path(csv_dir) / analysis_csv
-        self.paper_path = Path(csv_dir) / paper_csv
-        self.confnote_path = Path(csv_dir) / confnote_csv
-        self.pubnote_path = Path(csv_dir) / pubnote_csv
-        self.threshold_year = threshold_year
-        self._analyses: dict[str, Analysis] = {}
+        """Load, validate, and enrich a complete CSV batch."""
+        from .csv_loader import load_csv_registry
 
-        require_complete_csv_batch(Path(csv_dir))
-        self.last_modified_time = self._determine_last_modified_time()
-        self._load_and_enrich()
-        require_complete_csv_batch(Path(csv_dir))
+        validate_lookups()
+        return load_csv_registry(
+            cls,
+            Path(csv_dir),
+            analysis_csv=analysis_csv,
+            paper_csv=paper_csv,
+            confnote_csv=confnote_csv,
+            pubnote_csv=pubnote_csv,
+            threshold_year=threshold_year,
+        )
 
     def __repr__(self):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
@@ -142,24 +135,17 @@ class GlanceRegistry(_FilteringMixin):
         with open(path, encoding="utf8") as f:
             raw_data = json.load(f)
 
-        # Create a new instance without calling __init__
-        self = cls.__new__(cls)
-        self.analysis_path = None
-        self.paper_path = None
-        self.confnote_path = None
-        self.pubnote_path = None
-        self._analyses = {}
-
-        # Reconstruct the entries using type tags
+        entries = {}
         for ref_code, entry_dict in raw_data["entries"].items():
             type_str = entry_dict.pop("_entrytype", "Analysis")
             entry_cls = cls_map.get(type_str, Analysis)
-            self._analyses[ref_code] = entry_cls.from_json(entry_dict)
+            entries[ref_code] = entry_cls.from_json(entry_dict)
 
-        self.last_modified_time = raw_data.get("last_modified_time", "")
-        self.threshold_year = raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR
-
-        return self
+        return cls(
+            entries,
+            last_modified_time=raw_data.get("last_modified_time", ""),
+            threshold_year=raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR,
+        )
 
     def get(self, ref_code: str) -> Analysis | None:
         """Get an analysis by its reference code."""
@@ -293,39 +279,15 @@ class GlanceRegistry(_FilteringMixin):
             )
         )
 
-    # --- Internal Load and Enrich ---
+    # --- In-memory Enrichment ---
 
-    def _determine_last_modified_time(self) -> str:
-        """Return the latest modification timestamp for CSV files as string."""
-        max_timestamp = 0
-        for path in [
-            self.analysis_path,
-            self.paper_path,
-            self.confnote_path,
-            self.pubnote_path,
-        ]:
-            try:
-                ts = path.stat().st_mtime
-                max_timestamp = max(max_timestamp, ts)
-            except FileNotFoundError:
-                continue
-
-        # Formatting a timestamp of 0 would put "Jan 01, 1970" on every page
-        # rather than admitting that there was nothing to read it from.
-        if not max_timestamp:
-            logger.warning("No CSV file found, cannot determine the sync time.")
-            return "unknown"
-
-        last_modified = datetime.fromtimestamp(
-            max_timestamp, tz=ZoneInfo("Europe/Zurich")
-        )
-        return last_modified.strftime("%b %d, %Y, %H:%M (%Z)")
-
-    def _enrich(self, path: Path, cls, key: str, prefix: str = "") -> tuple[int, int]:
-        """Enrich the stored analyses with the data of one CSV file.
+    def enrich(
+        self, rows: Iterable[dict[str, str]], cls, key: str, prefix: str = ""
+    ) -> tuple[int, int]:
+        """Enrich the stored analyses from validated publication rows.
 
         Args:
-            path: Path of the CSV file to read.
+            rows: Validated CSV rows; reading and validation belong to the loader.
             cls: Class to enrich the matching analyses with.
             key: Column that holds the reference code of a row.
             prefix: Prefix to strip off that reference code.
@@ -337,12 +299,7 @@ class GlanceRegistry(_FilteringMixin):
         """
         n_enriched = 0
         n_unmatched = 0
-        columns = {
-            Paper: REQUIRED_COLUMNS_PAPER,
-            ConfNote: REQUIRED_COLUMNS_CONFNOTE,
-            PubNote: REQUIRED_COLUMNS_PUBNOTE,
-        }[cls]
-        for row in self._read_csv_rows(path, columns, key=key, prefix=prefix):
+        for row in rows:
             ref = row[key].removeprefix(prefix)
             base = self._analyses.get(ref)
             if base is None:
@@ -409,35 +366,6 @@ class GlanceRegistry(_FilteringMixin):
         )
         return False
 
-    def _load_and_enrich(self):
-        # Load the analysis database from the CSV file.
-        logger.info("Loading list of analyses from file %s", self.analysis_path.name)
-        self._analyses = {
-            a.ref_code: a for a in self._load_data(self.analysis_path, Analysis)
-        }
-        logger.info("Loaded %d analysis base entries.", len(self._analyses))
-
-        # Load papers from the CSV file and enrich corresponding analysis entries.
-        logger.info("Loading list of papers from file %s", self.paper_path.name)
-        enriched, unmatched = self._enrich(self.paper_path, Paper, key="Reference Code")
-        self._log_enrichment("paper", enriched, unmatched, len(self.papers))
-
-        # Load CONF notes from the CSV files and enrich corresponding analysis entries.
-        logger.info("Loading list of CONF notes from file %s", self.confnote_path.name)
-        enriched, unmatched = self._enrich(
-            self.confnote_path, ConfNote, key="Temporary Reference Code", prefix="CONF-"
-        )
-        self._log_enrichment("CONF note", enriched, unmatched, len(self.confnotes))
-
-        # Load PUB notes from the CSV files and enrich corresponding analysis entries.
-        logger.info("Loading list of PUB notes from file %s", self.pubnote_path.name)
-        enriched, unmatched = self._enrich(
-            self.pubnote_path, PubNote, key="Temporary Reference Code", prefix="PUB-"
-        )
-        self._log_enrichment("PUB note", enriched, unmatched, len(self.pubnotes))
-
-        self.log_unaccounted()
-
     def log_unaccounted(self):
         """Report the entries that end up on no page at all.
 
@@ -472,103 +400,3 @@ class GlanceRegistry(_FilteringMixin):
 
         for level, message in lookup_review_notices(self):
             lookup_notice(logger, level, "%s", message)
-
-    @staticmethod
-    def _log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
-        """Report the outcome of one enrichment step.
-
-        Args:
-            label: Name of the enrichment type, for the log message.
-            enriched: Number of analyses that were enriched.
-            unmatched: Number of rows without a matching analysis.
-            listed: Number of enriched entries that the pages end up listing.
-
-        """
-        logger.info(
-            "Enriched %d analyses with %s data, of which %d are listed on the "
-            "pages. %d %s rows had no matching analysis.",
-            enriched,
-            label,
-            listed,
-            unmatched,
-            label,
-        )
-
-    def _load_data(self, path: Path, cls):
-        rows = self._read_csv_rows(
-            path, REQUIRED_COLUMNS_ANALYSIS, key="Reference Code", prefix="ANA-"
-        )
-        data = [cls.from_csv_dict(row) for row in rows]
-        return sorted(data, key=lambda x: x.ref_code)
-
-    def _read_csv_rows(
-        self, path: Path, required_columns=(), *, key=None, prefix=""
-    ) -> list[dict[str, str]]:
-        """Return the rows of one CSV file.
-
-        All four files are required. Carrying on without one of them used to
-        cost the pages a whole category — every paper, or every note — and
-        the run reported that as a plain count, which reads exactly like a
-        quiet week in the top WG. Failing here instead keeps a half-read
-        download out of the committed snapshot.
-
-        Args:
-            path: Path of the CSV file to read.
-
-        Returns:
-            One dictionary per row of the file.
-
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            ValueError: If headers, row widths, identifiers, or uniqueness are
-                invalid, or the file holds no rows. Values are never stripped.
-
-        """
-        try:
-            with open(path, encoding="utf8", newline="") as f:
-                reader = csv.DictReader(f, strict=True)
-                headers = reader.fieldnames or []
-                duplicates = [h for h, n in Counter(headers).items() if n > 1]
-                missing = sorted(set(required_columns) - set(headers))
-                if duplicates or missing or any(not h for h in headers):
-                    raise ValueError(
-                        f"{path}: invalid CSV headers; missing={missing}, "
-                        f"duplicates={duplicates}, empty headers={'' in headers}"
-                    )
-                rows = []
-                seen = {}
-                for row in reader:
-                    line = reader.line_num
-                    if None in row or any(value is None for value in row.values()):
-                        raise ValueError(
-                            f"{path}: line {line}: wrong number of CSV fields"
-                        )
-                    if key is not None:
-                        ref = row[key].removeprefix(prefix)
-                        if not re.fullmatch(r"[A-Z][A-Z0-9]+-\d{4}-\d+", ref):
-                            raise ValueError(
-                                f"{path}: line {line}: invalid {key}: {row[key]!r}"
-                            )
-                        if ref in seen:
-                            raise ValueError(
-                                f"{path}: line {line}: duplicate identifier {ref}; "
-                                f"first seen on line {seen[ref]}"
-                            )
-                        seen[ref] = line
-                    rows.append(row)
-        except csv.Error as exc:
-            raise ValueError(
-                f"{path}: line {reader.line_num}: invalid CSV: {exc}"
-            ) from exc
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"{path} not found. Re-run analysis_lists.py download (step 1)."
-            ) from None
-
-        if not rows:
-            raise ValueError(
-                f"{path} holds no rows. GLANCE probably returned a login page; "
-                "refresh the cookies and re-run analysis_lists.py download (step 1)."
-            )
-
-        return rows

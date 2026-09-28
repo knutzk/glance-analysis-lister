@@ -140,7 +140,7 @@ class CsvBatchTests(unittest.TestCase):
         marker = self.csv_dir / CSV_REFRESH_MARKER
         marker.touch()
         with self.assertRaisesRegex(ValueError, "Incomplete CSV refresh"):
-            GlanceRegistry(csv_dir=self.csv_dir)
+            GlanceRegistry.from_csv(csv_dir=self.csv_dir)
         refresh.refresh_csv_files(
             self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
         )
@@ -174,10 +174,7 @@ class RegistryWriteTests(unittest.TestCase):
         self.path = Path(self.temporary.name) / "registry.json"
         self.old = '{"previous": true}\n'
         self.path.write_text(self.old)
-        self.registry = GlanceRegistry.__new__(GlanceRegistry)
-        self.registry._analyses = {}
-        self.registry.threshold_year = "2020"
-        self.registry.last_modified_time = "test"
+        self.registry = GlanceRegistry(last_modified_time="test")
 
     def test_complete_snapshot_is_published(self):
         self.path.chmod(0o640)

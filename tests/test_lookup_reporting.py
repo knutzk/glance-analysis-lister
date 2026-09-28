@@ -110,10 +110,7 @@ class LookupReportingTests(unittest.TestCase):
             title_short="Fallback",
         )
         paper = Paper.from_json(data)
-        registry = GlanceRegistry.__new__(GlanceRegistry)
-        registry._analyses = {paper.ref_code: paper}
-        registry.threshold_year = "2020"
-        registry.last_modified_time = "test"
+        registry = GlanceRegistry({paper.ref_code: paper}, last_modified_time="test")
         with TemporaryDirectory() as directory:
             output = Path(directory)
             with self.assertLogs(level="WARNING") as logs:

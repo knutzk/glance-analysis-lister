@@ -49,16 +49,14 @@ class CombinedRefreshTests(unittest.TestCase):
         self.write_baseline(1)
 
     def write_baseline(self, count):
-        registry = GlanceRegistry.__new__(GlanceRegistry)
-        registry._analyses = {}
+        entries = {}
         for index in range(count):
             row = self.analysis_row | {
                 "Reference Code": f"ANA-TOPQ-2025-{index + 1:02}"
             }
             entry = Analysis.from_csv_dict(row)
-            registry._analyses[entry.ref_code] = entry
-        registry.threshold_year = "2020"
-        registry.last_modified_time = "previous"
+            entries[entry.ref_code] = entry
+        registry = GlanceRegistry(entries, last_modified_time="previous")
         registry.store_json(self.snapshot)
         self.previous_json = self.snapshot.read_bytes()
 
@@ -94,12 +92,25 @@ class CombinedRefreshTests(unittest.TestCase):
 
     def test_success_publishes_matching_csvs_and_snapshot(self):
         self.run_refresh()
-        from_csv = GlanceRegistry(csv_dir=self.csv_dir)
+        from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
         from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
         self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
         self.assertEqual(len(from_json.entries), 1)
         self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+
+    def test_csv_factory_initializes_subclass_through_normal_constructor(self):
+        class Registry(GlanceRegistry):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.initialized = True
+
+        self.run_refresh()
+        registry = Registry.from_csv(self.csv_dir)
+        self.assertTrue(registry.initialized)
+        self.assertEqual(
+            registry.entries, GlanceRegistry.from_json(self.snapshot).entries
+        )
 
     def test_count_drop_preserves_both_inputs_and_force_allows_it(self):
         self.write_baseline(2)

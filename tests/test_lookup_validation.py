@@ -136,7 +136,7 @@ class LookupValidationTests(unittest.TestCase):
             side_effect=ValueError("invalid lookups"),
         ):
             with self.assertRaisesRegex(ValueError, "invalid lookups"):
-                GlanceRegistry(csv_dir=self.directory / "missing")
+                GlanceRegistry.from_csv(csv_dir=self.directory / "missing")
             with self.assertRaisesRegex(ValueError, "invalid lookups"):
                 GlanceRegistry.from_json(self.directory / "missing.json")
 

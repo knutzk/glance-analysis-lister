@@ -63,7 +63,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
 @lookup_report()
 def build_registry(csv_dir: Path, output_path: Path, *, force: bool = False):
     """Build and validate a candidate registry without publishing it."""
-    registry = GlanceRegistry(
+    registry = GlanceRegistry.from_csv(
         analysis_csv="analyses.csv",
         paper_csv="papers.csv",
         confnote_csv="confnotes.csv",

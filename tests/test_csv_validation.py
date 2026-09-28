@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.download import HTMLParser
-from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.glance.csv_loader import read_csv_rows
 
 
 class CsvValidationTests(unittest.TestCase):
@@ -16,14 +16,13 @@ class CsvValidationTests(unittest.TestCase):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.path = Path(temporary.name) / "analyses.csv"
-        self.registry = GlanceRegistry.__new__(GlanceRegistry)
 
     def write_rows(self, rows):
         with self.path.open("w", newline="") as stream:
             csv.writer(stream).writerows(rows)
 
     def read_rows(self):
-        return self.registry._read_csv_rows(
+        return read_csv_rows(
             self.path, ["Reference Code", "Status"], key="Reference Code", prefix="ANA-"
         )
 
