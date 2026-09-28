@@ -29,6 +29,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from . import utils
+from .doi import format_url_dois
 
 
 def apply_field_map(
@@ -93,7 +94,7 @@ FIELD_MAP_PAPER: dict[str, tuple[str, Callable[[str], Any] | None]] = {
     "date_phase_one": ("Phase 1 Start Date", None),
     "date_publication": ("Publication Date", utils.format_date),
     "date_submission": ("arXiv Submission Date", utils.format_date),
-    "doi_urls": ("Final Journal Publication URLs", utils.format_url_dois),
+    "doi_urls": ("Final Journal Publication URLs", format_url_dois),
     "figure_url": ("Figures", None),
     "inspire_url": ("Final Journal Publication URLs", utils.format_url_inspire),
     "journal": ("Journal of Final Submission", None),

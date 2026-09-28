@@ -18,9 +18,10 @@ from attrs import define, field
 from ..lookup_dicts import journal_refs
 from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
+from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER, apply_field_map
-from .utils import doi_from_url, get_init_fields, glance_paper_url, order_doi_urls
+from .utils import get_init_fields, glance_paper_url
 
 logger = logging.getLogger(__name__)
 

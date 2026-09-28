@@ -8,9 +8,6 @@ import re
 
 from attrs import fields as attrs_fields
 
-from ..lookup_dicts.doi_order import DoiOrder
-from ..lookup_dicts.reporting import lookup_notice
-
 logger = logging.getLogger(__name__)
 
 
@@ -119,100 +116,6 @@ def format_supporting_docs(supporting_docs: str) -> list[str]:
 
     """
     return supporting_docs.split(",") if supporting_docs else []
-
-
-# Patterns to recover the publication date that a publisher encodes in its
-# DOIs. GLANCE lists the DOIs of a paper and of its erratum/addendum in
-# arbitrary order, so they have to be sorted by publication date to tell the
-# original article from the later correction.
-_DOI_DATE_PATTERNS = (
-    # JHEP, e.g. 10.1007/JHEP07(2023)203
-    re.compile(r"/JHEP(?P<month>\d{2})\((?P<year>\d{4})\)"),
-    # Springer EPJ, e.g. 10.1140/epjc/s10052-023-11573-0 (year modulo 1000)
-    re.compile(r"/epj\w*/s\d+-(?P<year>\d{3})-"),
-    # Elsevier, e.g. 10.1016/j.physletb.2022.137379
-    re.compile(r"^10\.1016/j\.\w+\.(?P<year>\d{4})\."),
-)
-
-
-def doi_from_url(url: str) -> str:
-    """Return the bare DOI of a doi.org URL (empty string if there is none)."""
-    index = url.find("doi.org/")
-    return url[index + 8 :] if index >= 0 else ""
-
-
-def _doi_date(doi: str) -> tuple[int, int]:
-    """Return the (year, month) encoded in a DOI, or (0, 0) if undecodable."""
-    for pattern in _DOI_DATE_PATTERNS:
-        match = pattern.search(doi)
-        if not match:
-            continue
-
-        year = int(match.group("year"))
-        if year < 1000:  # Springer writes the year modulo 1000.
-            year += 2000
-
-        groups = match.groupdict()
-        return year, int(groups.get("month") or 0)
-
-    return 0, 0
-
-
-def format_url_dois(url_str: str) -> list[str]:
-    """Extract DOI URLs; Paper construction resolves their citation order."""
-    # GLANCE concatenates the URLs without a separator, so splitting on the
-    # scheme is all there is to go by. Stripping guards the journal_refs
-    # lookup, which a trailing space would silently turn into a miss.
-    urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
-    return [u for u in urls if "doi.org/" in u]
-
-
-def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
-    """Deduplicate and order DOIs, warning when dates cannot resolve the order.
-
-    Missing months cover the entire year, so they overlap any dated DOI in
-    that year. Unknown or overlapping dates retain input order unless a
-    verified override supplies the full order. Used for CSV and JSON loads.
-    """
-
-    # The same DOI may be listed several times, and under both the doi.org and
-    # the dx.doi.org host. Deduplicate on the DOI, keeping the first URL.
-    by_doi: dict[str, str] = {}
-    for url in urls:
-        by_doi.setdefault(doi_from_url(url), url)
-
-    override = DoiOrder.get(ref_code)
-    if override is not None:
-        repeated = sorted(doi for doi in set(override) if override.count(doi) > 1)
-        if repeated or set(override) != set(by_doi):
-            raise ValueError(
-                f"{ref_code}: DOI order override does not match the record; "
-                "update analysis_lister/lookup_dicts/doi_order.py. "
-                f"Missing from override: {sorted(set(by_doi) - set(override))}; "
-                f"absent from record: {sorted(set(override) - set(by_doi))}; "
-                f"repeated DOI entries: {repeated}"
-            )
-        return [by_doi[doi] for doi in override]
-
-    dates = [_doi_date(doi) for doi in by_doi]
-    ambiguous = any(date == (0, 0) for date in dates) or any(
-        year == other_year and (not month or not other_month or month == other_month)
-        for i, (year, month) in enumerate(dates)
-        for other_year, other_month in dates[i + 1 :]
-    )
-    if len(by_doi) > 1 and ambiguous:
-        lookup_notice(
-            logger,
-            logging.WARNING,
-            "%s: ambiguous DOI order (unknown or overlapping dates); keeping "
-            "input order. Verify the original article and add an override in "
-            "analysis_lister/lookup_dicts/doi_order.py: %s",
-            ref_code,
-            list(by_doi),
-        )
-        return list(by_doi.values())
-
-    return sorted(by_doi.values(), key=lambda u: _doi_date(doi_from_url(u)))
 
 
 def format_url_inspire(urls: str) -> str:
