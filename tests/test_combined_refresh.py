@@ -1,4 +1,4 @@
-"""Exercise the combined CLI against synthetic GLANCE tables, without a login."""
+"""Exercise the combined workflow against synthetic GLANCE tables, without a login."""
 
 import html
 import sys
@@ -8,8 +8,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import download_csv_files as downloader
-import refresh_analysis_lists as refresh
+from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.glance_registry import GlanceRegistry
 
@@ -24,15 +23,7 @@ class CombinedRefreshTests(unittest.TestCase):
         self.json_dir = self.root / "json"
         for directory in (self.csv_dir, self.debug_dir, self.json_dir):
             directory.mkdir()
-        for module, name, value in (
-            (downloader, "CSV_DIR", self.csv_dir),
-            (downloader, "DEBUG_DIR", self.debug_dir),
-            (refresh, "OUTPUT_DIR_JSON", self.json_dir),
-        ):
-            patcher = patch.object(module, name, value)
-            patcher.start()
-            self.addCleanup(patcher.stop)
-        for task in downloader.download_tasks():
+        for task in downloader.download_tasks(self.csv_dir):
             columns = list(dict.fromkeys(task["column_filter"]))
             values = dict.fromkeys(columns, "")
             values["Reference Code"] = (
@@ -74,9 +65,6 @@ class CombinedRefreshTests(unittest.TestCase):
     def run_refresh(self, *flags):
         with (
             patch.object(
-                sys, "argv", ["refresh_analysis_lists.py", "--use-local-html", *flags]
-            ),
-            patch.object(
                 downloader.CookieManager,
                 "load_cookies",
                 side_effect=AssertionError("offline mode must not read credentials"),
@@ -87,7 +75,16 @@ class CombinedRefreshTests(unittest.TestCase):
                 side_effect=AssertionError("offline mode must not fetch"),
             ),
         ):
-            refresh.main()
+            options = downloader.download_options(
+                self.root / "cookies.json", use_local_html=True
+            )
+            refresh.refresh_analysis_lists(
+                self.csv_dir,
+                self.debug_dir,
+                self.snapshot,
+                force="--force" in flags,
+                **options,
+            )
 
     def assert_unchanged(self):
         self.assertEqual(self.snapshot.read_bytes(), self.previous_json)
@@ -106,7 +103,7 @@ class CombinedRefreshTests(unittest.TestCase):
 
     def test_count_drop_preserves_both_inputs_and_force_allows_it(self):
         self.write_baseline(2)
-        with self.assertRaisesRegex(SystemExit, "Refusing to overwrite"):
+        with self.assertRaisesRegex(ValueError, "Refusing to overwrite"):
             self.run_refresh()
         self.assert_unchanged()
         self.run_refresh("--force")
@@ -141,7 +138,7 @@ class CombinedRefreshTests(unittest.TestCase):
     def test_final_snapshot_failure_rolls_back_csvs(self):
         with (
             patch.object(
-                downloader, "atomic_write_text", side_effect=OSError("disk full")
+                refresh, "atomic_write_text", side_effect=OSError("disk full")
             ),
             self.assertRaises(OSError),
         ):

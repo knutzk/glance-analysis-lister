@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import download_csv_files as downloader
+from analysis_lister import download as downloader
 
 
 class DownloadTests(unittest.TestCase):
@@ -86,9 +86,8 @@ class DownloadTests(unittest.TestCase):
     @patch.object(downloader.requests, "get")
     def test_expired_session_is_rejected(self, get):
         get.return_value.text = "Sign in to your account"
-        with self.assertRaises(SystemExit) as error:
+        with self.assertRaisesRegex(ValueError, "Invalid or expired cookies"):
             downloader.DataFetcher.fetch_html("https://example.test", {}, {})
-        self.assertEqual(error.exception.code, 1)
 
 
 if __name__ == "__main__":

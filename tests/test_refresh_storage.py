@@ -10,7 +10,7 @@ from unittest.mock import patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import download_csv_files as downloader
+from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
@@ -41,10 +41,6 @@ class CsvBatchTests(unittest.TestCase):
                 }
             )
         self.original = {p.name: p.read_bytes() for p in self.csv_dir.iterdir()}
-        for name, value in (("CSV_DIR", self.csv_dir), ("DEBUG_DIR", self.debug_dir)):
-            patcher = patch.object(downloader, name, value)
-            patcher.start()
-            self.addCleanup(patcher.stop)
 
     def assert_original(self):
         self.assertEqual(
@@ -54,13 +50,24 @@ class CsvBatchTests(unittest.TestCase):
     def test_local_batch_replaces_all_files_and_preserves_unrelated_files(self):
         keep = self.csv_dir / ".gitkeep"
         keep.touch()
-        downloader.refresh_csv_files(self.tasks, use_local_html=True)
+        refresh.refresh_csv_files(
+            self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+        )
         for task in self.tasks:
             self.assertEqual(
                 task["output_csv"].read_text(), '"Reference Code"\n"new"\n'
             )
         self.assertTrue(keep.exists())
         self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+
+    def test_debug_tables_use_the_supplied_directory(self):
+        debug_dir = self.root / "diagnostics" / "tables"
+        with patch.object(downloader.DataFetcher, "fetch_html", return_value=HTML):
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, debug_dir, cookies={}, debug=True
+            )
+        for task in self.tasks:
+            self.assertEqual((debug_dir / task["debug_file"]).read_text(), HTML + "\n")
 
     def test_bad_final_table_preserves_entire_old_batch(self):
         for html in (
@@ -72,13 +79,17 @@ class CsvBatchTests(unittest.TestCase):
             with self.subTest(html=html):
                 (self.debug_dir / "confnotes.html").write_text(html)
                 with self.assertRaises(ValueError):
-                    downloader.refresh_csv_files(self.tasks, use_local_html=True)
+                    refresh.refresh_csv_files(
+                        self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+                    )
                 self.assert_original()
 
     def test_missing_final_html_preserves_old_batch(self):
         (self.debug_dir / "confnotes.html").unlink()
         with self.assertRaises(FileNotFoundError):
-            downloader.refresh_csv_files(self.tasks, use_local_html=True)
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+            )
         self.assert_original()
 
     def test_failed_final_download_preserves_old_batch(self):
@@ -90,7 +101,9 @@ class CsvBatchTests(unittest.TestCase):
             ),
             self.assertRaises(requests.ReadTimeout),
         ):
-            downloader.refresh_csv_files(self.tasks, cookies={})
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, self.debug_dir, cookies={}
+            )
         self.assert_original()
 
     def test_promotion_failure_rolls_back_prior_replacements(self):
@@ -102,7 +115,9 @@ class CsvBatchTests(unittest.TestCase):
             return replace(source, target)
 
         with patch.object(Path, "replace", fail_third), self.assertRaises(OSError):
-            downloader.refresh_csv_files(self.tasks, use_local_html=True)
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+            )
         self.assert_original()
 
     def test_first_download_failure_leaves_no_partial_csvs(self):
@@ -116,7 +131,9 @@ class CsvBatchTests(unittest.TestCase):
             return replace(source, target)
 
         with patch.object(Path, "replace", fail_second), self.assertRaises(OSError):
-            downloader.refresh_csv_files(self.tasks, use_local_html=True)
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+            )
         self.assertEqual(list(self.csv_dir.iterdir()), [])
 
     def test_interrupted_batch_is_rejected_and_successful_refresh_repairs_it(self):
@@ -124,7 +141,9 @@ class CsvBatchTests(unittest.TestCase):
         marker.touch()
         with self.assertRaisesRegex(ValueError, "Incomplete CSV refresh"):
             GlanceRegistry(csv_dir=self.csv_dir)
-        downloader.refresh_csv_files(self.tasks, use_local_html=True)
+        refresh.refresh_csv_files(
+            self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+        )
         self.assertFalse(marker.exists())
 
     def test_failed_rollback_keeps_marker_and_backups(self):
@@ -139,7 +158,9 @@ class CsvBatchTests(unittest.TestCase):
             patch.object(Path, "replace", fail_promotion_and_rollback),
             self.assertRaises(OSError),
         ):
-            downloader.refresh_csv_files(self.tasks, use_local_html=True)
+            refresh.refresh_csv_files(
+                self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+            )
         self.assertTrue((self.csv_dir / CSV_REFRESH_MARKER).exists())
         backups = list(self.csv_dir.glob(".refresh-*/previous/analyses.csv"))
         self.assertEqual(len(backups), 1)

@@ -15,7 +15,7 @@ from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TX, XS
 from analysis_lister.lookup_dicts.reporting import lookup_notice, lookup_report
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
-from update_glance_registry import compare_to_snapshot
+from analysis_lister.refresh import compare_to_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -78,17 +78,17 @@ class LookupReportingTests(unittest.TestCase):
 
             with (
                 patch(
-                    "update_glance_registry.GlanceRegistry.from_json",
+                    "analysis_lister.refresh.GlanceRegistry.from_json",
                     side_effect=baseline,
                 ),
-                patch("update_glance_registry.counts", return_value={"entries": 1}),
+                patch("analysis_lister.refresh.counts", return_value={"entries": 1}),
                 self.assertNoLogs(level="WARNING"),
                 lookup_report(),
             ):
                 self.assertEqual(compare_to_snapshot(object(), path), [])
             with (
                 patch(
-                    "update_glance_registry.GlanceRegistry.from_json",
+                    "analysis_lister.refresh.GlanceRegistry.from_json",
                     side_effect=ValueError("invalid snapshot"),
                 ),
                 self.assertRaisesRegex(ValueError, "invalid snapshot"),

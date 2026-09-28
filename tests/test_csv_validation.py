@@ -7,8 +7,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from analysis_lister.download import HTMLParser
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from download_csv_files import HTMLParser
 
 
 class CsvValidationTests(unittest.TestCase):
