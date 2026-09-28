@@ -1,0 +1,170 @@
+"""Exercise the combined CLI against synthetic GLANCE tables, without a login."""
+
+import html
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import download_csv_files as downloader
+import refresh_analysis_lists as refresh
+from analysis_lister.glance.analysis import Analysis
+from analysis_lister.glance.glance_registry import GlanceRegistry
+
+
+class CombinedRefreshTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.csv_dir = self.root / "csv"
+        self.debug_dir = self.root / "debug"
+        self.json_dir = self.root / "json"
+        for directory in (self.csv_dir, self.debug_dir, self.json_dir):
+            directory.mkdir()
+        for module, name, value in (
+            (downloader, "CSV_DIR", self.csv_dir),
+            (downloader, "DEBUG_DIR", self.debug_dir),
+            (refresh, "OUTPUT_DIR_JSON", self.json_dir),
+        ):
+            patcher = patch.object(module, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        for task in downloader.download_tasks():
+            columns = list(dict.fromkeys(task["column_filter"]))
+            values = dict.fromkeys(columns, "")
+            values["Reference Code"] = (
+                "ANA-TOPQ-2025-01" if task["name"] == "analyses" else "TOPQ-2000-01"
+            )
+            if task["name"] in ("confnotes", "pubnotes"):
+                prefix = "CONF" if task["name"] == "confnotes" else "PUB"
+                values["Temporary Reference Code"] = f"{prefix}-TOPQ-2000-01"
+            values["Status"] = " Phase 0 is  Active "
+            values["Subgroups"] = "TOPQ - Cross-section"
+            if task["name"] == "analyses":
+                self.analysis_row = values
+            table = (
+                "<table><tr>"
+                + "".join(f"<th>{html.escape(col)}</th>" for col in columns)
+                + "</tr><tr>"
+                + "".join(f"<td>{html.escape(values[col])}</td>" for col in columns)
+                + "</tr></table>"
+            )
+            (self.debug_dir / task["debug_file"]).write_text(table)
+            task["output_csv"].write_text("previous CSV\n")
+        self.snapshot = self.json_dir / "glance_registry.json"
+        self.write_baseline(1)
+
+    def write_baseline(self, count):
+        registry = GlanceRegistry.__new__(GlanceRegistry)
+        registry._analyses = {}
+        for index in range(count):
+            row = self.analysis_row | {
+                "Reference Code": f"ANA-TOPQ-2025-{index + 1:02}"
+            }
+            entry = Analysis.from_csv_dict(row)
+            registry._analyses[entry.ref_code] = entry
+        registry.threshold_year = "2020"
+        registry.last_modified_time = "previous"
+        registry.store_json(self.snapshot)
+        self.previous_json = self.snapshot.read_bytes()
+
+    def run_refresh(self, *flags):
+        with (
+            patch.object(
+                sys, "argv", ["refresh_analysis_lists.py", "--use-local-html", *flags]
+            ),
+            patch.object(
+                downloader.CookieManager,
+                "load_cookies",
+                side_effect=AssertionError("offline mode must not read credentials"),
+            ),
+            patch.object(
+                downloader.DataFetcher,
+                "fetch_html",
+                side_effect=AssertionError("offline mode must not fetch"),
+            ),
+        ):
+            refresh.main()
+
+    def assert_unchanged(self):
+        self.assertEqual(self.snapshot.read_bytes(), self.previous_json)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        for path in self.csv_dir.iterdir():
+            self.assertEqual(path.read_text(), "previous CSV\n")
+
+    def test_success_publishes_matching_csvs_and_snapshot(self):
+        self.run_refresh()
+        from_csv = GlanceRegistry(csv_dir=self.csv_dir)
+        from_json = GlanceRegistry.from_json(self.snapshot)
+        self.assertEqual(from_csv.entries, from_json.entries)
+        self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
+        self.assertEqual(len(from_json.entries), 1)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+
+    def test_count_drop_preserves_both_inputs_and_force_allows_it(self):
+        self.write_baseline(2)
+        with self.assertRaisesRegex(SystemExit, "Refusing to overwrite"):
+            self.run_refresh()
+        self.assert_unchanged()
+        self.run_refresh("--force")
+        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
+
+    def test_bad_html_aborts_even_with_force(self):
+        (self.debug_dir / "confnotes.html").write_text("<html>login required</html>")
+        with self.assertRaises(ValueError):
+            self.run_refresh("--force")
+        self.assert_unchanged()
+
+    def test_registry_construction_failure_preserves_both(self):
+        with (
+            patch.object(
+                refresh, "build_registry", side_effect=ValueError("bad record")
+            ),
+            self.assertRaises(ValueError),
+        ):
+            self.run_refresh()
+        self.assert_unchanged()
+
+    def test_staged_serialization_failure_preserves_both(self):
+        with (
+            patch.object(
+                GlanceRegistry, "store_json", side_effect=OSError("disk full")
+            ),
+            self.assertRaises(OSError),
+        ):
+            self.run_refresh()
+        self.assert_unchanged()
+
+    def test_final_snapshot_failure_rolls_back_csvs(self):
+        with (
+            patch.object(
+                downloader, "atomic_write_text", side_effect=OSError("disk full")
+            ),
+            self.assertRaises(OSError),
+        ):
+            self.run_refresh()
+        self.assert_unchanged()
+
+    def test_csv_promotion_failure_preserves_snapshot_and_rolls_back(self):
+        replace = Path.replace
+
+        def fail_second_csv(source, target):
+            if source.name == "papers.csv" and source.parent.name != "previous":
+                raise OSError("cannot replace CSV")
+            return replace(source, target)
+
+        with patch.object(Path, "replace", fail_second_csv), self.assertRaises(OSError):
+            self.run_refresh()
+        self.assert_unchanged()
+
+    def test_first_refresh_needs_no_previous_snapshot(self):
+        self.snapshot.unlink()
+        self.run_refresh()
+        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

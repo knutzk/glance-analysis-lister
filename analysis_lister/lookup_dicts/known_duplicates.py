@@ -19,14 +19,15 @@ left the registry, is reported so that this file does not silently rot.
 """
 
 KnownDuplicates = {
-    # Shell record: it carries the editorial board, the contact editors and
+    # Reason: Shell record: it carries the editorial board, the contact editors and
     # the supporting document of TOPQ-2018-17, but not one review date of its
     # own. TOPQ-2018-17 was published on 2020-06-12 as arXiv:1910.08819.
     "TOPQ-2019-27": "TOPQ-2018-17",
-    # Created on 2021-02-02 with review dates from 2018/2019 that predate its
+    # Reason: Created on 2021-02-02 with review dates from 2018/2019 that predate its
     # own phase 0 start, and identical field for field to TOPQ-2018-03. The
     # analysis was published as TOPQ-2020-06 on 2023-08-16.
     "TOPQ-2021-02": "TOPQ-2018-03",
-    # Same story, and identical field for field to TOPQ-2018-14.
+    # Reason: Identical field for field to TOPQ-2018-14, with review dates
+    # predating its own phase 0 start (the same pattern as TOPQ-2021-02 above).
     "TOPQ-2021-03": "TOPQ-2018-14",
 }

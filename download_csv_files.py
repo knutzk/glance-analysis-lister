@@ -10,17 +10,22 @@ import argparse
 import csv
 import json
 import logging
+import os
+import shutil
 import sys
+from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import requests
-import urllib3
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
 from analysis_lister.glance import field_maps
+from analysis_lister.storage import CSV_REFRESH_MARKER, atomic_write_text
 
 # Configure logging
 logging.basicConfig(
@@ -33,6 +38,11 @@ logger = logging.getLogger(__name__)
 COOKIE_FILE = Path("cookies.json")
 CSV_DIR = Path("deploy_tools/analysis_lists/csv")
 DEBUG_DIR = Path("debug")
+REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
+INTERMEDIATE_CA = (
+    Path(__file__).resolve().parent
+    / "certs/sectigo-public-server-authentication-ca-ov-r36.pem"
+)
 URLS = {
     "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
     "papers": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
@@ -56,9 +66,26 @@ COMMON_PARAMS = {
     "only_deleted_input": "false",
 }
 
-# Certificate verification is switched off below, so silence the warning that
-# requests emits for it on every single fetch.
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+@contextmanager
+def trusted_ca_bundle():
+    """Complete GLANCE's chain without disabling certificate verification.
+
+    Preserve Requests' CA-bundle environment overrides. Otherwise supplement
+    its trusted roots with the intermediate GLANCE currently omits. The
+    temporary bundle stays available until the request and redirects finish.
+    """
+    override = os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("CURL_CA_BUNDLE")
+    if override:
+        yield override
+        return
+
+    with NamedTemporaryFile(suffix=".pem") as bundle:
+        bundle.write(Path(requests.certs.where()).read_bytes())
+        bundle.write(b"\n")
+        bundle.write(INTERMEDIATE_CA.read_bytes())
+        bundle.flush()
+        yield bundle.name
 
 
 class CookieManager:
@@ -112,23 +139,26 @@ class DataFetcher:
         """Fetch HTML content from a URL."""
         try:
             logger.info(f"Fetching data from {url} with params: {params}")
-            # verify=False is deliberate: atlas-glance.cern.ch sends its leaf
-            # certificate without the Sectigo intermediate that signed it, so
-            # the chain cannot be verified. Browsers hide this by fetching the
-            # intermediate from the URL in the certificate, requests does not
-            # and fails with "unable to get local issuer certificate". Turning
-            # verification back on therefore breaks every download unless the
-            # intermediate is supplied along with it. Check whether GLANCE has
-            # fixed its side with
-            #   echo | openssl s_client -connect atlas-glance.cern.ch:443 \
-            #       -servername atlas-glance.cern.ch
-            # which currently returns a single certificate and verify error 21.
-            response = requests.get(url, params=params, cookies=cookies, verify=False)
+            with trusted_ca_bundle() as ca_bundle:
+                response = requests.get(
+                    url,
+                    params=params,
+                    cookies=cookies,
+                    verify=ca_bundle,
+                    timeout=REQUEST_TIMEOUT,
+                )
             response.raise_for_status()
             if "Sign in to your account" in response.text:
                 logger.error("Invalid or expired cookies detected.")
                 sys.exit(1)
             return response.text
+        except requests.exceptions.SSLError:
+            logger.error(
+                "TLS verification failed for %s. Check the server certificate "
+                "chain or supply a trusted PEM bundle with REQUESTS_CA_BUNDLE.",
+                url,
+            )
+            raise
         except requests.RequestException as e:
             logger.error(f"Error fetching data from {url}: {e}")
             raise
@@ -168,8 +198,16 @@ class HTMLParser:
             logger.debug(f"All table rows saved to {debug_path}")
 
         rows = table.find_all("tr")
+        if not rows:
+            raise ValueError(f"No rows in table for {output_csv}")
 
         headers = [th.text.strip() for th in rows[0].find_all("th")]
+        selected = [h for h in headers if not column_filter or h in column_filter]
+        duplicates = [h for h, n in Counter(selected).items() if n > 1]
+        if not headers or any(not h for h in selected) or duplicates:
+            raise ValueError(
+                f"Invalid table headers for {output_csv}: duplicates={duplicates}"
+            )
 
         # Filter headers based on the column_filter, otherwise include all.
         if column_filter:
@@ -195,27 +233,20 @@ class HTMLParser:
 
         csv_data = [[header_indices[idx] for idx in header_indices]]
 
-        n_short_rows = 0
-        for row in rows[1:]:
+        for row_number, row in enumerate(rows[1:], start=2):
             cells = row.find_all("td")
             if not cells:
                 continue
 
-            # Short rows are padded rather than shortened, which would shift
-            # the remaining values into the wrong columns.
-            if len(cells) < len(headers):
-                n_short_rows += 1
+            if len(cells) != len(headers):
+                raise ValueError(
+                    f"{output_csv}: table row {row_number}: expected {len(headers)} "
+                    f"cells, found {len(cells)}; cannot safely align the columns"
+                )
+            csv_data.append([cells[idx].text for idx in header_indices])
 
-            csv_data.append(
-                [cells[idx].text if idx < len(cells) else "" for idx in header_indices]
-            )
-
-        if n_short_rows:
-            logger.warning(
-                f"{n_short_rows} rows of the table for {output_csv} have fewer "
-                f"cells than the {len(headers)} of its header. Their missing "
-                "values were left empty; check the table in GLANCE."
-            )
+        if len(csv_data) == 1:
+            raise ValueError(f"No data rows in table for {output_csv}")
 
         with open(output_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
@@ -224,8 +255,92 @@ class HTMLParser:
         logger.info(f"CSV file successfully generated: {output_csv}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Fetch data and generate CSV files.")
+def publish_csv_batch(
+    staging: Path,
+    output_dir: Path,
+    filenames: list[str],
+    *,
+    snapshot_path: Path | None = None,
+):
+    """Publish a validated batch, restoring the old files on a write failure.
+
+    The marker makes an interrupted promotion detectable by the registry loader.
+    Backups remain in the staging directory if the process is killed outright.
+    A fresh successful download repairs such an interrupted promotion.
+    An optional staged JSON snapshot is published last using an atomic write.
+    If that write fails, the CSV replacements are rolled back too.
+    Run downloading and registry building sequentially.
+    """
+    backup = staging / "previous"
+    backup.mkdir()
+    for name in filenames:
+        old = output_dir / name
+        if old.exists():
+            shutil.copy2(old, backup / name)
+
+    marker = output_dir / CSV_REFRESH_MARKER
+    was_interrupted = marker.exists()
+    marker.write_text("Refresh incomplete; re-run refresh_analysis_lists.py.\n")
+    replaced = []
+    try:
+        for name in filenames:
+            replaced.append(name)
+            (staging / name).replace(output_dir / name)
+        if snapshot_path is not None:
+            atomic_write_text(
+                snapshot_path, (staging / snapshot_path.name).read_text(encoding="utf8")
+            )
+    except BaseException:
+        for name in reversed(replaced):
+            previous = backup / name
+            if previous.exists():
+                previous.replace(output_dir / name)
+            else:
+                (output_dir / name).unlink(missing_ok=True)
+        if not was_interrupted:
+            marker.unlink()
+        raise
+    marker.unlink()
+
+
+@contextmanager
+def staged_csv_files(tasks, *, cookies=None, use_local_html=False, debug=False):
+    """Yield a complete CSV batch without modifying the current data."""
+    CSV_DIR.mkdir(parents=True, exist_ok=True)
+    # Stage on the same filesystem so individual replacements are atomic.
+    temporary = TemporaryDirectory(prefix=".refresh-", dir=CSV_DIR, delete=False)
+    staging = Path(temporary.name)
+    try:
+        for task in tasks:
+            if use_local_html:
+                html = (DEBUG_DIR / task["debug_file"]).read_text(encoding="utf-8")
+            else:
+                html = DataFetcher.fetch_html(
+                    task["url"], COMMON_PARAMS | task["custom_params"], cookies
+                )
+            HTMLParser.parse_to_csv(
+                html,
+                staging / task["output_csv"].name,
+                task["debug_file"] if debug and not use_local_html else None,
+                task["column_filter"],
+            )
+        yield staging
+    finally:
+        if (CSV_DIR / CSV_REFRESH_MARKER).exists():
+            logger.warning("Incomplete refresh; retaining staging files at %s", staging)
+        else:
+            temporary.cleanup()
+
+
+def refresh_csv_files(tasks, **options):
+    """Fetch and publish CSVs only, for the standalone download command."""
+    with staged_csv_files(tasks, **options) as staging:
+        publish_csv_batch(staging, CSV_DIR, [t["output_csv"].name for t in tasks])
+    logger.info("Published complete CSV batch.")
+
+
+def add_download_arguments(parser):
+    """Share download options with the combined refresh command."""
     parser.add_argument(
         "--generate-new-cookies",
         action="store_true",
@@ -241,9 +356,11 @@ def main():
         action="store_true",
         help="Read HTML from debug directory instead of fetching it.",
     )
-    args = parser.parse_args()
 
-    tasks = [
+
+def download_tasks():
+    """Return the four GLANCE table definitions."""
+    return [
         {
             "name": "analyses",
             "url": URLS["analyses"],
@@ -278,15 +395,11 @@ def main():
         },
     ]
 
-    cookies = None
+
+def download_options(args):
+    """Resolve authentication only for live downloads."""
     if args.use_local_html:
-        for task in tasks:
-            html = (DEBUG_DIR / task["debug_file"]).read_text(encoding="utf-8")
-            HTMLParser.parse_to_csv(
-                html, task["output_csv"], None, task["column_filter"]
-            )
-        logger.info("Completed processing from local HTML files.")
-        return
+        return {"use_local_html": True}
 
     if args.generate_new_cookies:
         cookies = CookieManager.generate_cookies()
@@ -296,17 +409,14 @@ def main():
             logger.error("No cookies found. Use --generate-new-cookies.")
             sys.exit(1)
 
-    cookies = CookieManager.to_requests_format(cookies)
-    for task in tasks:
-        html = DataFetcher.fetch_html(
-            task["url"], COMMON_PARAMS | task["custom_params"], cookies
-        )
-        HTMLParser.parse_to_csv(
-            html,
-            task["output_csv"],
-            task["debug_file"] if args.debug else None,
-            task["column_filter"],
-        )
+    return {"cookies": CookieManager.to_requests_format(cookies), "debug": args.debug}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Fetch data and generate CSV files.")
+    add_download_arguments(parser)
+    args = parser.parse_args()
+    refresh_csv_files(download_tasks(), **download_options(args))
 
 
 if __name__ == "__main__":

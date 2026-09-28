@@ -16,10 +16,11 @@ import logging
 from attrs import define, field
 
 from ..lookup_dicts import journal_refs
+from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import FIELD_MAP_PAPER
-from .utils import doi_from_url, get_init_fields, glance_paper_url
+from .utils import doi_from_url, get_init_fields, glance_paper_url, order_doi_urls
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,7 @@ class Paper(Analysis):
         """Post-initialization of paper instance."""
         super().__attrs_post_init__()
 
+        self.doi_urls = order_doi_urls(self.doi_urls, self.ref_code)
         self.dois = [doi_from_url(url) for url in self.doi_urls]
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
@@ -154,11 +156,19 @@ class Paper(Analysis):
         # original so that they can be cited on a line of their own. An empty
         # string keeps them aligned with self.dois[1:].
         refs = []
-        for doi in self.dois:
+        for index, doi in enumerate(self.dois):
             if doi in journal_refs.JournalRefs:
                 refs.append(journal_refs.JournalRefs[doi])
             else:
-                logger.warning("No journal reference found for DOI: %s", doi)
+                lookup_notice(
+                    logger,
+                    logging.WARNING,
+                    "%s: no journal reference for %s DOI %s; add its citation "
+                    "to analysis_lister/lookup_dicts/journal_refs.py",
+                    self.ref_code,
+                    "original article" if index == 0 else "correction",
+                    doi,
+                )
                 refs.append("")
 
         if self.pub_state == PublicationState.SUBMITTED_TO_JOURNAL and self.journal:
