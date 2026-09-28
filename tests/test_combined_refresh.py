@@ -62,7 +62,7 @@ class CombinedRefreshTests(unittest.TestCase):
         registry.store_json(self.snapshot)
         self.previous_json = self.snapshot.read_bytes()
 
-    def run_refresh(self, *flags):
+    def run_refresh(self, *, force=False):
         with (
             patch.object(
                 downloader.CookieManager,
@@ -82,7 +82,7 @@ class CombinedRefreshTests(unittest.TestCase):
                 self.csv_dir,
                 self.debug_dir,
                 self.snapshot,
-                force="--force" in flags,
+                force=force,
                 **options,
             )
 
@@ -106,13 +106,13 @@ class CombinedRefreshTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Refusing to overwrite"):
             self.run_refresh()
         self.assert_unchanged()
-        self.run_refresh("--force")
+        self.run_refresh(force=True)
         self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
 
     def test_bad_html_aborts_even_with_force(self):
         (self.debug_dir / "confnotes.html").write_text("<html>login required</html>")
         with self.assertRaises(ValueError):
-            self.run_refresh("--force")
+            self.run_refresh(force=True)
         self.assert_unchanged()
 
     def test_registry_construction_failure_preserves_both(self):

@@ -78,7 +78,7 @@ def build_registry(csv_dir: Path, output_path: Path, *, force: bool = False):
             "Refusing to overwrite the registry, because "
             + ", and ".join(drops)
             + ". Expired cookies and renamed GLANCE columns both look like "
-            "this — inspect the source data before trusting the numbers. Pass --force if "
+            "this — inspect the source data before trusting the numbers. Pass --allow-count-drop if "
             "the drop is genuine."
         )
     if drops:
@@ -112,7 +112,7 @@ def publish_csv_batch(
 
     marker = output_dir / CSV_REFRESH_MARKER
     was_interrupted = marker.exists()
-    marker.write_text("Refresh incomplete; re-run refresh_analysis_lists.py.\n")
+    marker.write_text("Refresh incomplete; re-run analysis_lists.py refresh.\n")
     replaced = []
     try:
         for name in filenames:

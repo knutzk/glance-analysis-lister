@@ -562,13 +562,13 @@ class GlanceRegistry(_FilteringMixin):
             ) from exc
         except FileNotFoundError:
             raise FileNotFoundError(
-                f"{path} not found. Re-run download_csv_files.py (step 1)."
+                f"{path} not found. Re-run analysis_lists.py download (step 1)."
             ) from None
 
         if not rows:
             raise ValueError(
                 f"{path} holds no rows. GLANCE probably returned a login page; "
-                "refresh the cookies and re-run download_csv_files.py (step 1)."
+                "refresh the cookies and re-run analysis_lists.py download (step 1)."
             )
 
         return rows

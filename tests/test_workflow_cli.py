@@ -1,6 +1,5 @@
 """Check executable boundaries separately from reusable workflow operations."""
 
-import importlib
 import subprocess
 import sys
 import unittest
@@ -21,9 +20,9 @@ import logging
 import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
-    import download_csv_files
-    import refresh_analysis_lists
-    import update_glance_registry
+    import analysis_lists
+    import analysis_lister.refresh
+    import analysis_lister.render
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
 """
@@ -32,54 +31,108 @@ assert "bs4" not in sys.modules
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_download_flags_and_defaults_reach_workflows(self):
+    def test_download_flags_and_paths_reach_workflows(self):
         for name, operation in (
-            ("download_csv_files", "refresh_csv_files"),
-            ("refresh_analysis_lists", "refresh_analysis_lists"),
+            ("download", "refresh_csv_files"),
+            ("refresh", "refresh_analysis_lists"),
         ):
-            module = importlib.import_module(name)
             with (
                 self.subTest(command=name),
-                patch.object(module, "configure_logging"),
+                patch.object(cli, "configure_logging"),
                 patch.object(
-                    module, "download_options", return_value={"cookies": {}}
+                    download, "download_options", return_value={"cookies": {}}
                 ) as auth,
-                patch.object(module, operation) as workflow,
+                patch("analysis_lister.refresh." + operation) as workflow,
             ):
-                flags = ["--debug", "--generate-new-cookies"]
-                if name == "refresh_analysis_lists":
-                    flags.append("--force")
-                module.main(flags)
+                flags = [
+                    name,
+                    "--save-html",
+                    "html",
+                    "--login",
+                    "--cookies",
+                    "session.json",
+                    "--csv-dir",
+                    "csv",
+                ]
+                if name == "refresh":
+                    flags += ["--allow-count-drop", "--snapshot", "registry.json"]
+                cli.main(flags)
                 auth.assert_called_once_with(
-                    cli.COOKIE_FILE,
+                    Path("session.json"),
                     debug=True,
                     generate_new_cookies=True,
                     use_local_html=False,
                 )
-                if name == "refresh_analysis_lists":
+                if name == "refresh":
                     workflow.assert_called_once_with(
-                        cli.CSV_DIR,
-                        cli.DEBUG_DIR,
-                        cli.SNAPSHOT_PATH,
+                        Path("csv"),
+                        Path("html"),
+                        Path("registry.json"),
                         force=True,
                         cookies={},
                     )
                 else:
                     workflow.assert_called_once_with(
-                        download.download_tasks(cli.CSV_DIR),
-                        cli.CSV_DIR,
-                        cli.DEBUG_DIR,
+                        download.download_tasks(Path("csv")),
+                        Path("csv"),
+                        Path("html"),
                         cookies={},
                     )
 
-    def test_registry_command_forwards_force(self):
-        module = importlib.import_module("update_glance_registry")
+    def test_registry_command_forwards_count_override(self):
         with (
-            patch.object(module, "configure_logging"),
-            patch.object(module, "update_registry") as workflow,
+            patch.object(cli, "configure_logging"),
+            patch("analysis_lister.refresh.update_registry") as workflow,
         ):
-            module.main(["--force"])
+            cli.main(["build-registry", "--allow-count-drop"])
         workflow.assert_called_once_with(cli.CSV_DIR, cli.SNAPSHOT_PATH, force=True)
+
+    def test_offline_cli_never_reads_credentials(self):
+        with (
+            patch.object(cli, "configure_logging"),
+            patch.object(
+                download.CookieManager,
+                "load_cookies",
+                side_effect=AssertionError("credentials read"),
+            ),
+            patch("analysis_lister.refresh.refresh_analysis_lists") as workflow,
+        ):
+            cli.main(["refresh", "--from-html", "saved"])
+        workflow.assert_called_once_with(
+            cli.CSV_DIR,
+            Path("saved"),
+            cli.SNAPSHOT_PATH,
+            force=False,
+            use_local_html=True,
+        )
+
+    def test_invalid_combinations_fail_before_work_starts(self):
+        for flags in (
+            [],
+            ["refresh", "--from-html", "saved", "--login"],
+            ["download", "--from-html", "saved", "--save-html", "saved"],
+            ["render", "--login"],
+            ["download", "--allow-count-drop"],
+            ["refresh", "--force"],
+            ["download", "--debug"],
+        ):
+            with (
+                self.subTest(flags=flags),
+                patch.object(cli, "run") as run,
+                patch("sys.stderr"),
+                self.assertRaises(SystemExit) as error,
+            ):
+                cli.main(flags)
+            self.assertEqual(error.exception.code, 2)
+            run.assert_not_called()
+
+    def test_render_dispatches_explicit_paths(self):
+        with (
+            patch.object(cli, "configure_logging"),
+            patch("analysis_lister.render.render_pages") as render,
+        ):
+            cli.main(["render", "--snapshot", "input.json", "--output-dir", "pages"])
+        render.assert_called_once_with(Path("input.json"), Path("pages"))
 
     def test_offline_mode_ignores_cookie_generation_and_debug(self):
         with (
@@ -109,35 +162,35 @@ assert "bs4" not in sys.modules
                 {"cookies": {"test": "synthetic"}, "debug": False},
             )
 
-    def test_executables_support_help_and_report_failures_without_tracebacks(self):
+    def test_executable_help_errors_and_lookup_validation(self):
         with TemporaryDirectory() as directory:
-            for name in (
-                "download_csv_files",
-                "refresh_analysis_lists",
-                "update_glance_registry",
+            cases = [(["--help"], 0), (["validate-lookups"], 0)]
+            for command in (
+                "refresh",
+                "download",
+                "build-registry",
+                "render",
+                "validate-lookups",
             ):
-                for flags, expected_code in (
-                    (["--help"], 0),
-                    (
-                        ["--use-local-html"]
-                        if name != "update_glance_registry"
-                        else [],
-                        1,
-                    ),
-                ):
-                    with self.subTest(command=name, flags=flags):
-                        result = subprocess.run(
-                            [sys.executable, str(SCRIPTS / f"{name}.py"), *flags],
-                            cwd=directory,
-                            capture_output=True,
-                            text=True,
-                        )
-                        self.assertEqual(
-                            result.returncode, expected_code, result.stderr
-                        )
-                        self.assertNotIn("Traceback", result.stderr)
-                        if expected_code:
-                            self.assertTrue(result.stderr.strip())
+                cases.append(([command, "--help"], 0))
+                flags = [command]
+                if command in ("refresh", "download"):
+                    flags += ["--from-html", "missing"]
+                elif command == "validate-lookups":
+                    flags += ["--snapshot", "missing.json"]
+                cases.append((flags, 1))
+            for flags, expected_code in cases:
+                with self.subTest(flags=flags):
+                    result = subprocess.run(
+                        [sys.executable, str(SCRIPTS / "analysis_lists.py"), *flags],
+                        cwd=directory,
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertEqual(result.returncode, expected_code, result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+                    if expected_code:
+                        self.assertTrue(result.stderr.strip())
 
 
 if __name__ == "__main__":

@@ -329,5 +329,5 @@ def download_options(
         else CookieManager.load_cookies(cookie_file)
     )
     if not cookies:
-        raise ValueError("No cookies found. Use --generate-new-cookies.")
+        raise ValueError("No cookies found. Use --login.")
     return {"cookies": CookieManager.to_requests_format(cookies), "debug": debug}
