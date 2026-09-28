@@ -4,7 +4,6 @@ import csv
 import json
 import logging
 import os
-from collections import Counter
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -14,6 +13,7 @@ import requests
 from attrs import field, frozen
 
 from analysis_lister.glance import field_maps
+from analysis_lister.html_tables import parse_html_table, table_to_rows
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
 logger = logging.getLogger(__name__)
@@ -150,96 +150,27 @@ class DataFetcher:
 
 class HTMLParser:
     @staticmethod
-    def fix_malformed_td(html):
-        """Fix malformed <td> tags where the closing </td> is missing."""
-        import re
-
-        # Look for <td> tags that do not have a closing tag
-        malformed_td_pattern = r"(<td>.*?)(?=<td>)"
-        fixed_html = re.sub(malformed_td_pattern, r"\1</td>", html, flags=re.DOTALL)
-        return fixed_html.replace("\n", " ")
-
-    @staticmethod
     def parse_to_csv(
-        html, output_csv, debug_path: Path | None = None, column_filter=None
-    ):
-        """Parse the HTML table data and save it to a CSV file."""
-        from bs4 import BeautifulSoup
-
-        logger.info(f"Parsing HTML content to extract table data for {output_csv}")
-
-        # Fix malformed <td> tags (glance tables seem to have a lot of these).
-        html = HTMLParser.fix_malformed_td(html)
-
-        soup = BeautifulSoup(html, "html.parser")
-        table = soup.find("table")
-
-        if not table:
-            logger.error(f"No table found in the HTML for {output_csv}")
-            raise ValueError("No table found")
-
+        html: str,
+        output_csv: Path,
+        debug_path: Path | None = None,
+        column_filter: Sequence[str] | None = None,
+    ) -> None:
+        """Save diagnostic HTML, then validate and write a complete CSV table."""
+        source = str(output_csv)
+        logger.info("Parsing HTML content to extract table data for %s", source)
+        table = parse_html_table(html, source=source)
+        # Keep diagnostic HTML even if header or row validation subsequently fails.
         if debug_path is not None:
             debug_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(debug_path, "w", encoding="utf-8") as f:
-                f.write(str(table) + "\n")
-            logger.debug(f"All table rows saved to {debug_path}")
+            debug_path.write_text(str(table) + "\n", encoding="utf-8")
+            logger.debug("All table rows saved to %s", debug_path)
 
-        rows = table.find_all("tr")
-        if not rows:
-            raise ValueError(f"No rows in table for {output_csv}")
-
-        headers = [th.text.strip() for th in rows[0].find_all("th")]
-        selected = [h for h in headers if not column_filter or h in column_filter]
-        duplicates = [h for h, n in Counter(selected).items() if n > 1]
-        if not headers or any(not h for h in selected) or duplicates:
-            raise ValueError(
-                f"Invalid table headers for {output_csv}: duplicates={duplicates}"
-            )
-
-        # Filter headers based on the column_filter, otherwise include all.
-        if column_filter:
-            # A column that GLANCE has renamed would silently turn into an
-            # empty field for every single entry, so stop right here.
-            missing = sorted({col for col in column_filter if col not in headers})
-            if missing:
-                logger.error(
-                    f"Columns missing from the table for {output_csv}: {missing}. "
-                    "GLANCE has probably renamed them; update the field maps in "
-                    "analysis_lister/glance/field_maps.py."
-                )
-                raise ValueError(f"Missing columns for {output_csv}: {missing}")
-
-            header_indices = {
-                index: header
-                for index, header in enumerate(headers)
-                if header in column_filter
-            }
-            logger.info(f"Filtering columns: {list(header_indices.values())}")
-        else:
-            header_indices = dict(enumerate(headers))
-
-        csv_data = [[header_indices[idx] for idx in header_indices]]
-
-        for row_number, row in enumerate(rows[1:], start=2):
-            cells = row.find_all("td")
-            if not cells:
-                continue
-
-            if len(cells) != len(headers):
-                raise ValueError(
-                    f"{output_csv}: table row {row_number}: expected {len(headers)} "
-                    f"cells, found {len(cells)}; cannot safely align the columns"
-                )
-            csv_data.append([cells[idx].text for idx in header_indices])
-
-        if len(csv_data) == 1:
-            raise ValueError(f"No data rows in table for {output_csv}")
-
-        with open(output_csv, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        csv_data = table_to_rows(table, source=source, column_filter=column_filter)
+        with output_csv.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.writer(stream, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
-
-        logger.info(f"CSV file successfully generated: {output_csv}")
+        logger.info("CSV file successfully generated: %s", output_csv)
 
 
 @frozen
