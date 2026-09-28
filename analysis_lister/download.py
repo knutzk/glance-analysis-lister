@@ -5,11 +5,13 @@ import json
 import logging
 import os
 from collections import Counter
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import requests
+from attrs import field, frozen
 
 from analysis_lister.glance import field_maps
 from analysis_lister.storage import CSV_REFRESH_MARKER
@@ -240,16 +242,34 @@ class HTMLParser:
         logger.info(f"CSV file successfully generated: {output_csv}")
 
 
+@frozen
+class DownloadTable:
+    """GLANCE table metadata; destinations are supplied to the workflow separately."""
+
+    name: str
+    url: str
+    columns: tuple[str, ...] = field(converter=tuple)
+    sort_by: str
+
+    @property
+    def csv_filename(self) -> str:
+        return f"{self.name}.csv"
+
+    @property
+    def html_filename(self) -> str:
+        return f"{self.name}.html"
+
+
 @contextmanager
 def staged_csv_files(
-    tasks,
+    tasks: Sequence[DownloadTable],
     csv_dir: Path,
     debug_dir: Path,
     *,
-    cookies=None,
-    use_local_html=False,
-    debug=False,
-):
+    cookies: dict[str, str] | None = None,
+    use_local_html: bool = False,
+    debug: bool = False,
+) -> Iterator[Path]:
     """Yield a complete CSV batch without modifying the current data."""
     csv_dir.mkdir(parents=True, exist_ok=True)
     # Stage on the same filesystem so individual replacements are atomic.
@@ -258,18 +278,18 @@ def staged_csv_files(
     try:
         for task in tasks:
             if use_local_html:
-                html = (debug_dir / task["debug_file"]).read_text(encoding="utf-8")
+                html = (debug_dir / task.html_filename).read_text(encoding="utf-8")
             else:
                 html = DataFetcher.fetch_html(
-                    task["url"], COMMON_PARAMS | task["custom_params"], cookies
+                    task.url, COMMON_PARAMS | {"s[0][name]": task.sort_by}, cookies
                 )
             HTMLParser.parse_to_csv(
                 html,
-                staging / task["output_csv"].name,
-                debug_dir / task["debug_file"]
+                staging / task.csv_filename,
+                debug_dir / task.html_filename
                 if debug and not use_local_html
                 else None,
-                task["column_filter"],
+                task.columns,
             )
         yield staging
     finally:
@@ -279,50 +299,40 @@ def staged_csv_files(
             temporary.cleanup()
 
 
-def download_tasks(csv_dir: Path):
-    """Return the four GLANCE table definitions."""
-    return [
-        {
-            "name": "analyses",
-            "url": URLS["analyses"],
-            "output_csv": csv_dir / "analyses.csv",
-            "debug_file": "analyses.html",
-            "column_filter": field_maps.REQUIRED_COLUMNS_ANALYSIS,
-            "custom_params": {"s[0][name]": "reference_code"},
-        },
-        {
-            "name": "papers",
-            "url": URLS["papers"],
-            "output_csv": csv_dir / "papers.csv",
-            "debug_file": "papers.html",
-            "column_filter": field_maps.REQUIRED_COLUMNS_PAPER,
-            "custom_params": {"s[0][name]": "reference_code"},
-        },
-        {
-            "name": "pubnotes",
-            "url": URLS["pubnotes"],
-            "output_csv": csv_dir / "pubnotes.csv",
-            "debug_file": "pubnotes.html",
-            "column_filter": field_maps.REQUIRED_COLUMNS_PUBNOTE,
-            "custom_params": {"s[0][name]": "final_ref_code"},
-        },
-        {
-            "name": "confnotes",
-            "url": URLS["confnotes"],
-            "output_csv": csv_dir / "confnotes.csv",
-            "debug_file": "confnotes.html",
-            "column_filter": field_maps.REQUIRED_COLUMNS_CONFNOTE,
-            "custom_params": {"s[0][name]": "final_ref_code"},
-        },
-    ]
+def download_tasks() -> tuple[DownloadTable, ...]:
+    """Return immutable table definitions independent of output directories."""
+    return (
+        DownloadTable(
+            "analyses",
+            URLS["analyses"],
+            tuple(field_maps.REQUIRED_COLUMNS_ANALYSIS),
+            "reference_code",
+        ),
+        DownloadTable(
+            "papers",
+            URLS["papers"],
+            tuple(field_maps.REQUIRED_COLUMNS_PAPER),
+            "reference_code",
+        ),
+        DownloadTable(
+            "pubnotes",
+            URLS["pubnotes"],
+            tuple(field_maps.REQUIRED_COLUMNS_PUBNOTE),
+            "final_ref_code",
+        ),
+        DownloadTable(
+            "confnotes",
+            URLS["confnotes"],
+            tuple(field_maps.REQUIRED_COLUMNS_CONFNOTE),
+            "final_ref_code",
+        ),
+    )
 
 
-def download_options(
-    cookie_file: Path, *, use_local_html=False, generate_new_cookies=False, debug=False
-):
-    """Resolve authentication for a download; offline operation never reads cookies."""
-    if use_local_html:
-        return {"use_local_html": True}
+def resolve_cookies(
+    cookie_file: Path, *, generate_new_cookies: bool = False
+) -> dict[str, str]:
+    """Load or generate credentials for a live download."""
     cookies = (
         CookieManager.generate_cookies(cookie_file)
         if generate_new_cookies
@@ -330,4 +340,4 @@ def download_options(
     )
     if not cookies:
         raise ValueError("No cookies found. Use --login.")
-    return {"cookies": CookieManager.to_requests_format(cookies), "debug": debug}
+    return CookieManager.to_requests_format(cookies)

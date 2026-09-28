@@ -5,9 +5,10 @@ Paths are supplied by callers. Run refreshes and registry builds sequentially.
 
 import logging
 import shutil
+from collections.abc import Sequence
 from pathlib import Path
 
-from analysis_lister.download import download_tasks, staged_csv_files
+from analysis_lister.download import DownloadTable, download_tasks, staged_csv_files
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.lookup_dicts.reporting import discard_lookup_notices, lookup_report
 from analysis_lister.storage import CSV_REFRESH_MARKER, atomic_write_text
@@ -135,10 +136,25 @@ def publish_csv_batch(
     marker.unlink()
 
 
-def refresh_csv_files(tasks, csv_dir: Path, debug_dir: Path, **options):
+def refresh_csv_files(
+    tasks: Sequence[DownloadTable],
+    csv_dir: Path,
+    debug_dir: Path,
+    *,
+    cookies: dict[str, str] | None = None,
+    use_local_html: bool = False,
+    debug: bool = False,
+) -> None:
     """Fetch and publish CSVs only, for the standalone download command."""
-    with staged_csv_files(tasks, csv_dir, debug_dir, **options) as staging:
-        publish_csv_batch(staging, csv_dir, [t["output_csv"].name for t in tasks])
+    with staged_csv_files(
+        tasks,
+        csv_dir,
+        debug_dir,
+        cookies=cookies,
+        use_local_html=use_local_html,
+        debug=debug,
+    ) as staging:
+        publish_csv_batch(staging, csv_dir, [t.csv_filename for t in tasks])
     logger.info("Published complete CSV batch.")
 
 
@@ -149,17 +165,31 @@ def update_registry(csv_dir: Path, snapshot_path: Path, *, force=False):
 
 
 def refresh_analysis_lists(
-    csv_dir: Path, debug_dir: Path, snapshot_path: Path, *, force=False, **options
-):
+    csv_dir: Path,
+    debug_dir: Path,
+    snapshot_path: Path,
+    *,
+    force: bool = False,
+    cookies: dict[str, str] | None = None,
+    use_local_html: bool = False,
+    debug: bool = False,
+) -> None:
     """Stage and validate all inputs before publishing CSVs and JSON together."""
-    tasks = download_tasks(csv_dir)
-    with staged_csv_files(tasks, csv_dir, debug_dir, **options) as staging:
+    tasks = download_tasks()
+    with staged_csv_files(
+        tasks,
+        csv_dir,
+        debug_dir,
+        cookies=cookies,
+        use_local_html=use_local_html,
+        debug=debug,
+    ) as staging:
         registry = build_registry(staging, snapshot_path, force=force)
         registry.store_json(staging / snapshot_path.name)
         publish_csv_batch(
             staging,
             csv_dir,
-            [t["output_csv"].name for t in tasks],
+            [t.csv_filename for t in tasks],
             snapshot_path=snapshot_path,
         )
     logger.info(

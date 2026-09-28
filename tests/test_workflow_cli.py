@@ -39,9 +39,7 @@ assert "bs4" not in sys.modules
             with (
                 self.subTest(command=name),
                 patch.object(cli, "configure_logging"),
-                patch.object(
-                    download, "download_options", return_value={"cookies": {}}
-                ) as auth,
+                patch.object(download, "resolve_cookies", return_value={}) as auth,
                 patch("analysis_lister.refresh." + operation) as workflow,
             ):
                 flags = [
@@ -59,9 +57,7 @@ assert "bs4" not in sys.modules
                 cli.main(flags)
                 auth.assert_called_once_with(
                     Path("session.json"),
-                    debug=True,
                     generate_new_cookies=True,
-                    use_local_html=False,
                 )
                 if name == "refresh":
                     workflow.assert_called_once_with(
@@ -70,13 +66,17 @@ assert "bs4" not in sys.modules
                         Path("registry.json"),
                         force=True,
                         cookies={},
+                        use_local_html=False,
+                        debug=True,
                     )
                 else:
                     workflow.assert_called_once_with(
-                        download.download_tasks(Path("csv")),
+                        download.download_tasks(),
                         Path("csv"),
                         Path("html"),
                         cookies={},
+                        use_local_html=False,
+                        debug=True,
                     )
 
     def test_registry_command_forwards_count_override(self):
@@ -104,6 +104,8 @@ assert "bs4" not in sys.modules
             cli.SNAPSHOT_PATH,
             force=False,
             use_local_html=True,
+            cookies=None,
+            debug=False,
         )
 
     def test_invalid_combinations_fail_before_work_starts(self):
@@ -134,32 +136,29 @@ assert "bs4" not in sys.modules
             cli.main(["render", "--snapshot", "input.json", "--output-dir", "pages"])
         render.assert_called_once_with(Path("input.json"), Path("pages"))
 
-    def test_offline_mode_ignores_cookie_generation_and_debug(self):
-        with (
-            patch.object(download.CookieManager, "generate_cookies") as generate,
-            patch.object(download.CookieManager, "load_cookies") as load,
-        ):
-            options = download.download_options(
-                Path("unused.json"),
-                use_local_html=True,
-                generate_new_cookies=True,
-                debug=True,
+    def test_login_passes_cookie_path_and_returns_credentials(self):
+        with patch.object(
+            download.CookieManager,
+            "generate_cookies",
+            return_value=[{"name": "session", "value": "synthetic"}],
+        ) as generate:
+            cookies = download.resolve_cookies(
+                Path("session.json"), generate_new_cookies=True
             )
-        self.assertEqual(options, {"use_local_html": True})
-        generate.assert_not_called()
-        load.assert_not_called()
+        generate.assert_called_once_with(Path("session.json"))
+        self.assertEqual(cookies, {"session": "synthetic"})
 
     def test_cookie_path_is_supplied_by_caller(self):
         with TemporaryDirectory() as directory:
             cookie_file = Path(directory) / "session.json"
             with self.assertRaisesRegex(ValueError, "No cookies found"):
-                download.download_options(cookie_file)
+                download.resolve_cookies(cookie_file)
             download.CookieManager.save_cookies(
                 [{"name": "test", "value": "synthetic"}], cookie_file
             )
             self.assertEqual(
-                download.download_options(cookie_file),
-                {"cookies": {"test": "synthetic"}, "debug": False},
+                download.resolve_cookies(cookie_file),
+                {"test": "synthetic"},
             )
 
     def test_executable_help_errors_and_lookup_validation(self):

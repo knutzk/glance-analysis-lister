@@ -90,14 +90,13 @@ def parser():
 def run(args):
     """Dispatch a parsed command; import optional download code only when needed."""
     if args.command in ("refresh", "download"):
-        from analysis_lister.download import download_options, download_tasks
+        from analysis_lister.download import download_tasks, resolve_cookies
         from analysis_lister.refresh import refresh_analysis_lists, refresh_csv_files
 
-        options = download_options(
-            args.cookies,
-            use_local_html=args.from_html is not None,
-            generate_new_cookies=args.login,
-            debug=args.save_html is not None,
+        cookies = (
+            resolve_cookies(args.cookies, generate_new_cookies=args.login)
+            if args.from_html is None
+            else None
         )
         html_dir = args.from_html or args.save_html or Path("debug")
         if args.command == "refresh":
@@ -106,11 +105,18 @@ def run(args):
                 html_dir,
                 args.snapshot,
                 force=args.allow_count_drop,
-                **options,
+                cookies=cookies,
+                use_local_html=args.from_html is not None,
+                debug=args.save_html is not None,
             )
         else:
             refresh_csv_files(
-                download_tasks(args.csv_dir), args.csv_dir, html_dir, **options
+                download_tasks(),
+                args.csv_dir,
+                html_dir,
+                cookies=cookies,
+                use_local_html=args.from_html is not None,
+                debug=args.save_html is not None,
             )
     elif args.command == "build-registry":
         from analysis_lister.refresh import update_registry

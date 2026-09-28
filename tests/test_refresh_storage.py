@@ -32,13 +32,12 @@ class CsvBatchTests(unittest.TestCase):
             output.write_text(f"old {name}\n")
             (self.debug_dir / f"{name}.html").write_text(HTML)
             self.tasks.append(
-                {
-                    "output_csv": output,
-                    "debug_file": f"{name}.html",
-                    "column_filter": ["Reference Code"],
-                    "url": f"https://example.test/{name}",
-                    "custom_params": {},
-                }
+                downloader.DownloadTable(
+                    name=name,
+                    url=f"https://example.test/{name}",
+                    columns=("Reference Code",),
+                    sort_by="reference_code",
+                )
             )
         self.original = {p.name: p.read_bytes() for p in self.csv_dir.iterdir()}
 
@@ -55,10 +54,43 @@ class CsvBatchTests(unittest.TestCase):
         )
         for task in self.tasks:
             self.assertEqual(
-                task["output_csv"].read_text(), '"Reference Code"\n"new"\n'
+                (self.csv_dir / task.csv_filename).read_text(),
+                '"Reference Code"\n"new"\n',
             )
         self.assertTrue(keep.exists())
         self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+
+    def test_table_definitions_can_be_reused_with_different_destinations(self):
+        for name in ("first", "second"):
+            destination = self.root / name
+            refresh.refresh_csv_files(
+                self.tasks, destination, self.debug_dir, use_local_html=True
+            )
+            for task in self.tasks:
+                self.assertEqual(
+                    (destination / task.csv_filename).read_text(),
+                    '"Reference Code"\n"new"\n',
+                )
+        self.assert_original()
+
+    def test_table_metadata_controls_live_requests(self):
+        table = downloader.DownloadTable(
+            "notes", "https://example.test/notes", ("Reference Code",), "final_ref_code"
+        )
+        with patch.object(
+            downloader.DataFetcher, "fetch_html", return_value=HTML
+        ) as fetch:
+            refresh.refresh_csv_files(
+                (table,), self.csv_dir, self.debug_dir, cookies={"session": "synthetic"}
+            )
+        fetch.assert_called_once_with(
+            table.url,
+            downloader.COMMON_PARAMS | {"s[0][name]": "final_ref_code"},
+            {"session": "synthetic"},
+        )
+        self.assertEqual(
+            (self.csv_dir / "notes.csv").read_text(), '"Reference Code"\n"new"\n'
+        )
 
     def test_debug_tables_use_the_supplied_directory(self):
         debug_dir = self.root / "diagnostics" / "tables"
@@ -67,7 +99,7 @@ class CsvBatchTests(unittest.TestCase):
                 self.tasks, self.csv_dir, debug_dir, cookies={}, debug=True
             )
         for task in self.tasks:
-            self.assertEqual((debug_dir / task["debug_file"]).read_text(), HTML + "\n")
+            self.assertEqual((debug_dir / task.html_filename).read_text(), HTML + "\n")
 
     def test_bad_final_table_preserves_entire_old_batch(self):
         for html in (
@@ -122,7 +154,7 @@ class CsvBatchTests(unittest.TestCase):
 
     def test_first_download_failure_leaves_no_partial_csvs(self):
         for task in self.tasks:
-            task["output_csv"].unlink()
+            (self.csv_dir / task.csv_filename).unlink()
         replace = Path.replace
 
         def fail_second(source, target):

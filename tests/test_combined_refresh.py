@@ -23,18 +23,18 @@ class CombinedRefreshTests(unittest.TestCase):
         self.json_dir = self.root / "json"
         for directory in (self.csv_dir, self.debug_dir, self.json_dir):
             directory.mkdir()
-        for task in downloader.download_tasks(self.csv_dir):
-            columns = list(dict.fromkeys(task["column_filter"]))
+        for task in downloader.download_tasks():
+            columns = list(dict.fromkeys(task.columns))
             values = dict.fromkeys(columns, "")
             values["Reference Code"] = (
-                "ANA-TOPQ-2025-01" if task["name"] == "analyses" else "TOPQ-2000-01"
+                "ANA-TOPQ-2025-01" if task.name == "analyses" else "TOPQ-2000-01"
             )
-            if task["name"] in ("confnotes", "pubnotes"):
-                prefix = "CONF" if task["name"] == "confnotes" else "PUB"
+            if task.name in ("confnotes", "pubnotes"):
+                prefix = "CONF" if task.name == "confnotes" else "PUB"
                 values["Temporary Reference Code"] = f"{prefix}-TOPQ-2000-01"
             values["Status"] = " Phase 0 is  Active "
             values["Subgroups"] = "TOPQ - Cross-section"
-            if task["name"] == "analyses":
+            if task.name == "analyses":
                 self.analysis_row = values
             table = (
                 "<table><tr>"
@@ -43,8 +43,8 @@ class CombinedRefreshTests(unittest.TestCase):
                 + "".join(f"<td>{html.escape(values[col])}</td>" for col in columns)
                 + "</tr></table>"
             )
-            (self.debug_dir / task["debug_file"]).write_text(table)
-            task["output_csv"].write_text("previous CSV\n")
+            (self.debug_dir / task.html_filename).write_text(table)
+            (self.csv_dir / task.csv_filename).write_text("previous CSV\n")
         self.snapshot = self.json_dir / "glance_registry.json"
         self.write_baseline(1)
 
@@ -73,15 +73,12 @@ class CombinedRefreshTests(unittest.TestCase):
                 side_effect=AssertionError("offline mode must not fetch"),
             ),
         ):
-            options = downloader.download_options(
-                self.root / "cookies.json", use_local_html=True
-            )
             refresh.refresh_analysis_lists(
                 self.csv_dir,
                 self.debug_dir,
                 self.snapshot,
                 force=force,
-                **options,
+                use_local_html=True,
             )
 
     def assert_unchanged(self):
