@@ -11,8 +11,9 @@ others require more intricate parsing, handled in the post-init method.
 """
 
 import logging
+from typing import Self
 
-from attrs import define, field, validators
+from attrs import define, field, fields, validators
 
 from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS, apply_field_map
@@ -123,12 +124,16 @@ class Analysis:
         return cls(**parsed)
 
     @classmethod
-    def from_json(cls, data: dict) -> "Analysis":
-        data = data.copy()
-        data.pop("glance_url_analysis", None)
-        data.pop("pub_state", None)
-        data.pop("software_release", None)
+    def from_json(cls, data: dict) -> Self:
+        """Reconstruct inputs and recompute all attrs-derived fields.
 
+        Only fields declared init=False are discarded. Unexpected input keys
+        still raise a constructor error rather than being silently ignored.
+        """
+        data = data.copy()
+        for attribute in fields(cls):
+            if not attribute.init:
+                data.pop(attribute.name, None)
         return cls(**data)
 
     def determine_release(self):

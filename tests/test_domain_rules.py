@@ -11,6 +11,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from attrs import asdict, define, field
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.confnote import ConfNote
@@ -318,6 +320,36 @@ class PublicationSelectionTests(unittest.TestCase):
 
 
 class RegistryRoundTripTests(unittest.TestCase):
+    def test_inherited_json_loader_recomputes_new_derived_fields(self):
+        @define
+        class ExtendedAnalysis(Analysis):
+            summary: str = field(init=False)
+
+            def __attrs_post_init__(self):
+                super().__attrs_post_init__()
+                self.summary = f"{self.ref_code}: {self.status}"
+
+        original = analysis()
+        payload = asdict(original) | {"summary": "stale"}
+        restored = ExtendedAnalysis.from_json(payload)
+        self.assertEqual(restored.summary, f"{original.ref_code}: {original.status}")
+        self.assertEqual(payload["summary"], "stale")
+        self.assertEqual(restored.pub_state, original.pub_state)
+
+    def test_model_loaders_reject_unknown_fields_without_mutating_payload(self):
+        for entry in (
+            analysis(),
+            publication(Paper),
+            publication(ConfNote),
+            publication(PubNote),
+        ):
+            with self.subTest(kind=type(entry).__name__):
+                payload = asdict(entry) | {"unexpected_field": "not part of the model"}
+                original_payload = payload.copy()
+                with self.assertRaisesRegex(TypeError, "unexpected_field"):
+                    type(entry).from_json(payload)
+                self.assertEqual(payload, original_payload)
+
     def test_legacy_snapshot_without_threshold_keeps_the_default_cutoff(self):
         older = publication(
             Paper,

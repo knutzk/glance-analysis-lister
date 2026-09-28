@@ -87,19 +87,6 @@ class Paper(Analysis):
 
         return cls(**get_init_fields(base, cls), **paper_fields)
 
-    @classmethod
-    def from_json(cls, data: dict) -> "Paper":
-        data = data.copy()
-        data.pop("glance_url_analysis", None)
-        data.pop("pub_state", None)
-        data.pop("software_release", None)
-        data.pop("dois", None)
-        data.pop("glance_url_publ", None)
-        data.pop("journal_ref", None)
-        data.pop("journal_ref_corrections", None)
-
-        return cls(**data)
-
     def determine_paper_status(self):
         """Determine the status of the paper.
 
