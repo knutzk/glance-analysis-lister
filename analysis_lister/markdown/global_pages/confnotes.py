@@ -9,6 +9,7 @@ from pathlib import Path
 from analysis_lister.glance.confnote import ConfNote
 
 from .. import utils
+from .note_table import write_note_table
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def confnotes(
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)
         _write_intro(_f, confnotes)
-        _write_confnote_table(_f, confnotes)
+        write_note_table(_f, confnotes)
 
 
 def _write_header(_f, last_modified: str):
@@ -52,22 +53,3 @@ def _write_intro(_f, confnotes: list[ConfNote]):
         "Notes that a later publication has superseded, and notes whose "
         "analysis has been closed, are not listed.\n\n"
     )
-
-
-def _write_confnote_table(_f, confnotes: list[ConfNote]):
-    """Write the table of conference notes."""
-    logger.info("Writing conference note table.")
-
-    _f.write("\n\n")
-    _f.write("| Identifier | Analysis | Title | Subgroup | Date |\n")
-    _f.write("| --- | --- | --- | --- | --- |\n")
-
-    for cn in confnotes:
-        logger.debug(f"Adding conference note {cn.final_ref_code} to table.")
-        _f.write(
-            f"| [{utils.format_note_id(cn)}]({cn.final_url}) "
-            f"| {cn.ref_code.replace('-', '&#8209;')} "
-            f"| {cn.title_short.replace('|', '/')} "
-            f"| {utils.format_subgroup_codes(cn.subgroups)} "
-            f"| {cn.date_signoff.replace('-', '&#8209;')} |\n"
-        )
