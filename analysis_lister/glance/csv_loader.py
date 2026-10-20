@@ -52,6 +52,9 @@ def load_csv_registry(
     rows = read_csv_rows(
         paths[0], REQUIRED_COLUMNS_ANALYSIS, key="Reference Code", prefix="ANA-"
     )
+    analysis_short_titles = {
+        row["Reference Code"].removeprefix("ANA-"): row["Short Title"] for row in rows
+    }
     entries = sorted(
         (Analysis.from_csv_dict(row) for row in rows), key=lambda entry: entry.ref_code
     )
@@ -93,7 +96,13 @@ def load_csv_registry(
     ):
         logger.debug("Loading list of %s records from file %s", label, path.name)
         rows = read_csv_rows(path, columns, key=key, prefix=prefix)
-        enriched, unmatched = registry.enrich(rows, cls, key=key, prefix=prefix)
+        enriched, unmatched = registry.enrich(
+            rows,
+            cls,
+            key=key,
+            prefix=prefix,
+            analysis_short_titles=analysis_short_titles,
+        )
         log_enrichment(label, enriched, unmatched, len(getattr(registry, listed)))
     registry.log_unaccounted()
     logger.info("%s", registry)

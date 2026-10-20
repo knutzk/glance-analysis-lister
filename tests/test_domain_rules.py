@@ -93,6 +93,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         )
         if cls is PubNote:
             row["Status"] = " Phase 1 is  Active "
+            row["Short Title"] = "Synthetic title"
     row.update(changes)
     return row
 
@@ -173,6 +174,104 @@ class EnrichmentRulesTests(unittest.TestCase):
                     self.assertEqual(self.enrich(collection, cls), (0, 0))
                 self.assertIs(collection.get(original.ref_code), original)
                 self.assertIn("listed twice", logs.output[0])
+
+    def test_pub_matching_requires_identical_nonempty_short_title(self):
+        for title in (
+            "Synthetic title",
+            "Different title",
+            "synthetic title",
+            "Synthetic title ",
+            "",
+        ):
+            with self.subTest(title=title):
+                base = analysis(status=FINISHED)
+                collection = registry(base)
+                counts = self.enrich(collection, PubNote, **{"Short Title": title})
+                matches = title == "Synthetic title"
+                self.assertEqual(counts, (int(matches), int(not matches)))
+                if matches:
+                    self.assertIsInstance(collection.get(base.ref_code), PubNote)
+                else:
+                    self.assertIs(collection.get(base.ref_code), base)
+        collection = registry(analysis(status=FINISHED, **{"Short Title": ""}))
+        self.assertEqual(
+            self.enrich(collection, PubNote, **{"Short Title": ""}), (0, 1)
+        )
+
+    def test_pub_matching_uses_original_titles_before_display_escaping(self):
+        base = analysis(status=FINISHED, **{"Short Title": "Synthetic | title"})
+        collection = registry(base)
+        row = publication_row(PubNote, **{"Short Title": "Synthetic | title"})
+        self.assertEqual(
+            collection.enrich(
+                [row],
+                PubNote,
+                key="Temporary Reference Code",
+                prefix="PUB-",
+                analysis_short_titles={base.ref_code: "Synthetic | title"},
+            ),
+            (1, 0),
+        )
+
+    def test_unmatched_pubnote_retains_own_metadata_and_roundtrips(self):
+        for ref in ("TOPQ-2099-01", "TOPQ-2099-99"):
+            with self.subTest(ref=ref):
+                base = analysis(status=CLOSED)
+                collection = registry(base)
+                row = publication_row(
+                    PubNote,
+                    ref,
+                    **{
+                        "Short Title": "Independent synthetic title",
+                        "Full Title": "Independent synthetic full title",
+                        "Creation Date": "2099-01-02",
+                        "Subroups": "TOPQ - Cross-section",
+                        "Analysis Team": "Synthetic Person",
+                    },
+                )
+                with self.assertNoLogs(level="WARNING"):
+                    self.assertEqual(
+                        collection.enrich(
+                            [row],
+                            PubNote,
+                            key="Temporary Reference Code",
+                            prefix="PUB-",
+                        ),
+                        (0, 1),
+                    )
+                note = collection.get(f"PUB-{ref}")
+                self.assertEqual(note.title_short, "Independent synthetic title")
+                self.assertEqual(note.contacts, "Synthetic Person")
+                self.assertEqual(note.date_start, "2099-01-02")
+                self.assertEqual(note.glance_url_analysis, "")
+                self.assertIn(f"ref_code=PUB-{ref}", note.glance_url_publ)
+                self.assertNotIn("PUB-PUB-", note.glance_url_publ)
+                self.assertEqual(note.pub_state, State.PUBLISHED)
+                self.assertEqual(collection.pubnotes, [note])
+                self.assertIs(collection.get(base.ref_code), base)
+                restored = PubNote.from_json(asdict(note))
+                self.assertEqual(restored.pub_state, State.PUBLISHED)
+                self.assertEqual(restored.glance_url_analysis, "")
+
+    def test_independent_pubnote_uses_own_lifecycle(self):
+        for status, expected in (
+            (" Publication is  Closed ", State.CLOSED),
+            (" Phase 1 is  Not started ", State.INACTIVE),
+            (" Phase 1 is  Active ", State.PHASE1_OR_2),
+        ):
+            with self.subTest(status=status):
+                row = publication_row(
+                    PubNote,
+                    **{
+                        "Status": status,
+                        "Final URL": "",
+                        "Reference Code": "PUB-TOPQ-2099-01  TEMP ",
+                    },
+                )
+                note = PubNote.from_csv_dict(row)
+                self.assertEqual(note.pub_state, expected)
+                self.assertFalse(note.is_ongoing())
+                self.assertEqual(registry(note).analyses, [])
 
     def test_unmatched_publication_does_not_create_an_analysis(self):
         collection = registry(analysis("TOPQ-2099-99", FINISHED))
