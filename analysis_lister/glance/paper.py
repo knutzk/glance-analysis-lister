@@ -102,6 +102,8 @@ class Paper(Analysis):
         """
         if self.status == " Phase 0 is  Not started ":
             return PublicationState.NOT_STARTED
+        if self.status_paper == " Publication is  Closed ":
+            return PublicationState.CLOSED
         if self.status_paper in (
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
@@ -127,10 +129,19 @@ class Paper(Analysis):
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
         # Unstarted analyses stay excluded even with copied publication data.
+        # Analysis and publication may also have been closed together.
         # Warn about other base states that have not finished phase 0.
-        if self.pub_state not in (
-            PublicationState.PAST_PHASE0,
-            PublicationState.NOT_STARTED,
+        closed_together = (
+            self.pub_state == PublicationState.CLOSED
+            and self.status_paper == " Publication is  Closed "
+        )
+        if (
+            self.pub_state
+            not in (
+                PublicationState.PAST_PHASE0,
+                PublicationState.NOT_STARTED,
+            )
+            and not closed_together
         ):
             logger.warning(
                 "Paper %s has state '%s' while it should be '%s'",

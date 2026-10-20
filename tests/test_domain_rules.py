@@ -182,6 +182,31 @@ class EnrichmentRulesTests(unittest.TestCase):
 
 
 class PublicationSelectionTests(unittest.TestCase):
+    def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
+        for dates in (
+            {"arXiv Submission Date": "", "Publication Date": ""},
+            {"arXiv Submission Date": "2099-01-01", "Publication Date": "2099-02-01"},
+        ):
+            with self.subTest(dates=dates), self.assertNoLogs(level="WARNING"):
+                entry = publication(
+                    Paper,
+                    base_status=CLOSED,
+                    **({"Status": " Publication is  Closed "} | dates),
+                )
+                self.assertEqual(entry.pub_state, State.CLOSED)
+                restored = Paper.from_json(asdict(entry) | {"pub_state": "UNKNOWN"})
+                self.assertEqual(restored.pub_state, State.CLOSED)
+            collection = registry(entry)
+            for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+                self.assertEqual(getattr(collection, view), [], view)
+
+    def test_closed_analysis_with_active_publication_still_warns(self):
+        with self.assertLogs(level="WARNING") as logs:
+            entry = publication(Paper, base_status=CLOSED)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("while it should be", logs.output[0])
+        self.assertEqual(entry.pub_state, State.PUBLISHED)
+
     def test_not_started_is_distinct_and_excluded_even_with_dates_or_publication_data(
         self,
     ):
