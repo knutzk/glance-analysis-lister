@@ -7,14 +7,23 @@ import ast
 import re
 from pathlib import Path
 
+from ..citation_store import citation_problem, default_store_path, load_store
+
 TABLES = {
     "short_titles.py": "ShortTitles",
-    "journal_refs.py": "JournalRefs",
     "known_duplicates.py": "KnownDuplicates",
     "doi_order.py": "DoiOrder",
 }
 REF_CODE = re.compile(r"[A-Z][A-Z0-9]+-\d{4}-\d+")
 DOI = re.compile(r"10\.\d{4,9}/\S+")
+
+
+def lookup_tables(directory):
+    """Private directories may still supply the optional legacy citation table."""
+    tables = TABLES.copy()
+    if (directory / "journal_refs.py").is_file():
+        tables["journal_refs.py"] = "JournalRefs"
+    return tables
 
 
 def _matches(pattern, value):
@@ -33,6 +42,8 @@ def _has_provenance(lines, key_line):
 
 
 def _value_error(table, value):
+    if table == "JournalRefs":
+        return citation_problem(value)
     if table == "KnownDuplicates":
         return (
             None if _matches(REF_CODE, value) else "expected an analysis reference code"
@@ -105,11 +116,21 @@ def _read_table(path, table, errors):
         if not _matches(pattern, key):
             errors.append(f"{location}: invalid {table} key {key!r}")
             continue
-        if key in first_lines:
+        identity = key.lower() if table == "JournalRefs" else key
+        if identity in first_lines:
             errors.append(
-                f"{location}: duplicate key {key!r}; first defined on line {first_lines[key]}"
+                f"{location}: duplicate key {key!r}; first defined on line {first_lines[identity]}"
             )
-        first_lines.setdefault(key, line)
+        first_lines.setdefault(identity, line)
+        if table == "JournalRefs" and isinstance(value_node, ast.Dict):
+            field_names = [ast.literal_eval(field) for field in value_node.keys]
+            repeated = sorted(
+                {repr(name) for name in field_names if field_names.count(name) > 1}
+            )
+            if repeated:
+                errors.append(
+                    f"{location}: {key}: duplicate citation fields {repeated}"
+                )
         if table in {"KnownDuplicates", "DoiOrder"} and not _has_provenance(
             source.splitlines(), line
         ):
@@ -131,11 +152,16 @@ def validate_lookups(directory: Path | None = None):
     Historical entries need not belong to today's snapshot. DOI overrides are
     additionally checked against actual paper DOIs when each Paper is loaded.
     """
-    directory = directory if directory is not None else Path(__file__).resolve().parent
+    if directory is None:
+        directory = Path(__file__).resolve().parent
+        definitions = TABLES
+        load_store(default_store_path())
+    else:
+        definitions = lookup_tables(directory)
     errors = []
     tables = {
         table: _read_table(directory / filename, table, errors)
-        for filename, table in TABLES.items()
+        for filename, table in definitions.items()
     }
     duplicates = tables["KnownDuplicates"]
     reported = set()

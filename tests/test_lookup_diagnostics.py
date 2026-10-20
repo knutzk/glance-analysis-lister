@@ -46,7 +46,7 @@ class LookupDiagnosticsTests(unittest.TestCase):
         for message, doi, role in zip(
             logs.output, dois, ("original article", "correction"), strict=True
         ):
-            for expected in ("TOPQ-2099-01", doi, role, "lookup_dicts/journal_refs.py"):
+            for expected in ("TOPQ-2099-01", doi, role, "json/doi_metadata.json"):
                 self.assertIn(expected, message)
         self.assertEqual(paper.journal_ref, "")
         self.assertEqual(paper.journal_ref_corrections, [""])

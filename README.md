@@ -157,17 +157,18 @@ The default destination is `obsidian_output/`.
 ## Private lookup dictionaries
 
 The package includes public DOI references and empty short-title defaults.
-To supply your own titles and overrides, keep these four literal dictionaries
+To supply your own titles and overrides, keep these three literal dictionaries
 in a separate local directory:
 
 | File | Dictionary |
 | --- | --- |
 | `short_titles.py` | `ShortTitles` |
-| `journal_refs.py` | `JournalRefs` |
 | `known_duplicates.py` | `KnownDuplicates` |
 | `doi_order.py` | `DoiOrder` |
 
-Each file must define its dictionary as a literal; empty dictionaries are valid.
+An optional legacy `journal_refs.py` / `JournalRefs` dictionary is still accepted
+for private citation overrides. Each Python lookup file must define its dictionary
+as a literal; empty dictionaries are valid.
 For example, `short_titles.py` can contain:
 
 ```python
@@ -186,6 +187,74 @@ replace the package defaults for that operation. Without this option, rendering
 uses the public defaults and titles from the supplied snapshot. Keep credentials,
 registry snapshots, downloaded tables, private lookups and generated pages out of
 this repository.
+
+## DOI citation resolution
+
+The single citation dictionary is [json/doi_metadata.json](json/doi_metadata.json).
+It is versioned in Git, with one complete DOI entry per line for readable diffs.
+The wheel and source distribution include the same dictionary. There is no
+separate maintained Python citation dictionary and no merging of seed entries.
+The old `JournalRefs` module is only a compatibility view of this JSON data.
+
+Each record requires `citation` and `source`. Protection follows the source:
+`manual` citations are never replaced automatically; inferred and INSPIRE
+citations can be refreshed explicitly. To protect an edited citation, set its
+source to `manual`. There is no separate `locked` field. Older stores containing
+that field remain readable, but it is ignored and removed on writing.
+`material` is stored only when the publication/correction role is known.
+
+All commands read the dictionary offline. `--doi-cache PATH` selects a separate
+store; a missing custom store starts empty. When working outside a checkout,
+the default path uses the packaged copy until a working-directory store is
+written. Optional private `journal_refs.py` overrides take precedence for the
+operation and are parsed without execution; legacy string values mean manual
+citations. Only `resolve-dois` can make INSPIRE requests.
+
+First infer citations without network access:
+
+```bash
+analysis-lister resolve-dois --snapshot json/all_registry.json --method infer
+```
+
+The initial rule recognises complete JHEP DOIs, for example
+`10.1007/JHEP07(2023)203` → `JHEP 07 (2023) 203`. It records
+`source = "doi-pattern:jhep"`; no `material` field is written:
+the DOI identifies the citation components, but not whether it is a correction.
+
+Then retrieve remaining missing citations from INSPIRE:
+
+```bash
+analysis-lister resolve-dois --snapshot json/all_registry.json --method inspire
+```
+
+Alternatively, `--method auto` tries inference before INSPIRE. Inference is the
+default. Existing entries are skipped; `--refresh-existing` revisits only
+non-manual entries. To enrich inferred citations with correction metadata, run
+`--method inspire --refresh-existing`. Manual entries are never replaced.
+`--limit 10` bounds the number of entries attempted in a run. Individual DOIs
+can be supplied using repeated `--doi` arguments instead of `--snapshot`.
+
+Successful results include provenance and resolution timestamps and are saved
+atomically after each entry. Failed requests, missing records, incomplete
+citations and ambiguous DOI/publication associations remain retryable; failed
+refreshes retain the previous citation. INSPIRE lookups match the requested DOI
+and material to publication information, and label verified errata/addenda.
+They do not change the existing DOI ordering rules or manual order overrides.
+
+INSPIRE requests use a separate session without GLANCE cookies, verified TLS,
+bounded timeouts and retries, and rate limiting. A server-requested pause over
+60 seconds is deferred to a later run. No titles or analysis identifiers are
+sent to INSPIRE, only DOIs. See the
+[INSPIRE API documentation](https://github.com/inspirehep/rest-api-doc) and
+[publication metadata schema](https://github.com/inspirehep/inspire-schemas/blob/master/inspire_schemas/records/hep.yml).
+
+Subsequent `render`, `build-registry`, `refresh` and `export-obsidian` operations
+use the cached citations. The resolver does not rewrite registry snapshots;
+citation fields are reconstructed when a snapshot is loaded. Review and commit
+citation updates as normal data changes. Only this citation JSON and the
+synthetic example JSON are permitted public JSON files; private registries,
+cookies and other generated JSON remain ignored. Run resolution and operations
+that edit the same dictionary sequentially.
 
 ## TLS
 

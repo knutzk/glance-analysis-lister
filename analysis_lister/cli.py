@@ -26,6 +26,21 @@ def _validate_download(command, args):
         command.error("--from-html cannot be combined with --save-html")
 
 
+def _positive_int(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
+
+
+def _validate_resolution(command, args):
+    if (
+        args.snapshot is not None
+        and args.snapshot.resolve() == args.doi_cache.resolve()
+    ):
+        command.error("Citation cache must not overwrite the input snapshot")
+
+
 def parser():
     """Register commands with their option groups, handlers, and validation."""
     lookups = argparse.ArgumentParser(add_help=False)
@@ -33,6 +48,12 @@ def parser():
         "--lookup-dir",
         type=Path,
         help="Directory of private literal lookup dictionaries (never executed).",
+    )
+    lookups.add_argument(
+        "--doi-cache",
+        type=Path,
+        default=Path("json/doi_metadata.json"),
+        help="Persistent citation JSON dictionary (default: %(default)s); read offline if present.",
     )
     csv = argparse.ArgumentParser(add_help=False)
     csv.add_argument(
@@ -152,6 +173,35 @@ def parser():
             name, help=description, description=description, parents=[*parents, lookups]
         )
         sub.set_defaults(handler=handler)
+    resolve = commands.add_parser(
+        "resolve-dois",
+        help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
+        parents=[lookups],
+    )
+    inputs = resolve.add_mutually_exclusive_group(required=True)
+    inputs.add_argument(
+        "--snapshot", type=Path, help="Resolve DOIs found in this registry."
+    )
+    inputs.add_argument(
+        "--doi", action="append", help="DOI or doi.org URL; repeat for multiple DOIs."
+    )
+    resolve.add_argument(
+        "--method",
+        choices=("infer", "inspire", "auto"),
+        default="infer",
+        help="infer: offline JHEP rule; inspire: API only; auto: inference then API (default: %(default)s).",
+    )
+    resolve.add_argument(
+        "--refresh-existing",
+        action="store_true",
+        help="Revisit inferred/INSPIRE entries; manual citations are never replaced.",
+    )
+    resolve.add_argument(
+        "--limit",
+        type=_positive_int,
+        help="Maximum number of missing/unlocked entries to attempt.",
+    )
+    resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     return command
 
 
@@ -234,11 +284,30 @@ def _run_validate_lookups(args):
     print("All analysis lookup dictionaries are valid.")
 
 
+def _run_resolve_dois(args):
+    from analysis_lister.doi_resolver import resolve_dois, snapshot_dois
+
+    dois = snapshot_dois(args.snapshot) if args.snapshot is not None else args.doi
+    summary = resolve_dois(
+        dois,
+        args.doi_cache,
+        method=args.method,
+        refresh=args.refresh_existing,
+        limit=args.limit,
+    )
+    print(
+        "DOI resolution: "
+        + ", ".join(f"{key}={value}" for key, value in summary.items())
+    )
+    print(f"Citation dictionary: {args.doi_cache}")
+
+
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
+    from analysis_lister.citation_store import cached_citations
     from analysis_lister.lookup_dicts.overrides import local_lookups
 
-    with local_lookups(args.lookup_dir):
+    with local_lookups(args.lookup_dir), cached_citations(args.doi_cache):
         args.handler(args)
 
 

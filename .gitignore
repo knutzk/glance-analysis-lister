@@ -13,7 +13,8 @@ cookies.json
 *.json
 !/examples/synthetic_registry.json
 debug/
-json/
+json/*
+!/json/doi_metadata.json
 docs/analyses/
 pages/
 obsidian_output/

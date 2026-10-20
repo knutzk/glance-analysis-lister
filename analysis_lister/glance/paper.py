@@ -17,6 +17,7 @@ import logging
 
 from attrs import define, field
 
+from ..citation_store import citation_text
 from ..lookup_dicts import journal_refs
 from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
@@ -159,14 +160,16 @@ class Paper(Analysis):
         # string keeps them aligned with self.dois[1:].
         refs = []
         for index, doi in enumerate(self.dois):
-            if doi in journal_refs.JournalRefs:
-                refs.append(journal_refs.JournalRefs[doi])
+            key = doi if doi in journal_refs.JournalRefs else doi.lower()
+            if key in journal_refs.JournalRefs:
+                value = journal_refs.JournalRefs[key]
+                refs.append(citation_text(value))
             else:
                 lookup_notice(
                     logger,
                     logging.WARNING,
                     "%s: no journal reference for %s DOI %s; add its citation "
-                    "to analysis_lister/lookup_dicts/journal_refs.py",
+                    "to the citation store using resolve-dois or edit json/doi_metadata.json",
                     self.ref_code,
                     "original article" if index == 0 else "correction",
                     doi,

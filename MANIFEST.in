@@ -2,4 +2,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 include requirements*.txt
+include json/doi_metadata.json
 recursive-include examples *.json *.py *.md

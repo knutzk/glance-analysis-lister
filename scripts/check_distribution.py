@@ -7,6 +7,7 @@ Run after building and installing the wheel in a clean environment:
     python -I scripts/check_distribution.py
 """
 
+import json
 import subprocess
 import sys
 import tarfile
@@ -15,6 +16,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import analysis_lister
+from analysis_lister.citation_store import default_store_path, load_store
 from analysis_lister.download import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.retrieval import load_scope
@@ -39,6 +41,10 @@ def main():
     assert package.locate_file(licences[0]).read_bytes() == licence
     assert not ShortTitles, "Public wheel must have empty short-title defaults"
     assert load_scope().values == (80, 198, 205), "Wheel must bundle the TOPQ scope"
+    citation_path = default_store_path()
+    assert not citation_path.is_relative_to(root), "Must load installed citation data"
+    assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
+    assert load_store(citation_path), "Installed citation dictionary must not be empty"
     with trusted_ca_bundle() as bundle:
         assert INTERMEDIATE_CA.read_bytes() in Path(bundle).read_bytes()
 
@@ -58,6 +64,10 @@ def main():
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()
         )
+        assert (
+            archive.extractfile(prefix + "json/doi_metadata.json").read()
+            == (root / "json/doi_metadata.json").read_bytes()
+        )
 
     with TemporaryDirectory() as directory:
         work = Path(directory)
@@ -68,6 +78,15 @@ def main():
         commands = [
             ["--help"],
             ["validate-lookups", *lookup_flags],
+            [
+                "resolve-dois",
+                "--doi",
+                "10.1007/JHEP07(2099)999",
+                "--method",
+                "infer",
+                "--doi-cache",
+                str(work / "citations.json"),
+            ],
             [
                 "render",
                 "--snapshot",
@@ -96,6 +115,12 @@ def main():
         assert len(list(output.rglob("*.md"))) == 13
         assert len(list((notes / "obs_published").glob("*.md"))) == 1
         assert len(list((notes / "obs_ongoing").glob("*.md"))) == 1
+        citation = json.loads((work / "citations.json").read_text())[
+            "10.1007/jhep07(2099)999"
+        ]
+        assert citation["citation"] == "JHEP 07 (2099) 999"
+        assert citation["source"] == "doi-pattern:jhep"
+        assert "locked" not in citation
 
     print("Installed CLI, synthetic rendering, TLS bundle and licences verified.")
 
