@@ -12,6 +12,7 @@ JSON factories handle loading; CSV validation and timestamps live in csv_loader.
 import json
 import logging
 from collections.abc import Callable, Iterable, Mapping
+from copy import copy
 from enum import Enum
 from pathlib import Path
 
@@ -86,6 +87,22 @@ class GlanceRegistry(_FilteringMixin):
         self.threshold_year = threshold_year
         self.last_modified_time = last_modified_time
         self.apply_clone_rules()
+
+    def select(self, predicate: Callable[[Analysis], bool]):
+        """Return a view with selected entries, preserving full-registry clone rules.
+
+        The mapping is copied; entry objects and snapshot metadata are shared.
+        Exclusions stay based on the full lineage even if a superseding record
+        falls outside the selection.
+        """
+        selected = copy(self)
+        selected._analyses = {
+            ref: entry for ref, entry in self._analyses.items() if predicate(entry)
+        }
+        selected._clone_exclusions = self._clone_exclusions.intersection(
+            selected._analyses
+        )
+        return selected
 
     def apply_clone_rules(self):
         """Recompute clone exclusions after metadata or publication enrichment."""

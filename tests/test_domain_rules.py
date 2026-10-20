@@ -331,6 +331,47 @@ class IndependentPubLoadingTests(unittest.TestCase):
                 )
 
 
+class RenderScopeTests(unittest.TestCase):
+    def test_top_pages_filter_every_publication_type_and_keep_cross_group_entries(self):
+        from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
+
+        included = analysis("DEMO-2099-01", **{"Subgroups": "TOPQ - Cross-section"})
+        outside = analysis("DEMO-2099-02", **{"Subgroups": "OTHER - Synthetic"})
+        other_paper = publication(Paper, "DEMO-2099-03")
+        other_conf = publication(ConfNote, "DEMO-2099-04")
+        other_pub = publication(PubNote, "DEMO-2099-05")
+        for entry in (other_paper, other_conf, other_pub):
+            entry.subgroups = ["OTHER - Synthetic"]
+        collection = registry(included, outside, other_paper, other_conf, other_pub)
+        with TemporaryDirectory() as directory, self.assertNoLogs(level="WARNING"):
+            output = Path(directory)
+            renderer = MarkdownPageRenderer(collection, output, "2020")
+            renderer.write_all()
+            pages = "\n".join(path.read_text() for path in output.rglob("*.md"))
+            self.assertIn(included.ref_code, pages)
+            for entry in (outside, other_paper, other_conf, other_pub):
+                self.assertNotIn(entry.ref_code, pages)
+            self.assertIn(
+                "**All ongoing analyses**: 1", (output / "ongoing.md").read_text()
+            )
+            self.assertEqual(set(renderer.registry.entries), {included.ref_code})
+        self.assertEqual(len(collection.entries), 5)
+
+    def test_registry_selection_preserves_clone_exclusions_and_metadata(self):
+        from analysis_lister.lookup_dicts.clones import Clones
+
+        note = publication(ConfNote, "DEMO-2099-01")
+        paper = publication(Paper, "DEMO-2099-02")
+        with patch.dict(Clones, {paper.ref_code: note.ref_code}, clear=True):
+            collection = registry(note, paper)
+            selected = collection.select(lambda entry: entry is note)
+        self.assertTrue(selected.is_clone_excluded(note.ref_code))
+        self.assertEqual(selected.confnotes, [])
+        self.assertEqual(selected.last_modified_time, collection.last_modified_time)
+        self.assertEqual(selected.threshold_year, collection.threshold_year)
+        self.assertEqual(len(collection.entries), 2)
+
+
 class PublicationSelectionTests(unittest.TestCase):
     def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
         for dates in (
