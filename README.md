@@ -168,6 +168,14 @@ PUB descriptive metadata. Older minimal note CSV exports must be downloaded
 again before rebuilding the registry.
 Existing JSON snapshots remain readable.
 
+## Ignored analyses
+
+`analysis_lister/lookup_dicts/ignored_analyses.py` lists reviewed exceptions with
+reasons. These analysis identifiers stay in snapshots but are excluded from
+output views, view counts and unmatched-record warnings. This does not alter
+GLANCE statuses or create publication links. Independent PUB records retain
+their own identifiers and are unaffected by an ignored ANA identifier.
+
 ## Clone relationships
 
 Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.

@@ -479,6 +479,42 @@ class BaselineDiagnosticTests(unittest.TestCase):
             publication(Paper, base_status=CLOSED)
 
 
+class IgnoredAnalysisTests(unittest.TestCase):
+    def test_ignored_entries_stay_in_snapshot_but_not_views_or_counts(self):
+        from analysis_lister.lookup_dicts.ignored_analyses import IgnoredAnalyses
+
+        entries = [
+            analysis("DEMO-2099-01", FINISHED),
+            analysis("DEMO-2099-02"),
+            publication(Paper, "DEMO-2099-03"),
+            publication(ConfNote, "DEMO-2099-04"),
+            publication(PubNote, "DEMO-2099-05"),
+        ]
+        with patch.dict(
+            IgnoredAnalyses,
+            {entry.ref_code: "Synthetic reviewed exception" for entry in entries},
+            clear=True,
+        ):
+            collection = registry(*entries)
+            self.assertEqual(len(collection.entries), 5)
+            self.assertEqual(collection.count(lambda entry: True), 0)
+            self.assertEqual(
+                sum(collection.count_by_state(lambda entry: True).values()), 0
+            )
+            for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+                self.assertEqual(getattr(collection, view), [])
+            with self.assertNoLogs(level="WARNING"):
+                collection.log_unaccounted()
+            with TemporaryDirectory() as directory:
+                path = Path(directory) / "registry.json"
+                collection.store_json(path)
+                restored = GlanceRegistry.from_json(path)
+                self.assertEqual(len(restored.entries), 5)
+                self.assertEqual(restored.unaccounted, [])
+        self.assertEqual(len(collection.unaccounted), 1)
+        self.assertEqual(len(collection.papers), 1)
+
+
 class PublicationSelectionTests(unittest.TestCase):
     def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
         for dates in (

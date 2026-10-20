@@ -19,6 +19,7 @@ from pathlib import Path
 from attrs import asdict
 
 from ..diagnostics import lookup_notice
+from ..lookup_dicts.ignored_analyses import IgnoredAnalyses
 from ..lookup_review import lookup_review_notices
 from ..lookup_validation import validate_lookups
 from ..retrieval import RetrievalScope
@@ -57,13 +58,17 @@ class _FilteringMixin:
         """Count entries matching a custom filter predicate grouped by publication state."""
         counts = dict.fromkeys(PublicationState, 0)
         for entry in self._analyses.values():
-            if predicate(entry):
+            if entry.ref_code not in IgnoredAnalyses and predicate(entry):
                 counts[entry.pub_state] += 1
         return counts
 
     def filter(self, predicate: Callable[[Analysis], bool]) -> list[Analysis]:
         """Filter analyses based on a custom predicate function."""
-        return [a for a in self._analyses.values() if predicate(a)]
+        return [
+            a
+            for a in self._analyses.values()
+            if a.ref_code not in IgnoredAnalyses and predicate(a)
+        ]
 
 
 class GlanceRegistry(_FilteringMixin):
