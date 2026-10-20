@@ -108,8 +108,8 @@ class RetrievalScope:
 
 
 def load_scope(path: Path | None = None) -> RetrievalScope:
-    """Load a user TOML file, or the bundled backwards-compatible TOPQ scope."""
-    source = path or files("analysis_lister").joinpath("configs/topq.toml")
+    """Load a user TOML file, defaulting to all accessible ATLAS records."""
+    source = path or files("analysis_lister").joinpath("configs/all.toml")
     return RetrievalScope.from_dict(tomllib.loads(source.read_text(encoding="utf-8")))
 
 
@@ -120,9 +120,14 @@ def read_scope(directory: Path) -> RetrievalScope | None:
     return RetrievalScope.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
-def check_scope(scope: RetrievalScope, previous: RetrievalScope | None):
-    """Unlabelled legacy datasets are compatible only with the old default."""
-    if not scope.same_selection(previous or load_scope()):
+def check_scope(scope: RetrievalScope | None, previous: RetrievalScope | None):
+    """Reject unknown or different selections rather than guessing provenance."""
+    if scope is None or previous is None:
+        raise ValueError(
+            "Existing dataset has no retrieval scope metadata. "
+            "Retrieve into fresh CSV and snapshot destinations."
+        )
+    if not scope.same_selection(previous):
         raise ValueError(
             "Retrieval scope differs from the existing dataset. "
             "Use separate CSV and snapshot destinations for a different selection."

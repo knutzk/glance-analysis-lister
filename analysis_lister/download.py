@@ -204,7 +204,7 @@ def staged_csv_files(
     scope = scope or load_scope()
     if any(csv_dir.glob("*.csv")) or (csv_dir / SCOPE_FILENAME).exists():
         check_scope(scope, read_scope(csv_dir))
-    if use_local_html and (debug_dir / SCOPE_FILENAME).exists():
+    if use_local_html:
         check_scope(scope, read_scope(debug_dir))
     csv_dir.mkdir(parents=True, exist_ok=True)
     # Stage on the same filesystem so individual replacements are atomic.

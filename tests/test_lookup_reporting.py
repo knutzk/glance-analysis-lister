@@ -19,6 +19,7 @@ from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TX, XS
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
 from analysis_lister.refresh import compare_to_snapshot
+from analysis_lister.retrieval import load_scope
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ class LookupReportingTests(unittest.TestCase):
 
             def baseline(_):
                 lookup_notice(logger, logging.WARNING, "old gap")
-                return GlanceRegistry()
+                return GlanceRegistry(retrieval_scope=load_scope())
 
             with (
                 patch(
@@ -88,7 +89,12 @@ class LookupReportingTests(unittest.TestCase):
                 self.assertNoLogs(level="WARNING"),
                 lookup_report(),
             ):
-                self.assertEqual(compare_to_snapshot(GlanceRegistry(), path), [])
+                self.assertEqual(
+                    compare_to_snapshot(
+                        GlanceRegistry(retrieval_scope=load_scope()), path
+                    ),
+                    [],
+                )
             with (
                 patch(
                     "analysis_lister.refresh.GlanceRegistry.from_json",

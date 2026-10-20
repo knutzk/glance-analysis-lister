@@ -42,6 +42,11 @@ def load_csv_registry(
         csv_dir / name for name in (analysis_csv, paper_csv, confnote_csv, pubnote_csv)
     ]
     require_complete_csv_batch(csv_dir)
+    scope = read_scope(csv_dir)
+    if scope is None:
+        raise ValueError(
+            "CSV dataset has no retrieval scope metadata; retrieve into a fresh destination."
+        )
     last_modified_time = determine_last_modified_time(paths)
     logger.info("Loading list of analyses from file %s", paths[0].name)
     rows = read_csv_rows(
@@ -55,7 +60,7 @@ def load_csv_registry(
         threshold_year=threshold_year,
         last_modified_time=last_modified_time,
     )
-    registry.retrieval_scope = read_scope(csv_dir)
+    registry.retrieval_scope = scope
     logger.info("Loaded %d analysis base entries.", len(entries))
     for path, cls, columns, key, prefix, label, listed in (
         (

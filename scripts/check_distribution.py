@@ -38,7 +38,9 @@ def main():
     assert len(licences) == 1, "Wheel must contain LICENCE"
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
-    assert load_scope().values == (80, 198, 205), "Wheel must bundle the TOPQ scope"
+    assert load_scope().all and not load_scope().query_params(), (
+        "Default retrieval must be unfiltered"
+    )
     citation_path = default_store_path()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
@@ -53,7 +55,7 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
-        scope_file = "analysis_lister/configs/topq.toml"
+        scope_file = "analysis_lister/configs/all.toml"
         assert (
             archive.extractfile(prefix + scope_file).read()
             == (root / scope_file).read_bytes()

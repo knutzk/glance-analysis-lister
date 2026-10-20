@@ -77,7 +77,7 @@ def parser():
     download.add_argument(
         "--config",
         type=Path,
-        help="Retrieval TOML configuration (default: bundled TOPQ selection).",
+        help="Retrieval TOML configuration (default: all accessible ATLAS records).",
     )
     source = download.add_mutually_exclusive_group()
     source.add_argument(

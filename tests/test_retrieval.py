@@ -19,7 +19,7 @@ from analysis_lister.retrieval import (
     read_scope,
 )
 
-HTML = "<table><tr><th>Reference Code</th></tr><tr><td>DEMO-2099-01</td></tr></table>"
+HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>DEMO-2099-01</td></tr></table>"
 CONFIG = """name = "Synthetic group"
 [selection]
 field = "subgroups"
@@ -29,12 +29,11 @@ values = [901, 902, 903, 904]
 
 
 class RetrievalTests(unittest.TestCase):
-    def test_unfiltered_scope_requires_explicit_opt_in_and_round_trips(self):
+    def test_default_is_unfiltered_and_round_trips(self):
         scope = RetrievalScope.from_dict({"name": "ATLAS", "all": True})
         self.assertEqual(scope.query_params(), {})
         self.assertEqual(RetrievalScope.from_dict(scope.metadata()), scope)
-        with self.assertRaisesRegex(ValueError, "scope differs"):
-            check_scope(scope, load_scope())
+        check_scope(scope, load_scope())
         for data in (
             {"name": "ATLAS"},
             {"name": "ATLAS", "all": False},
@@ -65,8 +64,8 @@ class RetrievalTests(unittest.TestCase):
             for name in ("analyses", "papers", "confnotes", "pubnotes")
         )
 
-    def test_default_exactly_preserves_historical_filters(self):
-        params = load_scope().query_params()
+    def test_explicit_topq_profile_preserves_historical_filters(self):
+        params = load_scope(Path("analysis_lister/configs/topq.toml")).query_params()
         self.assertEqual(len(params), 12)
         for index, value in enumerate((80, 198, 205)):
             self.assertEqual(params[f"c[{index}][i]"], index)
@@ -154,7 +153,9 @@ class RetrievalTests(unittest.TestCase):
             )
         fetch.assert_not_called()
         with self.assertRaisesRegex(ValueError, "scope differs"):
-            refresh.compare_to_snapshot(GlanceRegistry(), snapshot)
+            refresh.compare_to_snapshot(
+                GlanceRegistry(retrieval_scope=load_scope()), snapshot
+            )
 
     def test_scope_round_trips_and_legacy_snapshots_remain_readable(self):
         snapshot = self.root / "registry.json"
@@ -163,9 +164,13 @@ class RetrievalTests(unittest.TestCase):
         GlanceRegistry().store_json(snapshot)
         self.assertNotIn("retrieval_scope", json.loads(snapshot.read_text()))
         self.assertIsNone(GlanceRegistry.from_json(snapshot).retrieval_scope)
-        check_scope(load_scope(), None)
-        with self.assertRaisesRegex(ValueError, "scope differs"):
-            check_scope(self.scope, None)
+        for scope in (
+            load_scope(),
+            self.scope,
+            load_scope(Path("analysis_lister/configs/topq.toml")),
+        ):
+            with self.assertRaisesRegex(ValueError, "no retrieval scope metadata"):
+                check_scope(scope, None)
 
     def test_values_are_deduplicated_and_scope_identity_ignores_order_and_label(self):
         scope = RetrievalScope(
@@ -188,6 +193,51 @@ class RetrievalTests(unittest.TestCase):
             refresh.refresh_csv_files(
                 self.tasks, self.root / "csv", html_dir, use_local_html=True
             )
+
+    def test_unknown_existing_csv_scope_rejected_before_fetch(self):
+        csv_dir = self.root / "csv"
+        csv_dir.mkdir()
+        old = csv_dir / "analyses.csv"
+        old.write_text("previous CSV")
+        with (
+            patch.object(download.DataFetcher, "fetch_html") as fetch,
+            self.assertRaisesRegex(ValueError, "no retrieval scope metadata"),
+        ):
+            refresh.refresh_csv_files(self.tasks, csv_dir, self.root / "html")
+        fetch.assert_not_called()
+        self.assertEqual(old.read_text(), "previous CSV")
+
+    def test_saved_html_without_scope_metadata_is_not_assumed_unfiltered(self):
+        html_dir = self.root / "html"
+        html_dir.mkdir()
+        for task in self.tasks:
+            (html_dir / task.html_filename).write_text(HTML)
+        destination = self.root / "csv"
+        with self.assertRaisesRegex(ValueError, "no retrieval scope metadata"):
+            refresh.refresh_csv_files(
+                self.tasks, destination, html_dir, use_local_html=True
+            )
+        self.assertFalse(destination.exists())
+
+    def test_csv_build_requires_scope_metadata(self):
+        csv_dir = self.root / "csv"
+        csv_dir.mkdir()
+        with self.assertRaisesRegex(ValueError, "no retrieval scope metadata"):
+            GlanceRegistry.from_csv(csv_dir)
+
+    def test_unknown_existing_snapshot_scope_rejected_even_with_count_override(self):
+        snapshot = self.root / "registry.json"
+        GlanceRegistry().store_json(snapshot)
+        before = snapshot.read_bytes()
+        with (
+            patch.object(download.DataFetcher, "fetch_html") as fetch,
+            self.assertRaisesRegex(ValueError, "no retrieval scope metadata"),
+        ):
+            refresh.refresh_analysis_lists(
+                self.root / "csv", self.root / "html", snapshot, force=True
+            )
+        fetch.assert_not_called()
+        self.assertEqual(snapshot.read_bytes(), before)
 
     def test_scope_metadata_rolls_back_with_csvs(self):
         csv_dir = self.root / "csv"

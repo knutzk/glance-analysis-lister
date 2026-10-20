@@ -59,13 +59,15 @@ build operations sequentially.
 ## Retrieval configuration
 
 `download` and `refresh` accept `--config PATH` for a TOML retrieval selection.
-Without it, both use the bundled [TOPQ configuration](analysis_lister/configs/topq.toml),
-which preserves the original selection exactly: records involving any of the
-three selected TOPQ subgroups, including records led by other groups.
+Without it, both use the bundled [unfiltered configuration](analysis_lister/configs/all.toml),
+retrieving all accessible non-deleted ATLAS records. Group profiles remain
+optional. The [TOPQ configuration](analysis_lister/configs/topq.toml) selects
+records involving any of its three configured subgroups, including records
+led by other groups.
 
 ```bash
 analysis-lister refresh --config analysis_lister/configs/topq.toml \
-  --csv-dir csv --snapshot json/glance_registry.json
+  --csv-dir csv/topq --snapshot json/topq_registry.json
 ```
 
 The bundled [HIGP configuration](analysis_lister/configs/higp.toml) selects
@@ -101,30 +103,26 @@ preset.
 Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
 that selection into the snapshot. Existing destinations with a different
 selection are rejected, even with `--allow-count-drop`; use separate CSV and
-snapshot destinations for different datasets. Old datasets without scope
-metadata remain compatible with the default TOPQ selection only. Changing a
+snapshot destinations for different datasets. Existing CSV batches, snapshots
+or saved HTML without scope metadata cannot be used for refresh: retrieve into
+fresh destinations. No group selection is inferred from old data. Changing a
 scope's display name or reordering its values does not create a new selection.
 
-`--save-html DIR` saves the full returned table columns and scope metadata;
-the CSVs retain their existing column selection. With `--from-html DIR`, the
-saved scope must match when metadata is present. For older HTML without
-metadata, the configuration you supply declares its scope; offline replay
-does not apply server-side filters to saved records.
+`--save-html DIR` saves the returned table columns and scope metadata.
+With `--from-html DIR`, scope metadata must be present and match. Offline
+replay does not apply server-side filters to saved records.
 
 These options configure retrieval only. Rendering and Obsidian export retain
 their existing TOPQ presentation assumptions.
 
-For all accessible non-deleted records, use the explicit unfiltered profile:
+Unfiltered retrieval is the default, so no configuration flag is needed:
 
 ```bash
-analysis-lister refresh --config analysis_lister/configs/all.toml \
-  --csv-dir csv/all --snapshot json/all_registry.json
+analysis-lister refresh --csv-dir csv/all --snapshot json/all_registry.json
 ```
 
 This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
-table. An empty selection still fails validation; unrestricted retrieval must
-be explicitly requested. A successful download alone does not establish that
-the server returned every accessible record or applied no result limit.
+table. An explicit custom configuration still cannot contain an empty selection.
 
 ## Clone relationships
 

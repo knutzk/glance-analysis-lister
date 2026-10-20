@@ -59,7 +59,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
     with discard_lookup_notices():
         old_registry = GlanceRegistry.from_json(path)
         old = counts(old_registry)
-    check_scope(registry.retrieval_scope or load_scope(), old_registry.retrieval_scope)
+    check_scope(registry.retrieval_scope, old_registry.retrieval_scope)
     new = counts(registry)
 
     drops = []

@@ -4,6 +4,7 @@
 """Exercise the combined workflow against synthetic GLANCE tables, without a login."""
 
 import html
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -15,6 +16,7 @@ from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.lookup_dicts.clones import Clones
+from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
 
 
 class CombinedRefreshTests(unittest.TestCase):
@@ -43,7 +45,7 @@ class CombinedRefreshTests(unittest.TestCase):
             if task.name == "analyses":
                 self.analysis_row = values
             table = (
-                "<table><tr>"
+                "<span>Showing 1 to 1 of 1 results</span><table><tr>"
                 + "".join(f"<th>{html.escape(col)}</th>" for col in columns)
                 + "</tr><tr>"
                 + "".join(f"<td>{html.escape(values[col])}</td>" for col in columns)
@@ -51,6 +53,10 @@ class CombinedRefreshTests(unittest.TestCase):
             )
             (self.debug_dir / task.html_filename).write_text(table)
             (self.csv_dir / task.csv_filename).write_text("previous CSV\n")
+        (self.csv_dir / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
+        (self.debug_dir / SCOPE_FILENAME).write_text(
+            json.dumps(load_scope().metadata())
+        )
         self.snapshot = self.json_dir / "glance_registry.json"
         self.write_baseline(1)
 
@@ -62,7 +68,9 @@ class CombinedRefreshTests(unittest.TestCase):
             }
             entry = Analysis.from_csv_dict(row)
             entries[entry.ref_code] = entry
-        registry = GlanceRegistry(entries, last_modified_time="previous")
+        registry = GlanceRegistry(
+            entries, last_modified_time="previous", retrieval_scope=load_scope()
+        )
         registry.store_json(self.snapshot)
         self.previous_json = self.snapshot.read_bytes()
 
@@ -89,8 +97,8 @@ class CombinedRefreshTests(unittest.TestCase):
 
     def assert_unchanged(self):
         self.assertEqual(self.snapshot.read_bytes(), self.previous_json)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
-        for path in self.csv_dir.iterdir():
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+        for path in self.csv_dir.glob("*.csv"):
             self.assertEqual(path.read_text(), "previous CSV\n")
 
     def test_success_publishes_matching_csvs_and_snapshot(self):
