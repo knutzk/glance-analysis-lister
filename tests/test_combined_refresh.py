@@ -173,6 +173,32 @@ class CombinedRefreshTests(unittest.TestCase):
         self.run_refresh()
         self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
 
+    def test_first_refresh_creates_csv_and_nested_snapshot_directories(self):
+        self.snapshot.unlink()
+        self.json_dir.rmdir()
+        for path in self.csv_dir.iterdir():
+            path.unlink()
+        self.csv_dir.rmdir()
+        self.snapshot = self.json_dir / "nested" / "glance_registry.json"
+        self.run_refresh()
+        from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
+        from_json = GlanceRegistry.from_json(self.snapshot)
+        self.assertEqual(from_csv.entries, from_json.entries)
+        self.assertEqual(len(from_json.entries), 1)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        self.assertEqual(list(self.snapshot.parent.iterdir()), [self.snapshot])
+
+    def test_unusable_snapshot_parent_rolls_back_csvs(self):
+        previous_snapshot = self.snapshot
+        blocker = self.root / "not-a-directory"
+        blocker.write_text("Keep this file")
+        self.snapshot = blocker / "nested" / "glance_registry.json"
+        with self.assertRaises(OSError):
+            self.run_refresh()
+        self.snapshot = previous_snapshot
+        self.assert_unchanged()
+        self.assertEqual(blocker.read_text(), "Keep this file")
+
 
 if __name__ == "__main__":
     unittest.main()

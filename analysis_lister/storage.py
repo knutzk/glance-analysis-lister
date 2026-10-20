@@ -22,7 +22,8 @@ def require_complete_csv_batch(directory: Path):
 
 
 def atomic_write_text(path: Path, content: str):
-    """Replace a file only after its complete UTF-8 contents have been flushed."""
+    """Create parent directories and atomically publish flushed UTF-8 contents."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
         with NamedTemporaryFile(

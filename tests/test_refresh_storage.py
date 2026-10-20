@@ -221,6 +221,14 @@ class RegistryWriteTests(unittest.TestCase):
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o640)
         self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 
+    def test_first_snapshot_creates_nested_parent_directories(self):
+        destination = self.path.parent / "new" / "json" / "registry.json"
+        self.registry.store_json(destination)
+        restored = GlanceRegistry.from_json(destination)
+        self.assertEqual(restored.entries, {})
+        self.assertEqual(restored.last_modified_time, "test")
+        self.assertEqual(list(destination.parent.iterdir()), [destination])
+
     def test_failed_flush_or_replace_preserves_previous_snapshot(self):
         for target in ("analysis_lister.storage.os.fsync", "pathlib.Path.replace"):
             with (
