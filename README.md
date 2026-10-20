@@ -210,6 +210,22 @@ written. Optional private `journal_refs.py` overrides take precedence for the
 operation and are parsed without execution; legacy string values mean manual
 citations. Only `resolve-dois` can make INSPIRE requests.
 
+INSPIRE's compact journal abbreviations are formatted consistently with the
+existing citations, for example `Phys.Rev.D` → `Phys. Rev. D`. After an update
+that used an older formatter has finished, fix stored non-manual citations
+without repeating network lookups:
+
+```bash
+analysis-lister format-citations
+```
+
+This also shortens page ranges to the starting page, for example `101–120` →
+`101`. New INSPIRE resolutions use the same convention. Citation provenance,
+correction prefixes, dates and individual article numbers are retained.
+Manual citations are unchanged. Unknown journal abbreviations are
+retained rather than guessed. Do not run it while a resolver is writing the
+same JSON file.
+
 First infer citations without network access:
 
 ```bash
@@ -240,6 +256,11 @@ citations and ambiguous DOI/publication associations remain retryable; failed
 refreshes retain the previous citation. INSPIRE lookups match the requested DOI
 and material to publication information, and label verified errata/addenda.
 They do not change the existing DOI ordering rules or manual order overrides.
+Duplicate publication rows are combined only when their structured citation
+fields agree; compatible partial rows can fill missing fields. Conflicting
+metadata remains unresolved. An unlabelled DOI can inherit an explicit label
+from another occurrence of that same DOI, or a unique remaining material when
+exactly one DOI and one publication material remain unmatched.
 
 INSPIRE requests use a separate session without GLANCE cookies, verified TLS,
 bounded timeouts and retries, and rate limiting. A server-requested pause over

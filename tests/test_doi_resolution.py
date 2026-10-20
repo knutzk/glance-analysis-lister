@@ -22,6 +22,8 @@ from analysis_lister.citation_store import (
 )
 from analysis_lister.doi_resolver import (
     InspireClient,
+    format_citations,
+    format_journal_name,
     infer_citation,
     inspire_citation,
     resolve_dois,
@@ -204,6 +206,96 @@ class ResolutionTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.path = self.root / "citations.json"
 
+    def test_journal_aliases_match_manual_typography_and_preserve_unknown_names(self):
+        for raw, expected in (
+            ("Phys.Rev.D", "Phys. Rev. D"),
+            (" Phys. Rev. Lett. ", "Phys. Rev. Lett."),
+            ("Phys.Lett.B", "Phys. Lett. B"),
+            ("Eur.Phys.J.C", "Eur. Phys. J. C"),
+            ("Phys.Rept.", "Phys. Rep."),
+            ("Rept.Prog.Phys.", "Rep. Prog. Phys."),
+            ("Comput.Softw.Big Sci.", "Comput. Softw. Big Sci."),
+            ("New J.Phys.", "New J. Phys."),
+            ("JHEP", "JHEP"),
+            ("JINST", "JINST"),
+            ("Unknown.Journal", "Unknown.Journal"),
+        ):
+            with self.subTest(journal=raw):
+                self.assertEqual(format_journal_name(raw), expected)
+
+    def test_inspire_formats_journal_name_when_resolving(self):
+        data = payload()
+        data["metadata"]["publication_info"][0]["journal_title"] = "Phys.Rev.D"
+        self.assertEqual(
+            inspire_citation(DOI, data)["citation"], "Phys. Rev. D 12 (2099) 123"
+        )
+
+    def test_offline_formatting_preserves_manual_entries_provenance_and_corrections(
+        self,
+    ):
+        automated = record(
+            "Erratum: Phys.Rev.D 12 (2099) 00123",
+            source="inspire",
+            material="erratum",
+            resolved_at="2099-01-01T00:00:00+00:00",
+        )
+        manual = record("Phys.Rev.D 13 (2099) 00456")
+        save_store(self.path, {DOI: automated, "10.9999/manual": manual})
+        with patch.object(
+            requests.Session, "get", side_effect=AssertionError("network")
+        ):
+            self.assertEqual(format_citations(self.path), 1)
+            before = self.path.read_bytes()
+            self.assertEqual(format_citations(self.path), 0)
+        self.assertEqual(before, self.path.read_bytes())
+        stored = load_store(self.path)
+        self.assertEqual(
+            stored[DOI],
+            automated | {"citation": "Erratum: Phys. Rev. D 12 (2099) 00123"},
+        )
+        self.assertEqual(stored["10.9999/manual"], manual)
+        self.assertEqual(len(self.path.read_text().splitlines()), 4)
+
+    def test_formatting_cli_uses_explicit_store(self):
+        save_store(
+            self.path, {DOI: record("Eur.Phys.J.C 12 (2099) 123", source="inspire")}
+        )
+        with patch("sys.stdout", io.StringIO()) as output:
+            cli.main(["format-citations", "--doi-cache", str(self.path)])
+        self.assertIn("1 citation(s)", output.getvalue())
+        self.assertEqual(
+            load_store(self.path)[DOI]["citation"], "Eur. Phys. J. C 12 (2099) 123"
+        )
+
+    def test_formatting_uses_starting_page_and_preserves_manual_citations(self):
+        values = {}
+        for index, (locator, _expected) in enumerate(
+            (
+                ("101–120", "101"),
+                ("101-120", "101"),
+                ("E5—E8", "E5"),
+                ("00123", "00123"),
+                ("P06014", "P06014"),
+                ("A1-B9", "A1-B9"),
+            )
+        ):
+            values[f"10.9999/pages-{index}"] = record(
+                f"Demo J. 12 (2099) {locator}",
+                source="inspire",
+            )
+        values[DOI] = record("Demo J. 12 (2099) 101–120")
+        save_store(self.path, values)
+        self.assertEqual(format_citations(self.path), 3)
+        entries = load_store(self.path)
+        for index, expected in enumerate(
+            ("101", "101", "E5", "00123", "P06014", "A1-B9")
+        ):
+            self.assertEqual(
+                entries[f"10.9999/pages-{index}"]["citation"],
+                f"Demo J. 12 (2099) {expected}",
+            )
+        self.assertEqual(entries[DOI]["citation"], "Demo J. 12 (2099) 101–120")
+
     def test_jhep_rule_is_exact_and_does_not_guess_material(self):
         inferred = infer_citation(JHEP)
         self.assertEqual(inferred["citation"], "JHEP 07 (2099) 999")
@@ -371,6 +463,7 @@ class ResolutionTests(unittest.TestCase):
 class InspireTests(unittest.TestCase):
     def test_identical_doi_from_multiple_sources_is_not_an_ambiguity(self):
         data = payload()
+        data["metadata"]["dois"][0]["material"] = "publication"
         data["metadata"]["dois"].append(
             {"value": DOI, "source": "arXiv", "material": "publication"}
         )
@@ -407,7 +500,9 @@ class InspireTests(unittest.TestCase):
         data["metadata"]["dois"].append({"value": "10.9999/other"})
         variants.append(data)
         data = payload()
-        data["metadata"]["publication_info"] *= 2
+        data["metadata"]["publication_info"].append(
+            data["metadata"]["publication_info"][0] | {"journal_volume": "99"}
+        )
         variants.append(data)
         data = payload()
         data["metadata"]["publication_info"][0]["hidden"] = True
@@ -419,6 +514,77 @@ class InspireTests(unittest.TestCase):
         for data in variants:
             with self.subTest(data=data), self.assertRaises(ValueError):
                 inspire_citation(DOI, data)
+
+    def test_duplicate_and_compatible_partial_publication_rows_are_merged(self):
+        data = payload()
+        original = data["metadata"]["publication_info"][0]
+        data["metadata"]["publication_info"].extend(
+            [
+                original
+                | {"material": "publication", "pubinfo_freetext": "Another source"},
+                {"journal_title": "Demo J.", "year": 2099},
+                {"material": "publication", "pubinfo_freetext": "Unstructured source"},
+            ]
+        )
+        self.assertEqual(
+            inspire_citation(DOI, data)["citation"], "Demo J. 12 (2099) 123"
+        )
+        data["metadata"]["publication_info"][-2]["year"] = 2098
+        with self.assertRaisesRegex(ValueError, "Conflicting publication metadata"):
+            inspire_citation(DOI, data)
+
+    def test_unlabelled_duplicate_dois_inherit_only_explicit_consistent_material(self):
+        data = payload()
+        data["metadata"]["dois"].append({"value": DOI, "material": "erratum"})
+        data["metadata"]["publication_info"][0]["material"] = "erratum"
+        self.assertEqual(
+            inspire_citation(DOI, data)["citation"], "Erratum: Demo J. 12 (2099) 123"
+        )
+
+    def test_only_one_unassigned_doi_and_material_can_be_matched(self):
+        data = payload()
+        correction = "10.9999/correction"
+        data["metadata"]["dois"][0]["material"] = "publication"
+        data["metadata"]["dois"].append({"value": correction})
+        data["metadata"]["publication_info"].append(
+            {
+                "journal_title": "Demo J.",
+                "journal_volume": "13",
+                "year": 2099,
+                "artid": "456",
+                "material": "erratum",
+            }
+        )
+        self.assertEqual(
+            inspire_citation(correction, data)["citation"],
+            "Erratum: Demo J. 13 (2099) 456",
+        )
+        data["metadata"]["dois"].append({"value": "10.9999/another"})
+        with self.assertRaisesRegex(ValueError, "Ambiguous"):
+            inspire_citation(correction, data)
+
+    def test_explicit_page_ranges_are_compatible_with_an_additional_article_id(self):
+        data = payload()
+        data["metadata"]["publication_info"] = [
+            {
+                "journal_title": "Demo J.",
+                "journal_volume": "12",
+                "year": 2099,
+                "artid": "999",
+                "page_start": "101",
+                "page_end": "120",
+            },
+            {
+                "journal_title": "Demo J.",
+                "journal_volume": "12",
+                "year": 2099,
+                "page_start": "101",
+                "page_end": "120",
+            },
+        ]
+        self.assertEqual(
+            inspire_citation(DOI, data)["citation"], "Demo J. 12 (2099) 101"
+        )
 
     @patch("analysis_lister.doi_resolver.time.sleep")
     @patch("analysis_lister.doi_resolver.requests.Session")

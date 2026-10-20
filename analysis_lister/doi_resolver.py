@@ -16,7 +16,12 @@ from urllib.parse import quote
 
 import requests
 
-from analysis_lister.citation_store import effective_store, normalize_doi, save_store
+from analysis_lister.citation_store import (
+    effective_store,
+    load_store,
+    normalize_doi,
+    save_store,
+)
 from analysis_lister.lookup_dicts.reporting import lookup_notice, lookup_report
 
 logger = logging.getLogger(__name__)
@@ -28,6 +33,77 @@ PREFIXES = {
     "addendum": "Addendum: ",
     "editorial note": "Editorial note: ",
 }
+# Presentation spellings follow the existing manual citations. Explicit aliases
+# also reconcile INSPIRE's Rept. abbreviations with the project's Rep. style.
+JOURNAL_NAMES = {
+    "phys.lett.b": "Phys. Lett. B",
+    "phys.rev.c": "Phys. Rev. C",
+    "phys.rev.d": "Phys. Rev. D",
+    "phys.rev.lett.": "Phys. Rev. Lett.",
+    "phys.rept.": "Phys. Rep.",
+    "phys.rep.": "Phys. Rep.",
+    "rept.prog.phys.": "Rep. Prog. Phys.",
+    "rep.prog.phys.": "Rep. Prog. Phys.",
+    "eur.phys.j.c": "Eur. Phys. J. C",
+    "comput.softw.bigsci.": "Comput. Softw. Big Sci.",
+    "sci.bull.": "Sci. Bull.",
+    "newj.phys.": "New J. Phys.",
+    "chin.phys.c": "Chin. Phys. C",
+    "naturephys.": "Nature Phys.",
+    "naturecommun.": "Nature Commun.",
+    "eur.phys.j.plus": "Eur. Phys. J. Plus",
+    "mach.learn.sci.tech.": "Mach. Learn. Sci. Tech.",
+}
+
+
+def format_journal_name(journal):
+    """Normalise known abbreviations without guessing punctuation for others."""
+    key = re.sub(r"\s+", "", journal).casefold()
+    return JOURNAL_NAMES.get(key, " ".join(journal.split()))
+
+
+def starting_page(locator):
+    """Shorten conventional numeric or letter-prefixed page ranges."""
+    match = re.fullmatch(
+        r"(?P<prefix>[A-Za-z]*)(?P<start>\d+)\s*[-–—]\s*"
+        r"(?P<end_prefix>[A-Za-z]*)(?P<end>\d+)",
+        locator,
+    )
+    if (
+        match
+        and match["end_prefix"] in ("", match["prefix"])
+        and int(match["end"]) >= int(match["start"])
+    ):
+        return match["prefix"] + match["start"]
+    return locator
+
+
+def format_citations(path: Path):
+    """Apply journal typography offline, retaining manual entries and provenance."""
+    entries = load_store(path)
+    changed = 0
+    pattern = re.compile(
+        r"(?P<prefix>(?:Erratum|Addendum|Editorial note): )?"
+        r"(?P<journal>.+?) (?P<volume>\S+) \((?P<year>\d{4})\) (?P<locator>.+)",
+    )
+    for entry in entries.values():
+        if entry["source"] == "manual":
+            continue
+        match = pattern.fullmatch(entry["citation"])
+        if match is None:
+            continue
+        citation = (
+            (match["prefix"] or "")
+            + format_journal_name(match["journal"])
+            + f" {match['volume']} ({match['year']}) "
+            + starting_page(match["locator"])
+        )
+        if citation != entry["citation"]:
+            entry["citation"] = citation
+            changed += 1
+    if changed:
+        save_store(path, entries)
+    return changed
 
 
 def infer_citation(doi):
@@ -51,9 +127,72 @@ def _format_publication(info):
         raise ValueError("Incomplete journal citation")
     if type(year) is not int or not 1000 <= year <= 9999:
         raise ValueError("Missing or invalid publication year")
-    if not info.get("artid") and info.get("page_end"):
-        article += f"–{info['page_end']}"
-    return f"{journal} {volume} ({year}) {article}"
+    return f"{format_journal_name(journal)} {volume} ({year}) {starting_page(article)}"
+
+
+def _material_assignments(doi_items, publications):
+    """Combine explicit labels; infer only a unique remaining DOI/material pair."""
+    labels = {}
+    for item in doi_items:
+        doi = normalize_doi(item.get("value", ""))
+        values = labels.setdefault(doi, set())
+        if "material" in item:
+            material = item["material"]
+            if not isinstance(material, str) or material not in {
+                "publication",
+                *PREFIXES,
+            }:
+                raise ValueError("Unsupported publication material")
+            values.add(material)
+    if any(len(values) > 1 for values in labels.values()):
+        raise ValueError("Conflicting material labels for the requested DOI")
+    assigned = {doi: next(iter(values)) for doi, values in labels.items() if values}
+    unknown = set(labels) - set(assigned)
+    materials = {item.get("material", "publication") for item in publications}
+    remaining = materials - set(assigned.values())
+    if len(unknown) == len(remaining) == 1:
+        assigned[unknown.pop()] = remaining.pop()
+    if set(assigned) != set(labels):
+        raise ValueError("Ambiguous DOI-to-publication association")
+    return assigned
+
+
+def _merge_publications(candidates):
+    """Merge compatible structured citations; never pick a conflicting first row."""
+    merged = {}
+    for item in candidates:
+        fields = {}
+        for name in ("journal_title", "journal_volume", "year", "page_end"):
+            value = item.get(name)
+            if value is not None and value != "":
+                fields[name] = value.strip() if isinstance(value, str) else value
+        journal = fields.get("journal_title")
+        if journal is not None:
+            if not isinstance(journal, str):
+                raise ValueError("Invalid journal name")
+            journal = format_journal_name(journal)
+            fields["journal_title"] = journal
+        # Where an explicit page range exists it is a valid citation locator,
+        # even if the record also carries a publisher's internal article ID.
+        locator = (
+            item.get("page_start")
+            if item.get("page_end") and item.get("page_start")
+            else item.get("artid") or item.get("page_start")
+        )
+        if locator:
+            if not isinstance(locator, str):
+                raise ValueError("Invalid article/page identifier")
+            fields["locator"] = locator.strip()
+        for key, value in fields.items():
+            if key in merged and merged[key] != value:
+                raise ValueError("Conflicting publication metadata")
+            merged[key] = value
+    locator = merged.pop("locator", None)
+    if "page_end" in merged:
+        merged["page_start"] = locator
+    else:
+        merged["artid"] = locator
+    return _format_publication(merged)
 
 
 def inspire_citation(doi, payload):
@@ -73,26 +212,22 @@ def inspire_citation(doi, payload):
     ]
     if not matches:
         raise ValueError("INSPIRE did not return the requested DOI")
-    material = matches[0].get("material", "publication")
-    if not isinstance(material, str) or material not in {"publication", *PREFIXES}:
-        raise ValueError("Unsupported publication material")
-    # INSPIRE may repeat the same DOI for publisher and arXiv sources.
-    # Accept consistent repetitions, but never conflicting material labels.
-    if any(item.get("material", "publication") != material for item in matches):
-        raise ValueError("Conflicting material labels for the requested DOI")
-    same_material = {
-        normalize_doi(item["value"])
-        for item in doi_items
-        if item.get("material", "publication") == material
-    }
+    publications = [item for item in publications if not item.get("hidden")]
+    for item in publications:
+        material = item.get("material", "publication")
+        if not isinstance(material, str) or material not in {"publication", *PREFIXES}:
+            raise ValueError("Unsupported publication material")
+    assignments = _material_assignments(doi_items, publications)
+    material = assignments[doi]
+    same_material = {key for key, value in assignments.items() if value == material}
     candidates = [
         item
         for item in publications
         if not item.get("hidden") and item.get("material", "publication") == material
     ]
-    if len(same_material) != 1 or len(candidates) != 1:
+    if len(same_material) != 1 or not candidates:
         raise ValueError("Ambiguous DOI-to-publication association")
-    citation = _format_publication(candidates[0])
+    citation = _merge_publications(candidates)
     return {
         "citation": PREFIXES.get(material, "") + citation,
         "source": "inspire",

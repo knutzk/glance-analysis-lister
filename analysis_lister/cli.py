@@ -202,6 +202,12 @@ def parser():
         help="Maximum number of missing/unlocked entries to attempt.",
     )
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
+    formatting = commands.add_parser(
+        "format-citations",
+        parents=[lookups],
+        help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
+    )
+    formatting.set_defaults(handler=_run_format_citations)
     return command
 
 
@@ -300,6 +306,13 @@ def _run_resolve_dois(args):
         + ", ".join(f"{key}={value}" for key, value in summary.items())
     )
     print(f"Citation dictionary: {args.doi_cache}")
+
+
+def _run_format_citations(args):
+    from analysis_lister.doi_resolver import format_citations
+
+    changed = format_citations(args.doi_cache)
+    print(f"Updated formatting in {changed} citation(s).")
 
 
 def run(args):
