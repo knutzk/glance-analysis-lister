@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
 INTERMEDIATE_CA = (
-    Path(__file__).resolve().parents[1]
+    Path(__file__).resolve().parent
     / "certs/sectigo-public-server-authentication-ca-ov-r36.pem"
 )
 URLS = {

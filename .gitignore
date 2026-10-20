@@ -6,3 +6,21 @@ csv/.refresh-in-progress
 # Ignore any PNG and PDF files in this directory
 *.png
 *.pdf
+
+# Private inputs and generated output must never be published.
+cookies.json
+*.csv
+*.json
+debug/
+json/
+docs/analyses/
+obsidian_output/
+
+# Local Python environments and build products.
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ruff_cache/

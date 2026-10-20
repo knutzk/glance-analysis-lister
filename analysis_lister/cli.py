@@ -6,7 +6,7 @@ from pathlib import Path
 
 import requests
 
-CSV_DIR = Path("deploy_tools/analysis_lists/csv")
+CSV_DIR = Path("csv")
 COOKIE_FILE = Path("cookies.json")
 SNAPSHOT_PATH = Path("json/glance_registry.json")
 OUTPUT_DIR = Path("docs/analyses")

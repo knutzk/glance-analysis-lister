@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glance-analysis-lister"
+version = "0.1.0"
+description = "Maintain ATLAS GLANCE analysis registries and render analysis pages"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["attrs>=26.1", "requests>=2.34"]
+
+[project.optional-dependencies]
+download = ["beautifulsoup4>=4.15", "selenium>=4.46"]
+dev = ["beautifulsoup4>=4.15", "selenium>=4.46", "ruff==0.16.0", "build>=1.2"]
+
+[project.scripts]
+analysis-lister = "analysis_lister.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["analysis_lister*"]
+
+[tool.setuptools.package-data]
+analysis_lister = ["certs/*.pem", "certs/README.md"]

@@ -103,7 +103,7 @@ def render_analysis_block(
         heading += f" {{: #{utils.anchor_id(analysis.ref_code, subgroup_id)}}}"
 
     s = heading + "\n\n"
-    s += f"!!! info \"{analysis.title_short}\"\n\n"
+    s += f'!!! info "{analysis.title_short}"\n\n'
     s += utils.render_glance_links(analysis, prepend="    ")
     s += _involved_subgroups(analysis, prepend="    ")
     s += "    **Supporting documents:**"
