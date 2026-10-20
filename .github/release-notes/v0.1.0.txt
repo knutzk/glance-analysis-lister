@@ -1,0 +1,35 @@
+First public release of glance-analysis-lister, extracted from the ATLAS Top
+Working Group documentation tools.
+
+- Provides the `analysis-lister` CLI for downloading GLANCE tables, building
+  registry snapshots, rendering Markdown pages, validating lookups, and
+  exporting Obsidian notes.
+- Supports private lookup dictionaries supplied through `--lookup-dir`.
+- Preserves staged refreshes, rollback safeguards, count-drop protection,
+  and verified TLS connections.
+- Includes synthetic examples and offline regression tests.
+
+Requires Python 3.13 or newer. Install this release with:
+
+```bash
+python -m pip install "glance-analysis-lister @ git+https://github.com/knutzk/glance-analysis-lister.git@v0.1.0"
+```
+
+For downloads and interactive CERN login, install the download extra:
+
+```bash
+python -m pip install "glance-analysis-lister[download] @ git+https://github.com/knutzk/glance-analysis-lister.git@v0.1.0"
+```
+
+Interactive login also requires Chrome and a terminal. This release is available
+on GitHub; it has not been published to PyPI.
+
+The package contains no private registry snapshots or credentials. Supply your
+own inputs and lookup dictionaries. Markdown output defaults to `pages/`; set
+`--output-dir` for an existing site. The wheel and source distribution are
+attached below.
+
+Validation: 119 offline tests and installed-wheel checks pass. Authenticated live
+downloads were not tested for this release.
+
+Licensed under GPL-3.0-only.

@@ -159,6 +159,18 @@ Use local snapshots to test rendering changes. Preserve GLANCE's exact padded
 status strings, DOI/erratum alignment and unique subgroup anchors. Validate
 maintained lookups after changing them.
 
+## Releases
+
+For each release, update the version in `pyproject.toml` and add release notes
+in `.github/release-notes/vX.Y.Z.txt`. Commit and push those changes, wait for CI,
+then create and push an annotated `vX.Y.Z` tag on the verified commit.
+
+Tag CI checks the version and notes, runs the normal checks, builds and verifies
+the distributions, and creates a draft GitHub Release with the wheel and source
+archive attached. Review the workflow log and draft before publishing it.
+The release job alone has repository write permission. PyPI publishing is not
+configured. Never move a published version tag; issue a new version for fixes.
+
 ## Licence and contact
 
 Copyright © 2024–2026 Knut Zoch. The software is licensed under
