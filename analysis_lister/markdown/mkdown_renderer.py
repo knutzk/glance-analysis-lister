@@ -50,6 +50,12 @@ class MarkdownPageRenderer:
     """
 
     def __init__(self, registry: GlanceRegistry, output_dir: Path, threshold_year: str):
+        # Every page and count must use the same subgroup selection, including
+        # records led by other working groups that participate in TOPQ.
+        subgroup_ids = {group.id for group in TopGroups}
+        registry = registry.select(
+            lambda entry: bool(subgroup_ids.intersection(entry.subgroups))
+        )
         self.registry = registry
         self.output_dir = output_dir
         self.threshold = threshold_year

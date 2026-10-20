@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 @lookup_report()
 def render_pages(snapshot_path: Path, output_dir: Path):
     registry = GlanceRegistry.from_json(snapshot_path)
-    registry.log_unaccounted()
-    logger.info("Rendering %s", registry)
     output_dir.mkdir(parents=True, exist_ok=True)
-    MarkdownPageRenderer(
+    renderer = MarkdownPageRenderer(
         registry=registry, output_dir=output_dir, threshold_year=registry.threshold_year
-    ).write_all()
+    )
+    renderer.registry.log_unaccounted()
+    logger.info("Rendering %s", renderer.registry)
+    renderer.write_all()
