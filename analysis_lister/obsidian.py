@@ -3,30 +3,19 @@
 
 """Module that outputs Markdown files for use in Obsidian."""
 
+import json
 import logging
 import re
 import unicodedata
 from pathlib import Path
 
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.reporting import lookup_report
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.markdown.subgroup_pages.ongoing import render_analysis_block
 from analysis_lister.markdown.subgroup_pages.published import render_paper_block
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
 logger = logging.getLogger(__name__)
-
-
-JSON_DIR = Path("json/")
-OUTPUT_DIR = Path("deploy_tools/analysis_lists/obsidian_output/")
-PUBLISHED_DIR = OUTPUT_DIR / "obs_published"
-ONGOING_DIR = OUTPUT_DIR / "obs_ongoing"
 
 
 def tagify_string(value):
@@ -94,8 +83,12 @@ def render_front_matter(entry, filename: str, entry_type: str) -> str:
         "  - TopPlusX",
         f"  - {filename}",
         f"glance-id: {entry.ref_code}",
-        f"title: {title}",
-        f"summary: {entry.title_short_public if entry_type == 'paper' else entry.title_short}",
+        f"title: {json.dumps(title, ensure_ascii=False)}",
+        "summary: "
+        + json.dumps(
+            entry.title_short_public if entry_type == "paper" else entry.title_short,
+            ensure_ascii=False,
+        ),
     ]
 
     date = note_date(entry, entry_type)
@@ -107,11 +100,10 @@ def render_front_matter(entry, filename: str, entry_type: str) -> str:
 
 def write_markdown_file(entry, directory: Path, filename: str, entry_type: str):
     """Generalized function to write Markdown files for papers and analyses."""
-    try:
-        logger.info(f"Writing {entry_type} file: {filename}.md")
-        with open(directory / f"{filename}.md", "w", encoding="utf8") as f:
-            f.write(
-                f"""{render_front_matter(entry, filename, entry_type)}
+    logger.info(f"Writing {entry_type} file: {filename}.md")
+    with open(directory / f"{filename}.md", "w", encoding="utf8") as f:
+        f.write(
+            f"""{render_front_matter(entry, filename, entry_type)}
 
 {render_paper_block(entry, attribute_tag=False, heading_level=1) if entry_type == "paper" else render_analysis_block(entry, attribute_tag=False, heading_level=1)}
 
@@ -132,13 +124,8 @@ SORT date desc
 ```
 
 """
-            )
-        logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
-    except OSError as e:
-        logger.error(f"Failed to write file {filename}.md in {directory}: {e}")
-        raise SystemExit(
-            f"Failed to write file {filename}.md in {directory}: {e}"
-        ) from e
+        )
+    logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
 
 
 def generate_filename(ref_code):
@@ -175,23 +162,25 @@ def warn_about_stale_notes(directory: Path, written: set):
     )
 
 
-if __name__ == "__main__":
-    # Read the same snapshot that the website is rendered from, so that the
-    # notes need no CSV files and cannot drift away from the pages.
+@lookup_report()
+def export_obsidian(snapshot_path: Path, output_dir: Path):
+    """Export papers and ongoing analyses; report stale notes without deleting them."""
     logger.info("Loading papers and analyses data.")
-    registry = GlanceRegistry.from_json(JSON_DIR / "glance_registry.json")
+    registry = GlanceRegistry.from_json(snapshot_path)
 
     # Ensure output directories exist.
-    logger.info(f"Creating output directories if they do not exist: {OUTPUT_DIR}")
-    PUBLISHED_DIR.mkdir(parents=True, exist_ok=True)
-    ONGOING_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Creating output directories if they do not exist: {output_dir}")
+    published_dir = output_dir / "obs_published"
+    ongoing_dir = output_dir / "obs_ongoing"
+    published_dir.mkdir(parents=True, exist_ok=True)
+    ongoing_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Markdown files for published papers.")
     written_papers = set()
     for p in registry.papers:
         filename = generate_filename(p.ref_code)
         write_markdown_file(
-            entry=p, directory=PUBLISHED_DIR, filename=filename, entry_type="paper"
+            entry=p, directory=published_dir, filename=filename, entry_type="paper"
         )
         written_papers.add(f"{filename}.md")
 
@@ -200,12 +189,12 @@ if __name__ == "__main__":
     for a in registry.analyses:
         filename = generate_filename(a.ref_code)
         write_markdown_file(
-            entry=a, directory=ONGOING_DIR, filename=filename, entry_type="analysis"
+            entry=a, directory=ongoing_dir, filename=filename, entry_type="analysis"
         )
         written_analyses.add(f"{filename}.md")
 
-    warn_about_stale_notes(PUBLISHED_DIR, written_papers)
-    warn_about_stale_notes(ONGOING_DIR, written_analyses)
+    warn_about_stale_notes(published_dir, written_papers)
+    warn_about_stale_notes(ongoing_dir, written_analyses)
 
-    logger.info("Script finished.")
-    logger.info(f"Output directory: {OUTPUT_DIR}")
+    logger.info("Obsidian export finished.")
+    logger.info(f"Output directory: {output_dir}")

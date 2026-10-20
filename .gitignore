@@ -11,6 +11,7 @@ csv/.refresh-in-progress
 cookies.json
 *.csv
 *.json
+!/examples/synthetic_registry.json
 debug/
 json/
 docs/analyses/

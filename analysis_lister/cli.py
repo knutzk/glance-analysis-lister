@@ -92,6 +92,14 @@ def parser():
         help="Markdown destination (default: %(default)s).",
     )
 
+    obsidian_output = argparse.ArgumentParser(add_help=False)
+    obsidian_output.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("obsidian_output"),
+        help="Obsidian destination (default: %(default)s).",
+    )
+
     review = argparse.ArgumentParser(add_help=False)
     review.add_argument(
         "--snapshot",
@@ -127,6 +135,12 @@ def parser():
             "Validate lookup dictionaries and optionally review a snapshot.",
             [review],
             _run_validate_lookups,
+        ),
+        (
+            "export-obsidian",
+            "Export papers and ongoing analyses as Obsidian notes.",
+            [snapshot, obsidian_output],
+            _run_export_obsidian,
         ),
     ):
         sub = commands.add_parser(
@@ -182,6 +196,12 @@ def _run_render(args):
     from analysis_lister.render import render_pages
 
     render_pages(args.snapshot, args.output_dir)
+
+
+def _run_export_obsidian(args):
+    from analysis_lister.obsidian import export_obsidian
+
+    export_obsidian(args.snapshot, args.output_dir)
 
 
 def _run_validate_lookups(args):

@@ -215,6 +215,7 @@ assert "bs4" not in sys.modules
                 "build-registry",
                 "render",
                 "validate-lookups",
+                "export-obsidian",
             ):
                 cases.append(([command, "--help"], 0))
                 flags = [command]

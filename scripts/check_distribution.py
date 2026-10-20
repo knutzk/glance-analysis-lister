@@ -7,7 +7,6 @@ Run after building and installing the wheel in a clean environment:
     python -I scripts/check_distribution.py
 """
 
-import json
 import subprocess
 import sys
 import tarfile
@@ -47,16 +46,37 @@ def main():
         names = [name for name in archive.getnames() if name.endswith("/LICENCE")]
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
+        prefix = names[0].removesuffix("LICENCE")
+        sample = "examples/synthetic_registry.json"
+        assert (
+            archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()
+        )
 
     with TemporaryDirectory() as directory:
         work = Path(directory)
-        snapshot = work / "synthetic.json"
-        snapshot.write_text(json.dumps({"entries": {}, "threshold_year": "2020"}))
+        snapshot = root / "examples/synthetic_registry.json"
+        lookup_flags = ["--lookup-dir", str(root / "examples/lookups")]
         output = work / "pages"
+        notes = work / "obsidian_output"
         commands = [
             ["--help"],
-            ["validate-lookups"],
-            ["render", "--snapshot", str(snapshot), "--output-dir", str(output)],
+            ["validate-lookups", *lookup_flags],
+            [
+                "render",
+                "--snapshot",
+                str(snapshot),
+                "--output-dir",
+                str(output),
+                *lookup_flags,
+            ],
+            [
+                "export-obsidian",
+                "--snapshot",
+                str(snapshot),
+                "--output-dir",
+                str(notes),
+                *lookup_flags,
+            ],
         ]
         executable = Path(sys.executable).parent / "analysis-lister"
         for command in commands:
@@ -67,6 +87,8 @@ def main():
             check=True,
         )
         assert len(list(output.rglob("*.md"))) == 13
+        assert len(list((notes / "obs_published").glob("*.md"))) == 1
+        assert len(list((notes / "obs_ongoing").glob("*.md"))) == 1
 
     print("Installed CLI, synthetic rendering, TLS bundle and licences verified.")
 

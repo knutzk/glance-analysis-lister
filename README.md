@@ -43,6 +43,35 @@ CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
 build operations sequentially.
 
+## Try the synthetic example
+
+From a checkout, render the included example without CERN access:
+
+```bash
+analysis-lister render --snapshot examples/synthetic_registry.json \
+  --lookup-dir examples/lookups --output-dir pages
+```
+
+This writes 13 Markdown pages under `pages/`. All four records, names, titles,
+dates and publication links are invented. The `DEMO` reference codes do not
+identify real analyses. See [the example notes](examples/README.md).
+
+## Obsidian export
+
+```bash
+analysis-lister export-obsidian --snapshot examples/synthetic_registry.json \
+  --lookup-dir examples/lookups --output-dir obsidian_output
+```
+
+The exporter writes papers to `obs_published/` and ongoing analyses to
+`obs_ongoing/` under the chosen destination. The example produces one note in
+each directory. CONF and PUB notes are included in the site pages, but are not
+exported as separate Obsidian notes. Existing notes that this run did not write
+are reported as stale and left in place.
+
+For your own data, supply your snapshot and optional private lookup directory.
+The default destination is `obsidian_output/`.
+
 ## Private lookup dictionaries
 
 The package includes public DOI references and empty short-title defaults.
@@ -101,9 +130,6 @@ Tests use synthetic records and do not establish that live authentication works.
 Use local snapshots to test rendering changes. Preserve GLANCE's exact padded
 status strings, DOI/erratum alignment and unique subgroup anchors. Validate
 maintained lookups after changing them.
-
-The `create_obsidian_output.py` helper provides a manual Obsidian exporter;
-its output and snapshot paths are configured at the top of the script.
 
 ## Licence and contact
 

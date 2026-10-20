@@ -1,0 +1,161 @@
+{
+  "_description": "Entirely invented demo data. DEMO IDs, people, titles, dates and example.test links do not describe real analyses.",
+  "entries": {
+    "DEMO-2099-01": {
+      "_entrytype": "Analysis",
+      "contact_editors": "",
+      "contacts": "Example Researcher",
+      "date_approval": "",
+      "date_eb_formed": "",
+      "date_preapproval_signoff": "",
+      "date_preapproval": "",
+      "date_start": "2099-01-01",
+      "editorial_board": "Example Reviewer",
+      "glance_url_publ": "",
+      "int_note_editors": "",
+      "keywords": [
+        "R22",
+        "synthetic"
+      ],
+      "leading_group": "TOPQ",
+      "phase_state": "Synthetic review stage",
+      "ref_code": "DEMO-2099-01",
+      "run": "Run 2",
+      "status": " Phase 0 is  Active ",
+      "subgroups": [
+        "TOPQ - Top Quarks + X",
+        "TOPQ - Cross-section",
+        "TOPQ - Top Properties and Mass"
+      ],
+      "supporting_docs": [
+        "https://example.test/synthetic/1/supporting-note"
+      ],
+      "title_full": "Invented example ongoing analysis; not an actual ATLAS result",
+      "title_short_public": "Synthetic ongoing analysis",
+      "title_short": "Synthetic ongoing analysis"
+    },
+    "DEMO-2099-02": {
+      "_entrytype": "Paper",
+      "contact_editors": "",
+      "contacts": "Example Researcher",
+      "date_approval": "",
+      "date_eb_formed": "",
+      "date_preapproval_signoff": "",
+      "date_preapproval": "",
+      "date_start": "2099-01-01",
+      "editorial_board": "Example Reviewer",
+      "int_note_editors": "",
+      "keywords": [
+        "R22",
+        "synthetic"
+      ],
+      "leading_group": "TOPQ",
+      "phase_state": "Synthetic review stage",
+      "ref_code": "DEMO-2099-02",
+      "run": "Run 2",
+      "status": " Phase 0 is  Finished ",
+      "subgroups": [
+        "TOPQ - Top Quarks + X",
+        "TOPQ - Cross-section",
+        "TOPQ - Top Properties and Mass"
+      ],
+      "supporting_docs": [
+        "https://example.test/synthetic/2/supporting-note"
+      ],
+      "title_full": "Invented example published paper; not an actual ATLAS result",
+      "title_short_public": "Synthetic published paper",
+      "title_short": "Synthetic published paper",
+      "arxiv_number": "",
+      "arxiv_url": "",
+      "date_acceptance": "",
+      "date_phase_one": "",
+      "date_publication": "2099-03-01",
+      "date_submission": "2099-02-01",
+      "doi_urls": [],
+      "figure_url": "",
+      "inspire_url": "",
+      "journal": "",
+      "status_paper": " Publication Phase is  Active ",
+      "title_final_tex": "Synthetic published paper"
+    },
+    "DEMO-2099-03": {
+      "_entrytype": "ConfNote",
+      "contact_editors": "",
+      "contacts": "Example Researcher",
+      "date_approval": "",
+      "date_eb_formed": "",
+      "date_preapproval_signoff": "",
+      "date_preapproval": "",
+      "date_start": "2099-01-01",
+      "editorial_board": "Example Reviewer",
+      "glance_url_publ": "",
+      "int_note_editors": "",
+      "keywords": [
+        "R22",
+        "synthetic"
+      ],
+      "leading_group": "TOPQ",
+      "phase_state": "Synthetic review stage",
+      "ref_code": "DEMO-2099-03",
+      "run": "Run 2",
+      "status": " Phase 0 is  Finished ",
+      "subgroups": [
+        "TOPQ - Top Quarks + X",
+        "TOPQ - Cross-section",
+        "TOPQ - Top Properties and Mass"
+      ],
+      "supporting_docs": [
+        "https://example.test/synthetic/3/supporting-note"
+      ],
+      "title_full": "Invented example CONF note; not an actual ATLAS result",
+      "title_short_public": "Synthetic CONF note",
+      "title_short": "Synthetic CONF note",
+      "date_signoff": "2099-03-01",
+      "final_ref_code": "ATLAS-CONF-2099-999",
+      "final_url": "https://example.test/synthetic/3/publication",
+      "superseded_by": "",
+      "tmp_ref_code": "DEMO-NOTE-2099-03"
+    },
+    "DEMO-2099-04": {
+      "_entrytype": "PubNote",
+      "contact_editors": "",
+      "contacts": "Example Researcher",
+      "date_approval": "",
+      "date_eb_formed": "",
+      "date_preapproval_signoff": "",
+      "date_preapproval": "",
+      "date_start": "2099-01-01",
+      "editorial_board": "Example Reviewer",
+      "glance_url_publ": "",
+      "int_note_editors": "",
+      "keywords": [
+        "R22",
+        "synthetic"
+      ],
+      "leading_group": "TOPQ",
+      "phase_state": "Synthetic review stage",
+      "ref_code": "DEMO-2099-04",
+      "run": "Run 2",
+      "status": " Phase 0 is  Finished ",
+      "subgroups": [
+        "TOPQ - Top Quarks + X",
+        "TOPQ - Cross-section",
+        "TOPQ - Top Properties and Mass"
+      ],
+      "supporting_docs": [
+        "https://example.test/synthetic/4/supporting-note"
+      ],
+      "title_full": "Invented example PUB note; not an actual ATLAS result",
+      "title_short_public": "Synthetic PUB note",
+      "title_short": "Synthetic PUB note",
+      "date_signoff": "2099-03-01",
+      "final_ref_code": "ATL-PHYS-PUB-2099-999",
+      "final_url": "https://example.test/synthetic/4/publication",
+      "status_pub": " Phase 1 is  Active ",
+      "superseded_by": "",
+      "tmp_ref_code": "DEMO-NOTE-2099-04"
+    }
+  },
+  "threshold_year": "2020",
+  "last_modified_time": "Synthetic example; never downloaded from GLANCE"
+}
