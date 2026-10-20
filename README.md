@@ -108,9 +108,11 @@ or saved HTML without scope metadata cannot be used for refresh: retrieve into
 fresh destinations. No group selection is inferred from old data. Changing a
 scope's display name or reordering its values does not create a new selection.
 
-`--save-html DIR` saves the returned table columns and scope metadata.
-With `--from-html DIR`, scope metadata must be present and match. Offline
-replay does not apply server-side filters to saved records.
+`--save-html DIR` saves full responses, including result counters, plus scope
+metadata; CSVs retain their selected columns. With `--from-html DIR`, scope
+metadata must be present and match. Offline replay validates the saved result
+counters exactly as a live download does; it does not apply server-side
+filters to saved records. Older table-only HTML must be downloaded again.
 
 These options configure retrieval only. Rendering and Obsidian export retain
 their existing TOPQ presentation assumptions.
@@ -123,6 +125,13 @@ analysis-lister refresh --csv-dir csv/all --snapshot json/all_registry.json
 
 This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
 table. An explicit custom configuration still cannot contain an empty selection.
+
+Every table must include GLANCE’s `Showing 1 to N of N results` counter, and the
+parsed CSV row count must equal the reported total. Missing or conflicting
+counters, partial pages and truncated responses abort the entire batch before
+publication. Pagination is detected and rejected rather than silently storing
+one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
+against the total GLANCE reports for the authenticated user and requested scope.
 
 ## Clone relationships
 

@@ -18,7 +18,7 @@ from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
-HTML = "<table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
+HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
 
 
 class CsvBatchTests(unittest.TestCase):

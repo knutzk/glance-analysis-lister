@@ -16,7 +16,11 @@ import requests
 from attrs import field, frozen
 
 from analysis_lister.glance import field_maps
-from analysis_lister.html_tables import parse_html_table, table_to_rows
+from analysis_lister.html_tables import (
+    parse_html_table,
+    table_to_rows,
+    validate_table_completeness,
+)
 from analysis_lister.retrieval import (
     SCOPE_FILENAME,
     RetrievalScope,
@@ -161,10 +165,15 @@ class HTMLParser:
         # Keep diagnostic HTML even if header or row validation subsequently fails.
         if debug_path is not None:
             debug_path.parent.mkdir(parents=True, exist_ok=True)
-            debug_path.write_text(str(table) + "\n", encoding="utf-8")
-            logger.debug("All table rows saved to %s", debug_path)
+            debug_path.write_text(
+                html + ("" if html.endswith("\n") else "\n"), encoding="utf-8"
+            )
+            logger.debug(
+                "Full response including result counters saved to %s", debug_path
+            )
 
         csv_data = table_to_rows(table, source=source, column_filter=column_filter)
+        validate_table_completeness(table, len(csv_data) - 1, source=source)
         with output_csv.open("w", newline="", encoding="utf-8") as stream:
             writer = csv.writer(stream, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)

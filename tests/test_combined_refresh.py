@@ -143,6 +143,22 @@ class CombinedRefreshTests(unittest.TestCase):
             self.run_refresh(force=True)
         self.assert_unchanged()
 
+    def test_partial_last_table_aborts_even_with_count_override(self):
+        path = self.debug_dir / "confnotes.html"
+        path.write_text(path.read_text().replace("1 to 1 of 1", "1 to 1 of 2"))
+        with self.assertRaisesRegex(ValueError, "incomplete GLANCE table"):
+            self.run_refresh(force=True)
+        self.assert_unchanged()
+
+    def test_missing_result_counter_aborts_without_changing_outputs(self):
+        path = self.debug_dir / "papers.html"
+        path.write_text(
+            path.read_text().replace("<span>Showing 1 to 1 of 1 results</span>", "")
+        )
+        with self.assertRaisesRegex(ValueError, "completeness cannot be verified"):
+            self.run_refresh()
+        self.assert_unchanged()
+
     def test_registry_construction_failure_preserves_both(self):
         with (
             patch.object(
