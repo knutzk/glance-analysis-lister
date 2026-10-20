@@ -1,5 +1,7 @@
-"""Provides a dictionary with journal references.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Provides a dictionary with journal references.
 
 They keys of the dictionary are the DOIs, the values are strings with the
 corresponding journal references.

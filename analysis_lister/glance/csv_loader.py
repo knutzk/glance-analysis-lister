@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Read validated CSV batches and assemble registries without owning their state."""
 
 import csv

@@ -94,3 +94,18 @@ maintained lookups after changing them.
 
 The `create_obsidian_output.py` helper provides a manual Obsidian exporter;
 its output and snapshot paths are configured at the top of the script.
+
+## Licence and contact
+
+Copyright © 2024–2026 Knut Zoch. The software is licensed under
+[GNU GPL version 3](LICENCE) (`GPL-3.0-only`), without warranty.
+You may use, modify and redistribute it, including commercially. When
+redistributing the software or modified versions, preserve the copyright and
+licence notices, provide the corresponding source as required by GPLv3, and
+keep the covered work under GPLv3. Private modifications need not be published.
+
+This licence covers the software; it grants no rights to private GLANCE data.
+The bundled Sectigo certificate is a third-party artifact, whose issuer and
+provenance are documented [separately](analysis_lister/certs/README.md).
+
+Maintainer: [Knut Zoch](https://github.com/knutzk).

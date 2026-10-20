@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Verified DOI order overrides, keyed by analysis reference code.
 
 Add an entry only after checking the article and corrections. List every DOI

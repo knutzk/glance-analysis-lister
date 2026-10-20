@@ -1,7 +1,7 @@
-"""Module that outputs Markdown files for use in Obsidian.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Module that outputs Markdown files for use in Obsidian."""
 
 import logging
 import re

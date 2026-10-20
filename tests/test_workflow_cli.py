@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Check executable boundaries separately from reusable workflow operations."""
 
 import io

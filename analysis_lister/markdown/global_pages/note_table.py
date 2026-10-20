@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Shared table rendering for published CONF and PUB notes."""
 
 import logging

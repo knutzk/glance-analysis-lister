@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Parse GLANCE HTML tables without reading or writing files."""
 
 from __future__ import annotations

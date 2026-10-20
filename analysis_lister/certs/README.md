@@ -17,3 +17,7 @@ If GLANCE changes issuer, verify and replace the intermediate or remove this
 workaround once the server provides a complete chain. Do not disable TLS
 verification. `REQUESTS_CA_BUNDLE` (or `CURL_CA_BUNDLE`) overrides the entire
 default bundle; custom bundles must include all required roots/intermediates.
+
+This certificate is issued by Sectigo and is not original project source code.
+The project's GPL declaration does not relicense the certificate or assert
+copyright ownership over it.

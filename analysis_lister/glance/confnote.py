@@ -1,5 +1,7 @@
-"""Store information about CONF notes from glance.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Store information about CONF notes from glance.
 
 The ConfNote class derives from the Analysis class and adds additional
 attributes specific to CONF notes. The class is instantiated with a CSV file

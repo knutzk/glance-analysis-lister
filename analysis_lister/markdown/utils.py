@@ -1,7 +1,7 @@
-"""Provide markdown-formatted information blocks for analyses and papers.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Provide markdown-formatted information blocks for analyses and papers."""
 
 import logging
 from datetime import datetime

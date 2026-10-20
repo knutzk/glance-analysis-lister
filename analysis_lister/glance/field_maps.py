@@ -1,5 +1,7 @@
-"""Declarative field maps for GLANCE CSV entry parsing.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Declarative field maps for GLANCE CSV entry parsing.
 
 Each FIELD_MAP_* dictionary maps class attribute names to a 2-tuple:
     (CSV column name, transformation function)

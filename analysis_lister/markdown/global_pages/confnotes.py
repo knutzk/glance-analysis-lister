@@ -1,7 +1,7 @@
-"""Produce Markdown pages for conference notes of the ATLAS top WG.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Produce Markdown pages for conference notes of the ATLAS top WG."""
 
 import logging
 from pathlib import Path

@@ -7,6 +7,9 @@ name = "glance-analysis-lister"
 version = "0.1.0"
 description = "Maintain ATLAS GLANCE analysis registries and render analysis pages"
 readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENCE"]
+authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
 dependencies = ["attrs>=26.1", "requests>=2.34"]
 

@@ -1,7 +1,7 @@
-"""Generate Markdown pages for analyses and papers.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Generate Markdown pages for analyses and papers."""
 
 from pathlib import Path
 

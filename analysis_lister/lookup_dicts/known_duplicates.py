@@ -1,5 +1,7 @@
-"""Analysis records that duplicate another record in GLANCE.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Analysis records that duplicate another record in GLANCE.
 
 An analysis that finishes phase 0 without a paper, CONF note or PUB note
 record appears on no page, and `GlanceRegistry.log_unaccounted()` reports it

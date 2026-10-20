@@ -1,5 +1,7 @@
-"""Glance registry module.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Glance registry module.
 
 The registry holds analysis records, applies enrichment rules, and provides
 filtered views. Its constructor accepts in-memory entries. Explicit CSV and

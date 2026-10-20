@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Publication rules using synthetic records with GLANCE's exact status strings.
 
 These tests exercise model construction and registry selection together. They do

@@ -1,5 +1,7 @@
-"""Store information about a glance analysis entry.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Store information about a glance analysis entry.
 
 This module provides a class that stores attributes of an analysis. The class
 gets instantiated with a CSV file scraped from the GLANCE web interface. The

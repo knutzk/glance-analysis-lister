@@ -1,7 +1,7 @@
-"""Module providing utility functions to handle analysis/paper GLANCE entries.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Module providing utility functions to handle analysis/paper GLANCE entries."""
 
 import logging
 import re

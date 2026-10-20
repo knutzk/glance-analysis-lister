@@ -1,7 +1,7 @@
-"""Module that provides subgroup definitions.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Module that provides subgroup definitions."""
 
 from collections import namedtuple
 

@@ -1,7 +1,7 @@
-"""Produce Markdown page with all analyses and papers for a subgroup.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
-
-"""
+"""Produce Markdown page with all analyses and papers for a subgroup."""
 
 import logging
 from pathlib import Path

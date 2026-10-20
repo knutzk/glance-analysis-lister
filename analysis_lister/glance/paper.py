@@ -1,5 +1,7 @@
-"""Store information about papers from glance.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Store information about papers from glance.
 
 The Paper class derives from the Analysis class and adds additional attributes
 specific to analysis records published as papers. The class is instantiated

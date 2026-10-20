@@ -1,5 +1,7 @@
-"""Store information about PUB notes from glance.
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
 
+"""Store information about PUB notes from glance.
 
 The PubNote class derives from the Analysis class and adds additional
 attributes specific to PUB notes. The class is instantiated with a CSV file

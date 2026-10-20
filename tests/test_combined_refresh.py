@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Exercise the combined workflow against synthetic GLANCE tables, without a login."""
 
 import html
