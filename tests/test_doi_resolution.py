@@ -409,7 +409,7 @@ class ResolutionTests(unittest.TestCase):
                 cli.main(flags)
         with patch("sys.stdout", io.StringIO()) as output:
             cli.main(["resolve-dois", "--doi", JHEP, "--doi-cache", str(self.path)])
-        self.assertIn("resolved=1", output.getvalue())
+        self.assertRegex(output.getvalue(), r"Resolved\s+1")
         self.assertIn(JHEP.lower(), load_store(self.path))
 
 

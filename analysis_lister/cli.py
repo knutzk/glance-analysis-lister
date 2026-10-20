@@ -9,16 +9,14 @@ from pathlib import Path
 
 import requests
 
+from .console import configure_logging, print_summary
+
+logger = logging.getLogger(__name__)
+
 CSV_DIR = Path("csv")
 COOKIE_FILE = Path("cookies.json")
 SNAPSHOT_PATH = Path("json/glance_registry.json")
 OUTPUT_DIR = Path("pages")
-
-
-def configure_logging():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
 
 
 def _validate_download(command, args):
@@ -43,6 +41,28 @@ def _validate_resolution(command, args):
 
 def parser():
     """Register commands with their option groups, handlers, and validation."""
+    console = argparse.ArgumentParser(add_help=False)
+    verbosity = console.add_mutually_exclusive_group()
+    verbosity.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Show detailed logging with timestamps and module names.",
+    )
+    verbosity.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Show only warnings and errors, plus final results.",
+    )
+    console.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default=argparse.SUPPRESS,
+        help="Colour output (default: auto; respects NO_COLOR).",
+    )
     citations = argparse.ArgumentParser(add_help=False)
     citations.add_argument(
         "--doi-cache",
@@ -128,7 +148,7 @@ def parser():
         help="Review lookup use against this registry JSON snapshot.",
     )
 
-    command = argparse.ArgumentParser(description=__doc__)
+    command = argparse.ArgumentParser(description=__doc__, parents=[console])
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
     for name, description, parents, handler in (
@@ -168,13 +188,13 @@ def parser():
             name,
             help=description,
             description=description,
-            parents=[*parents, citations],
+            parents=[*parents, citations, console],
         )
         sub.set_defaults(handler=handler)
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
-        parents=[citations],
+        parents=[citations, console],
     )
     inputs = resolve.add_mutually_exclusive_group(required=True)
     inputs.add_argument(
@@ -202,7 +222,7 @@ def parser():
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     formatting = commands.add_parser(
         "format-citations",
-        parents=[citations],
+        parents=[citations, console],
         help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
     )
     formatting.set_defaults(handler=_run_format_citations)
@@ -237,6 +257,11 @@ def _run_refresh(args):
         debug=args.save_html is not None,
         **options,
     )
+    print_summary(
+        "Refresh complete",
+        [("CSV directory", args.csv_dir), ("Registry", args.snapshot)],
+        color=args.color,
+    )
 
 
 def _run_download(args):
@@ -253,24 +278,32 @@ def _run_download(args):
         debug=args.save_html is not None,
         **options,
     )
+    print_summary(
+        "Download complete", [("CSV directory", args.csv_dir)], color=args.color
+    )
 
 
 def _run_build_registry(args):
     from analysis_lister.refresh import update_registry
 
     update_registry(args.csv_dir, args.snapshot, force=args.allow_count_drop)
+    print_summary("Registry ready", [("Registry", args.snapshot)], color=args.color)
 
 
 def _run_render(args):
     from analysis_lister.render import render_pages
 
     render_pages(args.snapshot, args.output_dir)
+    print_summary("Pages rendered", [("Output", args.output_dir)], color=args.color)
 
 
 def _run_export_obsidian(args):
     from analysis_lister.obsidian import export_obsidian
 
     export_obsidian(args.snapshot, args.output_dir)
+    print_summary(
+        "Obsidian export complete", [("Output", args.output_dir)], color=args.color
+    )
 
 
 def _run_validate_lookups(args):
@@ -283,9 +316,9 @@ def _run_validate_lookups(args):
 
         notices = lookup_review_notices(GlanceRegistry.from_json(args.snapshot))
         for level, message in notices:
-            print(f"{logging.getLevelName(level)}: {message}")
+            logger.log(level, "%s", message)
         print(f"Snapshot review: {len(notices)} notice(s); no entries changed.")
-    print("All analysis lookup dictionaries are valid.")
+    print_summary("All analysis lookup dictionaries are valid.", color=args.color)
 
 
 def _run_resolve_dois(args):
@@ -299,18 +332,19 @@ def _run_resolve_dois(args):
         refresh=args.refresh_existing,
         limit=args.limit,
     )
-    print(
-        "DOI resolution: "
-        + ", ".join(f"{key}={value}" for key, value in summary.items())
+    print_summary(
+        "DOI resolution",
+        [(key.capitalize(), value) for key, value in summary.items()]
+        + [("Citation store", args.doi_cache)],
+        color=args.color,
     )
-    print(f"Citation dictionary: {args.doi_cache}")
 
 
 def _run_format_citations(args):
     from analysis_lister.doi_resolver import format_citations
 
     changed = format_citations(args.doi_cache)
-    print(f"Updated formatting in {changed} citation(s).")
+    print_summary(f"Updated formatting in {changed} citation(s).", color=args.color)
 
 
 def run(args):
@@ -323,11 +357,17 @@ def run(args):
 
 def main(argv=None):
     command = parser()
-    args = command.parse_args(argv)
+    args = command.parse_args(
+        argv, namespace=argparse.Namespace(verbose=False, quiet=False, color="auto")
+    )
+    if args.verbose and args.quiet:
+        command.error("--verbose cannot be combined with --quiet")
     if args.validator is not None:
         args.validator(command, args)
-    configure_logging()
-    try:
-        run(args)
-    except (ValueError, OSError, requests.RequestException) as error:
-        raise SystemExit(str(error)) from None
+    with configure_logging(verbose=args.verbose, quiet=args.quiet, color=args.color):
+        try:
+            run(args)
+        except (ValueError, OSError, requests.RequestException) as error:
+            logger.error("%s", error)
+            logger.debug("Command failed", exc_info=True)
+            raise SystemExit(1) from None
