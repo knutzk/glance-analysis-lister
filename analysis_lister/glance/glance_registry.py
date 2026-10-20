@@ -342,7 +342,7 @@ class GlanceRegistry(_FilteringMixin):
             key: Column that holds the reference code of a row.
             prefix: Prefix to strip off that reference code.
             analysis_short_titles: Original analysis titles, before display escaping.
-                PUB matches require an identical, nonempty short title as well
+                Publication matches require an identical, nonempty short title as well
                 as the reference suffix.
 
         Returns:
@@ -366,12 +366,16 @@ class GlanceRegistry(_FilteringMixin):
                 if cls is PubNote:
                     self._add_independent_pubnote(row)
                 n_unmatched += 1
-            elif cls is PubNote and (not title.strip() or row["Short Title"] != title):
-                logger.info(
-                    "%s: PUB short title differs or is empty; skipping analysis matching.",
+            elif cls in (Paper, ConfNote, PubNote) and (
+                not title.strip() or row["Short Title"] != title
+            ):
+                logger.debug(
+                    "%s: %s short title differs or is empty; skipping analysis matching.",
                     row[key],
+                    {Paper: "paper", ConfNote: "CONF", PubNote: "PUB"}[cls],
                 )
-                self._add_independent_pubnote(row)
+                if cls is PubNote:
+                    self._add_independent_pubnote(row)
                 n_unmatched += 1
             elif self._may_enrich(base, cls, ref):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)

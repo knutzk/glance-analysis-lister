@@ -70,6 +70,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         row.update(
             {
                 "Reference Code": ref,
+                "Short Title": "Synthetic title",
                 "Status": " Publication Phase is  Active ",
                 "arXiv Submission Date": "2023-01-01",
                 "Publication Date": "2023-07-01",
@@ -85,6 +86,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         row.update(
             {
                 "Temporary Reference Code": f"{prefix}-{ref}",
+                "Short Title": "Synthetic title",
                 "Reference Code": "ATLAS-CONF-2023-001"
                 if cls is ConfNote
                 else "ATL-PHYS-PUB-2023-001",
@@ -146,6 +148,77 @@ class EnrichmentRulesTests(unittest.TestCase):
                 self.assertEqual(entry.supporting_docs, base.supporting_docs)
                 self.assertEqual(refs(collection.papers), {base.ref_code})
                 self.assertEqual(collection.confnotes, [])
+
+    def test_paper_matching_requires_identical_nonempty_short_title(self):
+        for title in (
+            "Synthetic title",
+            "Different title",
+            "synthetic title",
+            "Synthetic title ",
+            "",
+        ):
+            with self.subTest(title=title):
+                base = analysis(status=FINISHED)
+                collection = registry(base)
+                matches = title == base.title_short
+                with self.assertNoLogs(level="WARNING"):
+                    counts = self.enrich(collection, Paper, **{"Short Title": title})
+                self.assertEqual(counts, (int(matches), int(not matches)))
+                if not matches:
+                    self.assertIs(collection.get(base.ref_code), base)
+        collection = registry(analysis(status=FINISHED, **{"Short Title": ""}))
+        self.assertEqual(self.enrich(collection, Paper, **{"Short Title": ""}), (0, 1))
+
+    def test_unmatched_paper_leaves_analysis_available_for_matching_pubnote(self):
+        for order in ((Paper, PubNote), (PubNote, Paper)):
+            with self.subTest(order=order), self.assertNoLogs(level="WARNING"):
+                collection = registry(analysis(status=FINISHED))
+                for cls in order:
+                    changes = (
+                        {"Short Title": "Unrelated synthetic paper"}
+                        if cls is Paper
+                        else {}
+                    )
+                    self.assertEqual(
+                        self.enrich(collection, cls, **changes),
+                        (0, 1) if cls is Paper else (1, 0),
+                    )
+                self.assertEqual(collection.papers, [])
+                self.assertEqual(len(collection.pubnotes), 1)
+                self.assertEqual(collection.pubnotes[0].ref_code, "TOPQ-2099-01")
+
+    def test_unrelated_paper_and_conf_leave_matching_pubnote_available(self):
+        collection = registry(analysis(status=FINISHED))
+        with self.assertNoLogs(level="WARNING"):
+            for cls in (Paper, ConfNote):
+                self.assertEqual(
+                    self.enrich(
+                        collection,
+                        cls,
+                        **{
+                            "Short Title": "Unrelated synthetic publication",
+                        },
+                    ),
+                    (0, 1),
+                )
+            self.assertEqual(self.enrich(collection, PubNote), (1, 0))
+        self.assertEqual(collection.papers, [])
+        self.assertEqual(collection.confnotes, [])
+        self.assertEqual(len(collection.pubnotes), 1)
+
+    def test_paper_matching_uses_raw_title_before_display_escaping(self):
+        base = analysis(status=FINISHED, **{"Short Title": "Synthetic | title"})
+        collection = registry(base)
+        row = publication_row(Paper, **{"Short Title": "Synthetic | title"})
+        self.assertEqual(
+            collection.enrich(
+                [row],
+                Paper,
+                key="Reference Code",
+                analysis_short_titles={base.ref_code: "Synthetic | title"},
+            ),
+            (1, 0),
+        )
 
     def test_other_cross_type_collisions_keep_existing_record_and_warn(self):
         for first, second in (

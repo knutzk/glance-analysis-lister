@@ -155,15 +155,17 @@ publication. Pagination is detected and rejected rather than silently storing
 one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
 against the total GLANCE reports for the authenticated user and requested scope.
 
-## PUB-note matching
+## Publication matching
 
-PUB notes enrich an analysis only when their temporary-code suffix and nonempty
-short title both match exactly. Notes without a match are retained independently
+Papers, CONF notes and PUB notes enrich an analysis only when their reference-code suffix
+and nonempty short title both match exactly. Unmatched paper rows do not enrich
+an analysis; unmatched CONF rows likewise remain unattached. PUB notes without a match are retained independently
 under their full `PUB-...` identifier, using their own metadata and publication
 status. They do not acquire an ANA link or appear as ongoing analyses.
 
-Building from CSV now requires the PUB descriptive metadata columns. Older
-minimal PUB CSV exports must be downloaded again before rebuilding the registry.
+Building from CSV requires short titles for papers and CONF/PUB notes, plus
+PUB descriptive metadata. Older minimal note CSV exports must be downloaded
+again before rebuilding the registry.
 Existing JSON snapshots remain readable.
 
 ## Clone relationships
