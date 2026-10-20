@@ -5,9 +5,9 @@
 
 from pathlib import Path
 
+from ..diagnostics import lookup_report
 from ..glance.glance_registry import GlanceRegistry
 from ..glance.subgroups import TopGroups
-from ..lookup_dicts.reporting import lookup_report
 from .global_pages import (
     confnotes as glob_confnotes,
     ongoing as glob_ongoing,

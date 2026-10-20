@@ -14,8 +14,8 @@ import requests
 
 from analysis_lister import cli
 from analysis_lister.citation_store import (
+    Citations,
     cached_citations,
-    effective_store,
     load_store,
     normalize_doi,
     save_store,
@@ -30,9 +30,7 @@ from analysis_lister.doi_resolver import (
     snapshot_dois,
 )
 from analysis_lister.glance.paper import Paper
-from analysis_lister.lookup_dicts.journal_refs import JournalRefs
-from analysis_lister.lookup_dicts.overrides import local_lookups
-from analysis_lister.lookup_dicts.validation import TABLES, validate_lookups
+from analysis_lister.lookup_validation import validate_lookups
 
 DOI = "10.9999/demo"
 JHEP = "10.1007/JHEP07(2099)999"
@@ -78,40 +76,14 @@ class CitationStoreTests(unittest.TestCase):
 
     def test_curated_defaults_are_rich_and_preserve_corrections(self):
         validate_lookups()
-        for value in JournalRefs.values():
+        for value in Citations.values():
             self.assertIn("source", value)
             self.assertNotIn("locked", value)
             self.assertTrue(value["citation"])
         self.assertEqual(
-            JournalRefs["10.1140/epjc/s10052-020-08541-3"]["citation"],
+            Citations["10.1140/epjc/s10052-020-08541-3"]["citation"],
             "Erratum: Eur. Phys. J. C 80 (2020) 1092",
         )
-
-    def test_old_private_dictionaries_remain_supported_and_are_never_executed(self):
-        for filename, table in TABLES.items():
-            (self.root / filename).write_text(f"{table} = {{}}\n")
-        (self.root / "journal_refs.py").write_text(
-            f"JournalRefs = {{{DOI!r}: 'Private citation'}}"
-        )
-        with local_lookups(self.root):
-            entries = effective_store(self.path)
-            self.assertEqual(entries[DOI], record("Private citation"))
-        (self.root / "journal_refs.py").write_text(
-            f"JournalRefs = {{{DOI!r}: {record()!r}}}\n"
-        )
-        validate_lookups(self.root)
-        for invalid in (
-            record(locked="false"),
-            record(source=""),
-            record(material=[]),
-            record(unexpected=True),
-            {"citation": "incomplete"},
-        ):
-            (self.root / "journal_refs.py").write_text(
-                f"JournalRefs = {{{DOI!r}: {invalid!r}}}"
-            )
-            with self.subTest(entry=invalid), self.assertRaises(ValueError):
-                validate_lookups(self.root)
 
     def test_store_does_not_merge_another_dictionary(self):
         save_store(self.path, {DOI: record("User correction", source="inspire")})
@@ -134,26 +106,6 @@ class CitationStoreTests(unittest.TestCase):
         self.assertEqual(load_store(self.path)[DOI]["source"], "manual")
         self.assertEqual(load_store(self.path)["10.9999/other"]["source"], "inspire")
 
-    def test_legacy_private_citations_override_json_only_within_the_operation(self):
-        for filename, table in TABLES.items():
-            (self.root / filename).write_text(f"{table} = {{}}\n")
-        (self.root / "journal_refs.py").write_text(
-            f"JournalRefs = {{{DOI!r}: 'Manual override'}}"
-        )
-        save_store(self.path, {DOI: record("API citation", source="inspire")})
-        with local_lookups(self.root), cached_citations(self.path):
-            self.assertEqual(JournalRefs[DOI]["citation"], "Manual override")
-        self.assertEqual(load_store(self.path)[DOI]["citation"], "API citation")
-
-    def test_literal_metadata_cannot_hide_duplicate_source_fields(self):
-        for filename, table in TABLES.items():
-            (self.root / filename).write_text(f"{table} = {{}}\n")
-        (self.root / "journal_refs.py").write_text(
-            f'JournalRefs = {{"{DOI}": {{"citation": "Demo", "source": "manual", "source": "inspire"}}}}'
-        )
-        with self.assertRaisesRegex(ValueError, "duplicate citation fields"):
-            validate_lookups(self.root)
-
     def test_duplicate_and_invalid_json_records_are_rejected(self):
         self.path.parent.mkdir()
         for text in (
@@ -161,6 +113,7 @@ class CitationStoreTests(unittest.TestCase):
             f'{{"{DOI}": {{}}, "{DOI}": {{}}}}',
             json.dumps({DOI: record(), DOI.upper(): record()}),
             json.dumps({DOI: record(locked="true")}),
+            '{"10.9999/demo": {"citation": "Demo", "source": "manual", "source": "inspire"}}',
         ):
             self.path.write_text(text)
             with self.subTest(text=text), self.assertRaises(ValueError):
@@ -168,14 +121,14 @@ class CitationStoreTests(unittest.TestCase):
 
     def test_cached_citations_restore_after_failure_and_feed_json_loading_offline(self):
         save_store(self.path, {DOI: record("Cached citation")})
-        original = JournalRefs.copy()
+        original = Citations.copy()
         with (
             self.assertRaisesRegex(RuntimeError, "synthetic"),
             cached_citations(self.path),
         ):
-            self.assertEqual(JournalRefs[DOI]["citation"], "Cached citation")
+            self.assertEqual(Citations[DOI]["citation"], "Cached citation")
             raise RuntimeError("synthetic")
-        self.assertEqual(JournalRefs, original)
+        self.assertEqual(Citations, original)
         from attrs import fields
 
         data = {f.name: "" for f in fields(Paper) if f.init}

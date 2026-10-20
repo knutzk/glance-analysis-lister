@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""DOI ambiguity, explicit ordering, and citation alignment regressions."""
+"""DOI ambiguity, automatic ordering, and citation alignment regressions."""
 
 import sys
 import unittest
@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.doi import format_url_dois, order_doi_urls
 from analysis_lister.glance.paper import Paper
-from analysis_lister.lookup_dicts.doi_order import DoiOrder
 from analysis_lister.markdown.subgroup_pages.published import render_citation_block
 
 ORIGINAL = "10.1140/epjc/s10052-024-11111-1"
@@ -35,7 +34,7 @@ class DoiOrderTests(unittest.TestCase):
         )
         with (
             patch.dict(
-                "analysis_lister.lookup_dicts.journal_refs.JournalRefs",
+                "analysis_lister.citation_store.Citations",
                 {ORIGINAL: "Synthetic citation"},
                 clear=True,
             ),
@@ -46,7 +45,7 @@ class DoiOrderTests(unittest.TestCase):
     def test_cached_material_orders_correction_before_date_inference(self):
         with (
             patch.dict(
-                "analysis_lister.lookup_dicts.journal_refs.JournalRefs",
+                "analysis_lister.citation_store.Citations",
                 {
                     ORIGINAL: {"material": "publication"},
                     CORRECTION: {"material": "erratum"},
@@ -86,21 +85,7 @@ class DoiOrderTests(unittest.TestCase):
                 self.assertEqual(order_doi_urls(urls, "TOPQ-2025-01"), urls)
             self.assertIn("ambiguous DOI order", logs.output[0])
 
-    def test_override_and_stale_override(self):
-        with patch.dict(DoiOrder, {"TEST": [ORIGINAL, CORRECTION]}):
-            self.assertEqual(
-                order_doi_urls(self.urls(CORRECTION, ORIGINAL), "TEST"),
-                self.urls(ORIGINAL, CORRECTION),
-            )
-            with self.assertRaisesRegex(ValueError, "override does not match"):
-                order_doi_urls(self.urls(ORIGINAL), "TEST")
-        with (
-            patch.dict(DoiOrder, {"TEST": [ORIGINAL, ORIGINAL]}),
-            self.assertRaises(ValueError),
-        ):
-            order_doi_urls(self.urls(ORIGINAL), "TEST")
-
-    def test_json_load_applies_override_before_resolving_citations(self):
+    def test_json_load_orders_by_cached_material_before_resolving_citations(self):
         data = {field.name: "" for field in fields(Paper) if field.init}
         data.update(
             ref_code="TEST",
@@ -114,12 +99,14 @@ class DoiOrderTests(unittest.TestCase):
             journal_ref="stale serialized citation",
         )
         with (
-            patch.dict(DoiOrder, {"TEST": [ORIGINAL, CORRECTION]}),
             patch.dict(
-                "analysis_lister.glance.paper.journal_refs.JournalRefs",
+                "analysis_lister.citation_store.Citations",
                 {
-                    ORIGINAL: "Original citation",
-                    CORRECTION: "Erratum citation",
+                    ORIGINAL: {
+                        "citation": "Original citation",
+                        "material": "publication",
+                    },
+                    CORRECTION: {"citation": "Erratum citation", "material": "erratum"},
                 },
             ),
         ):

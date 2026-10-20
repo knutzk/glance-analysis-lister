@@ -13,7 +13,7 @@ from unittest.mock import patch
 from attrs import fields
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.lookup_dicts.reporting import lookup_notice, lookup_report
+from analysis_lister.diagnostics import lookup_notice, lookup_report
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TX, XS

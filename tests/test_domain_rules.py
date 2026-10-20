@@ -475,7 +475,7 @@ class RegistryRoundTripTests(unittest.TestCase):
                     )
             path.write_text(json.dumps(payload))
             with patch.dict(
-                "analysis_lister.glance.paper.journal_refs.JournalRefs",
+                "analysis_lister.citation_store.Citations",
                 {DOI: "Updated citation"},
             ):
                 restored = GlanceRegistry.from_json(path)

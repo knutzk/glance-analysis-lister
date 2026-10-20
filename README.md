@@ -128,11 +128,10 @@ the server returned every accessible record or applied no result limit.
 
 ## Clone relationships
 
-Maintain verified clone origins in `analysis_lister/lookup_dicts/clones.py`.
+Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.
 `Clones` maps each clone's analysis reference to its original analysis reference;
 multiple clones can share an origin. Add a `# Source:` or `# Reason:` comment
-immediately above every entry. An optional private `clones.py` can be supplied
-using `--lookup-dir`. Validate changes with `analysis-lister validate-lookups`.
+immediately above every entry. Validate changes with `analysis-lister validate-lookups`.
 
 Clone exclusions are calculated in memory from this dictionary whenever a
 registry is loaded. No clone fields or exclusion flags are stored in JSON.
@@ -152,7 +151,7 @@ From a checkout, render the included example without CERN access:
 
 ```bash
 analysis-lister render --snapshot examples/synthetic_registry.json \
-  --lookup-dir examples/lookups --output-dir pages
+  --output-dir pages
 ```
 
 This writes 13 Markdown pages under `pages/`. All four records, names, titles,
@@ -163,7 +162,7 @@ identify real analyses. See [the example notes](examples/README.md).
 
 ```bash
 analysis-lister export-obsidian --snapshot examples/synthetic_registry.json \
-  --lookup-dir examples/lookups --output-dir obsidian_output
+  --output-dir obsidian_output
 ```
 
 The exporter writes papers to `obs_published/` and ongoing analyses to
@@ -172,42 +171,18 @@ each directory. CONF and PUB notes are included in the site pages, but are not
 exported as separate Obsidian notes. Existing notes that this run did not write
 are reported as stale and left in place.
 
-For your own data, supply your snapshot and optional private lookup directory.
+For your own data, supply your snapshot.
 The default destination is `obsidian_output/`.
 
-## Private lookup dictionaries
+## Maintained analysis relationships
 
-The package includes public DOI references and empty short-title defaults.
-To supply your own titles and overrides, keep these three literal dictionaries
-in a separate local directory:
-
-| File | Dictionary |
-| --- | --- |
-| `short_titles.py` | `ShortTitles` |
-| `known_duplicates.py` | `KnownDuplicates` |
-| `doi_order.py` | `DoiOrder` |
-
-An optional legacy `journal_refs.py` / `JournalRefs` dictionary is still accepted
-for private citation overrides. Each Python lookup file must define its dictionary
-as a literal; empty dictionaries are valid.
-For example, `short_titles.py` can contain:
-
-```python
-ShortTitles = {}
-```
-
-Supply the directory with `--lookup-dir`:
-
-```bash
-analysis-lister render --snapshot json/glance_registry.json \
-  --output-dir pages --lookup-dir /path/to/private/lookups
-```
-
-The files are parsed and validated without executing Python. Their dictionaries
-replace the package defaults for that operation. Without this option, rendering
-uses the public defaults and titles from the supplied snapshot. Keep credentials,
-registry snapshots, downloaded tables, private lookups and generated pages out of
-this repository.
+Titles come directly from GLANCE’s Short Title, Public Short Title and Full
+Title fields. The only maintained analysis dictionary is
+`analysis_lister/lookup_dicts/clones.py`, which covers clone and duplicate
+origins. Citation metadata lives in `json/doi_metadata.json`. No private Python
+lookup overrides are supported; select a different JSON citation store with
+`--doi-cache` when needed. Validate maintained data with
+`analysis-lister validate-lookups`.
 
 ## DOI citation resolution
 
@@ -215,7 +190,6 @@ The single citation dictionary is [json/doi_metadata.json](json/doi_metadata.jso
 It is versioned in Git, with one complete DOI entry per line for readable diffs.
 The wheel and source distribution include the same dictionary. There is no
 separate maintained Python citation dictionary and no merging of seed entries.
-The old `JournalRefs` module is only a compatibility view of this JSON data.
 
 Each record requires `citation` and `source`. Protection follows the source:
 `manual` citations are never replaced automatically; inferred and INSPIRE
@@ -227,9 +201,7 @@ that field remain readable, but it is ignored and removed on writing.
 All commands read the dictionary offline. `--doi-cache PATH` selects a separate
 store; a missing custom store starts empty. When working outside a checkout,
 the default path uses the packaged copy until a working-directory store is
-written. Optional private `journal_refs.py` overrides take precedence for the
-operation and are parsed without execution; legacy string values mean manual
-citations. Only `resolve-dois` can make INSPIRE requests.
+written. Only `resolve-dois` can make INSPIRE requests.
 
 INSPIRE's compact journal abbreviations are formatted consistently with the
 existing citations, for example `Phys.Rev.D` → `Phys. Rev. D`. After an update
@@ -276,7 +248,9 @@ atomically after each entry. Failed requests, missing records, incomplete
 citations and ambiguous DOI/publication associations remain retryable; failed
 refreshes retain the previous citation. INSPIRE lookups match the requested DOI
 and material to publication information, and label verified errata/addenda.
-They do not change the existing DOI ordering rules or manual order overrides.
+DOI ordering uses cached publication/correction labels and dates encoded in
+DOIs. Ambiguous cases retain input order with a warning; no manual order
+dictionary is maintained.
 Duplicate publication rows are combined only when their structured citation
 fields agree; compatible partial rows can fill missing fields. Conflicting
 metadata remains unresolved. An unlabelled DOI can inherit an explicit label

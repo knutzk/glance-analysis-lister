@@ -11,9 +11,9 @@ import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
+from analysis_lister.diagnostics import discard_lookup_notices, lookup_report
 from analysis_lister.download import DownloadTable, download_tasks, staged_csv_files
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.reporting import discard_lookup_notices, lookup_report
 from analysis_lister.retrieval import (
     SCOPE_FILENAME,
     RetrievalScope,

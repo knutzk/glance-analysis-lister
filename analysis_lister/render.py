@@ -5,8 +5,8 @@
 
 from pathlib import Path
 
+from analysis_lister.diagnostics import lookup_report
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.reporting import lookup_report
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
 
 

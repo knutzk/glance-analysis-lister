@@ -13,7 +13,6 @@ from attrs import fields
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.glance.doi import order_doi_urls
 from analysis_lister.glance.paper import Paper
-from analysis_lister.lookup_dicts.doi_order import DoiOrder
 from analysis_lister.markdown.subgroup_pages.published import render_paper_block
 
 
@@ -36,9 +35,7 @@ class LookupDiagnosticsTests(unittest.TestCase):
     def test_missing_journal_references_identify_article_and_correction(self):
         dois = ["10.1007/JHEP01(2024)999", "10.1007/JHEP01(2025)999"]
         with (
-            patch.dict(
-                "analysis_lister.glance.paper.journal_refs.JournalRefs", {}, clear=True
-            ),
+            patch.dict("analysis_lister.citation_store.Citations", {}, clear=True),
             self.assertLogs(level="WARNING") as logs,
         ):
             paper = self.paper([f"https://doi.org/{doi}" for doi in dois])
@@ -57,20 +54,14 @@ class LookupDiagnosticsTests(unittest.TestCase):
             rendered = render_paper_block(paper, attribute_tag=False)
         self.assertIn("TOPQ-2099-01 – GLANCE fallback", rendered)
 
-    def test_stale_override_lists_missing_and_obsolete_dois(self):
-        with (
-            patch.dict(DoiOrder, {"TOPQ-2099-01": ["10.1007/obsolete"]}),
-            self.assertRaises(ValueError) as error,
-        ):
-            order_doi_urls(["https://doi.org/10.1007/new"], "TOPQ-2099-01")
-        message = str(error.exception)
-        for expected in (
-            "TOPQ-2099-01",
-            "lookup_dicts/doi_order.py",
-            "Missing from override: ['10.1007/new']",
-            "absent from record: ['10.1007/obsolete']",
-        ):
-            self.assertIn(expected, message)
+    def test_ambiguous_order_warning_points_to_citation_metadata(self):
+        urls = [
+            "https://doi.org/10.9999/synthetic-a",
+            "https://doi.org/10.9999/synthetic-b",
+        ]
+        with self.assertLogs(level="WARNING") as logs:
+            self.assertEqual(order_doi_urls(urls, "DEMO-2099-01"), urls)
+        self.assertIn("json/doi_metadata.json", logs.output[0])
 
 
 if __name__ == "__main__":

@@ -43,13 +43,8 @@ def _validate_resolution(command, args):
 
 def parser():
     """Register commands with their option groups, handlers, and validation."""
-    lookups = argparse.ArgumentParser(add_help=False)
-    lookups.add_argument(
-        "--lookup-dir",
-        type=Path,
-        help="Directory of private literal lookup dictionaries (never executed).",
-    )
-    lookups.add_argument(
+    citations = argparse.ArgumentParser(add_help=False)
+    citations.add_argument(
         "--doi-cache",
         type=Path,
         default=Path("json/doi_metadata.json"),
@@ -170,13 +165,16 @@ def parser():
         ),
     ):
         sub = commands.add_parser(
-            name, help=description, description=description, parents=[*parents, lookups]
+            name,
+            help=description,
+            description=description,
+            parents=[*parents, citations],
         )
         sub.set_defaults(handler=handler)
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
-        parents=[lookups],
+        parents=[citations],
     )
     inputs = resolve.add_mutually_exclusive_group(required=True)
     inputs.add_argument(
@@ -204,7 +202,7 @@ def parser():
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     formatting = commands.add_parser(
         "format-citations",
-        parents=[lookups],
+        parents=[citations],
         help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
     )
     formatting.set_defaults(handler=_run_format_citations)
@@ -276,12 +274,12 @@ def _run_export_obsidian(args):
 
 
 def _run_validate_lookups(args):
-    from analysis_lister.lookup_dicts.validation import validate_lookups
+    from analysis_lister.lookup_validation import validate_lookups
 
-    validate_lookups(args.lookup_dir)
+    validate_lookups()
     if args.snapshot is not None:
         from analysis_lister.glance.glance_registry import GlanceRegistry
-        from analysis_lister.lookup_dicts.review import lookup_review_notices
+        from analysis_lister.lookup_review import lookup_review_notices
 
         notices = lookup_review_notices(GlanceRegistry.from_json(args.snapshot))
         for level, message in notices:
@@ -318,9 +316,8 @@ def _run_format_citations(args):
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
     from analysis_lister.citation_store import cached_citations
-    from analysis_lister.lookup_dicts.overrides import local_lookups
 
-    with local_lookups(args.lookup_dir), cached_citations(args.doi_cache):
+    with cached_citations(args.doi_cache):
         args.handler(args)
 
 

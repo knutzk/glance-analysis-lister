@@ -17,10 +17,9 @@ from pathlib import Path
 
 from attrs import asdict
 
-from ..lookup_dicts.known_duplicates import KnownDuplicates
-from ..lookup_dicts.reporting import lookup_notice
-from ..lookup_dicts.review import lookup_review_notices
-from ..lookup_dicts.validation import validate_lookups
+from ..diagnostics import lookup_notice
+from ..lookup_review import lookup_review_notices
+from ..lookup_validation import validate_lookups
 from ..retrieval import RetrievalScope
 from ..storage import atomic_write_text
 from .analysis import Analysis
@@ -396,17 +395,8 @@ class GlanceRegistry(_FilteringMixin):
         return False
 
     def log_unaccounted(self):
-        """Report the entries that end up on no page at all.
-
-        Entries listed in `lookup_dicts.known_duplicates` are reported as
-        INFO instead: they duplicate another GLANCE record and only closing
-        them there would settle it, so warning about them every run would
-        only bury a record that is genuinely incomplete.
-
-        """
-        unaccounted = self.unaccounted
-        duplicates = [a for a in unaccounted if a.ref_code in KnownDuplicates]
-        incomplete = [a for a in unaccounted if a.ref_code not in KnownDuplicates]
+        """Report unfinished records not explained by manual clone relationships."""
+        incomplete = self.unaccounted
 
         if incomplete:
             logger.warning(
@@ -414,17 +404,6 @@ class GlanceRegistry(_FilteringMixin):
                 "without a paper, CONF note or PUB note record in GLANCE: %s",
                 len(incomplete),
                 ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
-            )
-
-        if duplicates:
-            logger.info(
-                "%d further entries appear on no page and have known duplicate "
-                "mappings: %s",
-                len(duplicates),
-                ", ".join(
-                    f"{a.ref_code} (duplicate of {KnownDuplicates[a.ref_code]})"
-                    for a in duplicates
-                ),
             )
 
         for level, message in lookup_review_notices(self):

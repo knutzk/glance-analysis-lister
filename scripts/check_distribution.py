@@ -70,12 +70,11 @@ def main():
     with TemporaryDirectory() as directory:
         work = Path(directory)
         snapshot = root / "examples/synthetic_registry.json"
-        lookup_flags = ["--lookup-dir", str(root / "examples/lookups")]
         output = work / "pages"
         notes = work / "obsidian_output"
         commands = [
             ["--help"],
-            ["validate-lookups", *lookup_flags],
+            ["validate-lookups"],
             [
                 "resolve-dois",
                 "--doi",
@@ -91,7 +90,6 @@ def main():
                 str(snapshot),
                 "--output-dir",
                 str(output),
-                *lookup_flags,
             ],
             [
                 "export-obsidian",
@@ -99,7 +97,6 @@ def main():
                 str(snapshot),
                 "--output-dir",
                 str(notes),
-                *lookup_flags,
             ],
         ]
         executable = Path(sys.executable).parent / "analysis-lister"

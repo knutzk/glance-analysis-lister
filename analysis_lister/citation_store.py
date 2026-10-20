@@ -39,7 +39,7 @@ def normalize_doi(value: str) -> str:
 
 
 def citation_problem(entry):
-    """Validate rich records; accept old literal string values for private lookups."""
+    """Validate citation metadata loaded from the JSON store."""
     if isinstance(entry, str):
         return None if entry.strip() else "expected a nonempty string"
     if not isinstance(entry, dict):
@@ -144,28 +144,19 @@ def save_store(path: Path, records):
     atomic_write_text(path, "{\n" + ",\n".join(lines) + ("\n" if lines else "") + "}\n")
 
 
+# The citation store is the sole source for model and renderer consumers.
+Citations = load_store(DEFAULT_CACHE)
+
+
 @contextmanager
 def cached_citations(path: Path):
-    """Expose cached citations to existing model consumers, without network access."""
-    from analysis_lister.lookup_dicts.journal_refs import JournalRefs
-
-    original = JournalRefs.copy()
-    entries = effective_store(path)
+    """Use one selected citation store for an offline operation."""
+    original = Citations.copy()
+    entries = load_store(path)
     try:
-        JournalRefs.clear()
-        JournalRefs.update(entries)
+        Citations.clear()
+        Citations.update(entries)
         yield
     finally:
-        JournalRefs.clear()
-        JournalRefs.update(original)
-
-
-def effective_store(path: Path):
-    entries = load_store(path)
-    # Legacy private journal_refs.py overrides are explicit user overrides,
-    # not a second maintained citation source.
-    from analysis_lister.lookup_dicts.overrides import private_journal_overrides
-
-    for doi, value in private_journal_overrides().items():
-        entries[normalize_doi(doi)] = citation_record(value)
-    return entries
+        Citations.clear()
+        Citations.update(original)

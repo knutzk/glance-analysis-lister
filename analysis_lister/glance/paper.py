@@ -17,9 +17,9 @@ import logging
 
 from attrs import define, field
 
+from .. import citation_store
 from ..citation_store import citation_text, normalize_doi
-from ..lookup_dicts import journal_refs
-from ..lookup_dicts.reporting import lookup_notice
+from ..diagnostics import lookup_notice
 from .analysis import Analysis
 from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
@@ -162,9 +162,9 @@ class Paper(Analysis):
         # string keeps them aligned with self.dois[1:].
         refs = []
         for index, doi in enumerate(self.dois):
-            key = doi if doi in journal_refs.JournalRefs else normalize_doi(doi)
-            if key in journal_refs.JournalRefs:
-                value = journal_refs.JournalRefs[key]
+            key = doi if doi in citation_store.Citations else normalize_doi(doi)
+            if key in citation_store.Citations:
+                value = citation_store.Citations[key]
                 refs.append(citation_text(value))
             else:
                 lookup_notice(

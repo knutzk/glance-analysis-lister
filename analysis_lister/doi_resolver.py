@@ -17,12 +17,11 @@ from urllib.parse import quote
 import requests
 
 from analysis_lister.citation_store import (
-    effective_store,
     load_store,
     normalize_doi,
     save_store,
 )
-from analysis_lister.lookup_dicts.reporting import lookup_notice, lookup_report
+from analysis_lister.diagnostics import lookup_notice, lookup_report
 
 logger = logging.getLogger(__name__)
 API = "https://inspirehep.net/api/doi/"
@@ -336,7 +335,7 @@ def resolve_dois(dois, cache_path: Path, *, method="infer", refresh=False, limit
     if limit is not None and (type(limit) is not int or limit < 1):
         raise ValueError("Resolution limit must be positive")
     inputs = sorted({normalize_doi(doi) for doi in dois})
-    records = effective_store(cache_path)
+    records = load_store(cache_path)
     summary = Counter(
         resolved=0, existing=0, locked=0, unresolved=0, failed=0, deferred=0
     )

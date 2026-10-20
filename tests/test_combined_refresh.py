@@ -14,15 +14,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.doi_order import DoiOrder
-from analysis_lister.lookup_dicts.known_duplicates import KnownDuplicates
+from analysis_lister.lookup_dicts.clones import Clones
 
 
 class CombinedRefreshTests(unittest.TestCase):
     def setUp(self):
         # Synthetic registries have no relationship to maintained historical mappings.
-        self.enterContext(patch.dict(KnownDuplicates, {}, clear=True))
-        self.enterContext(patch.dict(DoiOrder, {}, clear=True))
+        self.enterContext(patch.dict(Clones, {}, clear=True))
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
