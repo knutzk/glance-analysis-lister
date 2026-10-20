@@ -27,10 +27,10 @@ def pubnotes(
         last_modified: Last modified date for the page.
 
     """
-    logger.info("Generating PUB notes overview.")
+    logger.debug("Generating PUB notes overview.")
 
     output_file = output_dir / "pubnotes.md"
-    logger.info(f'Writing output file "{output_file}"')
+    logger.debug(f'Writing output file "{output_file}"')
 
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)

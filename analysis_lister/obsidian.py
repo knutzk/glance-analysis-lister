@@ -99,7 +99,7 @@ def render_front_matter(entry, filename: str, entry_type: str) -> str:
 
 def write_markdown_file(entry, directory: Path, filename: str, entry_type: str):
     """Generalized function to write Markdown files for papers and analyses."""
-    logger.info(f"Writing {entry_type} file: {filename}.md")
+    logger.debug(f"Writing {entry_type} file: {filename}.md")
     with open(directory / f"{filename}.md", "w", encoding="utf8") as f:
         f.write(
             f"""{render_front_matter(entry, filename, entry_type)}
@@ -124,7 +124,7 @@ SORT date desc
 
 """
         )
-    logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
+    logger.debug(f"Successfully wrote {entry_type} file: {filename}.md")
 
 
 def generate_filename(entry):
@@ -152,27 +152,33 @@ def warn_about_stale_notes(directory: Path, written: set):
         return
 
     logger.warning(
-        "%d notes in %s were not written by this run and are probably outdated: %s",
+        "%d notes in %s were not written by this run and may be outdated:\n%s",
         len(stale),
         directory,
-        ", ".join(stale),
+        "\n".join(f"  - {name}" for name in stale),
     )
 
 
 @lookup_report()
 def export_obsidian(snapshot_path: Path, output_dir: Path):
     """Export papers and ongoing analyses; report stale notes without deleting them."""
-    logger.info("Loading papers and analyses data.")
+    logger.debug("Loading papers and analyses data.")
     registry = GlanceRegistry.from_json(snapshot_path)
 
+    logger.info(
+        "Exporting %s paper notes and %s ongoing analysis notes",
+        f"{len(registry.papers):,}",
+        f"{len(registry.analyses):,}",
+    )
+
     # Ensure output directories exist.
-    logger.info(f"Creating output directories if they do not exist: {output_dir}")
+    logger.debug(f"Creating output directories if they do not exist: {output_dir}")
     published_dir = output_dir / "obs_published"
     ongoing_dir = output_dir / "obs_ongoing"
     published_dir.mkdir(parents=True, exist_ok=True)
     ongoing_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Generating Markdown files for published papers.")
+    logger.debug("Generating Markdown files for published papers.")
     written_papers = set()
     for p in registry.papers:
         filename = generate_filename(p)
@@ -181,7 +187,7 @@ def export_obsidian(snapshot_path: Path, output_dir: Path):
         )
         written_papers.add(f"{filename}.md")
 
-    logger.info("Generating Markdown files for ongoing analyses.")
+    logger.debug("Generating Markdown files for ongoing analyses.")
     written_analyses = set()
     for a in registry.analyses:
         filename = generate_filename(a)
@@ -193,5 +199,5 @@ def export_obsidian(snapshot_path: Path, output_dir: Path):
     warn_about_stale_notes(published_dir, written_papers)
     warn_about_stale_notes(ongoing_dir, written_analyses)
 
-    logger.info("Obsidian export finished.")
-    logger.info(f"Output directory: {output_dir}")
+    logger.debug("Obsidian export finished.")
+    logger.debug(f"Output directory: {output_dir}")

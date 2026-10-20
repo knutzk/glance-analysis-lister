@@ -132,7 +132,7 @@ class EnrichmentRulesTests(unittest.TestCase):
                 base = analysis(status=FINISHED)
                 collection = registry(base)
                 self.assertEqual(self.enrich(collection, order[0]), (1, 0))
-                with self.assertLogs(level="INFO") as logs:
+                with self.assertLogs(level="DEBUG") as logs:
                     counts = self.enrich(collection, order[1])
                 self.assertEqual(counts, (1 if order[1] is Paper else 0, 0))
                 self.assertIn("keeping the paper", "\n".join(logs.output))

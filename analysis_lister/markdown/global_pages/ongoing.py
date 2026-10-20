@@ -24,10 +24,10 @@ def ongoing_analyses(registry: GlanceRegistry, output_dir: Path, last_modified: 
         last_modified: Last modified date for the page.
 
     """
-    logger.info("Generating ongoing analyses overview.")
+    logger.debug("Generating ongoing analyses overview.")
 
     output_file = output_dir / "ongoing.md"
-    logger.info(f'Writing output file "{output_file}"')
+    logger.debug(f'Writing output file "{output_file}"')
 
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)
@@ -57,7 +57,7 @@ def _write_header(_f, last_modified: str):
 
 def _write_global_counts(_f, registry: GlanceRegistry):
     """Write global counts for ongoing analyses."""
-    logger.info("Writing detailed analysis counts for ongoing analyses.")
+    logger.debug("Writing detailed analysis counts for ongoing analyses.")
 
     analysis_count = registry.count(lambda a: a.is_ongoing())
     release_counts = {
@@ -74,7 +74,7 @@ def _write_global_counts(_f, registry: GlanceRegistry):
 
 def _write_subgroup_breakdown(_f, registry: GlanceRegistry):
     """Write subgroup breakdown for ongoing analyses."""
-    logger.info("Writing subgroup counts for ongoing analyses.")
+    logger.debug("Writing subgroup counts for ongoing analyses.")
     _f.write("    * **Split by subgroup** (double-counts possible):\n")
 
     for g in TopGroups:
@@ -97,7 +97,7 @@ def _write_subgroup_breakdown(_f, registry: GlanceRegistry):
 
 def _write_status_breakdown(_f, registry: GlanceRegistry):
     """Write status breakdown for ongoing analyses."""
-    logger.info("Writing status counts for ongoing analyses.")
+    logger.debug("Writing status counts for ongoing analyses.")
 
     def write_line(state: PublicationState, label: str):
         total = registry.count(lambda a: a.pub_state == state)
@@ -125,7 +125,7 @@ def _write_status_breakdown(_f, registry: GlanceRegistry):
 
 def _write_table(_f, registry: GlanceRegistry):
     """Write the main analysis table for ongoing analyses."""
-    logger.info("Writing main analysis table.")
+    logger.debug("Writing main analysis table.")
     _f.write("\n\n| Identifier | Title | EB PA A | Subgroups | Rel. | Start |\n")
     _f.write("| --- | --- | --- | --- | --- | --- |\n")
 

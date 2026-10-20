@@ -48,7 +48,7 @@ def load_csv_registry(
             "CSV dataset has no retrieval scope metadata; retrieve into a fresh destination."
         )
     last_modified_time = determine_last_modified_time(paths)
-    logger.info("Loading list of analyses from file %s", paths[0].name)
+    logger.debug("Loading list of analyses from file %s", paths[0].name)
     rows = read_csv_rows(
         paths[0], REQUIRED_COLUMNS_ANALYSIS, key="Reference Code", prefix="ANA-"
     )
@@ -61,7 +61,7 @@ def load_csv_registry(
         last_modified_time=last_modified_time,
     )
     registry.retrieval_scope = scope
-    logger.info("Loaded %d analysis base entries.", len(entries))
+    logger.info("Loaded %s analysis records.", f"{len(entries):,}")
     for path, cls, columns, key, prefix, label, listed in (
         (
             paths[1],
@@ -91,11 +91,12 @@ def load_csv_registry(
             "pubnotes",
         ),
     ):
-        logger.info("Loading list of %s records from file %s", label, path.name)
+        logger.debug("Loading list of %s records from file %s", label, path.name)
         rows = read_csv_rows(path, columns, key=key, prefix=prefix)
         enriched, unmatched = registry.enrich(rows, cls, key=key, prefix=prefix)
         log_enrichment(label, enriched, unmatched, len(getattr(registry, listed)))
     registry.log_unaccounted()
+    logger.info("%s", registry)
     require_complete_csv_batch(csv_dir)
     return registry
 
@@ -130,7 +131,7 @@ def log_enrichment(label: str, enriched: int, unmatched: int, listed: int):
         listed: Number of enriched entries that the pages end up listing.
 
     """
-    logger.info(
+    logger.debug(
         "Enriched %d analyses with %s data, of which %d are listed on the "
         "pages. %d %s rows had no matching analysis.",
         enriched,

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def write_note_table(stream: TextIO, notes: Iterable[ConfNote | PubNote]) -> None:
     """Write already-selected notes in input order, preserving Markdown escaping."""
-    logger.info("Writing publication note table.")
+    logger.debug("Writing publication note table.")
     stream.write("\n\n")
     stream.write("| Identifier | Analysis | Title | Subgroup | Date |\n")
     stream.write("| --- | --- | --- | --- | --- |\n")

@@ -39,13 +39,13 @@ def overview(
     subgroup_papers = [p for p in list_of_papers if subgroup_id in p.subgroups]
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
-    logger.info(f'Writing output file "{output_dir}/index.md"')
+    logger.debug(f'Writing output file "{output_dir}/index.md"')
     with open(output_dir / "index.md", "w", encoding="utf8") as _f:
         _f.write(utils.HIDE_TOC)
         _f.write(f"# {subgroup_title} – Analyses and Papers\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
-        logger.info(
+        logger.debug(
             f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
         )
         _f.write("## Ongoing Analyses\n\n")
@@ -64,7 +64,7 @@ def overview(
         _f.write(render_analysis_table(subgroup_analyses, subgroup_id))
         _f.write("\n\n\n")
 
-        logger.info(
+        logger.debug(
             f"Found {len(subgroup_papers)} submitted and published papers for "
             f'subgroup "{subgroup_id}".'
         )
@@ -77,7 +77,7 @@ def overview(
         )
         _f.write(render_paper_table(subgroup_papers, subgroup_id))
 
-    logger.info(f"Finished writing overview page for subgroup '{subgroup_id}'.")
+    logger.debug(f"Finished writing overview page for subgroup '{subgroup_id}'.")
 
 
 def render_analysis_table(analyses: list[GlanceAnalysis], subgroup_id: str) -> str:

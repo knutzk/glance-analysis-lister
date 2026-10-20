@@ -39,7 +39,7 @@ def lookup_report():
             )
             logger.log(
                 level,
-                "%d lookup %s notice(s):\n%s",
+                "%d %s notice(s):\n%s",
                 len(messages),
                 logging.getLevelName(level).lower(),
                 "\n".join(f"  - {message}" for message in messages),

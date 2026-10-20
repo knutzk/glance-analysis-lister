@@ -30,10 +30,10 @@ def published(
         threshold: Year threshold for papers to be included.
 
     """
-    logger.info("Generating published papers overview.")
+    logger.debug("Generating published papers overview.")
 
     output_file = output_dir / "published.md"
-    logger.info(f'Writing output file "{output_file}"')
+    logger.debug(f'Writing output file "{output_file}"')
 
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)
@@ -70,7 +70,7 @@ def _write_summary(_f, papers: list[Paper], threshold: str):
 
 def _write_subgroup_counts(_f, papers: list[Paper], threshold: str):
     """Write the counts of papers per subgroup since a given threshold."""
-    logger.info("Writing subgroup paper counts.")
+    logger.debug("Writing subgroup paper counts.")
     _f.write(f'!!! info "Counts per subgroup (since {threshold})"\n\n')
 
     for g in TopGroups:
@@ -91,7 +91,7 @@ def _write_subgroup_counts(_f, papers: list[Paper], threshold: str):
 
 def _write_table(_f, papers: list[Paper]):
     """Write the table of submitted and published papers."""
-    logger.info("Writing paper table.")
+    logger.debug("Writing paper table.")
 
     _f.write("| Identifier | Title | Subgroup | Submission | Publication |\n")
     _f.write("| --- | --- | --- | --- | --- |\n")

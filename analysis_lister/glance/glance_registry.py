@@ -224,7 +224,7 @@ class GlanceRegistry(_FilteringMixin):
 
         atomic_write_text(path, content)
 
-        logger.info("Stored registry as JSON file at %s", path)
+        logger.debug("Stored registry as JSON file at %s", path)
 
     # --- Public Properties: Access to Data ---
 
@@ -348,7 +348,7 @@ class GlanceRegistry(_FilteringMixin):
         that only the paper may take over, as it supersedes its own CONF note.
         Any other collision is unexpected and leaves the entry as it is.
 
-        Every collision is reported: the paper/CONF note pair as INFO, since
+        Every collision is reported: the paper/CONF note pair as DEBUG, since
         it is a normal step of the publication life cycle, everything else as
         a warning.
 
@@ -367,7 +367,7 @@ class GlanceRegistry(_FilteringMixin):
         # The paper wins over its CONF note, no matter which of the two GLANCE
         # tables is read first.
         if {type(base), cls} == {Paper, ConfNote}:
-            logger.info(
+            logger.debug(
                 "%s is listed as paper and as CONF note, keeping the paper "
                 "and dropping the CONF note data.",
                 ref,
