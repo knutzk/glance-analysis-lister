@@ -101,9 +101,11 @@ class CombinedRefreshTests(unittest.TestCase):
             from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
             from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
+        self.assertEqual(from_csv.retrieval_scope, from_json.retrieval_scope)
+        self.assertIsNotNone(from_json.retrieval_scope)
         self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
         self.assertEqual(len(from_json.entries), 1)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
 
     def test_csv_factory_initializes_subclass_through_normal_constructor(self):
         class Registry(GlanceRegistry):
@@ -194,7 +196,7 @@ class CombinedRefreshTests(unittest.TestCase):
         from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
         self.assertEqual(len(from_json.entries), 1)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
         self.assertEqual(list(self.snapshot.parent.iterdir()), [self.snapshot])
 
     def test_unusable_snapshot_parent_rolls_back_csvs(self):

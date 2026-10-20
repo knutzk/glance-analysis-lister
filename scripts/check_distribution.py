@@ -17,6 +17,7 @@ from tempfile import TemporaryDirectory
 import analysis_lister
 from analysis_lister.download import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.lookup_dicts.short_titles import ShortTitles
+from analysis_lister.retrieval import load_scope
 
 
 def main():
@@ -37,6 +38,7 @@ def main():
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
     assert not ShortTitles, "Public wheel must have empty short-title defaults"
+    assert load_scope().values == (80, 198, 205), "Wheel must bundle the TOPQ scope"
     with trusted_ca_bundle() as bundle:
         assert INTERMEDIATE_CA.read_bytes() in Path(bundle).read_bytes()
 
@@ -47,6 +49,11 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
+        scope_file = "analysis_lister/configs/topq.toml"
+        assert (
+            archive.extractfile(prefix + scope_file).read()
+            == (root / scope_file).read_bytes()
+        )
         sample = "examples/synthetic_registry.json"
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()

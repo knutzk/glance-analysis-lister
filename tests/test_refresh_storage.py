@@ -15,6 +15,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.retrieval import load_scope
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
 HTML = "<table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
@@ -61,7 +62,7 @@ class CsvBatchTests(unittest.TestCase):
                 '"Reference Code"\n"new"\n',
             )
         self.assertTrue(keep.exists())
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 6)
 
     def test_table_definitions_can_be_reused_with_different_destinations(self):
         for name in ("first", "second"):
@@ -88,7 +89,9 @@ class CsvBatchTests(unittest.TestCase):
             )
         fetch.assert_called_once_with(
             table.url,
-            downloader.COMMON_PARAMS | {"s[0][name]": "final_ref_code"},
+            downloader.COMMON_PARAMS
+            | load_scope().query_params()
+            | {"s[0][name]": "final_ref_code"},
             {"session": "synthetic"},
         )
         self.assertEqual(

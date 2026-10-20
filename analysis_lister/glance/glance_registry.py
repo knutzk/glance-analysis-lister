@@ -21,6 +21,7 @@ from ..lookup_dicts.known_duplicates import KnownDuplicates
 from ..lookup_dicts.reporting import lookup_notice
 from ..lookup_dicts.review import lookup_review_notices
 from ..lookup_dicts.validation import validate_lookups
+from ..retrieval import RetrievalScope
 from ..storage import atomic_write_text
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -73,6 +74,7 @@ class GlanceRegistry(_FilteringMixin):
         *,
         threshold_year: str = DEFAULT_THRESHOLD_YEAR,
         last_modified_time: str = "",
+        retrieval_scope: RetrievalScope | None = None,
     ):
         """Create an in-memory registry, copying the supplied entry mapping.
 
@@ -80,6 +82,7 @@ class GlanceRegistry(_FilteringMixin):
         Entry objects are shared; the registry owns its mapping of them.
         """
         self._analyses = dict(entries) if entries is not None else {}
+        self.retrieval_scope = retrieval_scope
         self.threshold_year = threshold_year
         self.last_modified_time = last_modified_time
 
@@ -147,6 +150,9 @@ class GlanceRegistry(_FilteringMixin):
             entries,
             last_modified_time=raw_data.get("last_modified_time", ""),
             threshold_year=raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR,
+            retrieval_scope=RetrievalScope.from_dict(raw_data["retrieval_scope"])
+            if raw_data.get("retrieval_scope") is not None
+            else None,
         )
 
     def get(self, ref_code: str) -> Analysis | None:
@@ -185,6 +191,11 @@ class GlanceRegistry(_FilteringMixin):
             for ref_code, entry in sorted(self._analyses.items())
         ]
 
+        scope_metadata = (
+            f',\n    "retrieval_scope": {json.dumps(self.retrieval_scope.metadata())}'
+            if self.retrieval_scope is not None
+            else ""
+        )
         content = (
             "{\n"
             '    "entries": {\n'
@@ -192,7 +203,7 @@ class GlanceRegistry(_FilteringMixin):
             + ("\n" if entry_lines else "")
             + "    },\n"
             f'    "last_modified_time": {json.dumps(self.last_modified_time)},\n'
-            f'    "threshold_year": {json.dumps(self.threshold_year)}\n'
+            f'    "threshold_year": {json.dumps(self.threshold_year)}{scope_metadata}\n'
             "}\n"
         )
 

@@ -56,6 +56,55 @@ CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
 build operations sequentially.
 
+## Retrieval configuration
+
+`download` and `refresh` accept `--config PATH` for a TOML retrieval selection.
+Without it, both use the bundled [TOPQ configuration](analysis_lister/configs/topq.toml),
+which preserves the original selection exactly: records involving any of the
+three selected TOPQ subgroups, including records led by other groups.
+
+```bash
+analysis-lister refresh --config analysis_lister/configs/topq.toml \
+  --csv-dir csv --snapshot json/glance_registry.json
+```
+
+The configuration specifies GLANCE query values directly; it does not infer
+group membership from subgroup names or maintain an organisational hierarchy:
+
+```toml
+name = "TOPQ"
+
+[selection]
+field = "subgroups"
+operator = "contains"
+values = [80, 198, 205]
+```
+
+Each value becomes an indexed GLANCE filter clause, as in the original query.
+Selections must contain at least one positive integer ID or nonempty string;
+duplicate values are removed. Unknown configuration keys are rejected. The
+field and operator are GLANCE's query identifiers, not display column labels.
+The bundled subgroup query is verified against the previous implementation;
+other fields, operators and group IDs must be obtained from GLANCE and verified
+before use. This release does not discover groups or resolve clones, and does
+not claim to provide a verified leading-group query preset.
+
+Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
+that selection into the snapshot. Existing destinations with a different
+selection are rejected, even with `--allow-count-drop`; use separate CSV and
+snapshot destinations for different datasets. Old datasets without scope
+metadata remain compatible with the default TOPQ selection only. Changing a
+scope's display name or reordering its values does not create a new selection.
+
+`--save-html DIR` saves the full returned table columns and scope metadata;
+the CSVs retain their existing column selection. With `--from-html DIR`, the
+saved scope must match when metadata is present. For older HTML without
+metadata, the configuration you supply declares its scope; offline replay
+does not apply server-side filters to saved records.
+
+These options configure retrieval only. Rendering and Obsidian export retain
+their existing TOPQ presentation assumptions.
+
 ## Try the synthetic example
 
 From a checkout, render the included example without CERN access:

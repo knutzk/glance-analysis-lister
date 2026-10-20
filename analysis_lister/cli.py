@@ -58,6 +58,11 @@ def parser():
     )
 
     download = argparse.ArgumentParser(add_help=False)
+    download.add_argument(
+        "--config",
+        type=Path,
+        help="Retrieval TOML configuration (default: bundled TOPQ selection).",
+    )
     source = download.add_mutually_exclusive_group()
     source.add_argument(
         "--login",
@@ -158,9 +163,16 @@ def _download_cookies(args):
     return resolve_cookies(args.cookies, generate_new_cookies=args.login)
 
 
+def _retrieval_options(args):
+    from analysis_lister.retrieval import load_scope
+
+    return {"scope": load_scope(args.config)} if args.config is not None else {}
+
+
 def _run_refresh(args):
     from analysis_lister.refresh import refresh_analysis_lists
 
+    options = _retrieval_options(args)
     refresh_analysis_lists(
         args.csv_dir,
         args.from_html or args.save_html or Path("debug"),
@@ -169,6 +181,7 @@ def _run_refresh(args):
         cookies=_download_cookies(args),
         use_local_html=args.from_html is not None,
         debug=args.save_html is not None,
+        **options,
     )
 
 
@@ -176,6 +189,7 @@ def _run_download(args):
     from analysis_lister.download import download_tasks
     from analysis_lister.refresh import refresh_csv_files
 
+    options = _retrieval_options(args)
     refresh_csv_files(
         download_tasks(),
         args.csv_dir,
@@ -183,6 +197,7 @@ def _run_download(args):
         cookies=_download_cookies(args),
         use_local_html=args.from_html is not None,
         debug=args.save_html is not None,
+        **options,
     )
 
 

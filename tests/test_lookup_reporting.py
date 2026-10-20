@@ -77,7 +77,7 @@ class LookupReportingTests(unittest.TestCase):
 
             def baseline(_):
                 lookup_notice(logger, logging.WARNING, "old gap")
-                return object()
+                return GlanceRegistry()
 
             with (
                 patch(
@@ -88,7 +88,7 @@ class LookupReportingTests(unittest.TestCase):
                 self.assertNoLogs(level="WARNING"),
                 lookup_report(),
             ):
-                self.assertEqual(compare_to_snapshot(object(), path), [])
+                self.assertEqual(compare_to_snapshot(GlanceRegistry(), path), [])
             with (
                 patch(
                     "analysis_lister.refresh.GlanceRegistry.from_json",

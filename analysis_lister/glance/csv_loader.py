@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from ..retrieval import read_scope
 from ..storage import require_complete_csv_batch
 from .analysis import Analysis
 from .confnote import ConfNote
@@ -54,6 +55,7 @@ def load_csv_registry(
         threshold_year=threshold_year,
         last_modified_time=last_modified_time,
     )
+    registry.retrieval_scope = read_scope(csv_dir)
     logger.info("Loaded %d analysis base entries.", len(entries))
     for path, cls, columns, key, prefix, label, listed in (
         (
