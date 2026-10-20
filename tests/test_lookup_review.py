@@ -23,6 +23,7 @@ class LookupReviewTests(unittest.TestCase):
         target = SimpleNamespace(ref_code="TOPQ-2025-02", pub_state=state)
         return SimpleNamespace(
             entries={source.ref_code: source, target.ref_code: target},
+            is_clone_excluded=lambda ref: False,
             unaccounted=[source],
             analyses=[],
             papers=[target] if state == PublicationState.PUBLISHED else [],
@@ -44,13 +45,10 @@ class LookupReviewTests(unittest.TestCase):
     def test_active_mapping_needs_no_review(self):
         self.assertEqual(lookup_review_notices(self.registry()), [])
 
-    def test_closed_target_is_reported_without_changing_mapping(self):
+    def test_closed_origin_needs_no_review(self):
         registry = self.registry(PublicationState.CLOSED)
         notices = lookup_review_notices(registry)
-        self.assertEqual(len(notices), 1)
-        self.assertEqual(notices[0][0], logging.WARNING)
-        self.assertIn("target TOPQ-2025-02 is CLOSED", notices[0][1])
-        self.assertIn("known_duplicates.py", notices[0][1])
+        self.assertEqual(notices, [])
         self.assertEqual(len(registry.entries), 2)
 
     def test_absent_source_and_target_are_one_review_notice(self):
@@ -62,11 +60,19 @@ class LookupReviewTests(unittest.TestCase):
         self.assertIn("target TOPQ-2025-02 is absent from this snapshot", notices[0][1])
         self.assertNotIn("no longer in GLANCE", notices[0][1])
 
-    def test_resolved_duplicate_needs_review(self):
+    def test_closed_duplicate_needs_no_review(self):
         registry = self.registry()
         registry.entries["TOPQ-2025-01"].pub_state = PublicationState.CLOSED
         registry.unaccounted = []
-        self.assertIn("duplicate is now CLOSED", lookup_review_notices(registry)[0][1])
+        self.assertEqual(lookup_review_notices(registry), [])
+
+    def test_duplicate_acquiring_publication_needs_review(self):
+        registry = self.registry()
+        registry.entries["TOPQ-2025-01"].pub_state = PublicationState.PUBLISHED
+        registry.unaccounted = []
+        self.assertIn(
+            "duplicate is now PUBLISHED", lookup_review_notices(registry)[0][1]
+        )
 
     def test_absent_doi_override_is_informational(self):
         with patch.dict(

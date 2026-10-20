@@ -94,8 +94,9 @@ duplicate values are removed. Unknown configuration keys are rejected. The
 field and operator are GLANCE's query identifiers, not display column labels.
 The bundled subgroup query is verified against the previous implementation;
 other fields, operators and group IDs must be obtained from GLANCE and verified
-before use. This release does not discover groups or resolve clones, and does
-not claim to provide a verified leading-group query preset.
+before use. This release does not discover groups or retrieve clone
+relationships, and does not claim to provide a verified leading-group query
+preset.
 
 Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
 that selection into the snapshot. Existing destinations with a different
@@ -124,6 +125,26 @@ This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
 table. An empty selection still fails validation; unrestricted retrieval must
 be explicitly requested. A successful download alone does not establish that
 the server returned every accessible record or applied no result limit.
+
+## Clone relationships
+
+Maintain verified clone origins in `analysis_lister/lookup_dicts/clones.py`.
+`Clones` maps each clone's analysis reference to its original analysis reference;
+multiple clones can share an origin. Add a `# Source:` or `# Reason:` comment
+immediately above every entry. An optional private `clones.py` can be supplied
+using `--lookup-dir`. Validate changes with `analysis-lister validate-lookups`.
+
+Clone exclusions are calculated in memory from this dictionary whenever a
+registry is loaded. No clone fields or exclusion flags are stored in JSON.
+Dictionary changes therefore apply to existing snapshots, without downloading
+new data.
+
+A paper supersedes CONF entries on its ancestor chain, including during paper
+review. Closed or unstarted papers do not supersede them. Distinct sibling
+publications and active analyses remain visible. Known finished clone-family
+records without an attached publication are omitted. All records and original
+GLANCE states remain in JSON. Missing descendants do not supersede CONF notes,
+and cycles are rejected. Normal publication date cuts still apply.
 
 ## Try the synthetic example
 

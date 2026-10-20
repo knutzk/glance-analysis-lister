@@ -5,6 +5,7 @@
 
 import logging
 
+from ..glance.enums import PublicationState
 from ..glance.paper import Paper
 from .doi_order import DoiOrder
 from .known_duplicates import KnownDuplicates
@@ -17,6 +18,7 @@ def lookup_review_notices(registry):
     titles and journal citations are intentionally not reported as stale.
     """
     entries = registry.entries
+    is_clone_excluded = registry.is_clone_excluded
     unaccounted = {entry.ref_code for entry in registry.unaccounted}
     listed = {
         entry.ref_code
@@ -32,11 +34,19 @@ def lookup_review_notices(registry):
         reasons = []
         if ref not in entries:
             reasons.append("duplicate is absent from this snapshot")
-        elif ref not in unaccounted:
+        elif (
+            ref not in unaccounted
+            and entries[ref].pub_state != PublicationState.CLOSED
+            and not is_clone_excluded(ref)
+        ):
             reasons.append(f"duplicate is now {entries[ref].pub_state.value}")
         if target not in entries:
             reasons.append(f"target {target} is absent from this snapshot")
-        elif target not in listed:
+        elif (
+            target not in listed
+            and entries[target].pub_state != PublicationState.CLOSED
+            and not is_clone_excluded(target)
+        ):
             reasons.append(
                 f"target {target} is {entries[target].pub_state.value} and appears on no page"
             )

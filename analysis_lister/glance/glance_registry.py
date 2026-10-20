@@ -24,6 +24,7 @@ from ..lookup_dicts.validation import validate_lookups
 from ..retrieval import RetrievalScope
 from ..storage import atomic_write_text
 from .analysis import Analysis
+from .clones import clone_exclusions
 from .confnote import ConfNote
 from .enums import PublicationState
 from .paper import Paper
@@ -85,6 +86,15 @@ class GlanceRegistry(_FilteringMixin):
         self.retrieval_scope = retrieval_scope
         self.threshold_year = threshold_year
         self.last_modified_time = last_modified_time
+        self.apply_clone_rules()
+
+    def apply_clone_rules(self):
+        """Recompute clone exclusions after metadata or publication enrichment."""
+        self._clone_exclusions = clone_exclusions(self._analyses)
+
+    def is_clone_excluded(self, ref_code: str) -> bool:
+        """Whether manual clone lineage excludes this entry from output views."""
+        return ref_code in self._clone_exclusions
 
     @classmethod
     def from_csv(
@@ -227,14 +237,18 @@ class GlanceRegistry(_FilteringMixin):
         if they are still in the review process, they are included here.
 
         """
-        return self.filter(lambda a: a.is_ongoing())
+        return self.filter(
+            lambda a: a.is_ongoing() and not self.is_clone_excluded(a.ref_code)
+        )
 
     @property
     def confnotes(self) -> list[ConfNote]:
         """All entries that should be listed as CONF note."""
         return self.filter(
             lambda a: (
-                isinstance(a, ConfNote) and a.pub_state == PublicationState.PUBLISHED
+                isinstance(a, ConfNote)
+                and a.pub_state == PublicationState.PUBLISHED
+                and not self.is_clone_excluded(a.ref_code)
             )
         )
 
@@ -280,6 +294,7 @@ class GlanceRegistry(_FilteringMixin):
         return self.filter(
             lambda a: (
                 a.pub_state in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+                and not self.is_clone_excluded(a.ref_code)
             )
         )
 
@@ -321,6 +336,7 @@ class GlanceRegistry(_FilteringMixin):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
                 n_enriched += 1
 
+        self.apply_clone_rules()
         return n_enriched, n_unmatched
 
     def _may_enrich(self, base: Analysis, cls, ref: str) -> bool:
@@ -406,7 +422,7 @@ class GlanceRegistry(_FilteringMixin):
                 "mappings: %s",
                 len(duplicates),
                 ", ".join(
-                    f"{a.ref_code} (superseded by {KnownDuplicates[a.ref_code]})"
+                    f"{a.ref_code} (duplicate of {KnownDuplicates[a.ref_code]})"
                     for a in duplicates
                 ),
             )

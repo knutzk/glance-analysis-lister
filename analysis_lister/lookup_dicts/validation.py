@@ -23,6 +23,8 @@ def lookup_tables(directory):
     tables = TABLES.copy()
     if (directory / "journal_refs.py").is_file():
         tables["journal_refs.py"] = "JournalRefs"
+    if (directory / "clones.py").is_file():
+        tables["clones.py"] = "Clones"
     return tables
 
 
@@ -44,7 +46,7 @@ def _has_provenance(lines, key_line):
 def _value_error(table, value):
     if table == "JournalRefs":
         return citation_problem(value)
-    if table == "KnownDuplicates":
+    if table in {"KnownDuplicates", "Clones"}:
         return (
             None if _matches(REF_CODE, value) else "expected an analysis reference code"
         )
@@ -131,7 +133,7 @@ def _read_table(path, table, errors):
                 errors.append(
                     f"{location}: {key}: duplicate citation fields {repeated}"
                 )
-        if table in {"KnownDuplicates", "DoiOrder"} and not _has_provenance(
+        if table in {"KnownDuplicates", "DoiOrder", "Clones"} and not _has_provenance(
             source.splitlines(), line
         ):
             errors.append(
@@ -154,7 +156,7 @@ def validate_lookups(directory: Path | None = None):
     """
     if directory is None:
         directory = Path(__file__).resolve().parent
-        definitions = TABLES
+        definitions = TABLES | {"clones.py": "Clones"}
         load_store(default_store_path())
     else:
         definitions = lookup_tables(directory)
@@ -163,24 +165,28 @@ def validate_lookups(directory: Path | None = None):
         table: _read_table(directory / filename, table, errors)
         for filename, table in definitions.items()
     }
-    duplicates = tables["KnownDuplicates"]
-    reported = set()
-    for start in duplicates:
-        trail = []
-        current = start
-        while current in duplicates:
-            if current in trail:
-                cycle = trail[trail.index(current) :]
-                identity = frozenset(cycle)
-                if identity not in reported:
-                    reported.add(identity)
-                    line = duplicates[current][1]
-                    errors.append(
-                        f"{directory / 'known_duplicates.py'}:{line}: duplicate mapping cycle: "
-                        + " -> ".join([*cycle, current])
-                    )
-                break
-            trail.append(current)
-            current = duplicates[current][0]
+    for table, filename, label in (
+        ("KnownDuplicates", "known_duplicates.py", "duplicate mapping"),
+        ("Clones", "clones.py", "clone mapping"),
+    ):
+        mappings = tables.get(table, {})
+        reported = set()
+        for start in mappings:
+            trail = []
+            current = start
+            while current in mappings:
+                if current in trail:
+                    cycle = trail[trail.index(current) :]
+                    identity = frozenset(cycle)
+                    if identity not in reported:
+                        reported.add(identity)
+                        line = mappings[current][1]
+                        errors.append(
+                            f"{directory / filename}:{line}: {label} cycle: "
+                            + " -> ".join([*cycle, current])
+                        )
+                    break
+                trail.append(current)
+                current = mappings[current][0]
     if errors:
         raise ValueError("Invalid analysis lookup dictionaries:\n" + "\n".join(errors))

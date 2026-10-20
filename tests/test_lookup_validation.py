@@ -28,6 +28,44 @@ class LookupValidationTests(unittest.TestCase):
     def test_repository_tables_are_valid(self):
         validate_lookups()
 
+    def test_optional_clone_dictionary_rejects_cycles_and_invalid_references(self):
+        self.write(
+            "clones.py",
+            """Clones = {
+# Source: synthetic relationship
+"DEMO-2099-01": "DEMO-2099-02",
+# Source: synthetic conflicting relationship
+"DEMO-2099-02": "DEMO-2099-01",
+}""",
+        )
+        with self.assertRaisesRegex(ValueError, "clone mapping cycle"):
+            validate_lookups(self.directory)
+        self.write(
+            "clones.py",
+            """Clones = {
+# Source: synthetic invalid relationship
+"DEMO-2099-01": "invalid",
+}""",
+        )
+        with self.assertRaisesRegex(ValueError, "expected an analysis reference code"):
+            validate_lookups(self.directory)
+
+    def test_optional_clone_dictionary_applies_without_execution(self):
+        from analysis_lister.lookup_dicts.clones import Clones
+        from analysis_lister.lookup_dicts.overrides import local_lookups
+
+        original = Clones.copy()
+        self.write(
+            "clones.py",
+            """Clones = {
+# Source: synthetic relationship
+"DEMO-2099-02": "DEMO-2099-01",
+}""",
+        )
+        with local_lookups(self.directory):
+            self.assertEqual(Clones, {"DEMO-2099-02": "DEMO-2099-01"})
+        self.assertEqual(Clones, original)
+
     def test_historical_records_and_unicode_titles_are_valid(self):
         self.write(
             "short_titles.py", 'ShortTitles = {"TOPQ-1999-01": "ttγ – historical"}'
@@ -51,6 +89,7 @@ class LookupValidationTests(unittest.TestCase):
     def test_factual_overrides_require_their_own_provenance_comment(self):
         for filename, table, value in (
             ("known_duplicates.py", "KnownDuplicates", '"TOPQ-2025-02"'),
+            ("clones.py", "Clones", '"TOPQ-2025-02"'),
             ("doi_order.py", "DoiOrder", '["10.1007/example"]'),
         ):
             with self.subTest(table=table):
