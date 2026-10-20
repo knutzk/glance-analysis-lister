@@ -451,8 +451,12 @@ class GlanceRegistry(_FilteringMixin):
         )
         return False
 
-    def log_unaccounted(self):
-        """Report unfinished records not explained by manual clone relationships."""
+    def log_unaccounted(self, *, relationship_registry=None):
+        """Report unexplained records and relevant full-snapshot relationships.
+
+        A rendering view supplies its source registry so filtered-out records
+        are not mistaken for missing relationship references.
+        """
         incomplete = self.unaccounted
 
         if incomplete:
@@ -463,5 +467,6 @@ class GlanceRegistry(_FilteringMixin):
                 ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
             )
 
-        for level, message in lookup_review_notices(self):
+        source = self if relationship_registry is None else relationship_registry
+        for level, message in lookup_review_notices(source, relevant_refs=self.entries):
             lookup_notice(logger, level, "%s", message)

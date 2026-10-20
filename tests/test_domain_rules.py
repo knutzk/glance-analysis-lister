@@ -430,6 +430,36 @@ class RenderScopeTests(unittest.TestCase):
             self.assertEqual(set(renderer.registry.entries), {included.ref_code})
         self.assertEqual(len(collection.entries), 5)
 
+    def test_render_reviews_relationships_against_full_snapshot(self):
+        from analysis_lister.lookup_dicts.clones import Clones
+        from analysis_lister.render import render_pages
+
+        top = analysis("DEMO-2099-01", **{"Subgroups": "TOPQ - Cross-section"})
+        other = analysis("DEMO-2099-02", **{"Subgroups": "OTHER - Synthetic"})
+        with (
+            patch.dict(Clones, {other.ref_code: top.ref_code}, clear=True),
+            TemporaryDirectory() as directory,
+        ):
+            path = Path(directory) / "registry.json"
+            registry(top, other).store_json(path)
+            with self.assertLogs(level="INFO") as logs:
+                render_pages(path, Path(directory) / "pages")
+            self.assertFalse(any("absent from" in line for line in logs.output))
+        with (
+            patch.dict(Clones, {"DEMO-2099-99": top.ref_code}, clear=True),
+            TemporaryDirectory() as directory,
+        ):
+            path = Path(directory) / "registry.json"
+            registry(top).store_json(path)
+            with self.assertLogs(level="INFO") as logs:
+                render_pages(path, Path(directory) / "pages")
+            self.assertTrue(
+                any(
+                    "DEMO-2099-99" in line and "absent from" in line
+                    for line in logs.output
+                )
+            )
+
     def test_registry_selection_preserves_clone_exclusions_and_metadata(self):
         from analysis_lister.lookup_dicts.clones import Clones
 
