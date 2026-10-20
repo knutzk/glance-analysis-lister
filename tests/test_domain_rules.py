@@ -280,6 +280,57 @@ class EnrichmentRulesTests(unittest.TestCase):
         self.assertEqual(collection.papers, [])
 
 
+class IndependentPubLoadingTests(unittest.TestCase):
+    def test_registry_roundtrip_uses_pub_status_without_analysis_warnings(self):
+        for status, final_url, final_ref, expected in (
+            (
+                " Phase 1 is  Active ",
+                "https://example.test/pub",
+                "ATL-PHYS-PUB-2099-001",
+                State.PUBLISHED,
+            ),
+            (" Phase 1 is  Active ", "", "PUB-DEMO-2099-01 TEMP", State.PHASE1_OR_2),
+            (" Phase 1 is  Not started ", "", "PUB-DEMO-2099-01 TEMP", State.INACTIVE),
+            (
+                " Publication is  Closed ",
+                "https://example.test/pub",
+                "ATL-PHYS-PUB-2099-001",
+                State.CLOSED,
+            ),
+        ):
+            with (
+                self.subTest(status=status, expected=expected),
+                TemporaryDirectory() as directory,
+            ):
+                payload = asdict(publication(PubNote, "DEMO-2099-01"))
+                payload.update(
+                    ref_code="PUB-DEMO-2099-01",
+                    status=status,
+                    status_pub=status,
+                    final_url=final_url,
+                    final_ref_code=final_ref,
+                    pub_state="UNKNOWN",
+                )
+                with self.assertNoLogs(level="WARNING"):
+                    note = PubNote.from_json(payload)
+                    collection = registry(note)
+                    path = Path(directory) / "registry.json"
+                    collection.store_json(path)
+                    restored = GlanceRegistry.from_json(path)
+                loaded = restored.get(note.ref_code)
+                self.assertEqual(loaded.pub_state, expected)
+                self.assertEqual(loaded.glance_url_analysis, "")
+                self.assertTrue(
+                    loaded.glance_url_publ.endswith("ref_code=PUB-DEMO-2099-01")
+                )
+                self.assertNotIn("PUB-PUB-", loaded.glance_url_publ)
+                self.assertFalse(loaded.is_ongoing())
+                self.assertEqual(restored.analyses, [])
+                self.assertEqual(
+                    restored.pubnotes, [loaded] if expected == State.PUBLISHED else []
+                )
+
+
 class PublicationSelectionTests(unittest.TestCase):
     def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
         for dates in (
