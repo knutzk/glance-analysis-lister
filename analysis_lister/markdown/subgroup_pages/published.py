@@ -41,7 +41,7 @@ def published_papers(
         p.pub_state == PublicationState.PUBLISHED for p in subgroup_papers
     )
 
-    logger.info(f'Writing output file "{output_dir}/published.md"')
+    logger.debug(f'Writing output file "{output_dir}/published.md"')
     with open(output_dir / "published.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Submitted/Published Papers\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
@@ -81,7 +81,9 @@ def published_papers(
             logger.debug(f"Writing paper block for {p.ref_code}.")
             _f.write(render_paper_block(p, subgroup_id))
 
-    logger.info(f"Finished writing published papers page for subgroup '{subgroup_id}'.")
+    logger.debug(
+        f"Finished writing published papers page for subgroup '{subgroup_id}'."
+    )
 
 
 def render_paper_block(

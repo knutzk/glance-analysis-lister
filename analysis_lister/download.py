@@ -75,16 +75,16 @@ class CookieManager:
     def load_cookies(cookie_file: Path):
         """Load cookies from a JSON file if available."""
         if cookie_file.exists():
-            logger.info(f"Loading cookies from {cookie_file}")
+            logger.debug(f"Loading cookies from {cookie_file}")
             return json.loads(cookie_file.read_text())
-        logger.info("No cookie file found.")
+        logger.debug("No cookie file found.")
         return None
 
     @staticmethod
     def save_cookies(cookies, cookie_file: Path):
         """Save cookies to a JSON file."""
         cookie_file.write_text(json.dumps(cookies))
-        logger.info(f"Cookies successfully saved to {cookie_file}")
+        logger.debug(f"Cookies successfully saved to {cookie_file}")
 
     @staticmethod
     def generate_cookies(cookie_file: Path):
@@ -110,12 +110,12 @@ class CookieManager:
             return cookies
         finally:
             driver.quit()
-            logger.info("Selenium session ended.")
+            logger.debug("Selenium session ended.")
 
     @staticmethod
     def to_requests_format(cookies):
         """Convert cookies from Selenium format to Requests format."""
-        logger.info("Converting cookies to Requests-compatible format.")
+        logger.debug("Converting cookies to Requests-compatible format.")
         return {cookie["name"]: cookie["value"] for cookie in cookies}
 
 
@@ -124,7 +124,7 @@ class DataFetcher:
     def fetch_html(url, params, cookies):
         """Fetch HTML content from a URL."""
         try:
-            logger.info(f"Fetching data from {url} with params: {params}")
+            logger.debug(f"Fetching data from {url} with params: {params}")
             with trusted_ca_bundle() as ca_bundle:
                 response = requests.get(
                     url,
@@ -160,7 +160,7 @@ class HTMLParser:
     ) -> None:
         """Save diagnostic HTML, then validate and write a complete CSV table."""
         source = str(output_csv)
-        logger.info("Parsing HTML content to extract table data for %s", source)
+        logger.debug("Parsing HTML content to extract table data for %s", source)
         table = parse_html_table(html, source=source)
         # Keep diagnostic HTML even if header or row validation subsequently fails.
         if debug_path is not None:
@@ -177,7 +177,8 @@ class HTMLParser:
         with output_csv.open("w", newline="", encoding="utf-8") as stream:
             writer = csv.writer(stream, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
-        logger.info("CSV file successfully generated: %s", output_csv)
+        logger.debug("CSV file successfully generated: %s", output_csv)
+        logger.info("%s: %s rows; complete", output_csv.stem, f"{len(csv_data) - 1:,}")
 
 
 @frozen
@@ -222,7 +223,14 @@ def staged_csv_files(
     try:
         if debug and not use_local_html:
             (debug_dir / SCOPE_FILENAME).unlink(missing_ok=True)
-        for task in tasks:
+        for index, task in enumerate(tasks, start=1):
+            logger.info(
+                "%s %s (%d/%d)",
+                "Reading saved" if use_local_html else "Retrieving",
+                task.name,
+                index,
+                len(tasks),
+            )
             if use_local_html:
                 html = (debug_dir / task.html_filename).read_text(encoding="utf-8")
             else:

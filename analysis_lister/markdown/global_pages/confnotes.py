@@ -27,10 +27,10 @@ def confnotes(
         last_modified: Last modified date for the page.
 
     """
-    logger.info("Generating confnotes overview.")
+    logger.debug("Generating confnotes overview.")
 
     output_file = output_dir / "confnotes.md"
-    logger.info(f'Writing output file "{output_file}"')
+    logger.debug(f'Writing output file "{output_file}"')
 
     with output_file.open("w", encoding="utf8") as _f:
         _write_header(_f, last_modified)

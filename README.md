@@ -56,6 +56,28 @@ CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
 build operations sequentially.
 
+## Console output
+
+Normal output shows concise progress and a final summary. Diagnostics go to
+stderr; command results and output paths go to stdout, so they can be redirected
+separately. Coloured severity labels are enabled on terminals, and long notices
+wrap with aligned continuation lines. Redirected output is plain text.
+
+Use `--verbose` (`-v`) for timestamps, module names, per-file activity and query
+details. `--quiet` (`-q`) keeps warnings, errors and the final results. Both flags
+work before or after the command. Expected command failures omit tracebacks;
+verbose mode includes them for troubleshooting.
+
+```bash
+analysis-lister refresh --verbose --csv-dir csv/all --snapshot json/all_registry.json
+analysis-lister render --snapshot json/all_registry.json --quiet
+analysis-lister --color never validate-lookups
+```
+
+`--color auto|always|never` controls colour independently for stdout and stderr.
+Automatic colour respects `NO_COLOR` and `TERM=dumb`; `always` explicitly forces
+it, including for redirected output. No extra terminal dependency is required.
+
 ## Retrieval configuration
 
 `download` and `refresh` accept `--config PATH` for a TOML retrieval selection.

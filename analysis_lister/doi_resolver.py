@@ -335,6 +335,7 @@ def resolve_dois(dois, cache_path: Path, *, method="infer", refresh=False, limit
     if limit is not None and (type(limit) is not int or limit < 1):
         raise ValueError("Resolution limit must be positive")
     inputs = sorted({normalize_doi(doi) for doi in dois})
+    logger.info("Resolving citations for %s DOIs using %s", f"{len(inputs):,}", method)
     records = load_store(cache_path)
     summary = Counter(
         resolved=0, existing=0, locked=0, unresolved=0, failed=0, deferred=0
@@ -355,6 +356,13 @@ def resolve_dois(dois, cache_path: Path, *, method="infer", refresh=False, limit
                 summary["deferred"] += 1
                 continue
             attempted += 1
+            if attempted == 1 or attempted % 25 == 0:
+                logger.info(
+                    "Citation lookup %s; %s resolved so far",
+                    f"{attempted:,}",
+                    f"{summary['resolved']:,}",
+                )
+            logger.debug("Resolving DOI %s", doi)
             try:
                 record = infer_citation(doi) if method in {"infer", "auto"} else None
                 if record is None and method in {"inspire", "auto"}:

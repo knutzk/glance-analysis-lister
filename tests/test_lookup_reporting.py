@@ -32,7 +32,7 @@ class LookupReportingTests(unittest.TestCase):
                 lookup_notice(logger, logging.WARNING, "missing %s", "one")
                 lookup_notice(logger, logging.WARNING, "missing %s", "two")
         self.assertEqual(len(logs.output), 1)
-        self.assertIn("2 lookup warning notice(s)", logs.output[0])
+        self.assertIn("2 warning notice(s)", logs.output[0])
         self.assertEqual(logs.output[0].count("missing one"), 1)
         self.assertIn("missing two", logs.output[0])
 
@@ -50,8 +50,8 @@ class LookupReportingTests(unittest.TestCase):
                 raise ValueError("bad record")
             lookup_notice(logger, logging.WARNING, "after failure")
         self.assertEqual(len(logs.output), 2)
-        self.assertIn("lookup warning notice(s)", logs.output[0])
-        self.assertNotIn("lookup warning notice(s)", logs.output[1])
+        self.assertIn("warning notice(s)", logs.output[0])
+        self.assertNotIn("warning notice(s)", logs.output[1])
 
     def test_unrelated_warnings_are_not_collected_or_deduplicated(self):
         with self.assertLogs(level="WARNING") as logs, lookup_report():

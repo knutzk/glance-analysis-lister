@@ -66,7 +66,7 @@ def table_to_rows(
             for index, header in enumerate(headers)
             if header in column_filter
         }
-        logger.info(f"Filtering columns: {list(header_indices.values())}")
+        logger.debug(f"Filtering columns: {list(header_indices.values())}")
     else:
         header_indices = dict(enumerate(headers))
 

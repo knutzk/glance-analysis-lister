@@ -33,12 +33,12 @@ def ongoing_analyses(
     """
     subgroup_analyses = [a for a in list_of_analyses if subgroup_id in a.subgroups]
 
-    logger.info(f'Writing output file "{output_dir}/ongoing.md"')
+    logger.debug(f'Writing output file "{output_dir}/ongoing.md"')
     with open(output_dir / "ongoing.md", "w", encoding="utf8") as _f:
         _f.write(f"# {subgroup_title} – Ongoing Analyses\n\n\n")
         _f.write(utils.print_header_timestamp(last_modified))
 
-        logger.info(
+        logger.debug(
             f'Found {len(subgroup_analyses)} ongoing analyses for subgroup "{subgroup_id}".'
         )
         _f.write(
@@ -71,7 +71,9 @@ def ongoing_analyses(
                 logger.debug(f"Writing analysis block for {a.ref_code}.")
                 _f.write(render_analysis_block(a, subgroup_id))
 
-    logger.info(f"Finished writing ongoing analyses page for subgroup '{subgroup_id}'.")
+    logger.debug(
+        f"Finished writing ongoing analyses page for subgroup '{subgroup_id}'."
+    )
 
 
 def render_analysis_block(

@@ -53,7 +53,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
 
     """
     if not path.exists():
-        logger.info("No snapshot at %s yet, nothing to compare against.", path)
+        logger.debug("No snapshot at %s yet, nothing to compare against.", path)
         return []
 
     with discard_lookup_notices():
@@ -62,10 +62,15 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
     check_scope(registry.retrieval_scope, old_registry.retrieval_scope)
     new = counts(registry)
 
+    logger.info(
+        "Registry counts (previous -> current):\n%s",
+        "\n".join(
+            f"  {label:<18} {old[label]:>6,} -> {new[label]:>6,}" for label in old
+        ),
+    )
     drops = []
     for label, old_count in old.items():
         new_count = new[label]
-        logger.info("%s: %d -> %d", label, old_count, new_count)
         if new_count < old_count * (1 - MAX_DROP):
             drops.append(f"{label} dropped from {old_count} to {new_count}")
 
@@ -170,7 +175,7 @@ def refresh_csv_files(
         publish_csv_batch(
             staging, csv_dir, [t.csv_filename for t in tasks] + [SCOPE_FILENAME]
         )
-    logger.info("Published complete CSV batch.")
+    logger.debug("Published complete CSV batch.")
 
 
 def update_registry(csv_dir: Path, snapshot_path: Path, *, force=False):
@@ -214,6 +219,6 @@ def refresh_analysis_lists(
             [t.csv_filename for t in tasks] + [SCOPE_FILENAME],
             snapshot_path=snapshot_path,
         )
-    logger.info(
+    logger.debug(
         "Published CSV batch and registry. Render pages to preview the changes."
     )
