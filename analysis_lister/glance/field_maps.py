@@ -156,7 +156,23 @@ FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
 }
 
 # Not initialised in the constructor, but in the post-init method.
-EXTRA_COLUMNS_PUBNOTE = ["Short Title"]
+FIELD_MAP_INDEPENDENT_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
+    "ref_code": ("Temporary Reference Code", None),
+    "title_short": ("Short Title", None),
+    "title_full": ("Full Title", None),
+    "contact_editors": ("Contact Editors", None),
+    "contacts": ("Analysis Team", None),
+    "date_start": ("Creation Date", utils.format_date),
+    "keywords": ("Keywords", lambda s: s.split(", ")),
+    "leading_group": ("Leading Group", None),
+    "phase_state": ("Phase 1 State", None),
+    "run": ("Run", None),
+    # GLANCE spells this PUB-table column "Subroups".
+    "subgroups": ("Subroups", utils.format_subgroups),
+    "supporting_docs": ("Supporting Documents", utils.format_supporting_docs),
+    "status": ("Status", None),
+}
+EXTRA_COLUMNS_PUBNOTE = [col for col, _ in FIELD_MAP_INDEPENDENT_PUBNOTE.values()]
 
 # Required columns in the pubnote CSV file.
 REQUIRED_COLUMNS_PUBNOTE = [

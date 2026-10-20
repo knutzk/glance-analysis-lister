@@ -40,7 +40,11 @@ class CombinedRefreshTests(unittest.TestCase):
             if task.name in ("confnotes", "pubnotes"):
                 prefix = "CONF" if task.name == "confnotes" else "PUB"
                 values["Temporary Reference Code"] = f"{prefix}-TOPQ-2000-01"
-            values["Status"] = " Phase 0 is  Active "
+            values["Status"] = (
+                " Phase 1 is  Not started "
+                if task.name == "pubnotes"
+                else " Phase 0 is  Active "
+            )
             values["Subgroups"] = "TOPQ - Cross-section"
             if task.name == "analyses":
                 self.analysis_row = values
@@ -110,7 +114,7 @@ class CombinedRefreshTests(unittest.TestCase):
         self.assertEqual(from_csv.retrieval_scope, from_json.retrieval_scope)
         self.assertIsNotNone(from_json.retrieval_scope)
         self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
-        self.assertEqual(len(from_json.entries), 1)
+        self.assertEqual(len(from_json.entries), 2)
         self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
 
     def test_csv_factory_initializes_subclass_through_normal_constructor(self):
@@ -135,7 +139,7 @@ class CombinedRefreshTests(unittest.TestCase):
             self.run_refresh(force=True)
         self.assertEqual(len(logs.output), 1)
         self.assertIn("Writing the registry despite", logs.output[0])
-        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
+        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 2)
 
     def test_bad_html_aborts_even_with_force(self):
         (self.debug_dir / "confnotes.html").write_text("<html>login required</html>")
@@ -204,7 +208,7 @@ class CombinedRefreshTests(unittest.TestCase):
     def test_first_refresh_needs_no_previous_snapshot(self):
         self.snapshot.unlink()
         self.run_refresh()
-        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
+        self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 2)
 
     def test_first_refresh_creates_csv_and_nested_snapshot_directories(self):
         self.snapshot.unlink()
@@ -217,7 +221,7 @@ class CombinedRefreshTests(unittest.TestCase):
         from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
         from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
-        self.assertEqual(len(from_json.entries), 1)
+        self.assertEqual(len(from_json.entries), 2)
         self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
         self.assertEqual(list(self.snapshot.parent.iterdir()), [self.snapshot])
 

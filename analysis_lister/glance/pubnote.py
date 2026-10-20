@@ -19,8 +19,13 @@ from attrs import define
 
 from .analysis import Analysis
 from .enums import PublicationState
-from .field_maps import FIELD_MAP_PUBNOTE, apply_field_map
-from .utils import get_init_fields, glance_pubnote_url, has_note_number
+from .field_maps import (
+    FIELD_MAP_ANALYSIS,
+    FIELD_MAP_INDEPENDENT_PUBNOTE,
+    FIELD_MAP_PUBNOTE,
+    apply_field_map,
+)
+from .utils import clean_titles, get_init_fields, glance_pubnote_url, has_note_number
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,21 @@ class PubNote(Analysis):
 
         return cls(**get_init_fields(base, cls), **parsed)
 
+    @classmethod
+    def from_csv_dict(cls, row: dict[str, str]):
+        """Create an unmatched PUB record using only its own table metadata."""
+        parsed = apply_field_map({}, FIELD_MAP_ANALYSIS)
+        parsed.update(apply_field_map(row, FIELD_MAP_INDEPENDENT_PUBNOTE))
+        parsed.update(apply_field_map(row, FIELD_MAP_PUBNOTE))
+        parsed.update(editorial_board="", glance_url_publ="")
+        if not parsed["ref_code"].startswith("PUB-"):
+            raise ValueError("Independent PUB identifiers must retain PUB-")
+        return cls(**parsed)
+
+    def is_ongoing(self):
+        """Unmatched PUB records do not represent ongoing analyses."""
+        return not self.ref_code.startswith("PUB-") and super().is_ongoing()
+
     def determine_pubnote_status(self):
         """Determine the status of the PUB note.
 
@@ -73,6 +93,8 @@ class PubNote(Analysis):
             PublicationState: The publication state of the PUB note.
 
         """
+        if self.status_pub == " Publication is  Closed ":
+            return PublicationState.CLOSED
         if self.status_pub == " Phase 1 is  Not started ":
             return PublicationState.INACTIVE
         elif self.superseded_by:
@@ -96,6 +118,17 @@ class PubNote(Analysis):
 
     def __attrs_post_init__(self):
         """Post-initialization of PUB note instance."""
+        if self.ref_code.startswith("PUB-"):
+            self.title_full, self.title_short, self.title_short_public = clean_titles(
+                self.title_full, self.title_short, self.title_short_public
+            )
+            self.pub_state = self.determine_pubnote_status()
+            self.software_release = self.determine_release()
+            self.glance_url_analysis = ""
+            self.glance_url_publ = glance_pubnote_url(
+                self.ref_code.removeprefix("PUB-")
+            )
+            return
         super().__attrs_post_init__()
 
         # Preserve closed and unstarted analyses. Only finished phase 0
