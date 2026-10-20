@@ -8,12 +8,17 @@ Markdown pages for the Top Working Group.
 From a checkout of this repository:
 
 ```bash
-python -m pip install .
-# Include support for downloading tables and interactive CERN login:
-python -m pip install '.[download]'
-# Install development dependencies:
-python -m pip install -e '.[dev]'
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+# For an editable installation with development tools:
+python -m pip install -r requirements-dev.txt
 ```
+
+`requirements.txt` installs support for all commands, including downloads and
+interactive CERN login. For rendering only, use `python -m pip install .`.
+Dependency declarations live in `pyproject.toml`; the requirements files select
+the appropriate package extras.
 
 ## Use
 

@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+# Editable package installation with development and download dependencies.
+# Dependencies are maintained in pyproject.toml.
+-e .[dev]
