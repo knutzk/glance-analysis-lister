@@ -138,7 +138,8 @@ class Paper(Analysis):
 
         # Unstarted analyses stay excluded even with copied publication data.
         # Analysis and publication may also have been closed together.
-        # Warn about other base states that have not finished phase 0.
+        # Active phase-0 metadata can lag behind an attached paper. Keep it
+        # visible in debug output; closed and unknown states remain warnings.
         closed_together = (
             self.pub_state == PublicationState.CLOSED
             and self.status_paper == " Publication is  Closed "
@@ -151,9 +152,19 @@ class Paper(Analysis):
             )
             and not closed_together
         ):
+            level = (
+                logging.DEBUG
+                if self.pub_state
+                in {
+                    PublicationState.ONGOING_WO_EB,
+                    PublicationState.ONGOING_WITH_EB,
+                    PublicationState.PREAPPROVED,
+                }
+                else logging.WARNING
+            )
             model_diagnostic(
                 logger,
-                logging.WARNING,
+                level,
                 "Paper %s has state '%s' while it should be '%s'",
                 self.ref_code,
                 self.pub_state,

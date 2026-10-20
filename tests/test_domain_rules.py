@@ -453,11 +453,11 @@ class BaselineDiagnosticTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "baseline.json"
             with self.assertLogs(level="WARNING"):
-                previous = registry(publication(Paper, base_status=ACTIVE))
+                previous = registry(publication(Paper, base_status=CLOSED))
             previous.retrieval_scope = load_scope()
             previous.store_json(path)
             with self.assertLogs(level="WARNING") as logs:
-                candidate = registry(publication(Paper, base_status=ACTIVE))
+                candidate = registry(publication(Paper, base_status=CLOSED))
                 candidate.retrieval_scope = load_scope()
                 self.assertEqual(compare_to_snapshot(candidate, path), [])
             self.assertEqual(len(logs.output), 1)
@@ -473,10 +473,10 @@ class BaselineDiagnosticTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "synthetic failure"),
             discard_baseline_notices(),
         ):
-            publication(Paper, base_status=ACTIVE)
+            publication(Paper, base_status=CLOSED)
             raise ValueError("synthetic failure")
         with self.assertLogs(level="WARNING"):
-            publication(Paper, base_status=ACTIVE)
+            publication(Paper, base_status=CLOSED)
 
 
 class PublicationSelectionTests(unittest.TestCase):
@@ -497,6 +497,39 @@ class PublicationSelectionTests(unittest.TestCase):
             collection = registry(entry)
             for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
                 self.assertEqual(getattr(collection, view), [], view)
+
+    def test_stale_phase_zero_metadata_is_debug_only_for_attached_papers(self):
+        for milestones in (
+            {},
+            {"Editorial Board Formed On": "2099-01-01"},
+            {"PGC or SGC sign-off date": "2099-01-02"},
+        ):
+            with self.subTest(milestones=milestones):
+                base = analysis(status=ACTIVE, **milestones)
+                with (
+                    self.assertNoLogs(level="WARNING"),
+                    self.assertLogs(
+                        "analysis_lister.glance.paper", level="DEBUG"
+                    ) as logs,
+                ):
+                    entry = Paper.from_analysis_and_dict(base, publication_row(Paper))
+                notice = [
+                    record for record in logs.records if "has state" in record.msg
+                ]
+                self.assertEqual(len(notice), 1)
+                self.assertEqual(notice[0].levelname, "DEBUG")
+                self.assertEqual(entry.pub_state, State.PUBLISHED)
+                self.assertEqual(entry.status, ACTIVE)
+                with self.assertNoLogs(level="WARNING"):
+                    restored = Paper.from_json(asdict(entry))
+                self.assertEqual(restored.pub_state, State.PUBLISHED)
+
+    def test_unknown_analysis_state_still_reports_diagnostics_with_a_paper(self):
+        with self.assertLogs(level="WARNING") as logs:
+            entry = publication(Paper, base_status=" Unrecognised synthetic state ")
+        self.assertTrue(any("Unknown analysis state" in line for line in logs.output))
+        self.assertTrue(any("while it should be" in line for line in logs.output))
+        self.assertEqual(entry.pub_state, State.PUBLISHED)
 
     def test_closed_analysis_with_active_publication_still_warns(self):
         with self.assertLogs(level="WARNING") as logs:
