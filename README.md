@@ -92,6 +92,11 @@ ruff format --check .
 python -m build
 ```
 
+GitHub CI runs these checks on Python 3.13 for pushes and pull requests. It also
+installs the built wheel in a clean environment and checks the CLI, synthetic
+page rendering, bundled certificate, and licence files. CI requires no CERN
+credentials or private analysis data.
+
 Tests use synthetic records and do not establish that live authentication works.
 Use local snapshots to test rendering changes. Preserve GLANCE's exact padded
 status strings, DOI/erratum alignment and unique subgroup anchors. Validate
