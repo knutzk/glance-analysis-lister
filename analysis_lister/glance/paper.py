@@ -19,7 +19,7 @@ from attrs import define, field
 
 from .. import citation_store
 from ..citation_store import citation_text, normalize_doi
-from ..diagnostics import lookup_notice
+from ..diagnostics import lookup_notice, model_diagnostic
 from .analysis import Analysis
 from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
@@ -120,7 +120,12 @@ class Paper(Analysis):
         elif self.date_publication:
             return PublicationState.PUBLISHED
         else:
-            logger.error("Paper %s has unknown publication state", self.ref_code)
+            model_diagnostic(
+                logger,
+                logging.ERROR,
+                "Paper %s has unknown publication state",
+                self.ref_code,
+            )
             return PublicationState.UNKNOWN
 
     def __attrs_post_init__(self):
@@ -146,7 +151,9 @@ class Paper(Analysis):
             )
             and not closed_together
         ):
-            logger.warning(
+            model_diagnostic(
+                logger,
+                logging.WARNING,
                 "Paper %s has state '%s' while it should be '%s'",
                 self.ref_code,
                 self.pub_state,

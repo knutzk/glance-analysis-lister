@@ -17,6 +17,7 @@ import logging
 
 from attrs import define
 
+from ..diagnostics import model_diagnostic
 from .analysis import Analysis
 from .enums import PublicationState
 from .field_maps import (
@@ -106,7 +107,9 @@ class PubNote(Analysis):
             # a number without a URL is a gap in the GLANCE record rather
             # than a state of the note. Without the URL there is nothing to
             # link to, so it cannot be listed as published either.
-            logger.error(
+            model_diagnostic(
+                logger,
+                logging.ERROR,
                 "PUB note %s carries the number %s but no final URL, so it "
                 "cannot be listed. Check the GLANCE record.",
                 self.ref_code,
@@ -138,7 +141,9 @@ class PubNote(Analysis):
             PublicationState.CLOSED,
             PublicationState.NOT_STARTED,
         ]:
-            logger.warning(
+            model_diagnostic(
+                logger,
+                logging.WARNING,
                 "PUB note %s has state '%s' while it should be '%s'",
                 self.ref_code,
                 self.pub_state,

@@ -445,6 +445,40 @@ class RenderScopeTests(unittest.TestCase):
         self.assertEqual(len(collection.entries), 2)
 
 
+class BaselineDiagnosticTests(unittest.TestCase):
+    def test_candidate_state_warning_is_not_repeated_by_baseline_loading(self):
+        from analysis_lister.refresh import compare_to_snapshot
+        from analysis_lister.retrieval import load_scope
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "baseline.json"
+            with self.assertLogs(level="WARNING"):
+                previous = registry(publication(Paper, base_status=ACTIVE))
+            previous.retrieval_scope = load_scope()
+            previous.store_json(path)
+            with self.assertLogs(level="WARNING") as logs:
+                candidate = registry(publication(Paper, base_status=ACTIVE))
+                candidate.retrieval_scope = load_scope()
+                self.assertEqual(compare_to_snapshot(candidate, path), [])
+            self.assertEqual(len(logs.output), 1)
+            self.assertIn("has state", logs.output[0])
+            with self.assertLogs(level="WARNING"):
+                GlanceRegistry.from_json(path)
+
+    def test_baseline_suppression_restores_model_diagnostics_after_failure(self):
+        from analysis_lister.diagnostics import discard_baseline_notices
+
+        with (
+            self.assertNoLogs(level="WARNING"),
+            self.assertRaisesRegex(ValueError, "synthetic failure"),
+            discard_baseline_notices(),
+        ):
+            publication(Paper, base_status=ACTIVE)
+            raise ValueError("synthetic failure")
+        with self.assertLogs(level="WARNING"):
+            publication(Paper, base_status=ACTIVE)
+
+
 class PublicationSelectionTests(unittest.TestCase):
     def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
         for dates in (

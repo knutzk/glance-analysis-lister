@@ -11,7 +11,7 @@ import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
-from analysis_lister.diagnostics import discard_lookup_notices, lookup_report
+from analysis_lister.diagnostics import discard_baseline_notices, lookup_report
 from analysis_lister.download import DownloadTable, download_tasks, staged_csv_files
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.retrieval import (
@@ -56,7 +56,7 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
         logger.debug("No snapshot at %s yet, nothing to compare against.", path)
         return []
 
-    with discard_lookup_notices():
+    with discard_baseline_notices():
         old_registry = GlanceRegistry.from_json(path)
         old = counts(old_registry)
     check_scope(registry.retrieval_scope, old_registry.retrieval_scope)
@@ -198,7 +198,7 @@ def refresh_analysis_lists(
     """Stage and validate all inputs before publishing CSVs and JSON together."""
     scope = scope or load_scope()
     if snapshot_path.exists():
-        with discard_lookup_notices():
+        with discard_baseline_notices():
             previous = GlanceRegistry.from_json(snapshot_path).retrieval_scope
         check_scope(scope, previous)
     tasks = download_tasks()
