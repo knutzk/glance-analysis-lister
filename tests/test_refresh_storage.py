@@ -113,9 +113,17 @@ class CsvBatchTests(unittest.TestCase):
         ):
             with self.subTest(html=html):
                 (self.debug_dir / "confnotes.html").write_text(html)
-                with self.assertRaises(ValueError):
+                with (
+                    self.assertLogs(level="INFO") as logs,
+                    self.assertRaises(ValueError),
+                ):
                     refresh.refresh_csv_files(
                         self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+                    )
+                if "Renamed" in html:
+                    self.assertTrue(
+                        any("Columns missing" in line for line in logs.output),
+                        logs.output,
                     )
                 self.assert_original()
 
@@ -191,11 +199,14 @@ class CsvBatchTests(unittest.TestCase):
 
         with (
             patch.object(Path, "replace", fail_promotion_and_rollback),
+            self.assertLogs("analysis_lister.download", level="WARNING") as logs,
             self.assertRaises(OSError),
         ):
             refresh.refresh_csv_files(
                 self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
             )
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("Incomplete refresh; retaining staging files", logs.output[0])
         self.assertTrue((self.csv_dir / CSV_REFRESH_MARKER).exists())
         backups = list(self.csv_dir.glob(".refresh-*/previous/analyses.csv"))
         self.assertEqual(len(backups), 1)

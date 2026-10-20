@@ -75,16 +75,29 @@ class DownloadTests(unittest.TestCase):
             with self.subTest(error=error):
                 get.reset_mock()
                 get.side_effect = error("test failure")
-                with self.assertRaises(error):
+                with (
+                    self.assertLogs("analysis_lister.download", level="ERROR") as logs,
+                    self.assertRaises(error),
+                ):
                     downloader.DataFetcher.fetch_html("https://example.test", {}, {})
+                self.assertEqual(len(logs.output), 1)
+                self.assertIn("https://example.test", logs.output[0])
+                if error is requests.exceptions.SSLError:
+                    self.assertIn("TLS verification failed", logs.output[0])
+                else:
+                    self.assertIn("test failure", logs.output[0])
                 get.assert_called_once()
                 self.assertFalse(Path(get.call_args.kwargs["verify"]).exists())
 
     @patch.object(downloader.requests, "get")
     def test_http_error_propagates(self, get):
         get.return_value.raise_for_status.side_effect = requests.HTTPError("503")
-        with self.assertRaises(requests.HTTPError):
+        with (
+            self.assertLogs("analysis_lister.download", level="ERROR") as logs,
+            self.assertRaises(requests.HTTPError),
+        ):
             downloader.DataFetcher.fetch_html("https://example.test", {}, {})
+        self.assertIn("503", logs.output[0])
 
     @patch.object(downloader.requests, "get")
     def test_expired_session_is_rejected(self, get):

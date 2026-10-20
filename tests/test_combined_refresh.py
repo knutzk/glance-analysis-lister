@@ -14,10 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.lookup_dicts.doi_order import DoiOrder
+from analysis_lister.lookup_dicts.known_duplicates import KnownDuplicates
 
 
 class CombinedRefreshTests(unittest.TestCase):
     def setUp(self):
+        # Synthetic registries have no relationship to maintained historical mappings.
+        self.enterContext(patch.dict(KnownDuplicates, {}, clear=True))
+        self.enterContext(patch.dict(DoiOrder, {}, clear=True))
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -91,9 +96,10 @@ class CombinedRefreshTests(unittest.TestCase):
             self.assertEqual(path.read_text(), "previous CSV\n")
 
     def test_success_publishes_matching_csvs_and_snapshot(self):
-        self.run_refresh()
-        from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
-        from_json = GlanceRegistry.from_json(self.snapshot)
+        with self.assertNoLogs(level="WARNING"):
+            self.run_refresh()
+            from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
+            from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
         self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
         self.assertEqual(len(from_json.entries), 1)
@@ -117,7 +123,10 @@ class CombinedRefreshTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Refusing to overwrite"):
             self.run_refresh()
         self.assert_unchanged()
-        self.run_refresh(force=True)
+        with self.assertLogs("analysis_lister.refresh", level="WARNING") as logs:
+            self.run_refresh(force=True)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("Writing the registry despite", logs.output[0])
         self.assertEqual(len(GlanceRegistry.from_json(self.snapshot).entries), 1)
 
     def test_bad_html_aborts_even_with_force(self):
