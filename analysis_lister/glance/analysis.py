@@ -17,6 +17,7 @@ from typing import Self
 
 from attrs import define, field, fields, validators
 
+from ..diagnostics import model_diagnostic
 from .enums import PublicationState, SoftwareRelease
 from .field_maps import FIELD_MAP_ANALYSIS, apply_field_map
 from .utils import (
@@ -176,7 +177,12 @@ class Analysis:
         elif self.status == " Phase 0 is  Active ":
             return PublicationState.ONGOING_WO_EB
         else:
-            logger.error("Unknown analysis state for analysis %s", self.ref_code)
+            model_diagnostic(
+                logger,
+                logging.ERROR,
+                "Unknown analysis state for analysis %s",
+                self.ref_code,
+            )
             return PublicationState.UNKNOWN
 
     def last_milestone(self) -> tuple[str, str] | None:

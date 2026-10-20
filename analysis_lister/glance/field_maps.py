@@ -138,7 +138,7 @@ FIELD_MAP_CONFNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
 }
 
 # Not initialised in the constructor, but in the post-init method.
-EXTRA_COLUMNS_CONFNOTE = []
+EXTRA_COLUMNS_CONFNOTE = ["Short Title"]
 
 # Required columns in the confnote CSV file.
 REQUIRED_COLUMNS_CONFNOTE = [

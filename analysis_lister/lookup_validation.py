@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .citation_store import default_store_path, load_store
 
-TABLES = {"clones.py": "Clones"}
+TABLES = {"clones.py": "Clones", "ignored_analyses.py": "IgnoredAnalyses"}
 REF_CODE = re.compile(r"[A-Z][A-Z0-9]+-\d{4}-\d+")
 
 
@@ -92,9 +92,18 @@ def _read_table(path, table, errors):
                 f"{location}: {key}: add a # Reason: or # Source: comment "
                 "immediately above this factual override"
             )
-        problem = (
-            None if _matches(REF_CODE, value) else "expected an analysis reference code"
-        )
+        if table == "IgnoredAnalyses":
+            problem = (
+                None
+                if isinstance(value, str) and value.strip()
+                else "expected a nonempty reason"
+            )
+        else:
+            problem = (
+                None
+                if _matches(REF_CODE, value)
+                else "expected an analysis reference code"
+            )
         if problem:
             errors.append(f"{location}: {key}: {problem}")
         else:

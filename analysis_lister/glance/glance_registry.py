@@ -19,6 +19,7 @@ from pathlib import Path
 from attrs import asdict
 
 from ..diagnostics import lookup_notice
+from ..lookup_dicts.ignored_analyses import IgnoredAnalyses
 from ..lookup_review import lookup_review_notices
 from ..lookup_validation import validate_lookups
 from ..retrieval import RetrievalScope
@@ -57,13 +58,17 @@ class _FilteringMixin:
         """Count entries matching a custom filter predicate grouped by publication state."""
         counts = dict.fromkeys(PublicationState, 0)
         for entry in self._analyses.values():
-            if predicate(entry):
+            if entry.ref_code not in IgnoredAnalyses and predicate(entry):
                 counts[entry.pub_state] += 1
         return counts
 
     def filter(self, predicate: Callable[[Analysis], bool]) -> list[Analysis]:
         """Filter analyses based on a custom predicate function."""
-        return [a for a in self._analyses.values() if predicate(a)]
+        return [
+            a
+            for a in self._analyses.values()
+            if a.ref_code not in IgnoredAnalyses and predicate(a)
+        ]
 
 
 class GlanceRegistry(_FilteringMixin):
@@ -342,7 +347,7 @@ class GlanceRegistry(_FilteringMixin):
             key: Column that holds the reference code of a row.
             prefix: Prefix to strip off that reference code.
             analysis_short_titles: Original analysis titles, before display escaping.
-                PUB matches require an identical, nonempty short title as well
+                Publication matches require an identical, nonempty short title as well
                 as the reference suffix.
 
         Returns:
@@ -366,12 +371,16 @@ class GlanceRegistry(_FilteringMixin):
                 if cls is PubNote:
                     self._add_independent_pubnote(row)
                 n_unmatched += 1
-            elif cls is PubNote and (not title.strip() or row["Short Title"] != title):
-                logger.info(
-                    "%s: PUB short title differs or is empty; skipping analysis matching.",
+            elif cls in (Paper, ConfNote, PubNote) and (
+                not title.strip() or row["Short Title"] != title
+            ):
+                logger.debug(
+                    "%s: %s short title differs or is empty; skipping analysis matching.",
                     row[key],
+                    {Paper: "paper", ConfNote: "CONF", PubNote: "PUB"}[cls],
                 )
-                self._add_independent_pubnote(row)
+                if cls is PubNote:
+                    self._add_independent_pubnote(row)
                 n_unmatched += 1
             elif self._may_enrich(base, cls, ref):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
@@ -442,8 +451,12 @@ class GlanceRegistry(_FilteringMixin):
         )
         return False
 
-    def log_unaccounted(self):
-        """Report unfinished records not explained by manual clone relationships."""
+    def log_unaccounted(self, *, relationship_registry=None):
+        """Report unexplained records and relevant full-snapshot relationships.
+
+        A rendering view supplies its source registry so filtered-out records
+        are not mistaken for missing relationship references.
+        """
         incomplete = self.unaccounted
 
         if incomplete:
@@ -454,5 +467,6 @@ class GlanceRegistry(_FilteringMixin):
                 ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
             )
 
-        for level, message in lookup_review_notices(self):
+        source = self if relationship_registry is None else relationship_registry
+        for level, message in lookup_review_notices(source, relevant_refs=self.entries):
             lookup_notice(logger, level, "%s", message)

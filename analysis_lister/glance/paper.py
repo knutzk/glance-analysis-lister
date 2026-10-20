@@ -19,7 +19,7 @@ from attrs import define, field
 
 from .. import citation_store
 from ..citation_store import citation_text, normalize_doi
-from ..diagnostics import lookup_notice
+from ..diagnostics import lookup_notice, model_diagnostic
 from .analysis import Analysis
 from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
@@ -120,7 +120,12 @@ class Paper(Analysis):
         elif self.date_publication:
             return PublicationState.PUBLISHED
         else:
-            logger.error("Paper %s has unknown publication state", self.ref_code)
+            model_diagnostic(
+                logger,
+                logging.ERROR,
+                "Paper %s has unknown publication state",
+                self.ref_code,
+            )
             return PublicationState.UNKNOWN
 
     def __attrs_post_init__(self):
@@ -133,7 +138,8 @@ class Paper(Analysis):
 
         # Unstarted analyses stay excluded even with copied publication data.
         # Analysis and publication may also have been closed together.
-        # Warn about other base states that have not finished phase 0.
+        # Active phase-0 metadata can lag behind an attached paper. Keep it
+        # visible in debug output; closed and unknown states remain warnings.
         closed_together = (
             self.pub_state == PublicationState.CLOSED
             and self.status_paper == " Publication is  Closed "
@@ -146,7 +152,19 @@ class Paper(Analysis):
             )
             and not closed_together
         ):
-            logger.warning(
+            level = (
+                logging.DEBUG
+                if self.pub_state
+                in {
+                    PublicationState.ONGOING_WO_EB,
+                    PublicationState.ONGOING_WITH_EB,
+                    PublicationState.PREAPPROVED,
+                }
+                else logging.WARNING
+            )
+            model_diagnostic(
+                logger,
+                level,
                 "Paper %s has state '%s' while it should be '%s'",
                 self.ref_code,
                 self.pub_state,

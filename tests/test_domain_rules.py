@@ -70,6 +70,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         row.update(
             {
                 "Reference Code": ref,
+                "Short Title": "Synthetic title",
                 "Status": " Publication Phase is  Active ",
                 "arXiv Submission Date": "2023-01-01",
                 "Publication Date": "2023-07-01",
@@ -85,6 +86,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         row.update(
             {
                 "Temporary Reference Code": f"{prefix}-{ref}",
+                "Short Title": "Synthetic title",
                 "Reference Code": "ATLAS-CONF-2023-001"
                 if cls is ConfNote
                 else "ATL-PHYS-PUB-2023-001",
@@ -146,6 +148,77 @@ class EnrichmentRulesTests(unittest.TestCase):
                 self.assertEqual(entry.supporting_docs, base.supporting_docs)
                 self.assertEqual(refs(collection.papers), {base.ref_code})
                 self.assertEqual(collection.confnotes, [])
+
+    def test_paper_matching_requires_identical_nonempty_short_title(self):
+        for title in (
+            "Synthetic title",
+            "Different title",
+            "synthetic title",
+            "Synthetic title ",
+            "",
+        ):
+            with self.subTest(title=title):
+                base = analysis(status=FINISHED)
+                collection = registry(base)
+                matches = title == base.title_short
+                with self.assertNoLogs(level="WARNING"):
+                    counts = self.enrich(collection, Paper, **{"Short Title": title})
+                self.assertEqual(counts, (int(matches), int(not matches)))
+                if not matches:
+                    self.assertIs(collection.get(base.ref_code), base)
+        collection = registry(analysis(status=FINISHED, **{"Short Title": ""}))
+        self.assertEqual(self.enrich(collection, Paper, **{"Short Title": ""}), (0, 1))
+
+    def test_unmatched_paper_leaves_analysis_available_for_matching_pubnote(self):
+        for order in ((Paper, PubNote), (PubNote, Paper)):
+            with self.subTest(order=order), self.assertNoLogs(level="WARNING"):
+                collection = registry(analysis(status=FINISHED))
+                for cls in order:
+                    changes = (
+                        {"Short Title": "Unrelated synthetic paper"}
+                        if cls is Paper
+                        else {}
+                    )
+                    self.assertEqual(
+                        self.enrich(collection, cls, **changes),
+                        (0, 1) if cls is Paper else (1, 0),
+                    )
+                self.assertEqual(collection.papers, [])
+                self.assertEqual(len(collection.pubnotes), 1)
+                self.assertEqual(collection.pubnotes[0].ref_code, "TOPQ-2099-01")
+
+    def test_unrelated_paper_and_conf_leave_matching_pubnote_available(self):
+        collection = registry(analysis(status=FINISHED))
+        with self.assertNoLogs(level="WARNING"):
+            for cls in (Paper, ConfNote):
+                self.assertEqual(
+                    self.enrich(
+                        collection,
+                        cls,
+                        **{
+                            "Short Title": "Unrelated synthetic publication",
+                        },
+                    ),
+                    (0, 1),
+                )
+            self.assertEqual(self.enrich(collection, PubNote), (1, 0))
+        self.assertEqual(collection.papers, [])
+        self.assertEqual(collection.confnotes, [])
+        self.assertEqual(len(collection.pubnotes), 1)
+
+    def test_paper_matching_uses_raw_title_before_display_escaping(self):
+        base = analysis(status=FINISHED, **{"Short Title": "Synthetic | title"})
+        collection = registry(base)
+        row = publication_row(Paper, **{"Short Title": "Synthetic | title"})
+        self.assertEqual(
+            collection.enrich(
+                [row],
+                Paper,
+                key="Reference Code",
+                analysis_short_titles={base.ref_code: "Synthetic | title"},
+            ),
+            (1, 0),
+        )
 
     def test_other_cross_type_collisions_keep_existing_record_and_warn(self):
         for first, second in (
@@ -357,6 +430,36 @@ class RenderScopeTests(unittest.TestCase):
             self.assertEqual(set(renderer.registry.entries), {included.ref_code})
         self.assertEqual(len(collection.entries), 5)
 
+    def test_render_reviews_relationships_against_full_snapshot(self):
+        from analysis_lister.lookup_dicts.clones import Clones
+        from analysis_lister.render import render_pages
+
+        top = analysis("DEMO-2099-01", **{"Subgroups": "TOPQ - Cross-section"})
+        other = analysis("DEMO-2099-02", **{"Subgroups": "OTHER - Synthetic"})
+        with (
+            patch.dict(Clones, {other.ref_code: top.ref_code}, clear=True),
+            TemporaryDirectory() as directory,
+        ):
+            path = Path(directory) / "registry.json"
+            registry(top, other).store_json(path)
+            with self.assertLogs(level="INFO") as logs:
+                render_pages(path, Path(directory) / "pages")
+            self.assertFalse(any("absent from" in line for line in logs.output))
+        with (
+            patch.dict(Clones, {"DEMO-2099-99": top.ref_code}, clear=True),
+            TemporaryDirectory() as directory,
+        ):
+            path = Path(directory) / "registry.json"
+            registry(top).store_json(path)
+            with self.assertLogs(level="INFO") as logs:
+                render_pages(path, Path(directory) / "pages")
+            self.assertTrue(
+                any(
+                    "DEMO-2099-99" in line and "absent from" in line
+                    for line in logs.output
+                )
+            )
+
     def test_registry_selection_preserves_clone_exclusions_and_metadata(self):
         from analysis_lister.lookup_dicts.clones import Clones
 
@@ -370,6 +473,76 @@ class RenderScopeTests(unittest.TestCase):
         self.assertEqual(selected.last_modified_time, collection.last_modified_time)
         self.assertEqual(selected.threshold_year, collection.threshold_year)
         self.assertEqual(len(collection.entries), 2)
+
+
+class BaselineDiagnosticTests(unittest.TestCase):
+    def test_candidate_state_warning_is_not_repeated_by_baseline_loading(self):
+        from analysis_lister.refresh import compare_to_snapshot
+        from analysis_lister.retrieval import load_scope
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "baseline.json"
+            with self.assertLogs(level="WARNING"):
+                previous = registry(publication(Paper, base_status=CLOSED))
+            previous.retrieval_scope = load_scope()
+            previous.store_json(path)
+            with self.assertLogs(level="WARNING") as logs:
+                candidate = registry(publication(Paper, base_status=CLOSED))
+                candidate.retrieval_scope = load_scope()
+                self.assertEqual(compare_to_snapshot(candidate, path), [])
+            self.assertEqual(len(logs.output), 1)
+            self.assertIn("has state", logs.output[0])
+            with self.assertLogs(level="WARNING"):
+                GlanceRegistry.from_json(path)
+
+    def test_baseline_suppression_restores_model_diagnostics_after_failure(self):
+        from analysis_lister.diagnostics import discard_baseline_notices
+
+        with (
+            self.assertNoLogs(level="WARNING"),
+            self.assertRaisesRegex(ValueError, "synthetic failure"),
+            discard_baseline_notices(),
+        ):
+            publication(Paper, base_status=CLOSED)
+            raise ValueError("synthetic failure")
+        with self.assertLogs(level="WARNING"):
+            publication(Paper, base_status=CLOSED)
+
+
+class IgnoredAnalysisTests(unittest.TestCase):
+    def test_ignored_entries_stay_in_snapshot_but_not_views_or_counts(self):
+        from analysis_lister.lookup_dicts.ignored_analyses import IgnoredAnalyses
+
+        entries = [
+            analysis("DEMO-2099-01", FINISHED),
+            analysis("DEMO-2099-02"),
+            publication(Paper, "DEMO-2099-03"),
+            publication(ConfNote, "DEMO-2099-04"),
+            publication(PubNote, "DEMO-2099-05"),
+        ]
+        with patch.dict(
+            IgnoredAnalyses,
+            {entry.ref_code: "Synthetic reviewed exception" for entry in entries},
+            clear=True,
+        ):
+            collection = registry(*entries)
+            self.assertEqual(len(collection.entries), 5)
+            self.assertEqual(collection.count(lambda entry: True), 0)
+            self.assertEqual(
+                sum(collection.count_by_state(lambda entry: True).values()), 0
+            )
+            for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+                self.assertEqual(getattr(collection, view), [])
+            with self.assertNoLogs(level="WARNING"):
+                collection.log_unaccounted()
+            with TemporaryDirectory() as directory:
+                path = Path(directory) / "registry.json"
+                collection.store_json(path)
+                restored = GlanceRegistry.from_json(path)
+                self.assertEqual(len(restored.entries), 5)
+                self.assertEqual(restored.unaccounted, [])
+        self.assertEqual(len(collection.unaccounted), 1)
+        self.assertEqual(len(collection.papers), 1)
 
 
 class PublicationSelectionTests(unittest.TestCase):
@@ -390,6 +563,39 @@ class PublicationSelectionTests(unittest.TestCase):
             collection = registry(entry)
             for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
                 self.assertEqual(getattr(collection, view), [], view)
+
+    def test_stale_phase_zero_metadata_is_debug_only_for_attached_papers(self):
+        for milestones in (
+            {},
+            {"Editorial Board Formed On": "2099-01-01"},
+            {"PGC or SGC sign-off date": "2099-01-02"},
+        ):
+            with self.subTest(milestones=milestones):
+                base = analysis(status=ACTIVE, **milestones)
+                with (
+                    self.assertNoLogs(level="WARNING"),
+                    self.assertLogs(
+                        "analysis_lister.glance.paper", level="DEBUG"
+                    ) as logs,
+                ):
+                    entry = Paper.from_analysis_and_dict(base, publication_row(Paper))
+                notice = [
+                    record for record in logs.records if "has state" in record.msg
+                ]
+                self.assertEqual(len(notice), 1)
+                self.assertEqual(notice[0].levelname, "DEBUG")
+                self.assertEqual(entry.pub_state, State.PUBLISHED)
+                self.assertEqual(entry.status, ACTIVE)
+                with self.assertNoLogs(level="WARNING"):
+                    restored = Paper.from_json(asdict(entry))
+                self.assertEqual(restored.pub_state, State.PUBLISHED)
+
+    def test_unknown_analysis_state_still_reports_diagnostics_with_a_paper(self):
+        with self.assertLogs(level="WARNING") as logs:
+            entry = publication(Paper, base_status=" Unrecognised synthetic state ")
+        self.assertTrue(any("Unknown analysis state" in line for line in logs.output))
+        self.assertTrue(any("while it should be" in line for line in logs.output))
+        self.assertEqual(entry.pub_state, State.PUBLISHED)
 
     def test_closed_analysis_with_active_publication_still_warns(self):
         with self.assertLogs(level="WARNING") as logs:

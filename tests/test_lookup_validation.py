@@ -25,6 +25,20 @@ class LookupValidationTests(unittest.TestCase):
     def write(self, filename, content):
         (self.directory / filename).write_text(content)
 
+    def test_ignore_dictionary_requires_reasons_and_valid_identifiers(self):
+        for key, reason in (
+            ("invalid", "Synthetic reason"),
+            ("DEMO-2099-01", ""),
+            ("DEMO-2099-01", 1),
+        ):
+            with self.subTest(key=key, reason=reason):
+                self.write(
+                    "ignored_analyses.py",
+                    f"IgnoredAnalyses = {{\n# Reason: synthetic exception\n{key!r}: {reason!r},\n}}\n",
+                )
+                with self.assertRaisesRegex(ValueError, "ignored_analyses.py"):
+                    validate_lookups(self.directory)
+
     def test_repository_tables_are_valid(self):
         validate_lookups()
 

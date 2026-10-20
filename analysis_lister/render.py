@@ -20,6 +20,6 @@ def render_pages(snapshot_path: Path, output_dir: Path):
     renderer = MarkdownPageRenderer(
         registry=registry, output_dir=output_dir, threshold_year=registry.threshold_year
     )
-    renderer.registry.log_unaccounted()
+    renderer.registry.log_unaccounted(relationship_registry=registry)
     logger.info("Rendering %s", renderer.registry)
     renderer.write_all()
