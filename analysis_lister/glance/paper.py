@@ -17,7 +17,7 @@ import logging
 
 from attrs import define, field
 
-from ..citation_store import citation_text
+from ..citation_store import citation_text, normalize_doi
 from ..lookup_dicts import journal_refs
 from ..lookup_dicts.reporting import lookup_notice
 from .analysis import Analysis
@@ -160,7 +160,7 @@ class Paper(Analysis):
         # string keeps them aligned with self.dois[1:].
         refs = []
         for index, doi in enumerate(self.dois):
-            key = doi if doi in journal_refs.JournalRefs else doi.lower()
+            key = doi if doi in journal_refs.JournalRefs else normalize_doi(doi)
             if key in journal_refs.JournalRefs:
                 value = journal_refs.JournalRefs[key]
                 refs.append(citation_text(value))

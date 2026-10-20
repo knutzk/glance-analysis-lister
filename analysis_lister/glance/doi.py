@@ -10,6 +10,8 @@ for CSV and JSON loading. Ambiguous order retains the input and emits a notice.
 import logging
 import re
 
+from ..citation_store import normalize_doi
+from ..lookup_dicts import journal_refs
 from ..lookup_dicts.doi_order import DoiOrder
 from ..lookup_dicts.reporting import lookup_notice
 
@@ -87,6 +89,25 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
                 f"repeated DOI entries: {repeated}"
             )
         return [by_doi[doi] for doi in override]
+
+    # Explicit cached material labels distinguish an original from a correction
+    # without guessing publication dates. Multiple corrections still need dates.
+    materials = []
+    for doi in by_doi:
+        entry = journal_refs.JournalRefs.get(normalize_doi(doi), {})
+        materials.append(entry.get("material") if isinstance(entry, dict) else None)
+    if (
+        len(by_doi) == 2
+        and materials.count("publication") == 1
+        and any(m in {"erratum", "addendum", "editorial note"} for m in materials)
+    ):
+        pairs = zip(materials, by_doi.values(), strict=True)
+        return [
+            url
+            for material, url in sorted(
+                pairs, key=lambda pair: pair[0] != "publication"
+            )
+        ]
 
     dates = [_doi_date(doi) for doi in by_doi]
     ambiguous = any(date == (0, 0) for date in dates) or any(

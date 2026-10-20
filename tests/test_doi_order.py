@@ -22,6 +22,44 @@ CORRECTION = "10.1140/epjc/s10052-024-99999-9"
 
 
 class DoiOrderTests(unittest.TestCase):
+    def test_prefixed_doi_uses_normalized_citation_key(self):
+        data = {field.name: "" for field in fields(Paper) if field.init}
+        data.update(
+            ref_code="TEST",
+            status=" Phase 0 is  Finished ",
+            status_paper=" Publication Phase is  Active ",
+            doi_urls=[f"https://doi.org/DOI:{ORIGINAL.upper()}"],
+            keywords=[],
+            subgroups=[],
+            supporting_docs=[],
+        )
+        with (
+            patch.dict(
+                "analysis_lister.lookup_dicts.journal_refs.JournalRefs",
+                {ORIGINAL: "Synthetic citation"},
+                clear=True,
+            ),
+            self.assertNoLogs(level="WARNING"),
+        ):
+            self.assertEqual(Paper.from_json(data).journal_ref, "Synthetic citation")
+
+    def test_cached_material_orders_correction_before_date_inference(self):
+        with (
+            patch.dict(
+                "analysis_lister.lookup_dicts.journal_refs.JournalRefs",
+                {
+                    ORIGINAL: {"material": "publication"},
+                    CORRECTION: {"material": "erratum"},
+                },
+                clear=True,
+            ),
+            self.assertNoLogs(level="WARNING"),
+        ):
+            self.assertEqual(
+                order_doi_urls(self.urls(CORRECTION, ORIGINAL), "TEST"),
+                self.urls(ORIGINAL, CORRECTION),
+            )
+
     def urls(self, *dois):
         return [f"https://doi.org/{doi}" for doi in dois]
 
