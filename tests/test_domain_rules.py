@@ -271,19 +271,21 @@ class PublicationSelectionTests(unittest.TestCase):
 
     def test_review_papers_remain_ongoing_until_submission(self):
         for status in (
+            " Phase 1 is  Not started ",
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
             " Publication Phase is  Active ",
         ):
             with self.subTest(status=status):
-                entry = publication(
-                    Paper,
-                    **{
-                        "Status": status,
-                        "arXiv Submission Date": "",
-                        "Publication Date": "",
-                    },
-                )
+                with self.assertNoLogs(level="WARNING"):
+                    entry = publication(
+                        Paper,
+                        **{
+                            "Status": status,
+                            "arXiv Submission Date": "",
+                            "Publication Date": "",
+                        },
+                    )
                 collection = registry(entry)
                 self.assertEqual(entry.status_paper, status)
                 self.assertEqual(entry.pub_state, State.PHASE1_OR_2)

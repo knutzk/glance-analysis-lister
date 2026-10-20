@@ -106,6 +106,8 @@ class Paper(Analysis):
         if self.status_paper == " Publication is  Closed ":
             return PublicationState.CLOSED
         if self.status_paper in (
+            # A paper awaiting phase 1 is still an ongoing analysis.
+            " Phase 1 is  Not started ",
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
         ) or (
