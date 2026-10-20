@@ -68,6 +68,14 @@ analysis-lister refresh --config analysis_lister/configs/topq.toml \
   --csv-dir csv --snapshot json/glance_registry.json
 ```
 
+The bundled [HIGP configuration](analysis_lister/configs/higp.toml) selects
+subgroups 824, 825, 826, 827, 828, 831, 830 and 829. Use separate destinations:
+
+```bash
+analysis-lister refresh --config analysis_lister/configs/higp.toml \
+  --csv-dir csv/higp --snapshot json/higp_registry.json
+```
+
 The configuration specifies GLANCE query values directly; it does not infer
 group membership from subgroup names or maintain an organisational hierarchy:
 
