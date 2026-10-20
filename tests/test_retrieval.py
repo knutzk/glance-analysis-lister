@@ -29,6 +29,25 @@ values = [901, 902, 903, 904]
 
 
 class RetrievalTests(unittest.TestCase):
+    def test_unfiltered_scope_requires_explicit_opt_in_and_round_trips(self):
+        scope = RetrievalScope.from_dict({"name": "ATLAS", "all": True})
+        self.assertEqual(scope.query_params(), {})
+        self.assertEqual(RetrievalScope.from_dict(scope.metadata()), scope)
+        with self.assertRaisesRegex(ValueError, "scope differs"):
+            check_scope(scope, load_scope())
+        for data in (
+            {"name": "ATLAS"},
+            {"name": "ATLAS", "all": False},
+            {"name": "ATLAS", "all": "true"},
+            {"name": "ATLAS", "all": True, "selection": {}},
+        ):
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                RetrievalScope.from_dict(data)
+
+    def test_unfiltered_scope_cannot_also_contain_filters(self):
+        with self.assertRaisesRegex(ValueError, "cannot include"):
+            RetrievalScope("ATLAS", "subgroups", "contains", (1,), all=True)
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

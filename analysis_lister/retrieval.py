@@ -22,10 +22,19 @@ class RetrievalScope:
     field: str
     operator: str
     values: tuple[int | str, ...]
+    all: bool = False
 
     def __attrs_post_init__(self):
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError("Retrieval scope requires a nonempty name")
+        if type(self.all) is not bool:
+            raise ValueError("Scope 'all' must be a boolean")
+        if self.all:
+            if self.field or self.operator or self.values:
+                raise ValueError(
+                    "An all-records scope cannot include selection filters"
+                )
+            return
         if not isinstance(self.field, str) or not re.fullmatch(
             r"[a-z][a-z0-9_]*", self.field
         ):
@@ -61,6 +70,8 @@ class RetrievalScope:
         return params
 
     def metadata(self):
+        if self.all:
+            return {"name": self.name, "all": True}
         return {
             "name": self.name,
             "selection": {
@@ -72,6 +83,10 @@ class RetrievalScope:
 
     @classmethod
     def from_dict(cls, data):
+        if isinstance(data, dict) and set(data) == {"name", "all"}:
+            if data["all"] is not True:
+                raise ValueError("An unfiltered configuration requires all = true")
+            return cls(data["name"], "", "", (), all=True)
         if not isinstance(data, dict) or set(data) != {"name", "selection"}:
             raise ValueError("Configuration requires only 'name' and [selection]")
         selection = data["selection"]
@@ -85,7 +100,8 @@ class RetrievalScope:
 
     def same_selection(self, other):
         return (
-            self.field == other.field
+            self.all == other.all
+            and self.field == other.field
             and self.operator == other.operator
             and set(self.values) == set(other.values)
         )

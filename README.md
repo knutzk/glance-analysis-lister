@@ -113,6 +113,18 @@ does not apply server-side filters to saved records.
 These options configure retrieval only. Rendering and Obsidian export retain
 their existing TOPQ presentation assumptions.
 
+For all accessible non-deleted records, use the explicit unfiltered profile:
+
+```bash
+analysis-lister refresh --config analysis_lister/configs/all.toml \
+  --csv-dir csv/all --snapshot json/all_registry.json
+```
+
+This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
+table. An empty selection still fails validation; unrestricted retrieval must
+be explicitly requested. A successful download alone does not establish that
+the server returned every accessible record or applied no result limit.
+
 ## Try the synthetic example
 
 From a checkout, render the included example without CERN access:
