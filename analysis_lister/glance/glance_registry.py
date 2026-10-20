@@ -309,7 +309,13 @@ class GlanceRegistry(_FilteringMixin):
     # --- In-memory Enrichment ---
 
     def enrich(
-        self, rows: Iterable[dict[str, str]], cls, key: str, prefix: str = ""
+        self,
+        rows: Iterable[dict[str, str]],
+        cls,
+        key: str,
+        prefix: str = "",
+        *,
+        analysis_short_titles: dict[str, str] | None = None,
     ) -> tuple[int, int]:
         """Enrich the stored analyses from validated publication rows.
 
@@ -318,6 +324,9 @@ class GlanceRegistry(_FilteringMixin):
             cls: Class to enrich the matching analyses with.
             key: Column that holds the reference code of a row.
             prefix: Prefix to strip off that reference code.
+            analysis_short_titles: Original analysis titles, before display escaping.
+                PUB matches require an identical, nonempty short title as well
+                as the reference suffix.
 
         Returns:
             The number of enriched analyses, and the number of rows without
@@ -329,7 +338,20 @@ class GlanceRegistry(_FilteringMixin):
         for row in rows:
             ref = row[key].removeprefix(prefix)
             base = self._analyses.get(ref)
+            title = (
+                analysis_short_titles.get(ref, "")
+                if analysis_short_titles is not None
+                else base.title_short
+                if base is not None
+                else ""
+            )
             if base is None:
+                n_unmatched += 1
+            elif cls is PubNote and (not title.strip() or row["Short Title"] != title):
+                logger.info(
+                    "%s: PUB short title differs or is empty; skipping analysis matching.",
+                    row[key],
+                )
                 n_unmatched += 1
             elif self._may_enrich(base, cls, ref):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)

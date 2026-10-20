@@ -93,6 +93,7 @@ def publication_row(cls, ref="TOPQ-2099-01", **changes):
         )
         if cls is PubNote:
             row["Status"] = " Phase 1 is  Active "
+            row["Short Title"] = "Synthetic title"
     row.update(changes)
     return row
 
@@ -173,6 +174,44 @@ class EnrichmentRulesTests(unittest.TestCase):
                     self.assertEqual(self.enrich(collection, cls), (0, 0))
                 self.assertIs(collection.get(original.ref_code), original)
                 self.assertIn("listed twice", logs.output[0])
+
+    def test_pub_matching_requires_identical_nonempty_short_title(self):
+        for title in (
+            "Synthetic title",
+            "Different title",
+            "synthetic title",
+            "Synthetic title ",
+            "",
+        ):
+            with self.subTest(title=title):
+                base = analysis(status=FINISHED)
+                collection = registry(base)
+                counts = self.enrich(collection, PubNote, **{"Short Title": title})
+                matches = title == "Synthetic title"
+                self.assertEqual(counts, (int(matches), int(not matches)))
+                if matches:
+                    self.assertIsInstance(collection.get(base.ref_code), PubNote)
+                else:
+                    self.assertIs(collection.get(base.ref_code), base)
+        collection = registry(analysis(status=FINISHED, **{"Short Title": ""}))
+        self.assertEqual(
+            self.enrich(collection, PubNote, **{"Short Title": ""}), (0, 1)
+        )
+
+    def test_pub_matching_uses_original_titles_before_display_escaping(self):
+        base = analysis(status=FINISHED, **{"Short Title": "Synthetic | title"})
+        collection = registry(base)
+        row = publication_row(PubNote, **{"Short Title": "Synthetic | title"})
+        self.assertEqual(
+            collection.enrich(
+                [row],
+                PubNote,
+                key="Temporary Reference Code",
+                prefix="PUB-",
+                analysis_short_titles={base.ref_code: "Synthetic | title"},
+            ),
+            (1, 0),
+        )
 
     def test_unmatched_publication_does_not_create_an_analysis(self):
         collection = registry(analysis("TOPQ-2099-99", FINISHED))

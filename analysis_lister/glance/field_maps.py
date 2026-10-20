@@ -156,7 +156,7 @@ FIELD_MAP_PUBNOTE: dict[str, tuple[str, Callable[[str], Any] | None]] = {
 }
 
 # Not initialised in the constructor, but in the post-init method.
-EXTRA_COLUMNS_PUBNOTE = []
+EXTRA_COLUMNS_PUBNOTE = ["Short Title"]
 
 # Required columns in the pubnote CSV file.
 REQUIRED_COLUMNS_PUBNOTE = [
