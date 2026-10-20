@@ -182,6 +182,37 @@ class EnrichmentRulesTests(unittest.TestCase):
 
 
 class PublicationSelectionTests(unittest.TestCase):
+    def test_not_started_is_distinct_and_excluded_even_with_dates_or_publication_data(
+        self,
+    ):
+        status = " Phase 0 is  Not started "
+        with self.assertNoLogs(level="WARNING"):
+            entries = [
+                analysis(
+                    status=status,
+                    **{
+                        "Editorial Board Formed On": "2099-01-01",
+                        "PGC or SGC sign-off date": "2099-02-01",
+                    },
+                ),
+                *(
+                    publication(cls, f"TOPQ-2099-{index:02}", base_status=status)
+                    for index, cls in enumerate((Paper, ConfNote, PubNote), start=2)
+                ),
+            ]
+        collection = registry(*entries)
+        for entry in entries:
+            self.assertEqual(entry.status, status)
+            self.assertEqual(entry.pub_state, State.NOT_STARTED)
+            self.assertFalse(entry.is_ongoing())
+            payload = asdict(entry) | {"pub_state": "UNKNOWN"}
+            self.assertEqual(
+                type(entry).from_json(payload).pub_state, State.NOT_STARTED
+            )
+        self.assertEqual(len(collection.entries), 4)
+        for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+            self.assertEqual(getattr(collection, view), [], view)
+
     def test_analysis_milestones_and_terminal_states_control_inclusion(self):
         milestones = {
             "Editorial Board Formed On": "2020-01-01",

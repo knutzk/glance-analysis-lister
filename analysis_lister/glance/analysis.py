@@ -165,6 +165,8 @@ class Analysis:
         """
         if self.status == " Analysis is  Closed ":
             return PublicationState.CLOSED
+        elif self.status == " Phase 0 is  Not started ":
+            return PublicationState.NOT_STARTED
         elif self.status == " Phase 0 is  Finished ":
             return PublicationState.PAST_PHASE0
         elif self.date_preapproval_signoff != "":

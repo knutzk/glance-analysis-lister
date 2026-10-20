@@ -100,6 +100,8 @@ class Paper(Analysis):
             PublicationState: The publication state of the paper.
 
         """
+        if self.status == " Phase 0 is  Not started ":
+            return PublicationState.NOT_STARTED
         if self.status_paper in (
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
@@ -124,10 +126,12 @@ class Paper(Analysis):
         self.dois = [doi_from_url(url) for url in self.doi_urls]
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
-        # Determine the publication state of the paper. As this class should
-        # only be instantiated for finished analysis records, issue a warning
-        # if the publication state is not set to PAST_PHASE0.
-        if self.pub_state != PublicationState.PAST_PHASE0:
+        # Unstarted analyses stay excluded even with copied publication data.
+        # Warn about other base states that have not finished phase 0.
+        if self.pub_state not in (
+            PublicationState.PAST_PHASE0,
+            PublicationState.NOT_STARTED,
+        ):
             logger.warning(
                 "Paper %s has state '%s' while it should be '%s'",
                 self.ref_code,
