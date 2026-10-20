@@ -25,6 +25,12 @@ def _validate_download(command, args):
 
 def parser():
     """Register commands with their option groups, handlers, and validation."""
+    lookups = argparse.ArgumentParser(add_help=False)
+    lookups.add_argument(
+        "--lookup-dir",
+        type=Path,
+        help="Directory of private literal lookup dictionaries (never executed).",
+    )
     csv = argparse.ArgumentParser(add_help=False)
     csv.add_argument(
         "--csv-dir",
@@ -121,7 +127,7 @@ def parser():
         ),
     ):
         sub = commands.add_parser(
-            name, help=description, description=description, parents=parents
+            name, help=description, description=description, parents=[*parents, lookups]
         )
         sub.set_defaults(handler=handler)
     return command
@@ -178,7 +184,7 @@ def _run_render(args):
 def _run_validate_lookups(args):
     from analysis_lister.lookup_dicts.validation import validate_lookups
 
-    validate_lookups()
+    validate_lookups(args.lookup_dir)
     if args.snapshot is not None:
         from analysis_lister.glance.glance_registry import GlanceRegistry
         from analysis_lister.lookup_dicts.review import lookup_review_notices
@@ -192,7 +198,10 @@ def _run_validate_lookups(args):
 
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
-    args.handler(args)
+    from analysis_lister.lookup_dicts.overrides import local_lookups
+
+    with local_lookups(args.lookup_dir):
+        args.handler(args)
 
 
 def main(argv=None):
