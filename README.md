@@ -38,6 +38,9 @@ the CSV tables; `build-registry` constructs a registry from existing CSVs.
 Each command has `--help`. Interactive CERN login requires Chrome and a terminal.
 Rendering uses a local snapshot and requires no login.
 
+Markdown pages are written to `pages/` by default. Use `--output-dir` to choose
+a different destination. Obsidian export defaults to `obsidian_output/`.
+
 Refresh stages all four tables, validates the candidate registry and promotes
 CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry

@@ -12,7 +12,7 @@ import requests
 CSV_DIR = Path("csv")
 COOKIE_FILE = Path("cookies.json")
 SNAPSHOT_PATH = Path("json/glance_registry.json")
-OUTPUT_DIR = Path("docs/analyses")
+OUTPUT_DIR = Path("pages")
 
 
 def configure_logging():

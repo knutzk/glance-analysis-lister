@@ -178,7 +178,15 @@ assert "bs4" not in sys.modules
             patch.object(cli, "configure_logging"),
             patch("analysis_lister.render.render_pages") as render,
         ):
-            cli.main(["render", "--snapshot", "input.json", "--output-dir", "pages"])
+            cli.main(["render", "--snapshot", "input.json", "--output-dir", "custom"])
+        render.assert_called_once_with(Path("input.json"), Path("custom"))
+
+    def test_render_defaults_to_standalone_pages_directory(self):
+        with (
+            patch.object(cli, "configure_logging"),
+            patch("analysis_lister.render.render_pages") as render,
+        ):
+            cli.main(["render", "--snapshot", "input.json"])
         render.assert_called_once_with(Path("input.json"), Path("pages"))
 
     def test_login_passes_cookie_path_and_returns_credentials(self):
