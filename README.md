@@ -5,20 +5,30 @@ Markdown pages for the Top Working Group.
 
 ## Install
 
-From a checkout of this repository:
+**Recommended for running the tool:** use Python 3.13, create a virtual
+environment, and install with pip. Run these commands from the repository root:
 
 ```bash
-python -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-# For an editable installation with development tools:
-python -m pip install -r requirements-dev.txt
+analysis-lister --help
 ```
 
-`requirements.txt` installs support for all commands, including downloads and
-interactive CERN login. For rendering only, use `python -m pip install .`.
-Dependency declarations live in `pyproject.toml`; the requirements files select
-the appropriate package extras.
+This installs the tool and dependencies for all commands, including downloads
+and interactive CERN login. Activate the environment again with
+`source .venv/bin/activate` when opening a new terminal.
+
+After pulling code updates, update the installation in the active environment:
+
+```bash
+python -m pip install --upgrade -r requirements.txt
+```
+
+The `.[download]` line inside `requirements.txt` is pip syntax: `.` means this
+local package, and `[download]` selects its optional download/login dependencies.
+Pip reads the dependency declarations from `pyproject.toml`. Any `.egg-info/`
+directory created during installation is generated metadata; leave it to pip.
 
 ## Use
 
@@ -116,6 +126,21 @@ Sectigo intermediate certificate required by GLANCE; see
 `REQUESTS_CA_BUNDLE`, then `CURL_CA_BUNDLE`, can replace the trust bundle.
 
 ## Development
+
+With the virtual environment from the installation section active, install the
+**development requirements**:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+This includes `-e .[dev]`, so it also installs the package in **editable mode**:
+source changes take effect immediately. It includes the runtime dependencies,
+download support and development tools; you do not need to install both
+requirements files. Rerun the command after changing dependencies or package
+metadata.
+
+Run the checks with:
 
 ```bash
 python -m unittest discover -s tests -v
