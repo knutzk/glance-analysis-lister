@@ -13,6 +13,9 @@ authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
 dependencies = ["attrs>=26.1", "requests>=2.34"]
 
+[project.urls]
+Repository = "https://github.com/knutzk/glance-analysis-lister.git"
+
 [project.optional-dependencies]
 download = ["beautifulsoup4>=4.15", "selenium>=4.46"]
 dev = ["beautifulsoup4>=4.15", "selenium>=4.46", "ruff==0.16.0", "build>=1.2"]

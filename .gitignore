@@ -26,3 +26,6 @@ __pycache__/
 build/
 dist/
 .ruff_cache/
+
+# Local coding-agent guidance.
+/AGENTS.md
