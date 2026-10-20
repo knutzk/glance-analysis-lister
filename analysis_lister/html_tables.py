@@ -88,3 +88,44 @@ def table_to_rows(
         raise ValueError(f"No data rows in table for {source}")
 
     return csv_data
+
+
+def validate_table_completeness(table: Tag, row_count: int, *, source: str) -> None:
+    """Reject missing counters, partial pages, and truncated table responses.
+
+    GLANCE reports 'Showing 1 to N of N results' outside the result table.
+    Only that explicit counter establishes completeness; comments, record
+    titles and script text must not be mistaken for pagination metadata.
+    """
+    document = table
+    while document.parent is not None:
+        document = document.parent
+    number = r"(?:\d{1,3}(?:[, \u00a0\u202f]\d{3})+|\d+)"
+    counter = re.compile(
+        rf"Showing\s+({number})\s+to\s+({number})\s+of\s+({number})\s+results",
+        re.IGNORECASE,
+    )
+    counts = set()
+    for node in document.find_all(string=counter):
+        if node.find_parent(["table", "script", "style"]):
+            continue
+        match = counter.fullmatch(" ".join(node.split()))
+        if match is not None:
+            counts.add(
+                tuple(
+                    int(value.replace(",", "").replace(" ", ""))
+                    for value in match.groups()
+                )
+            )
+    if len(counts) != 1:
+        raise ValueError(
+            f"{source}: missing or conflicting GLANCE result counters; "
+            "download completeness cannot be verified"
+        )
+    first, last, total = counts.pop()
+    if first != 1 or last != total or row_count != total:
+        raise ValueError(
+            f"{source}: incomplete GLANCE table: parsed {row_count} rows, "
+            f"server reports {first} to {last} of {total} results. "
+            "Paginated or truncated responses are not published."
+        )

@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+# Preserve the historical query: involvement in any of these TOPQ subgroups,
+# including analyses led by another group. This is not a leading-group filter.
+name = "TOPQ"
+
+[selection]
+field = "subgroups"
+operator = "contains"
+# Source: individual TOPQ subgroup selection URLs supplied from GLANCE.
+values = [
+    80,  # TOPQ - Cross-section
+    198, # TOPQ - Top Properties and Mass (PnM)
+    205, # TOPQ - Top Quarks + X
+]

@@ -18,6 +18,7 @@ class PublicationState(Enum):
 
     Attributes:
         CLOSED (str): The analysis is closed.
+        NOT_STARTED (str): Phase 0 has not started; excluded from output views.
         INACTIVE (str): The analysis is inactive.
         ONGOING_WO_EB (str): The analysis is ongoing without an editorial board.
         ONGOING_WITH_EB (str): The analysis is ongoing with an editorial board.
@@ -32,6 +33,7 @@ class PublicationState(Enum):
     """
 
     CLOSED = "CLOSED"
+    NOT_STARTED = "NOT_STARTED"
     INACTIVE = "INACTIVE"
     ONGOING_WO_EB = "ONGOING_WO_EB"
     ONGOING_WITH_EB = "ONGOING_WITH_EB"

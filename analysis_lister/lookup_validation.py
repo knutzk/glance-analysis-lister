@@ -7,14 +7,10 @@ import ast
 import re
 from pathlib import Path
 
-TABLES = {
-    "short_titles.py": "ShortTitles",
-    "journal_refs.py": "JournalRefs",
-    "known_duplicates.py": "KnownDuplicates",
-    "doi_order.py": "DoiOrder",
-}
+from .citation_store import default_store_path, load_store
+
+TABLES = {"clones.py": "Clones"}
 REF_CODE = re.compile(r"[A-Z][A-Z0-9]+-\d{4}-\d+")
-DOI = re.compile(r"10\.\d{4,9}/\S+")
 
 
 def _matches(pattern, value):
@@ -30,24 +26,6 @@ def _has_provenance(lines, key_line):
         if re.match(r"#\s*(Reason|Source):\s*\S", text):
             return True
     return False
-
-
-def _value_error(table, value):
-    if table == "KnownDuplicates":
-        return (
-            None if _matches(REF_CODE, value) else "expected an analysis reference code"
-        )
-    if table == "DoiOrder":
-        if not isinstance(value, list) or not value:
-            return "expected a nonempty list of bare DOI strings"
-        if any(not _matches(DOI, doi) for doi in value):
-            return "expected bare DOI strings in the order list"
-        if len(value) != len(set(value)):
-            return "DOI order contains repeated DOIs"
-        return None
-    if not isinstance(value, str) or not value.strip():
-        return "expected a nonempty string"
-    return None
 
 
 def _read_table(path, table, errors):
@@ -101,8 +79,7 @@ def _read_table(path, table, errors):
         except (ValueError, TypeError, SyntaxError):
             errors.append(f"{location}: lookup keys and values must be literals")
             continue
-        pattern = DOI if table == "JournalRefs" else REF_CODE
-        if not _matches(pattern, key):
+        if not _matches(REF_CODE, key):
             errors.append(f"{location}: invalid {table} key {key!r}")
             continue
         if key in first_lines:
@@ -110,14 +87,14 @@ def _read_table(path, table, errors):
                 f"{location}: duplicate key {key!r}; first defined on line {first_lines[key]}"
             )
         first_lines.setdefault(key, line)
-        if table in {"KnownDuplicates", "DoiOrder"} and not _has_provenance(
-            source.splitlines(), line
-        ):
+        if not _has_provenance(source.splitlines(), line):
             errors.append(
                 f"{location}: {key}: add a # Reason: or # Source: comment "
                 "immediately above this factual override"
             )
-        problem = _value_error(table, value)
+        problem = (
+            None if _matches(REF_CODE, value) else "expected an analysis reference code"
+        )
         if problem:
             errors.append(f"{location}: {key}: {problem}")
         else:
@@ -128,33 +105,34 @@ def _read_table(path, table, errors):
 def validate_lookups(directory: Path | None = None):
     """Raise one diagnostic report for invalid lookup definitions.
 
-    Historical entries need not belong to today's snapshot. DOI overrides are
-    additionally checked against actual paper DOIs when each Paper is loaded.
+    Historical entries need not belong to today's snapshot.
     """
-    directory = directory if directory is not None else Path(__file__).resolve().parent
+    if directory is None:
+        directory = Path(__file__).resolve().parent / "lookup_dicts"
+        load_store(default_store_path())
     errors = []
     tables = {
         table: _read_table(directory / filename, table, errors)
         for filename, table in TABLES.items()
     }
-    duplicates = tables["KnownDuplicates"]
+    mappings = tables["Clones"]
     reported = set()
-    for start in duplicates:
+    for start in mappings:
         trail = []
         current = start
-        while current in duplicates:
+        while current in mappings:
             if current in trail:
                 cycle = trail[trail.index(current) :]
                 identity = frozenset(cycle)
                 if identity not in reported:
                     reported.add(identity)
-                    line = duplicates[current][1]
+                    line = mappings[current][1]
                     errors.append(
-                        f"{directory / 'known_duplicates.py'}:{line}: duplicate mapping cycle: "
+                        f"{directory / 'clones.py'}:{line}: clone mapping cycle: "
                         + " -> ".join([*cycle, current])
                     )
                 break
             trail.append(current)
-            current = duplicates[current][0]
+            current = mappings[current][0]
     if errors:
         raise ValueError("Invalid analysis lookup dictionaries:\n" + "\n".join(errors))

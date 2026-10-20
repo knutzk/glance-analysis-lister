@@ -182,6 +182,62 @@ class EnrichmentRulesTests(unittest.TestCase):
 
 
 class PublicationSelectionTests(unittest.TestCase):
+    def test_analysis_and_publication_closed_together_are_quiet_and_excluded(self):
+        for dates in (
+            {"arXiv Submission Date": "", "Publication Date": ""},
+            {"arXiv Submission Date": "2099-01-01", "Publication Date": "2099-02-01"},
+        ):
+            with self.subTest(dates=dates), self.assertNoLogs(level="WARNING"):
+                entry = publication(
+                    Paper,
+                    base_status=CLOSED,
+                    **({"Status": " Publication is  Closed "} | dates),
+                )
+                self.assertEqual(entry.pub_state, State.CLOSED)
+                restored = Paper.from_json(asdict(entry) | {"pub_state": "UNKNOWN"})
+                self.assertEqual(restored.pub_state, State.CLOSED)
+            collection = registry(entry)
+            for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+                self.assertEqual(getattr(collection, view), [], view)
+
+    def test_closed_analysis_with_active_publication_still_warns(self):
+        with self.assertLogs(level="WARNING") as logs:
+            entry = publication(Paper, base_status=CLOSED)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("while it should be", logs.output[0])
+        self.assertEqual(entry.pub_state, State.PUBLISHED)
+
+    def test_not_started_is_distinct_and_excluded_even_with_dates_or_publication_data(
+        self,
+    ):
+        status = " Phase 0 is  Not started "
+        with self.assertNoLogs(level="WARNING"):
+            entries = [
+                analysis(
+                    status=status,
+                    **{
+                        "Editorial Board Formed On": "2099-01-01",
+                        "PGC or SGC sign-off date": "2099-02-01",
+                    },
+                ),
+                *(
+                    publication(cls, f"TOPQ-2099-{index:02}", base_status=status)
+                    for index, cls in enumerate((Paper, ConfNote, PubNote), start=2)
+                ),
+            ]
+        collection = registry(*entries)
+        for entry in entries:
+            self.assertEqual(entry.status, status)
+            self.assertEqual(entry.pub_state, State.NOT_STARTED)
+            self.assertFalse(entry.is_ongoing())
+            payload = asdict(entry) | {"pub_state": "UNKNOWN"}
+            self.assertEqual(
+                type(entry).from_json(payload).pub_state, State.NOT_STARTED
+            )
+        self.assertEqual(len(collection.entries), 4)
+        for view in ("analyses", "papers", "confnotes", "pubnotes", "unaccounted"):
+            self.assertEqual(getattr(collection, view), [], view)
+
     def test_analysis_milestones_and_terminal_states_control_inclusion(self):
         milestones = {
             "Editorial Board Formed On": "2020-01-01",
@@ -215,19 +271,21 @@ class PublicationSelectionTests(unittest.TestCase):
 
     def test_review_papers_remain_ongoing_until_submission(self):
         for status in (
+            " Phase 1 is  Not started ",
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
             " Publication Phase is  Active ",
         ):
             with self.subTest(status=status):
-                entry = publication(
-                    Paper,
-                    **{
-                        "Status": status,
-                        "arXiv Submission Date": "",
-                        "Publication Date": "",
-                    },
-                )
+                with self.assertNoLogs(level="WARNING"):
+                    entry = publication(
+                        Paper,
+                        **{
+                            "Status": status,
+                            "arXiv Submission Date": "",
+                            "Publication Date": "",
+                        },
+                    )
                 collection = registry(entry)
                 self.assertEqual(entry.status_paper, status)
                 self.assertEqual(entry.pub_state, State.PHASE1_OR_2)
@@ -417,7 +475,7 @@ class RegistryRoundTripTests(unittest.TestCase):
                     )
             path.write_text(json.dumps(payload))
             with patch.dict(
-                "analysis_lister.glance.paper.journal_refs.JournalRefs",
+                "analysis_lister.citation_store.Citations",
                 {DOI: "Updated citation"},
             ):
                 restored = GlanceRegistry.from_json(path)

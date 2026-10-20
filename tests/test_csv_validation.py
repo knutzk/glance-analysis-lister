@@ -12,7 +12,11 @@ from tempfile import TemporaryDirectory
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.download import HTMLParser
 from analysis_lister.glance.csv_loader import read_csv_rows
-from analysis_lister.html_tables import parse_html_table, table_to_rows
+from analysis_lister.html_tables import (
+    parse_html_table,
+    table_to_rows,
+    validate_table_completeness,
+)
 
 
 class CsvValidationTests(unittest.TestCase):
@@ -107,6 +111,7 @@ class CsvValidationTests(unittest.TestCase):
 
     def test_duplicate_unused_html_headers_are_allowed(self):
         HTMLParser.parse_to_csv(
+            "<span>Showing 1 to 1 of 1 results</span>"
             "<table><tr><th>ID</th><th>Unused</th><th>Unused</th></tr>"
             "<tr><td>one</td><td>a</td><td>b</td></tr></table>",
             self.path,
@@ -116,6 +121,44 @@ class CsvValidationTests(unittest.TestCase):
 
 
 class HtmlTableParsingTests(unittest.TestCase):
+    def test_reported_totals_accept_complete_responses_and_number_separators(self):
+        for total in ("1234", "1,234", "1 234", "1\u00a0234", "1\u202f234"):
+            with self.subTest(total=total):
+                table = parse_html_table(
+                    f"<span>Showing 1 to {total} of {total} results</span>"
+                    "<table><tr><th>ID</th></tr><tr><td>synthetic</td></tr></table>",
+                    source="synthetic response",
+                )
+                validate_table_completeness(table, 1234, source="synthetic response")
+
+    def test_reported_totals_reject_missing_conflicting_and_partial_results(self):
+        for summary in (
+            "",
+            "<span>Showing 1 to 2 of 5 results</span>",
+            "<span>Showing 3 to 5 of 5 results</span>",
+            "<span>Showing 1 to 5 of 5 results</span>",
+            "<span>Showing 1 to 1 of 1 results</span>"
+            "<span>Showing 1 to 2 of 2 results</span>",
+            "<script>Showing 1 to 1 of 1 results</script>",
+        ):
+            with self.subTest(summary=summary):
+                table = parse_html_table(
+                    summary
+                    + "<table><tr><th>ID</th></tr><tr><td>synthetic</td></tr></table>",
+                    source="synthetic response",
+                )
+                with self.assertRaises(ValueError):
+                    validate_table_completeness(table, 1, source="synthetic response")
+
+    def test_record_text_cannot_supply_a_missing_counter(self):
+        table = parse_html_table(
+            "<table><tr><th>Comment</th></tr>"
+            "<tr><td>Showing 1 to 1 of 1 results</td></tr></table>",
+            source="synthetic response",
+        )
+        with self.assertRaisesRegex(ValueError, "completeness cannot be verified"):
+            validate_table_completeness(table, 1, source="synthetic response")
+
     def test_repaired_rows_preserve_cell_whitespace_and_source_column_order(self):
         table = parse_html_table(
             "<table><tr><th> Status </th><th>ID</th><th>Unused</th></tr>"

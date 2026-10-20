@@ -3,15 +3,16 @@
 
 """DOI extraction, deduplication, and publication/correction ordering.
 
-Verified overrides and conservative date inference share this implementation
+Cached material labels and conservative date inference share this implementation
 for CSV and JSON loading. Ambiguous order retains the input and emits a notice.
 """
 
 import logging
 import re
 
-from ..lookup_dicts.doi_order import DoiOrder
-from ..lookup_dicts.reporting import lookup_notice
+from .. import citation_store
+from ..citation_store import normalize_doi
+from ..diagnostics import lookup_notice
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def _doi_date(doi: str) -> tuple[int, int]:
 def format_url_dois(url_str: str) -> list[str]:
     """Extract DOI URLs; Paper construction resolves their citation order."""
     # GLANCE concatenates the URLs without a separator, so splitting on the
-    # scheme is all there is to go by. Stripping guards the journal_refs
+    # scheme is all there is to go by. Stripping guards the citation-store
     # lookup, which a trailing space would silently turn into a miss.
     urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
     return [u for u in urls if "doi.org/" in u]
@@ -65,8 +66,9 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
     """Deduplicate and order DOIs, warning when dates cannot resolve the order.
 
     Missing months cover the entire year, so they overlap any dated DOI in
-    that year. Unknown or overlapping dates retain input order unless a
-    verified override supplies the full order. Used for CSV and JSON loads.
+    that year. Cached publication/correction labels can resolve a pair;
+    otherwise unknown or overlapping dates retain input order. Used for CSV
+    and JSON loads.
     """
 
     # The same DOI may be listed several times, and under both the doi.org and
@@ -75,18 +77,24 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
     for url in urls:
         by_doi.setdefault(doi_from_url(url), url)
 
-    override = DoiOrder.get(ref_code)
-    if override is not None:
-        repeated = sorted(doi for doi in set(override) if override.count(doi) > 1)
-        if repeated or set(override) != set(by_doi):
-            raise ValueError(
-                f"{ref_code}: DOI order override does not match the record; "
-                "update analysis_lister/lookup_dicts/doi_order.py. "
-                f"Missing from override: {sorted(set(by_doi) - set(override))}; "
-                f"absent from record: {sorted(set(override) - set(by_doi))}; "
-                f"repeated DOI entries: {repeated}"
+    # Explicit cached material labels distinguish an original from a correction
+    # without guessing publication dates. Multiple corrections still need dates.
+    materials = []
+    for doi in by_doi:
+        entry = citation_store.Citations.get(normalize_doi(doi), {})
+        materials.append(entry.get("material") if isinstance(entry, dict) else None)
+    if (
+        len(by_doi) == 2
+        and materials.count("publication") == 1
+        and any(m in {"erratum", "addendum", "editorial note"} for m in materials)
+    ):
+        pairs = zip(materials, by_doi.values(), strict=True)
+        return [
+            url
+            for material, url in sorted(
+                pairs, key=lambda pair: pair[0] != "publication"
             )
-        return [by_doi[doi] for doi in override]
+        ]
 
     dates = [_doi_date(doi) for doi in by_doi]
     ambiguous = any(date == (0, 0) for date in dates) or any(
@@ -99,8 +107,8 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
             logger,
             logging.WARNING,
             "%s: ambiguous DOI order (unknown or overlapping dates); keeping "
-            "input order. Verify the original article and add an override in "
-            "analysis_lister/lookup_dicts/doi_order.py: %s",
+            "input order. Verify publication/correction metadata in "
+            "json/doi_metadata.json: %s",
             ref_code,
             list(by_doi),
         )

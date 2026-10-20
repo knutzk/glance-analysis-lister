@@ -15,9 +15,10 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.glance_registry import GlanceRegistry
+from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
-HTML = "<table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
+HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
 
 
 class CsvBatchTests(unittest.TestCase):
@@ -42,6 +43,10 @@ class CsvBatchTests(unittest.TestCase):
                     sort_by="reference_code",
                 )
             )
+        (self.csv_dir / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
+        (self.debug_dir / SCOPE_FILENAME).write_text(
+            json.dumps(load_scope().metadata())
+        )
         self.original = {p.name: p.read_bytes() for p in self.csv_dir.iterdir()}
 
     def assert_original(self):
@@ -61,7 +66,7 @@ class CsvBatchTests(unittest.TestCase):
                 '"Reference Code"\n"new"\n',
             )
         self.assertTrue(keep.exists())
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 6)
 
     def test_table_definitions_can_be_reused_with_different_destinations(self):
         for name in ("first", "second"):
@@ -88,7 +93,9 @@ class CsvBatchTests(unittest.TestCase):
             )
         fetch.assert_called_once_with(
             table.url,
-            downloader.COMMON_PARAMS | {"s[0][name]": "final_ref_code"},
+            downloader.COMMON_PARAMS
+            | load_scope().query_params()
+            | {"s[0][name]": "final_ref_code"},
             {"session": "synthetic"},
         )
         self.assertEqual(
@@ -164,8 +171,8 @@ class CsvBatchTests(unittest.TestCase):
         self.assert_original()
 
     def test_first_download_failure_leaves_no_partial_csvs(self):
-        for task in self.tasks:
-            (self.csv_dir / task.csv_filename).unlink()
+        for path in self.csv_dir.iterdir():
+            path.unlink()
         replace = Path.replace
 
         def fail_second(source, target):

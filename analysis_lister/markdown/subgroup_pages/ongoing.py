@@ -8,7 +8,6 @@ from pathlib import Path
 
 from analysis_lister.glance.analysis import Analysis as GlanceAnalysis
 from analysis_lister.glance.enums import PublicationState
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 from .. import utils
 
@@ -96,9 +95,8 @@ def render_analysis_block(
         A Markdown string with all relevant analysis metadata.
     """
     heading = f"{'#' * heading_level} {analysis.ref_code}"
-    short_title = ShortTitles.get(analysis.ref_code, analysis.title_short)
     if title:
-        heading += f" – {short_title}"
+        heading += f" – {analysis.title_short}"
     if attribute_tag:
         heading += f" {{: #{utils.anchor_id(analysis.ref_code, subgroup_id)}}}"
 

@@ -27,4 +27,7 @@ analysis-lister = "analysis_lister.cli:main"
 include = ["analysis_lister*"]
 
 [tool.setuptools.package-data]
-analysis_lister = ["certs/*.pem", "certs/README.md"]
+analysis_lister = ["certs/*.pem", "certs/README.md", "configs/*.toml"]
+
+[tool.setuptools.data-files]
+"share/glance-analysis-lister" = ["json/doi_metadata.json"]

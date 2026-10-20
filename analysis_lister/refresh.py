@@ -11,9 +11,15 @@ import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
+from analysis_lister.diagnostics import discard_lookup_notices, lookup_report
 from analysis_lister.download import DownloadTable, download_tasks, staged_csv_files
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.reporting import discard_lookup_notices, lookup_report
+from analysis_lister.retrieval import (
+    SCOPE_FILENAME,
+    RetrievalScope,
+    check_scope,
+    load_scope,
+)
 from analysis_lister.storage import CSV_REFRESH_MARKER, atomic_write_text
 
 logger = logging.getLogger(__name__)
@@ -51,7 +57,9 @@ def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
         return []
 
     with discard_lookup_notices():
-        old = counts(GlanceRegistry.from_json(path))
+        old_registry = GlanceRegistry.from_json(path)
+        old = counts(old_registry)
+    check_scope(registry.retrieval_scope, old_registry.retrieval_scope)
     new = counts(registry)
 
     drops = []
@@ -147,6 +155,7 @@ def refresh_csv_files(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
+    scope: RetrievalScope | None = None,
 ) -> None:
     """Fetch and publish CSVs only, for the standalone download command."""
     with staged_csv_files(
@@ -156,8 +165,11 @@ def refresh_csv_files(
         cookies=cookies,
         use_local_html=use_local_html,
         debug=debug,
+        scope=scope,
     ) as staging:
-        publish_csv_batch(staging, csv_dir, [t.csv_filename for t in tasks])
+        publish_csv_batch(
+            staging, csv_dir, [t.csv_filename for t in tasks] + [SCOPE_FILENAME]
+        )
     logger.info("Published complete CSV batch.")
 
 
@@ -176,8 +188,14 @@ def refresh_analysis_lists(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
+    scope: RetrievalScope | None = None,
 ) -> None:
     """Stage and validate all inputs before publishing CSVs and JSON together."""
+    scope = scope or load_scope()
+    if snapshot_path.exists():
+        with discard_lookup_notices():
+            previous = GlanceRegistry.from_json(snapshot_path).retrieval_scope
+        check_scope(scope, previous)
     tasks = download_tasks()
     with staged_csv_files(
         tasks,
@@ -186,13 +204,14 @@ def refresh_analysis_lists(
         cookies=cookies,
         use_local_html=use_local_html,
         debug=debug,
+        scope=scope,
     ) as staging:
         registry = build_registry(staging, snapshot_path, force=force)
         registry.store_json(staging / snapshot_path.name)
         publish_csv_batch(
             staging,
             csv_dir,
-            [t.csv_filename for t in tasks],
+            [t.csv_filename for t in tasks] + [SCOPE_FILENAME],
             snapshot_path=snapshot_path,
         )
     logger.info(

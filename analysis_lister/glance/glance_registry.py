@@ -17,12 +17,13 @@ from pathlib import Path
 
 from attrs import asdict
 
-from ..lookup_dicts.known_duplicates import KnownDuplicates
-from ..lookup_dicts.reporting import lookup_notice
-from ..lookup_dicts.review import lookup_review_notices
-from ..lookup_dicts.validation import validate_lookups
+from ..diagnostics import lookup_notice
+from ..lookup_review import lookup_review_notices
+from ..lookup_validation import validate_lookups
+from ..retrieval import RetrievalScope
 from ..storage import atomic_write_text
 from .analysis import Analysis
+from .clones import clone_exclusions
 from .confnote import ConfNote
 from .enums import PublicationState
 from .paper import Paper
@@ -73,6 +74,7 @@ class GlanceRegistry(_FilteringMixin):
         *,
         threshold_year: str = DEFAULT_THRESHOLD_YEAR,
         last_modified_time: str = "",
+        retrieval_scope: RetrievalScope | None = None,
     ):
         """Create an in-memory registry, copying the supplied entry mapping.
 
@@ -80,8 +82,18 @@ class GlanceRegistry(_FilteringMixin):
         Entry objects are shared; the registry owns its mapping of them.
         """
         self._analyses = dict(entries) if entries is not None else {}
+        self.retrieval_scope = retrieval_scope
         self.threshold_year = threshold_year
         self.last_modified_time = last_modified_time
+        self.apply_clone_rules()
+
+    def apply_clone_rules(self):
+        """Recompute clone exclusions after metadata or publication enrichment."""
+        self._clone_exclusions = clone_exclusions(self._analyses)
+
+    def is_clone_excluded(self, ref_code: str) -> bool:
+        """Whether manual clone lineage excludes this entry from output views."""
+        return ref_code in self._clone_exclusions
 
     @classmethod
     def from_csv(
@@ -147,6 +159,9 @@ class GlanceRegistry(_FilteringMixin):
             entries,
             last_modified_time=raw_data.get("last_modified_time", ""),
             threshold_year=raw_data.get("threshold_year") or DEFAULT_THRESHOLD_YEAR,
+            retrieval_scope=RetrievalScope.from_dict(raw_data["retrieval_scope"])
+            if raw_data.get("retrieval_scope") is not None
+            else None,
         )
 
     def get(self, ref_code: str) -> Analysis | None:
@@ -185,6 +200,11 @@ class GlanceRegistry(_FilteringMixin):
             for ref_code, entry in sorted(self._analyses.items())
         ]
 
+        scope_metadata = (
+            f',\n    "retrieval_scope": {json.dumps(self.retrieval_scope.metadata())}'
+            if self.retrieval_scope is not None
+            else ""
+        )
         content = (
             "{\n"
             '    "entries": {\n'
@@ -192,7 +212,7 @@ class GlanceRegistry(_FilteringMixin):
             + ("\n" if entry_lines else "")
             + "    },\n"
             f'    "last_modified_time": {json.dumps(self.last_modified_time)},\n'
-            f'    "threshold_year": {json.dumps(self.threshold_year)}\n'
+            f'    "threshold_year": {json.dumps(self.threshold_year)}{scope_metadata}\n'
             "}\n"
         )
 
@@ -216,14 +236,18 @@ class GlanceRegistry(_FilteringMixin):
         if they are still in the review process, they are included here.
 
         """
-        return self.filter(lambda a: a.is_ongoing())
+        return self.filter(
+            lambda a: a.is_ongoing() and not self.is_clone_excluded(a.ref_code)
+        )
 
     @property
     def confnotes(self) -> list[ConfNote]:
         """All entries that should be listed as CONF note."""
         return self.filter(
             lambda a: (
-                isinstance(a, ConfNote) and a.pub_state == PublicationState.PUBLISHED
+                isinstance(a, ConfNote)
+                and a.pub_state == PublicationState.PUBLISHED
+                and not self.is_clone_excluded(a.ref_code)
             )
         )
 
@@ -269,6 +293,7 @@ class GlanceRegistry(_FilteringMixin):
         return self.filter(
             lambda a: (
                 a.pub_state in {PublicationState.PAST_PHASE0, PublicationState.UNKNOWN}
+                and not self.is_clone_excluded(a.ref_code)
             )
         )
 
@@ -310,6 +335,7 @@ class GlanceRegistry(_FilteringMixin):
                 self._analyses[ref] = cls.from_analysis_and_dict(base, row)
                 n_enriched += 1
 
+        self.apply_clone_rules()
         return n_enriched, n_unmatched
 
     def _may_enrich(self, base: Analysis, cls, ref: str) -> bool:
@@ -369,17 +395,8 @@ class GlanceRegistry(_FilteringMixin):
         return False
 
     def log_unaccounted(self):
-        """Report the entries that end up on no page at all.
-
-        Entries listed in `lookup_dicts.known_duplicates` are reported as
-        INFO instead: they duplicate another GLANCE record and only closing
-        them there would settle it, so warning about them every run would
-        only bury a record that is genuinely incomplete.
-
-        """
-        unaccounted = self.unaccounted
-        duplicates = [a for a in unaccounted if a.ref_code in KnownDuplicates]
-        incomplete = [a for a in unaccounted if a.ref_code not in KnownDuplicates]
+        """Report unfinished records not explained by manual clone relationships."""
+        incomplete = self.unaccounted
 
         if incomplete:
             logger.warning(
@@ -387,17 +404,6 @@ class GlanceRegistry(_FilteringMixin):
                 "without a paper, CONF note or PUB note record in GLANCE: %s",
                 len(incomplete),
                 ", ".join(f"{a.ref_code} ({a.pub_state.value})" for a in incomplete),
-            )
-
-        if duplicates:
-            logger.info(
-                "%d further entries appear on no page and have known duplicate "
-                "mappings: %s",
-                len(duplicates),
-                ", ".join(
-                    f"{a.ref_code} (superseded by {KnownDuplicates[a.ref_code]})"
-                    for a in duplicates
-                ),
             )
 
         for level, message in lookup_review_notices(self):

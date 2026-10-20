@@ -98,12 +98,12 @@ class ConfNote(Analysis):
         """Post-initialization of CONF note instance."""
         super().__attrs_post_init__()
 
-        # Determine the publication state of the CONF note. As this class
-        # should only be instantiated for finished analysis records, issue
-        # a warning if the publication state is not set to PAST_PHASE0.
+        # Preserve closed and unstarted analyses. Only finished phase 0
+        # records are promoted to a note state; warn about other base states.
         if self.pub_state not in [
             PublicationState.PAST_PHASE0,
             PublicationState.CLOSED,
+            PublicationState.NOT_STARTED,
         ]:
             logger.warning(
                 "CONF note %s has state '%s' while it should be '%s'",

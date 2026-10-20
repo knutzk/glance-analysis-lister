@@ -4,6 +4,7 @@
 """Exercise the combined workflow against synthetic GLANCE tables, without a login."""
 
 import html
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -14,15 +15,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import download as downloader, refresh
 from analysis_lister.glance.analysis import Analysis
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.doi_order import DoiOrder
-from analysis_lister.lookup_dicts.known_duplicates import KnownDuplicates
+from analysis_lister.lookup_dicts.clones import Clones
+from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
 
 
 class CombinedRefreshTests(unittest.TestCase):
     def setUp(self):
         # Synthetic registries have no relationship to maintained historical mappings.
-        self.enterContext(patch.dict(KnownDuplicates, {}, clear=True))
-        self.enterContext(patch.dict(DoiOrder, {}, clear=True))
+        self.enterContext(patch.dict(Clones, {}, clear=True))
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -45,7 +45,7 @@ class CombinedRefreshTests(unittest.TestCase):
             if task.name == "analyses":
                 self.analysis_row = values
             table = (
-                "<table><tr>"
+                "<span>Showing 1 to 1 of 1 results</span><table><tr>"
                 + "".join(f"<th>{html.escape(col)}</th>" for col in columns)
                 + "</tr><tr>"
                 + "".join(f"<td>{html.escape(values[col])}</td>" for col in columns)
@@ -53,6 +53,10 @@ class CombinedRefreshTests(unittest.TestCase):
             )
             (self.debug_dir / task.html_filename).write_text(table)
             (self.csv_dir / task.csv_filename).write_text("previous CSV\n")
+        (self.csv_dir / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
+        (self.debug_dir / SCOPE_FILENAME).write_text(
+            json.dumps(load_scope().metadata())
+        )
         self.snapshot = self.json_dir / "glance_registry.json"
         self.write_baseline(1)
 
@@ -64,7 +68,9 @@ class CombinedRefreshTests(unittest.TestCase):
             }
             entry = Analysis.from_csv_dict(row)
             entries[entry.ref_code] = entry
-        registry = GlanceRegistry(entries, last_modified_time="previous")
+        registry = GlanceRegistry(
+            entries, last_modified_time="previous", retrieval_scope=load_scope()
+        )
         registry.store_json(self.snapshot)
         self.previous_json = self.snapshot.read_bytes()
 
@@ -91,8 +97,8 @@ class CombinedRefreshTests(unittest.TestCase):
 
     def assert_unchanged(self):
         self.assertEqual(self.snapshot.read_bytes(), self.previous_json)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
-        for path in self.csv_dir.iterdir():
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
+        for path in self.csv_dir.glob("*.csv"):
             self.assertEqual(path.read_text(), "previous CSV\n")
 
     def test_success_publishes_matching_csvs_and_snapshot(self):
@@ -101,9 +107,11 @@ class CombinedRefreshTests(unittest.TestCase):
             from_csv = GlanceRegistry.from_csv(csv_dir=self.csv_dir)
             from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
+        self.assertEqual(from_csv.retrieval_scope, from_json.retrieval_scope)
+        self.assertIsNotNone(from_json.retrieval_scope)
         self.assertEqual(from_csv.last_modified_time, from_json.last_modified_time)
         self.assertEqual(len(from_json.entries), 1)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
 
     def test_csv_factory_initializes_subclass_through_normal_constructor(self):
         class Registry(GlanceRegistry):
@@ -133,6 +141,22 @@ class CombinedRefreshTests(unittest.TestCase):
         (self.debug_dir / "confnotes.html").write_text("<html>login required</html>")
         with self.assertRaises(ValueError):
             self.run_refresh(force=True)
+        self.assert_unchanged()
+
+    def test_partial_last_table_aborts_even_with_count_override(self):
+        path = self.debug_dir / "confnotes.html"
+        path.write_text(path.read_text().replace("1 to 1 of 1", "1 to 1 of 2"))
+        with self.assertRaisesRegex(ValueError, "incomplete GLANCE table"):
+            self.run_refresh(force=True)
+        self.assert_unchanged()
+
+    def test_missing_result_counter_aborts_without_changing_outputs(self):
+        path = self.debug_dir / "papers.html"
+        path.write_text(
+            path.read_text().replace("<span>Showing 1 to 1 of 1 results</span>", "")
+        )
+        with self.assertRaisesRegex(ValueError, "completeness cannot be verified"):
+            self.run_refresh()
         self.assert_unchanged()
 
     def test_registry_construction_failure_preserves_both(self):
@@ -194,7 +218,7 @@ class CombinedRefreshTests(unittest.TestCase):
         from_json = GlanceRegistry.from_json(self.snapshot)
         self.assertEqual(from_csv.entries, from_json.entries)
         self.assertEqual(len(from_json.entries), 1)
-        self.assertEqual(len(list(self.csv_dir.iterdir())), 4)
+        self.assertEqual(len(list(self.csv_dir.iterdir())), 5)
         self.assertEqual(list(self.snapshot.parent.iterdir()), [self.snapshot])
 
     def test_unusable_snapshot_parent_rolls_back_csvs(self):

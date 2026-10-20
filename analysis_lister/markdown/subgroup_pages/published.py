@@ -8,8 +8,6 @@ from pathlib import Path
 
 from analysis_lister.glance.enums import PublicationState
 from analysis_lister.glance.paper import Paper as GlancePaper
-from analysis_lister.lookup_dicts.reporting import lookup_notice
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 
 from .. import utils
 
@@ -110,17 +108,7 @@ def render_paper_block(
 
     if not title:
         s += heading_level * "#" + f" {paper.ref_code}"
-    elif paper.ref_code in ShortTitles:
-        s += heading_level * "#" + f" {paper.ref_code} – {ShortTitles[paper.ref_code]}"
     else:
-        lookup_notice(
-            logger,
-            logging.WARNING,
-            "%s: no short title in analysis_lister/lookup_dicts/short_titles.py; "
-            "using GLANCE title %r. Add an editorial title there if needed.",
-            paper.ref_code,
-            paper.title_short,
-        )
         s += heading_level * "#" + f" {paper.ref_code} – {paper.title_short}"
 
     if attribute_tag:

@@ -17,8 +17,9 @@ import logging
 
 from attrs import define, field
 
-from ..lookup_dicts import journal_refs
-from ..lookup_dicts.reporting import lookup_notice
+from .. import citation_store
+from ..citation_store import citation_text, normalize_doi
+from ..diagnostics import lookup_notice
 from .analysis import Analysis
 from .doi import doi_from_url, order_doi_urls
 from .enums import PublicationState
@@ -100,7 +101,13 @@ class Paper(Analysis):
             PublicationState: The publication state of the paper.
 
         """
+        if self.status == " Phase 0 is  Not started ":
+            return PublicationState.NOT_STARTED
+        if self.status_paper == " Publication is  Closed ":
+            return PublicationState.CLOSED
         if self.status_paper in (
+            # A paper awaiting phase 1 is still an ongoing analysis.
+            " Phase 1 is  Not started ",
             " Phase 1 is  Active ",
             " Phase 2 is  Active ",
         ) or (
@@ -124,10 +131,21 @@ class Paper(Analysis):
         self.dois = [doi_from_url(url) for url in self.doi_urls]
         self.glance_url_publ = glance_paper_url(self.ref_code)
 
-        # Determine the publication state of the paper. As this class should
-        # only be instantiated for finished analysis records, issue a warning
-        # if the publication state is not set to PAST_PHASE0.
-        if self.pub_state != PublicationState.PAST_PHASE0:
+        # Unstarted analyses stay excluded even with copied publication data.
+        # Analysis and publication may also have been closed together.
+        # Warn about other base states that have not finished phase 0.
+        closed_together = (
+            self.pub_state == PublicationState.CLOSED
+            and self.status_paper == " Publication is  Closed "
+        )
+        if (
+            self.pub_state
+            not in (
+                PublicationState.PAST_PHASE0,
+                PublicationState.NOT_STARTED,
+            )
+            and not closed_together
+        ):
             logger.warning(
                 "Paper %s has state '%s' while it should be '%s'",
                 self.ref_code,
@@ -144,14 +162,16 @@ class Paper(Analysis):
         # string keeps them aligned with self.dois[1:].
         refs = []
         for index, doi in enumerate(self.dois):
-            if doi in journal_refs.JournalRefs:
-                refs.append(journal_refs.JournalRefs[doi])
+            key = doi if doi in citation_store.Citations else normalize_doi(doi)
+            if key in citation_store.Citations:
+                value = citation_store.Citations[key]
+                refs.append(citation_text(value))
             else:
                 lookup_notice(
                     logger,
                     logging.WARNING,
                     "%s: no journal reference for %s DOI %s; add its citation "
-                    "to analysis_lister/lookup_dicts/journal_refs.py",
+                    "to the citation store using resolve-dois or edit json/doi_metadata.json",
                     self.ref_code,
                     "original article" if index == 0 else "correction",
                     doi,

@@ -13,12 +13,13 @@ from unittest.mock import patch
 from attrs import fields
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from analysis_lister.diagnostics import lookup_notice, lookup_report
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TX, XS
-from analysis_lister.lookup_dicts.reporting import lookup_notice, lookup_report
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
 from analysis_lister.refresh import compare_to_snapshot
+from analysis_lister.retrieval import load_scope
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ class LookupReportingTests(unittest.TestCase):
 
             def baseline(_):
                 lookup_notice(logger, logging.WARNING, "old gap")
-                return object()
+                return GlanceRegistry(retrieval_scope=load_scope())
 
             with (
                 patch(
@@ -88,7 +89,12 @@ class LookupReportingTests(unittest.TestCase):
                 self.assertNoLogs(level="WARNING"),
                 lookup_report(),
             ):
-                self.assertEqual(compare_to_snapshot(object(), path), [])
+                self.assertEqual(
+                    compare_to_snapshot(
+                        GlanceRegistry(retrieval_scope=load_scope()), path
+                    ),
+                    [],
+                )
             with (
                 patch(
                     "analysis_lister.refresh.GlanceRegistry.from_json",
@@ -98,7 +104,7 @@ class LookupReportingTests(unittest.TestCase):
             ):
                 compare_to_snapshot(object(), path)
 
-    def test_multi_subgroup_paper_reports_missing_title_once(self):
+    def test_multi_subgroup_paper_uses_glance_title_without_warnings(self):
         data = {field.name: "" for field in fields(Paper) if field.init}
         data.update(
             ref_code="TOPQ-2099-01",
@@ -116,10 +122,8 @@ class LookupReportingTests(unittest.TestCase):
         registry = GlanceRegistry({paper.ref_code: paper}, last_modified_time="test")
         with TemporaryDirectory() as directory:
             output = Path(directory)
-            with self.assertLogs(level="WARNING") as logs:
+            with self.assertNoLogs(level="WARNING"):
                 MarkdownPageRenderer(registry, output, "2020").write_all()
-            self.assertEqual(len(logs.output), 1, logs.output)
-            self.assertEqual(logs.output[0].count("no short title"), 1)
             for group in (TX, XS):
                 page = (output / group.output_dir / "published.md").read_text()
                 self.assertIn("TOPQ-2099-01 – Fallback", page)

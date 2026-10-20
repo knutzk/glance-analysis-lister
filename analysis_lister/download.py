@@ -16,7 +16,18 @@ import requests
 from attrs import field, frozen
 
 from analysis_lister.glance import field_maps
-from analysis_lister.html_tables import parse_html_table, table_to_rows
+from analysis_lister.html_tables import (
+    parse_html_table,
+    table_to_rows,
+    validate_table_completeness,
+)
+from analysis_lister.retrieval import (
+    SCOPE_FILENAME,
+    RetrievalScope,
+    check_scope,
+    load_scope,
+    read_scope,
+)
 from analysis_lister.storage import CSV_REFRESH_MARKER
 
 logger = logging.getLogger(__name__)
@@ -33,18 +44,6 @@ URLS = {
     "confnotes": "https://atlas-glance.cern.ch/atlas/analysis/confnotes/main.php",
 }
 COMMON_PARAMS = {
-    "c[0][i]": 0,
-    "c[0][p]": "subgroups",
-    "c[0][o]": "contains",
-    "c[0][v]": 80,
-    "c[1][i]": 1,
-    "c[1][p]": "subgroups",
-    "c[1][o]": "contains",
-    "c[1][v]": 198,
-    "c[2][i]": 2,
-    "c[2][p]": "subgroups",
-    "c[2][o]": "contains",
-    "c[2][v]": 205,
     "s[0][descending]": "false",
     "only_deleted_input": "false",
 }
@@ -166,10 +165,15 @@ class HTMLParser:
         # Keep diagnostic HTML even if header or row validation subsequently fails.
         if debug_path is not None:
             debug_path.parent.mkdir(parents=True, exist_ok=True)
-            debug_path.write_text(str(table) + "\n", encoding="utf-8")
-            logger.debug("All table rows saved to %s", debug_path)
+            debug_path.write_text(
+                html + ("" if html.endswith("\n") else "\n"), encoding="utf-8"
+            )
+            logger.debug(
+                "Full response including result counters saved to %s", debug_path
+            )
 
         csv_data = table_to_rows(table, source=source, column_filter=column_filter)
+        validate_table_completeness(table, len(csv_data) - 1, source=source)
         with output_csv.open("w", newline="", encoding="utf-8") as stream:
             writer = csv.writer(stream, quoting=csv.QUOTE_ALL)
             writer.writerows(csv_data)
@@ -203,19 +207,29 @@ def staged_csv_files(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
+    scope: RetrievalScope | None = None,
 ) -> Iterator[Path]:
     """Yield a complete CSV batch without modifying the current data."""
+    scope = scope or load_scope()
+    if any(csv_dir.glob("*.csv")) or (csv_dir / SCOPE_FILENAME).exists():
+        check_scope(scope, read_scope(csv_dir))
+    if use_local_html:
+        check_scope(scope, read_scope(debug_dir))
     csv_dir.mkdir(parents=True, exist_ok=True)
     # Stage on the same filesystem so individual replacements are atomic.
     temporary = TemporaryDirectory(prefix=".refresh-", dir=csv_dir, delete=False)
     staging = Path(temporary.name)
     try:
+        if debug and not use_local_html:
+            (debug_dir / SCOPE_FILENAME).unlink(missing_ok=True)
         for task in tasks:
             if use_local_html:
                 html = (debug_dir / task.html_filename).read_text(encoding="utf-8")
             else:
                 html = DataFetcher.fetch_html(
-                    task.url, COMMON_PARAMS | {"s[0][name]": task.sort_by}, cookies
+                    task.url,
+                    COMMON_PARAMS | scope.query_params() | {"s[0][name]": task.sort_by},
+                    cookies,
                 )
             HTMLParser.parse_to_csv(
                 html,
@@ -225,6 +239,10 @@ def staged_csv_files(
                 else None,
                 task.columns,
             )
+        metadata = json.dumps(scope.metadata(), indent=2) + "\n"
+        (staging / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
+        if debug and not use_local_html:
+            (debug_dir / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
         yield staging
     finally:
         if (csv_dir / CSV_REFRESH_MARKER).exists():

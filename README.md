@@ -56,13 +56,109 @@ CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
 build operations sequentially.
 
+## Retrieval configuration
+
+`download` and `refresh` accept `--config PATH` for a TOML retrieval selection.
+Without it, both use the bundled [unfiltered configuration](analysis_lister/configs/all.toml),
+retrieving all accessible non-deleted ATLAS records. Group profiles remain
+optional. The [TOPQ configuration](analysis_lister/configs/topq.toml) selects
+records involving any of its three configured subgroups, including records
+led by other groups.
+
+```bash
+analysis-lister refresh --config analysis_lister/configs/topq.toml \
+  --csv-dir csv/topq --snapshot json/topq_registry.json
+```
+
+The bundled [HIGP configuration](analysis_lister/configs/higp.toml) selects
+subgroups 824, 825, 826, 827, 828, 831, 830 and 829. Use separate destinations:
+
+```bash
+analysis-lister refresh --config analysis_lister/configs/higp.toml \
+  --csv-dir csv/higp --snapshot json/higp_registry.json
+```
+
+The configuration specifies GLANCE query values directly; it does not infer
+group membership from subgroup names or maintain an organisational hierarchy:
+
+```toml
+name = "TOPQ"
+
+[selection]
+field = "subgroups"
+operator = "contains"
+values = [80, 198, 205]
+```
+
+Each value becomes an indexed GLANCE filter clause, as in the original query.
+Selections must contain at least one positive integer ID or nonempty string;
+duplicate values are removed. Unknown configuration keys are rejected. The
+field and operator are GLANCE's query identifiers, not display column labels.
+The bundled subgroup query is verified against the previous implementation;
+other fields, operators and group IDs must be obtained from GLANCE and verified
+before use. This release does not discover groups or retrieve clone
+relationships, and does not claim to provide a verified leading-group query
+preset.
+
+Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
+that selection into the snapshot. Existing destinations with a different
+selection are rejected, even with `--allow-count-drop`; use separate CSV and
+snapshot destinations for different datasets. Existing CSV batches, snapshots
+or saved HTML without scope metadata cannot be used for refresh: retrieve into
+fresh destinations. No group selection is inferred from old data. Changing a
+scope's display name or reordering its values does not create a new selection.
+
+`--save-html DIR` saves full responses, including result counters, plus scope
+metadata; CSVs retain their selected columns. With `--from-html DIR`, scope
+metadata must be present and match. Offline replay validates the saved result
+counters exactly as a live download does; it does not apply server-side
+filters to saved records. Older table-only HTML must be downloaded again.
+
+These options configure retrieval only. Rendering and Obsidian export retain
+their existing TOPQ presentation assumptions.
+
+Unfiltered retrieval is the default, so no configuration flag is needed:
+
+```bash
+analysis-lister refresh --csv-dir csv/all --snapshot json/all_registry.json
+```
+
+This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
+table. An explicit custom configuration still cannot contain an empty selection.
+
+Every table must include GLANCE’s `Showing 1 to N of N results` counter, and the
+parsed CSV row count must equal the reported total. Missing or conflicting
+counters, partial pages and truncated responses abort the entire batch before
+publication. Pagination is detected and rejected rather than silently storing
+one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
+against the total GLANCE reports for the authenticated user and requested scope.
+
+## Clone relationships
+
+Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.
+`Clones` maps each clone's analysis reference to its original analysis reference;
+multiple clones can share an origin. Add a `# Source:` or `# Reason:` comment
+immediately above every entry. Validate changes with `analysis-lister validate-lookups`.
+
+Clone exclusions are calculated in memory from this dictionary whenever a
+registry is loaded. No clone fields or exclusion flags are stored in JSON.
+Dictionary changes therefore apply to existing snapshots, without downloading
+new data.
+
+A paper supersedes CONF entries on its ancestor chain, including during paper
+review. Closed or unstarted papers do not supersede them. Distinct sibling
+publications and active analyses remain visible. Known finished clone-family
+records without an attached publication are omitted. All records and original
+GLANCE states remain in JSON. Missing descendants do not supersede CONF notes,
+and cycles are rejected. Normal publication date cuts still apply.
+
 ## Try the synthetic example
 
 From a checkout, render the included example without CERN access:
 
 ```bash
 analysis-lister render --snapshot examples/synthetic_registry.json \
-  --lookup-dir examples/lookups --output-dir pages
+  --output-dir pages
 ```
 
 This writes 13 Markdown pages under `pages/`. All four records, names, titles,
@@ -73,7 +169,7 @@ identify real analyses. See [the example notes](examples/README.md).
 
 ```bash
 analysis-lister export-obsidian --snapshot examples/synthetic_registry.json \
-  --lookup-dir examples/lookups --output-dir obsidian_output
+  --output-dir obsidian_output
 ```
 
 The exporter writes papers to `obs_published/` and ongoing analyses to
@@ -82,41 +178,106 @@ each directory. CONF and PUB notes are included in the site pages, but are not
 exported as separate Obsidian notes. Existing notes that this run did not write
 are reported as stale and left in place.
 
-For your own data, supply your snapshot and optional private lookup directory.
+For your own data, supply your snapshot.
 The default destination is `obsidian_output/`.
 
-## Private lookup dictionaries
+## Maintained analysis relationships
 
-The package includes public DOI references and empty short-title defaults.
-To supply your own titles and overrides, keep these four literal dictionaries
-in a separate local directory:
+Titles come directly from GLANCE’s Short Title, Public Short Title and Full
+Title fields. The only maintained analysis dictionary is
+`analysis_lister/lookup_dicts/clones.py`, which covers clone and duplicate
+origins. Citation metadata lives in `json/doi_metadata.json`. No private Python
+lookup overrides are supported; select a different JSON citation store with
+`--doi-cache` when needed. Validate maintained data with
+`analysis-lister validate-lookups`.
 
-| File | Dictionary |
-| --- | --- |
-| `short_titles.py` | `ShortTitles` |
-| `journal_refs.py` | `JournalRefs` |
-| `known_duplicates.py` | `KnownDuplicates` |
-| `doi_order.py` | `DoiOrder` |
+## DOI citation resolution
 
-Each file must define its dictionary as a literal; empty dictionaries are valid.
-For example, `short_titles.py` can contain:
+The single citation dictionary is [json/doi_metadata.json](json/doi_metadata.json).
+It is versioned in Git, with one complete DOI entry per line for readable diffs.
+The wheel and source distribution include the same dictionary. There is no
+separate maintained Python citation dictionary and no merging of seed entries.
 
-```python
-ShortTitles = {}
-```
+Each record requires `citation` and `source`. Protection follows the source:
+`manual` citations are never replaced automatically; inferred and INSPIRE
+citations can be refreshed explicitly. To protect an edited citation, set its
+source to `manual`. There is no separate `locked` field. Older stores containing
+that field remain readable, but it is ignored and removed on writing.
+`material` is stored only when the publication/correction role is known.
 
-Supply the directory with `--lookup-dir`:
+All commands read the dictionary offline. `--doi-cache PATH` selects a separate
+store; a missing custom store starts empty. When working outside a checkout,
+the default path uses the packaged copy until a working-directory store is
+written. Only `resolve-dois` can make INSPIRE requests.
+
+INSPIRE's compact journal abbreviations are formatted consistently with the
+existing citations, for example `Phys.Rev.D` → `Phys. Rev. D`. After an update
+that used an older formatter has finished, fix stored non-manual citations
+without repeating network lookups:
 
 ```bash
-analysis-lister render --snapshot json/glance_registry.json \
-  --output-dir pages --lookup-dir /path/to/private/lookups
+analysis-lister format-citations
 ```
 
-The files are parsed and validated without executing Python. Their dictionaries
-replace the package defaults for that operation. Without this option, rendering
-uses the public defaults and titles from the supplied snapshot. Keep credentials,
-registry snapshots, downloaded tables, private lookups and generated pages out of
-this repository.
+This also shortens page ranges to the starting page, for example `101–120` →
+`101`. New INSPIRE resolutions use the same convention. Citation provenance,
+correction prefixes, dates and individual article numbers are retained.
+Manual citations are unchanged. Unknown journal abbreviations are
+retained rather than guessed. Do not run it while a resolver is writing the
+same JSON file.
+
+First infer citations without network access:
+
+```bash
+analysis-lister resolve-dois --snapshot json/all_registry.json --method infer
+```
+
+The initial rule recognises complete JHEP DOIs, for example
+`10.1007/JHEP07(2023)203` → `JHEP 07 (2023) 203`. It records
+`source = "doi-pattern:jhep"`; no `material` field is written:
+the DOI identifies the citation components, but not whether it is a correction.
+
+Then retrieve remaining missing citations from INSPIRE:
+
+```bash
+analysis-lister resolve-dois --snapshot json/all_registry.json --method inspire
+```
+
+Alternatively, `--method auto` tries inference before INSPIRE. Inference is the
+default. Existing entries are skipped; `--refresh-existing` revisits only
+non-manual entries. To enrich inferred citations with correction metadata, run
+`--method inspire --refresh-existing`. Manual entries are never replaced.
+`--limit 10` bounds the number of entries attempted in a run. Individual DOIs
+can be supplied using repeated `--doi` arguments instead of `--snapshot`.
+
+Successful results include provenance and resolution timestamps and are saved
+atomically after each entry. Failed requests, missing records, incomplete
+citations and ambiguous DOI/publication associations remain retryable; failed
+refreshes retain the previous citation. INSPIRE lookups match the requested DOI
+and material to publication information, and label verified errata/addenda.
+DOI ordering uses cached publication/correction labels and dates encoded in
+DOIs. Ambiguous cases retain input order with a warning; no manual order
+dictionary is maintained.
+Duplicate publication rows are combined only when their structured citation
+fields agree; compatible partial rows can fill missing fields. Conflicting
+metadata remains unresolved. An unlabelled DOI can inherit an explicit label
+from another occurrence of that same DOI, or a unique remaining material when
+exactly one DOI and one publication material remain unmatched.
+
+INSPIRE requests use a separate session without GLANCE cookies, verified TLS,
+bounded timeouts and retries, and rate limiting. A server-requested pause over
+60 seconds is deferred to a later run. No titles or analysis identifiers are
+sent to INSPIRE, only DOIs. See the
+[INSPIRE API documentation](https://github.com/inspirehep/rest-api-doc) and
+[publication metadata schema](https://github.com/inspirehep/inspire-schemas/blob/master/inspire_schemas/records/hep.yml).
+
+Subsequent `render`, `build-registry`, `refresh` and `export-obsidian` operations
+use the cached citations. The resolver does not rewrite registry snapshots;
+citation fields are reconstructed when a snapshot is loaded. Review and commit
+citation updates as normal data changes. Only this citation JSON and the
+synthetic example JSON are permitted public JSON files; private registries,
+cookies and other generated JSON remain ignored. Run resolution and operations
+that edit the same dictionary sequentially.
 
 ## TLS
 
