@@ -14,12 +14,10 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import cli
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.obsidian import export_obsidian, render_front_matter
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/synthetic_registry.json"
-LOOKUPS = ROOT / "examples/lookups"
 
 
 class ObsidianExportTests(unittest.TestCase):
@@ -38,8 +36,6 @@ class ObsidianExportTests(unittest.TestCase):
                         str(EXAMPLE),
                         "--output-dir",
                         str(output),
-                        "--lookup-dir",
-                        str(LOOKUPS),
                     ]
                 )
             self.assertEqual(stale.read_text(), "User content")
@@ -48,7 +44,6 @@ class ObsidianExportTests(unittest.TestCase):
             ongoing = output / "obs_ongoing/DEMO-2099-01-Synthetic-ongoing-analysis.md"
             self.assertIn("Synthetic published paper", paper.read_text())
             self.assertIn("Synthetic ongoing analysis", ongoing.read_text())
-            self.assertEqual(ShortTitles, {})
 
     def test_default_output_is_standalone_directory(self):
         with patch("analysis_lister.obsidian.export_obsidian") as export:
@@ -65,8 +60,7 @@ class ObsidianExportTests(unittest.TestCase):
     def test_front_matter_preserves_yaml_special_characters(self):
         entry = GlanceRegistry.from_json(EXAMPLE).get("DEMO-2099-01")
         entry.title_short = 'Title: "quoted" # with\na newline'
-        with patch.dict(ShortTitles, {entry.ref_code: entry.title_short}):
-            front_matter = render_front_matter(entry, entry.ref_code, "analysis")
+        front_matter = render_front_matter(entry, entry.ref_code, "analysis")
         fields = dict(
             line.split(": ", 1)
             for line in front_matter.splitlines()
@@ -130,8 +124,6 @@ class SyntheticExampleTests(unittest.TestCase):
                     str(EXAMPLE),
                     "--output-dir",
                     str(output),
-                    "--lookup-dir",
-                    str(LOOKUPS),
                 ]
             )
             self.assertEqual(len(list(output.rglob("*.md"))), 13)

@@ -51,17 +51,10 @@ class LookupDiagnosticsTests(unittest.TestCase):
         self.assertEqual(paper.journal_ref, "")
         self.assertEqual(paper.journal_ref_corrections, [""])
 
-    def test_title_warning_identifies_fallback_and_edit_location(self):
+    def test_glance_title_is_rendered_without_lookup_warnings(self):
         paper = self.paper([])
-        with self.assertLogs(level="WARNING") as logs:
+        with self.assertNoLogs(level="WARNING"):
             rendered = render_paper_block(paper, attribute_tag=False)
-        self.assertEqual(len(logs.output), 1)
-        for expected in (
-            paper.ref_code,
-            "lookup_dicts/short_titles.py",
-            "GLANCE fallback",
-        ):
-            self.assertIn(expected, logs.output[0])
         self.assertIn("TOPQ-2099-01 – GLANCE fallback", rendered)
 
     def test_stale_override_lists_missing_and_obsolete_dois(self):

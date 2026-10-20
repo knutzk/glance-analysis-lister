@@ -18,7 +18,6 @@ from tempfile import TemporaryDirectory
 import analysis_lister
 from analysis_lister.citation_store import default_store_path, load_store
 from analysis_lister.download import INTERMEDIATE_CA, trusted_ca_bundle
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
 from analysis_lister.retrieval import load_scope
 
 
@@ -39,7 +38,6 @@ def main():
     assert len(licences) == 1, "Wheel must contain LICENCE"
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
-    assert not ShortTitles, "Public wheel must have empty short-title defaults"
     assert load_scope().values == (80, 198, 205), "Wheel must bundle the TOPQ scope"
     citation_path = default_store_path()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"

@@ -9,9 +9,8 @@ import re
 import unicodedata
 from pathlib import Path
 
-from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.lookup_dicts.reporting import lookup_report
-from analysis_lister.lookup_dicts.short_titles import ShortTitles
+from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.markdown.subgroup_pages.ongoing import render_analysis_block
 from analysis_lister.markdown.subgroup_pages.published import render_paper_block
 
@@ -74,8 +73,8 @@ def render_front_matter(entry, filename: str, entry_type: str) -> str:
 
     """
     title = entry.ref_code
-    if entry.ref_code in ShortTitles:
-        title += f" – {ShortTitles[entry.ref_code]}"
+    if entry.title_short:
+        title += f" – {entry.title_short}"
 
     lines = [
         "---",
@@ -128,19 +127,17 @@ SORT date desc
     logger.info(f"Successfully wrote {entry_type} file: {filename}.md")
 
 
-def generate_filename(ref_code):
-    """Generates a filename with the reference code and short title."""
-    filename = ref_code
-    if ref_code in ShortTitles:
-        filename += "-" + tagify_string(ShortTitles[ref_code])
-    return filename
+def generate_filename(entry):
+    """Generate a filename from the reference code and GLANCE short title."""
+    suffix = tagify_string(entry.title_short)
+    return entry.ref_code + ("-" + suffix if suffix else "")
 
 
 def warn_about_stale_notes(directory: Path, written: set):
     """Report notes in an output directory that this run did not write.
 
-    The name of a note carries its short title, so renaming one in
-    `short_titles.py` leaves the note under the old name behind, and entries
+    The name of a note carries its GLANCE short title, so changing that title
+    leaves the note under the old name behind, and entries
     that drop out of the registry keep their note as well. Neither is removed
     here: the directory may be part of a vault, so the deleting is left to
     whoever knows what else lives in it.
@@ -178,7 +175,7 @@ def export_obsidian(snapshot_path: Path, output_dir: Path):
     logger.info("Generating Markdown files for published papers.")
     written_papers = set()
     for p in registry.papers:
-        filename = generate_filename(p.ref_code)
+        filename = generate_filename(p)
         write_markdown_file(
             entry=p, directory=published_dir, filename=filename, entry_type="paper"
         )
@@ -187,7 +184,7 @@ def export_obsidian(snapshot_path: Path, output_dir: Path):
     logger.info("Generating Markdown files for ongoing analyses.")
     written_analyses = set()
     for a in registry.analyses:
-        filename = generate_filename(a.ref_code)
+        filename = generate_filename(a)
         write_markdown_file(
             entry=a, directory=ongoing_dir, filename=filename, entry_type="analysis"
         )
