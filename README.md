@@ -99,6 +99,13 @@ The container's `schema` and `schema_version` identify the curated format.
   Null leading assignments remain `null` without warnings. Multiple or malformed
   assignments produce warnings with the record reference; multiple assignments
   use the first name.
+- Meeting collections `eoiMeetings`, `editorialBoardRequestMeetings`,
+  `preApprovalMeetings` and `approvalMeetings` become `gal_eoiMeetingDates`,
+  `gal_editorialBoardRequestMeetingDates`, `gal_preApprovalMeetingDates` and
+  `gal_approvalMeetingDates` in their original parent objects. Dates use
+  `YYYY-MM-DD`, stripping the time without changing timezone. Source order and
+  repeated dates are preserved; missing dates are skipped. Original meeting
+  collections are removed in the separate removal pass.
 - HTML supplies `gal_internalNoteEditors` on analyses,
   `gal_figuresUrl` and `gal_currentPaperDraft` on papers, and `gal_finalReferenceCode`
   on PUB notes. Internal-note editors are split from the

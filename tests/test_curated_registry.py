@@ -276,6 +276,38 @@ class CuratedTests(unittest.TestCase):
         self.assertIsNone(result["leadingGroup"])
         self.assertIsNone(result["leadingSubgroup"])
 
+    def test_meeting_dates_are_extracted_before_source_removal(self):
+        meetings = [
+            {"date": "2099-01-02T23:30:00-05:00", "title": "Synthetic meeting"},
+            {"date": "2099-01-02T12:00:00Z"},
+            {"date": "2099-02-03"},
+            {"date": None},
+            {},
+            {"date": ""},
+        ]
+        for source_key, output_key in registry.MEETING_DATE_FIELDS.items():
+            with self.subTest(field=source_key):
+                source = {"phase0": {source_key: copy.deepcopy(meetings)}}
+                enriched = registry.compact(source)
+                self.assertEqual(enriched["phase0"][source_key], meetings)
+                result = registry.remove_keys(enriched, registry.REMOVED_KEYS)
+                self.assertNotIn(source_key, result["phase0"])
+                self.assertEqual(
+                    result["phase0"][output_key],
+                    ["2099-01-02", "2099-01-02", "2099-02-03"],
+                )
+                self.assertEqual(source["phase0"][source_key], meetings)
+        self.assertEqual(registry.meeting_dates([]), [])
+        for invalid in (
+            None,
+            {},
+            ["2099-01-02"],
+            [{"date": 42}],
+            [{"date": "invalid"}],
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                registry.meeting_dates(invalid)
+
     def test_repositories_are_dropped_and_statistical_tools_keep_only_names(self):
         for resource in RESOURCES:
             self.api[resource][0]["metadata"]["statisticalTools"] = [

@@ -29,6 +29,10 @@ REMOVED_KEYS = [
     "statisticalTools",
     "repositories",
     "groups",
+    "eoiMeetings",
+    "editorialBoardRequestMeetings",
+    "preApprovalMeetings",
+    "approvalMeetings",
     "editorialBoard",
     "readers",
     "signOffResponsible",
@@ -42,6 +46,12 @@ STRING_LIST_FIELDS = {
     "keywords": "name",
     "triggers": "name",
     "statisticalTools": "name",
+}
+MEETING_DATE_FIELDS = {
+    "eoiMeetings": "gal_eoiMeetingDates",
+    "editorialBoardRequestMeetings": "gal_editorialBoardRequestMeetingDates",
+    "preApprovalMeetings": "gal_preApprovalMeetingDates",
+    "approvalMeetings": "gal_approvalMeetingDates",
 }
 SUPPLEMENTS = {
     "analyses": {
@@ -69,6 +79,28 @@ def string_list(values, value_key="name", *, label="Values"):
         entry.get(value_key) if isinstance(entry, dict) else entry for entry in values
     ]
     return unique_names([value for value in extracted if value is not None])
+
+
+def meeting_dates(meetings):
+    """Extract ISO calendar dates in source order without timezone conversion."""
+    if not isinstance(meetings, list):
+        raise ValueError("Meetings must be a list")
+    result = []
+    for meeting in meetings:
+        if not isinstance(meeting, dict):
+            raise ValueError("Meeting must be an object")
+        value = meeting.get("date")
+        if value in (None, ""):
+            continue
+        if not isinstance(value, str):
+            raise ValueError("Meeting date must be an ISO date or datetime string")
+        try:
+            result.append(datetime.fromisoformat(value.strip()).date().isoformat())
+        except ValueError as error:
+            raise ValueError(
+                "Meeting date must be an ISO date or datetime string"
+            ) from error
+    return result
 
 
 def compact_groups(groups, *, reference):
@@ -142,6 +174,8 @@ def compact(value, *, reference="Unknown record"):
             continue  # Contacts and editors are derived separately in curate().
         if key in STRING_LIST_FIELDS:
             result[PREFIX + key] = string_list(item, STRING_LIST_FIELDS[key], label=key)
+        elif key in MEETING_DATE_FIELDS:
+            result[MEETING_DATE_FIELDS[key]] = meeting_dates(item)
         elif key == "groups":
             result[PREFIX + key] = compact_groups(item, reference=reference)
         elif key == "editorialBoard":
