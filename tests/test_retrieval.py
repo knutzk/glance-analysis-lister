@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli, download, refresh
+from analysis_lister import cli, download, html_download
 from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.retrieval import (
     SCOPE_FILENAME,
@@ -91,22 +91,19 @@ class RetrievalTests(unittest.TestCase):
                 self.config.write_text(invalid)
                 with (
                     patch.object(download, "resolve_cookies") as auth,
-                    patch.object(refresh, "refresh_csv_files") as workflow,
+                    patch.object(html_download, "download_html_csvs") as workflow,
                     self.assertRaises(SystemExit),
                 ):
-                    cli.main(["download", "--config", str(self.config)])
+                    cli.main(["download-html", "--config", str(self.config)])
                 auth.assert_not_called()
                 workflow.assert_not_called()
 
-    def test_custom_scope_reaches_both_cli_workflows(self):
-        for command, operation in (
-            ("download", "refresh_csv_files"),
-            ("refresh", "refresh_analysis_lists"),
-        ):
+    def test_custom_scope_reaches_html_cli_workflow(self):
+        for command, operation in (("download-html", "download_html_csvs"),):
             with (
                 self.subTest(command=command),
                 patch.object(download, "resolve_cookies", return_value={}),
-                patch.object(refresh, operation) as workflow,
+                patch.object(html_download, operation) as workflow,
             ):
                 cli.main([command, "--config", str(self.config)])
                 self.assertEqual(workflow.call_args.kwargs["scope"], self.scope)
@@ -117,7 +114,7 @@ class RetrievalTests(unittest.TestCase):
         with patch.object(
             download.DataFetcher, "fetch_html", return_value=HTML
         ) as fetch:
-            refresh.refresh_csv_files(
+            html_download.download_html_csvs(
                 self.tasks, csv_dir, debug_dir, scope=self.scope, debug=True
             )
         self.assertEqual(fetch.call_count, 4)
@@ -137,25 +134,9 @@ class RetrievalTests(unittest.TestCase):
             patch.object(download.DataFetcher, "fetch_html") as fetch,
             self.assertRaisesRegex(ValueError, "scope differs"),
         ):
-            refresh.refresh_csv_files(self.tasks, csv_dir, debug_dir)
+            html_download.download_html_csvs(self.tasks, csv_dir, debug_dir)
         fetch.assert_not_called()
         self.assertEqual(original, {p.name: p.read_bytes() for p in csv_dir.iterdir()})
-
-    def test_scope_mismatch_in_snapshot_rejected_even_with_count_override(self):
-        snapshot = self.root / "registry.json"
-        GlanceRegistry(retrieval_scope=self.scope).store_json(snapshot)
-        with (
-            patch.object(download.DataFetcher, "fetch_html") as fetch,
-            self.assertRaisesRegex(ValueError, "scope differs"),
-        ):
-            refresh.refresh_analysis_lists(
-                self.root / "csv", self.root / "html", snapshot, force=True
-            )
-        fetch.assert_not_called()
-        with self.assertRaisesRegex(ValueError, "scope differs"):
-            refresh.compare_to_snapshot(
-                GlanceRegistry(retrieval_scope=load_scope()), snapshot
-            )
 
     def test_scope_round_trips_and_legacy_snapshots_remain_readable(self):
         snapshot = self.root / "registry.json"
@@ -190,7 +171,7 @@ class RetrievalTests(unittest.TestCase):
         html_dir.mkdir()
         (html_dir / SCOPE_FILENAME).write_text(json.dumps(self.scope.metadata()))
         with self.assertRaisesRegex(ValueError, "scope differs"):
-            refresh.refresh_csv_files(
+            html_download.download_html_csvs(
                 self.tasks, self.root / "csv", html_dir, use_local_html=True
             )
 
@@ -203,7 +184,7 @@ class RetrievalTests(unittest.TestCase):
             patch.object(download.DataFetcher, "fetch_html") as fetch,
             self.assertRaisesRegex(ValueError, "no retrieval scope metadata"),
         ):
-            refresh.refresh_csv_files(self.tasks, csv_dir, self.root / "html")
+            html_download.download_html_csvs(self.tasks, csv_dir, self.root / "html")
         fetch.assert_not_called()
         self.assertEqual(old.read_text(), "previous CSV")
 
@@ -214,35 +195,15 @@ class RetrievalTests(unittest.TestCase):
             (html_dir / task.html_filename).write_text(HTML)
         destination = self.root / "csv"
         with self.assertRaisesRegex(ValueError, "no retrieval scope metadata"):
-            refresh.refresh_csv_files(
+            html_download.download_html_csvs(
                 self.tasks, destination, html_dir, use_local_html=True
             )
         self.assertFalse(destination.exists())
 
-    def test_csv_build_requires_scope_metadata(self):
-        csv_dir = self.root / "csv"
-        csv_dir.mkdir()
-        with self.assertRaisesRegex(ValueError, "no retrieval scope metadata"):
-            GlanceRegistry.from_csv(csv_dir)
-
-    def test_unknown_existing_snapshot_scope_rejected_even_with_count_override(self):
-        snapshot = self.root / "registry.json"
-        GlanceRegistry().store_json(snapshot)
-        before = snapshot.read_bytes()
-        with (
-            patch.object(download.DataFetcher, "fetch_html") as fetch,
-            self.assertRaisesRegex(ValueError, "no retrieval scope metadata"),
-        ):
-            refresh.refresh_analysis_lists(
-                self.root / "csv", self.root / "html", snapshot, force=True
-            )
-        fetch.assert_not_called()
-        self.assertEqual(snapshot.read_bytes(), before)
-
     def test_scope_metadata_rolls_back_with_csvs(self):
         csv_dir = self.root / "csv"
         with patch.object(download.DataFetcher, "fetch_html", return_value=HTML):
-            refresh.refresh_csv_files(
+            html_download.download_html_csvs(
                 self.tasks, csv_dir, self.root / "html", scope=self.scope
             )
         original = {p.name: p.read_bytes() for p in csv_dir.iterdir()}
@@ -258,7 +219,7 @@ class RetrievalTests(unittest.TestCase):
             patch.object(Path, "replace", fail_metadata),
             self.assertRaisesRegex(OSError, "metadata publication"),
         ):
-            refresh.refresh_csv_files(
+            html_download.download_html_csvs(
                 self.tasks, csv_dir, self.root / "html", scope=self.scope
             )
         self.assertEqual(original, {p.name: p.read_bytes() for p in csv_dir.iterdir()})

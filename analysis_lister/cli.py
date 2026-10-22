@@ -13,7 +13,9 @@ from .console import configure_logging, print_summary
 
 logger = logging.getLogger(__name__)
 
-CSV_DIR = Path("csv")
+SUPPLEMENT_CSV_DIR = Path("csv/supplemental")
+API_SNAPSHOT_PATH = Path("json/glance_api_registry.json")
+CURATED_SNAPSHOT_PATH = Path("json/glance_curated_registry.json")
 COOKIE_FILE = Path("cookies.json")
 SNAPSHOT_PATH = Path("json/glance_registry.json")
 OUTPUT_DIR = Path("pages")
@@ -70,12 +72,12 @@ def parser():
         default=Path("json/doi_metadata.json"),
         help="Persistent citation JSON dictionary (default: %(default)s); read offline if present.",
     )
-    csv = argparse.ArgumentParser(add_help=False)
-    csv.add_argument(
+    supplement_csv = argparse.ArgumentParser(add_help=False)
+    supplement_csv.add_argument(
         "--csv-dir",
         type=Path,
-        default=CSV_DIR,
-        help="CSV directory (default: %(default)s).",
+        default=SUPPLEMENT_CSV_DIR,
+        help="Supplemental CSV directory (default: %(default)s).",
     )
 
     snapshot = argparse.ArgumentParser(add_help=False)
@@ -151,23 +153,37 @@ def parser():
     command = argparse.ArgumentParser(description=__doc__, parents=[console])
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
+    api = commands.add_parser(
+        "download-api",
+        help="Download a separate, rich API source registry using browser SSO.",
+        parents=[console, counts],
+    )
+    api.add_argument(
+        "--output",
+        type=Path,
+        default=API_SNAPSHOT_PATH,
+        help="API source JSON destination (default: %(default)s).",
+    )
+    api.add_argument(
+        "--login", action="store_true", help="Open CERN SSO in your browser."
+    )
+    api.set_defaults(handler=_run_download_api)
     for name, description, parents, handler in (
         (
-            "refresh",
-            "Download and publish CSVs and a validated registry.",
-            [csv, snapshot, counts, download],
-            _run_refresh,
+            "download-html",
+            "Download supplemental CSVs using Selenium SSO.",
+            [supplement_csv, download],
+            _run_download,
         ),
-        ("download", "Download and publish CSVs only.", [csv, download], _run_download),
         (
             "build-registry",
-            "Validate existing CSVs and publish their registry.",
-            [csv, snapshot, counts],
+            "Build a curated registry from API JSON and supplemental CSVs.",
+            [supplement_csv, counts],
             _run_build_registry,
         ),
         (
             "render",
-            "Generate Markdown pages from a registry snapshot.",
+            "Render an existing legacy view snapshot.",
             [snapshot, output],
             _run_render,
         ),
@@ -179,7 +195,7 @@ def parser():
         ),
         (
             "export-obsidian",
-            "Export papers and ongoing analyses as Obsidian notes.",
+            "Export an existing legacy snapshot as Obsidian notes.",
             [snapshot, obsidian_output],
             _run_export_obsidian,
         ),
@@ -188,9 +204,24 @@ def parser():
             name,
             help=description,
             description=description,
-            parents=[*parents, citations, console],
+            parents=[*parents, console]
+            if name in {"build-registry", "download-html"}
+            else [*parents, citations, console],
         )
         sub.set_defaults(handler=handler)
+        if name == "build-registry":
+            sub.add_argument(
+                "--api-snapshot",
+                type=Path,
+                default=API_SNAPSHOT_PATH,
+                help="API JSON input (default: %(default)s).",
+            )
+            sub.add_argument(
+                "--output",
+                type=Path,
+                default=CURATED_SNAPSHOT_PATH,
+                help="Curated JSON output (default: %(default)s).",
+            )
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
@@ -226,18 +257,6 @@ def parser():
         help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
     )
     formatting.set_defaults(handler=_run_format_citations)
-    api = commands.add_parser(
-        "download-api",
-        help="Download a separate, rich API source registry using browser SSO.",
-        parents=[citations, console, counts],
-    )
-    api.add_argument(
-        "--output", type=Path, required=True, help="API source JSON destination."
-    )
-    api.add_argument(
-        "--login", action="store_true", help="Open CERN SSO in your browser."
-    )
-    api.set_defaults(handler=_run_download_api)
     return command
 
 
@@ -268,33 +287,12 @@ def _retrieval_options(args):
     return {"scope": load_scope(args.config)} if args.config is not None else {}
 
 
-def _run_refresh(args):
-    from analysis_lister.refresh import refresh_analysis_lists
-
-    options = _retrieval_options(args)
-    refresh_analysis_lists(
-        args.csv_dir,
-        args.from_html or args.save_html or Path("debug"),
-        args.snapshot,
-        force=args.allow_count_drop,
-        cookies=_download_cookies(args),
-        use_local_html=args.from_html is not None,
-        debug=args.save_html is not None,
-        **options,
-    )
-    print_summary(
-        "Refresh complete",
-        [("CSV directory", args.csv_dir), ("Registry", args.snapshot)],
-        color=args.color,
-    )
-
-
 def _run_download(args):
     from analysis_lister.download import download_tasks
-    from analysis_lister.refresh import refresh_csv_files
+    from analysis_lister.html_download import download_html_csvs
 
     options = _retrieval_options(args)
-    refresh_csv_files(
+    download_html_csvs(
         download_tasks(),
         args.csv_dir,
         args.from_html or args.save_html or Path("debug"),
@@ -309,10 +307,17 @@ def _run_download(args):
 
 
 def _run_build_registry(args):
-    from analysis_lister.refresh import update_registry
+    from analysis_lister.registry import build_registry
 
-    update_registry(args.csv_dir, args.snapshot, force=args.allow_count_drop)
-    print_summary("Registry ready", [("Registry", args.snapshot)], color=args.color)
+    result = build_registry(
+        args.api_snapshot,
+        args.csv_dir,
+        args.output,
+        allow_count_drop=args.allow_count_drop,
+    )
+    print_summary(
+        "Registry ready", [("Registry", args.output), *result.items()], color=args.color
+    )
 
 
 def _run_render(args):
@@ -374,6 +379,9 @@ def _run_format_citations(args):
 
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
+    if not hasattr(args, "doi_cache"):
+        args.handler(args)
+        return
     from analysis_lister.citation_store import cached_citations
 
     with cached_citations(args.doi_cache):

@@ -9,13 +9,14 @@ import logging
 import os
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import requests
 from attrs import field, frozen
 
-from analysis_lister.glance import field_maps
+from analysis_lister.csv_io import read_csv_rows
 from analysis_lister.html_tables import (
     parse_html_table,
     table_to_rows,
@@ -28,7 +29,7 @@ from analysis_lister.retrieval import (
     load_scope,
     read_scope,
 )
-from analysis_lister.storage import CSV_REFRESH_MARKER
+from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +190,8 @@ class DownloadTable:
     url: str
     columns: tuple[str, ...] = field(converter=tuple)
     sort_by: str
+    key: str | None = None
+    prefix: str = ""
 
     @property
     def csv_filename(self) -> str:
@@ -214,6 +217,16 @@ def staged_csv_files(
     scope = scope or load_scope()
     if any(csv_dir.glob("*.csv")) or (csv_dir / SCOPE_FILENAME).exists():
         check_scope(scope, read_scope(csv_dir))
+        for task in tasks:
+            existing = csv_dir / task.csv_filename
+            if task.key and existing.exists():
+                with existing.open(encoding="utf-8", newline="") as stream:
+                    headers = next(csv.reader(stream), [])
+                if set(headers) != set(task.columns):
+                    raise ValueError(
+                        "Destination contains a different CSV format; use a separate "
+                        "directory for API supplements (default: csv/supplemental)."
+                    )
     if use_local_html:
         check_scope(scope, read_scope(debug_dir))
     csv_dir.mkdir(parents=True, exist_ok=True)
@@ -247,8 +260,29 @@ def staged_csv_files(
                 else None,
                 task.columns,
             )
+            if task.key:
+                read_csv_rows(
+                    staging / task.csv_filename,
+                    task.columns,
+                    key=task.key,
+                    prefix=task.prefix,
+                )
         metadata = json.dumps(scope.metadata(), indent=2) + "\n"
         (staging / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
+        if all(task.key for task in tasks):
+            (staging / SUPPLEMENT_MANIFEST).write_text(
+                json.dumps(
+                    {
+                        "schema": "glance-csv-supplements",
+                        "schema_version": 1,
+                        "fetched_at": datetime.now(UTC).isoformat(),
+                        "tables": {task.name: list(task.columns) for task in tasks},
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
         if debug and not use_local_html:
             (debug_dir / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
         yield staging
@@ -260,31 +294,36 @@ def staged_csv_files(
 
 
 def download_tasks() -> tuple[DownloadTable, ...]:
-    """Return immutable table definitions independent of output directories."""
+    """Fetch only native join identifiers and fields missing from stare models.
+
+    API data owns statuses, people roles, review dates, affiliations, titles
+    exposed by the API and publication links. CONF notes need no supplement.
+    Current Paper Draft has no dedicated API field; keep the export rather
+    than guessing which supporting-document label denotes the current draft.
+    """
     return (
         DownloadTable(
             "analyses",
             URLS["analyses"],
-            tuple(field_maps.REQUIRED_COLUMNS_ANALYSIS),
+            ("Reference Code", "Internal Note Editors"),
             "reference_code",
+            key="Reference Code",
+            prefix="ANA-",
         ),
         DownloadTable(
             "papers",
             URLS["papers"],
-            tuple(field_maps.REQUIRED_COLUMNS_PAPER),
+            ("Reference Code", "Figures", "Current Paper Draft"),
             "reference_code",
+            key="Reference Code",
         ),
         DownloadTable(
             "pubnotes",
             URLS["pubnotes"],
-            tuple(field_maps.REQUIRED_COLUMNS_PUBNOTE),
+            ("Temporary Reference Code", "Reference Code"),
             "final_ref_code",
-        ),
-        DownloadTable(
-            "confnotes",
-            URLS["confnotes"],
-            tuple(field_maps.REQUIRED_COLUMNS_CONFNOTE),
-            "final_ref_code",
+            key="Temporary Reference Code",
+            prefix="PUB-",
         ),
     )
 

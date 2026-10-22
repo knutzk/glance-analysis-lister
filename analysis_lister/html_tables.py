@@ -56,8 +56,8 @@ def table_to_rows(
         if missing:
             logger.error(
                 f"Columns missing from the table for {source}: {missing}. "
-                "GLANCE has probably renamed them; update the field maps in "
-                "analysis_lister/glance/field_maps.py."
+                "GLANCE has probably renamed them; check the supplemental "
+                "column definitions in analysis_lister/download.py."
             )
             raise ValueError(f"Missing columns for {source}: {missing}")
 

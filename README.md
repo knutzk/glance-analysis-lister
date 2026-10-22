@@ -37,26 +37,101 @@ output. All data paths are relative to the working directory. The package
 includes no registry, downloaded GLANCE data, or private analysis titles.
 
 ```bash
-analysis-lister --help
-analysis-lister refresh --login --csv-dir csv --snapshot json/glance_registry.json
-analysis-lister render --snapshot json/glance_registry.json --output-dir pages
-analysis-lister validate-lookups --snapshot json/glance_registry.json
+analysis-lister download-api --login
+analysis-lister download-html --login
+analysis-lister build-registry
 ```
 
-`python -m analysis_lister` provides the same commands. `download` refreshes only
-the CSV tables; `build-registry` constructs a registry from existing CSVs.
-Each command has `--help`. Interactive CERN login requires Chrome and a terminal.
-Rendering uses a local snapshot and requires no login.
+`python -m analysis_lister` provides the same commands. `download-api` uses
+stare's browser SSO; `download-html` uses Selenium/Chrome SSO and exports only
+supplemental CSVs. Their credentials and outputs are independent. Omit `--login`
+to reuse stored credentials. `build-registry` is entirely offline. Run the
+three steps sequentially. Each command has `--help`; paths can be overridden:
+
+```bash
+analysis-lister download-api --output json/glance_api_registry.json
+analysis-lister download-html --csv-dir csv/supplemental
+analysis-lister build-registry --api-snapshot json/glance_api_registry.json \
+  --csv-dir csv/supplemental --output json/glance_curated_registry.json
+```
 
 Markdown pages are written to `pages/` by default. Use `--output-dir` to choose
 a different destination. Obsidian export defaults to `obsidian_output/`.
 
-Refresh stages all four tables, validates the candidate registry and promotes
-CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
-rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
-build operations sequentially.
+The old `refresh` and `download` commands and full-CSV registry building have
+been removed. Publication matching by reference suffix and short title has
+also been removed from the registry builder: explicit API relationships are
+preserved instead. Existing legacy snapshots remain readable by the legacy
+renderers and exports; those consumers do not yet accept the curated format.
 
-## Experimental API source registry
+## Build the curated registry
+
+`build-registry` reads saved API JSON and the three supplemental CSVs entirely
+offline. Defaults are `json/glance_api_registry.json`, `csv/supplemental/` and
+`json/glance_curated_registry.json`. All three input CSVs, their schema manifest
+and retrieval-scope metadata are required. Partial scoped supplements are
+supported: the output still contains all API records, with coverage counts.
+
+The versioned `glance-curated-registry` format retains the API's four resource
+arrays, native identifiers, statuses, nested phases and explicit relationships.
+Records are not collapsed into a single analysis/publication entry, and legacy
+clone or citation rules are not applied by this build step.
+
+- `analysisTeam` is removed. `analysisContacts` and `contactEditors` are lists
+  of full names. Contact assignments are evaluated at the API snapshot's date;
+  expired and future assignments are excluded. Duplicate names are collapsed.
+- Each phase's `editorialBoard` becomes a list of names, with separate name
+  lists `editorialBoardChairs` and `editorialBoardExOfficio` preserving roles.
+- PUB `readers` become names, with `firstReaders` and `secondReaders` lists.
+  Other named-person objects, such as sign-off officials, become full-name strings.
+  CERN IDs, emails and other person details are removed.
+- `metadata.keywords` becomes a list of strings.
+- HTML supplies `internalNoteEditors` on analyses,
+  `figuresUrl` and `currentPaperDraft` on papers, and `finalReferenceCode`
+  on PUB notes. Internal-note editors are split from the
+  CSV's comma-separated names. Other API fields are preserved.
+
+Nonempty API values take precedence over HTML values. Empty HTML values never
+erase API values. Supplemental rows without a native API match never create
+records. The `curation` metadata records input provenance, the contact date,
+field mappings and per-resource coverage/conflict counts. Review those counts
+when source snapshots were collected at different times.
+
+Output is published atomically after validation. Source files cannot be
+overwritten. Existing output must have the curated schema and the same API
+endpoint. Drops greater than 20% per resource are rejected unless
+`--allow-count-drop` is supplied; other validations still apply.
+
+## Supplemental HTML downloads
+
+```bash
+analysis-lister download-html --login --csv-dir csv/supplemental
+```
+
+Omit `--login` to reuse saved cookies. The default destination is
+`csv/supplemental/`; existing full CSV directories are rejected so they cannot
+be overwritten with reduced inputs. The following fields are retained:
+
+| CSV | Native join identifier | Supplemental fields |
+|---|---|---|
+| `analyses.csv` | `Reference Code` (`ANA-...`) | `Internal Note Editors` |
+| `papers.csv` | `Reference Code` | `Figures`, `Current Paper Draft` |
+| `pubnotes.csv` | `Temporary Reference Code` (`PUB-...`) | `Reference Code` (final publication number) |
+
+The current paper draft has no dedicated stare field; it is retained without
+guessing which supporting-document label represents the current draft. API
+data supplies the other titles, people, statuses, milestones, affiliations,
+publication links and supersession. No CONF CSV is needed: its final number
+and URL are available in the API. The PUB final URL is available there too.
+
+Supplemental CSVs preserve native identifiers and source whitespace. They are
+staged, checked for complete tables and unique identifiers, then published with
+rollback together with `retrieval_scope.json` and `supplement_manifest.json`.
+The latter records the schema, extraction timestamp and selected fields.
+Full server HTML may still be retrieved; column reduction happens locally.
+`--save-html` deliberately retains the full response for diagnostics.
+
+## API source download
 
 The standard installation includes stare. Run:
 
@@ -71,11 +146,10 @@ sequentially. Nested metadata and separate record identities are retained in a
 versioned API source snapshot; unknown fields rejected by stare abort the run.
 This is validated model output, not an unmodified HTTP-response archive.
 
-The API source format is **not yet input to `render`, `build-registry` or
-`export-obsidian`**. Use a separate destination from the CSV-derived registry.
-The adapter does not yet map API statuses, missing title/link fields or curated
-overrides into the existing view models. No private lookup files are needed
-because this command does not construct an enriched view registry.
+The API source is input to `build-registry`, which curates it alongside HTML
+supplements. Neither the source nor curated format is yet input to the legacy
+`render` or `export-obsidian` commands. Keep these files separate from legacy
+CSV-derived snapshots. No private lookup files are needed for these new steps.
 
 No file is published until all four resources pass pagination and identifier
 checks. Existing API registries reject per-resource count drops greater than
@@ -95,7 +169,7 @@ work before or after the command. Expected command failures omit tracebacks;
 verbose mode includes them for troubleshooting.
 
 ```bash
-analysis-lister refresh --verbose --csv-dir csv/all --snapshot json/all_registry.json
+analysis-lister download-html --verbose --csv-dir csv/supplemental
 analysis-lister render --snapshot json/all_registry.json --quiet
 analysis-lister --color never validate-lookups
 ```
@@ -106,24 +180,24 @@ it, including for redirected output. No extra terminal dependency is required.
 
 ## Retrieval configuration
 
-`download` and `refresh` accept `--config PATH` for a TOML retrieval selection.
-Without it, both use the bundled [unfiltered configuration](analysis_lister/configs/all.toml),
+`download-html` accepts `--config PATH` for a TOML retrieval selection.
+Without it, it uses the bundled [unfiltered configuration](analysis_lister/configs/all.toml),
 retrieving all accessible non-deleted ATLAS records. Group profiles remain
 optional. The [TOPQ configuration](analysis_lister/configs/topq.toml) selects
 records involving any of its three configured subgroups, including records
 led by other groups.
 
 ```bash
-analysis-lister refresh --config analysis_lister/configs/topq.toml \
-  --csv-dir csv/topq --snapshot json/topq_registry.json
+analysis-lister download-html --config analysis_lister/configs/topq.toml \
+  --csv-dir csv/supplemental-topq
 ```
 
 The bundled [HIGP configuration](analysis_lister/configs/higp.toml) selects
 subgroups 824, 825, 826, 827, 828, 831, 830 and 829. Use separate destinations:
 
 ```bash
-analysis-lister refresh --config analysis_lister/configs/higp.toml \
-  --csv-dir csv/higp --snapshot json/higp_registry.json
+analysis-lister download-html --config analysis_lister/configs/higp.toml \
+  --csv-dir csv/supplemental-higp
 ```
 
 The configuration specifies GLANCE query values directly; it does not infer
@@ -148,12 +222,10 @@ before use. This release does not discover groups or retrieve clone
 relationships, and does not claim to provide a verified leading-group query
 preset.
 
-Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
-that selection into the snapshot. Existing destinations with a different
-selection are rejected, even with `--allow-count-drop`; use separate CSV and
-snapshot destinations for different datasets. Existing CSV batches, snapshots
-or saved HTML without scope metadata cannot be used for refresh: retrieve into
-fresh destinations. No group selection is inferred from old data. Changing a
+HTML downloads store `retrieval_scope.json` alongside CSVs. Existing destinations
+with a different selection are rejected; use separate destinations for different
+datasets. Existing CSV batches or saved HTML without scope metadata cannot be
+reused: retrieve into fresh destinations. No group selection is inferred from old data. Changing a
 scope's display name or reordering its values does not create a new selection.
 
 `--save-html DIR` saves full responses, including result counters, plus scope
@@ -168,7 +240,7 @@ their existing TOPQ presentation assumptions.
 Unfiltered retrieval is the default, so no configuration flag is needed:
 
 ```bash
-analysis-lister refresh --csv-dir csv/all --snapshot json/all_registry.json
+analysis-lister download-html --csv-dir csv/supplemental
 ```
 
 This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
@@ -181,20 +253,12 @@ publication. Pagination is detected and rejected rather than silently storing
 one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
 against the total GLANCE reports for the authenticated user and requested scope.
 
-## Publication matching
+## Legacy snapshot views
 
-Papers, CONF notes and PUB notes enrich an analysis only when their reference-code suffix
-and nonempty short title both match exactly. Unmatched paper rows do not enrich
-an analysis; unmatched CONF rows likewise remain unattached. PUB notes without a match are retained independently
-under their full `PUB-...` identifier, using their own metadata and publication
-status. They do not acquire an ANA link or appear as ongoing analyses.
+The following view and citation behaviour applies only to existing legacy
+snapshots. It is not used to build the curated registry.
 
-Building from CSV requires short titles for papers and CONF/PUB notes, plus
-PUB descriptive metadata. Older minimal note CSV exports must be downloaded
-again before rebuilding the registry.
-Existing JSON snapshots remain readable.
-
-## Ignored analyses
+### Ignored analyses
 
 `analysis_lister/lookup_dicts/ignored_analyses.py` lists reviewed exceptions with
 reasons. These analysis identifiers stay in snapshots but are excluded from
@@ -202,7 +266,7 @@ output views, view counts and unmatched-record warnings. This does not alter
 GLANCE statuses or create publication links. Independent PUB records retain
 their own identifiers and are unaffected by an ignored ANA identifier.
 
-## Clone relationships
+### Clone relationships
 
 Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.
 `Clones` maps each clone's analysis reference to its original analysis reference;
@@ -340,7 +404,7 @@ sent to INSPIRE, only DOIs. See the
 [INSPIRE API documentation](https://github.com/inspirehep/rest-api-doc) and
 [publication metadata schema](https://github.com/inspirehep/inspire-schemas/blob/master/inspire_schemas/records/hep.yml).
 
-Subsequent `render`, `build-registry`, `refresh` and `export-obsidian` operations
+Subsequent legacy `render` and `export-obsidian` operations
 use the cached citations. The resolver does not rewrite registry snapshots;
 citation fields are reconstructed when a snapshot is loaded. Review and commit
 citation updates as normal data changes. Only this citation JSON and the

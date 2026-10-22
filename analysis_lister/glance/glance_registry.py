@@ -1,17 +1,15 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Glance registry module.
+"""Legacy view collection for existing JSON snapshots.
 
-The registry holds analysis records, applies enrichment rules, and provides
-filtered views. Its constructor accepts in-memory entries. Explicit CSV and
-JSON factories handle loading; CSV validation and timestamps live in csv_loader.
-
+New registry construction lives in analysis_lister.registry and preserves
+independent API records instead of merging publications into analyses.
 """
 
 import json
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from copy import copy
 from enum import Enum
 from pathlib import Path
@@ -72,7 +70,7 @@ class _FilteringMixin:
 
 
 class GlanceRegistry(_FilteringMixin):
-    """In-memory analysis collection with explicit CSV and JSON loading factories."""
+    """Legacy in-memory view collection with JSON loading."""
 
     def __init__(
         self,
@@ -110,37 +108,12 @@ class GlanceRegistry(_FilteringMixin):
         return selected
 
     def apply_clone_rules(self):
-        """Recompute clone exclusions after metadata or publication enrichment."""
+        """Recompute exclusions for existing legacy entries."""
         self._clone_exclusions = clone_exclusions(self._analyses)
 
     def is_clone_excluded(self, ref_code: str) -> bool:
         """Whether manual clone lineage excludes this entry from output views."""
         return ref_code in self._clone_exclusions
-
-    @classmethod
-    def from_csv(
-        cls,
-        csv_dir: Path,
-        *,
-        analysis_csv="analyses.csv",
-        paper_csv="papers.csv",
-        confnote_csv="confnotes.csv",
-        pubnote_csv="pubnotes.csv",
-        threshold_year=DEFAULT_THRESHOLD_YEAR,
-    ):
-        """Load, validate, and enrich a complete CSV batch."""
-        from .csv_loader import load_csv_registry
-
-        validate_lookups()
-        return load_csv_registry(
-            cls,
-            Path(csv_dir),
-            analysis_csv=analysis_csv,
-            paper_csv=paper_csv,
-            confnote_csv=confnote_csv,
-            pubnote_csv=pubnote_csv,
-            threshold_year=threshold_year,
-        )
 
     def __repr__(self):
         return f"<GlanceRegistry: {len(self._analyses)} analyses>"
@@ -170,6 +143,11 @@ class GlanceRegistry(_FilteringMixin):
         # Load JSON data
         with open(path, encoding="utf8") as f:
             raw_data = json.load(f)
+        if not isinstance(raw_data, dict) or "entries" not in raw_data:
+            raise ValueError(
+                "This consumer requires a legacy view snapshot. "
+                "Curated registry rendering is not implemented yet."
+            )
 
         entries = {}
         for ref_code, entry_dict in raw_data["entries"].items():
@@ -327,129 +305,6 @@ class GlanceRegistry(_FilteringMixin):
                 isinstance(a, PubNote) and a.pub_state == PublicationState.PUBLISHED
             )
         )
-
-    # --- In-memory Enrichment ---
-
-    def enrich(
-        self,
-        rows: Iterable[dict[str, str]],
-        cls,
-        key: str,
-        prefix: str = "",
-        *,
-        analysis_short_titles: dict[str, str] | None = None,
-    ) -> tuple[int, int]:
-        """Enrich the stored analyses from validated publication rows.
-
-        Args:
-            rows: Validated CSV rows; reading and validation belong to the loader.
-            cls: Class to enrich the matching analyses with.
-            key: Column that holds the reference code of a row.
-            prefix: Prefix to strip off that reference code.
-            analysis_short_titles: Original analysis titles, before display escaping.
-                Publication matches require an identical, nonempty short title as well
-                as the reference suffix.
-
-        Returns:
-            The number of enriched analyses, and the number of rows without
-            a matching analysis. Unmatched PUB rows are retained independently.
-
-        """
-        n_enriched = 0
-        n_unmatched = 0
-        for row in rows:
-            ref = row[key].removeprefix(prefix)
-            base = self._analyses.get(ref)
-            title = (
-                analysis_short_titles.get(ref, "")
-                if analysis_short_titles is not None
-                else base.title_short
-                if base is not None
-                else ""
-            )
-            if base is None:
-                if cls is PubNote:
-                    self._add_independent_pubnote(row)
-                n_unmatched += 1
-            elif cls in (Paper, ConfNote, PubNote) and (
-                not title.strip() or row["Short Title"] != title
-            ):
-                logger.debug(
-                    "%s: %s short title differs or is empty; skipping analysis matching.",
-                    row[key],
-                    {Paper: "paper", ConfNote: "CONF", PubNote: "PUB"}[cls],
-                )
-                if cls is PubNote:
-                    self._add_independent_pubnote(row)
-                n_unmatched += 1
-            elif self._may_enrich(base, cls, ref):
-                self._analyses[ref] = cls.from_analysis_and_dict(base, row)
-                n_enriched += 1
-
-        self.apply_clone_rules()
-        return n_enriched, n_unmatched
-
-    def _add_independent_pubnote(self, row):
-        note = PubNote.from_csv_dict(row)
-        if note.ref_code in self._analyses:
-            raise ValueError(f"Duplicate PUB-note identifier: {note.ref_code}")
-        self._analyses[note.ref_code] = note
-
-    def _may_enrich(self, base: Analysis, cls, ref: str) -> bool:
-        """Return whether an entry may be (re-)enriched with `cls` data.
-
-        A record can be listed in several GLANCE tables, and enriching it
-        replaces it wholesale: ConfNote and PubNote derive from Analysis, not
-        from Paper, so enriching a paper with note data would drop everything
-        the paper knows. Enriching a bare analysis is the normal case; beyond
-        that only the paper may take over, as it supersedes its own CONF note.
-        Any other collision is unexpected and leaves the entry as it is.
-
-        Every collision is reported: the paper/CONF note pair as DEBUG, since
-        it is a normal step of the publication life cycle, everything else as
-        a warning.
-
-        Args:
-            base: The entry that is already stored for this reference code.
-            cls: The class the entry would be enriched with.
-            ref: Reference code of the entry, for the log messages.
-
-        Returns:
-            True if the entry may be replaced, False if it must be kept.
-
-        """
-        if type(base) is Analysis:
-            return True
-
-        # The paper wins over its CONF note, no matter which of the two GLANCE
-        # tables is read first.
-        if {type(base), cls} == {Paper, ConfNote}:
-            logger.debug(
-                "%s is listed as paper and as CONF note, keeping the paper "
-                "and dropping the CONF note data.",
-                ref,
-            )
-            return cls is Paper
-
-        if type(base) is cls:
-            logger.warning(
-                "%s is listed twice as %s, keeping the first entry. "
-                "Check the GLANCE record.",
-                ref,
-                cls.__name__,
-            )
-            return False
-
-        logger.warning(
-            "%s is listed as %s and as %s, keeping the %s and dropping the "
-            "%s data. Check the GLANCE record.",
-            ref,
-            type(base).__name__,
-            cls.__name__,
-            type(base).__name__,
-            cls.__name__,
-        )
-        return False
 
     def log_unaccounted(self, *, relationship_registry=None):
         """Report unexplained records and relevant full-snapshot relationships.

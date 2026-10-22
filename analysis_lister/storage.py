@@ -9,6 +9,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 CSV_REFRESH_MARKER = ".refresh-in-progress"
+SUPPLEMENT_MANIFEST = "supplement_manifest.json"
 
 
 def require_complete_csv_batch(directory: Path):
@@ -16,8 +17,7 @@ def require_complete_csv_batch(directory: Path):
     if (directory / CSV_REFRESH_MARKER).exists():
         raise ValueError(
             f"Incomplete CSV refresh in {directory}. "
-            "Re-run analysis_lists.py refresh (or analysis_lists.py download for "
-            "CSV-only recovery) before building the registry."
+            "Re-run analysis-lister download-html before building the registry."
         )
 
 

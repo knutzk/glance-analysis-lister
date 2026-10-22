@@ -25,7 +25,7 @@ import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
     import analysis_lists
-    import analysis_lister.refresh
+    import analysis_lister.html_download
     import analysis_lister.render
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
@@ -36,18 +36,14 @@ assert "bs4" not in sys.modules
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_download_flags_and_paths_reach_workflows(self):
-        for name, operation in (
-            ("download", "refresh_csv_files"),
-            ("refresh", "refresh_analysis_lists"),
+        with (
+            patch.object(cli, "configure_logging"),
+            patch.object(download, "resolve_cookies", return_value={}) as auth,
+            patch("analysis_lister.html_download.download_html_csvs") as workflow,
         ):
-            with (
-                self.subTest(command=name),
-                patch.object(cli, "configure_logging"),
-                patch.object(download, "resolve_cookies", return_value={}) as auth,
-                patch("analysis_lister.refresh." + operation) as workflow,
-            ):
-                flags = [
-                    name,
+            cli.main(
+                [
+                    "download-html",
                     "--save-html",
                     "html",
                     "--login",
@@ -56,52 +52,44 @@ assert "bs4" not in sys.modules
                     "--csv-dir",
                     "csv",
                 ]
-                if name == "refresh":
-                    flags += ["--allow-count-drop", "--snapshot", "registry.json"]
-                cli.main(flags)
-                auth.assert_called_once_with(
-                    Path("session.json"),
-                    generate_new_cookies=True,
-                )
-                if name == "refresh":
-                    workflow.assert_called_once_with(
-                        Path("csv"),
-                        Path("html"),
-                        Path("registry.json"),
-                        force=True,
-                        cookies={},
-                        use_local_html=False,
-                        debug=True,
-                    )
-                else:
-                    workflow.assert_called_once_with(
-                        download.download_tasks(),
-                        Path("csv"),
-                        Path("html"),
-                        cookies={},
-                        use_local_html=False,
-                        debug=True,
-                    )
-
-    def test_live_refresh_defaults_reach_workflow(self):
-        with (
-            patch.object(cli, "configure_logging"),
-            patch.object(
-                download, "resolve_cookies", return_value={"session": "synthetic"}
-            ) as auth,
-            patch("analysis_lister.refresh.refresh_analysis_lists") as refresh,
-        ):
-            cli.main(["refresh"])
-        auth.assert_called_once_with(cli.COOKIE_FILE, generate_new_cookies=False)
-        refresh.assert_called_once_with(
-            cli.CSV_DIR,
-            Path("debug"),
-            cli.SNAPSHOT_PATH,
-            force=False,
-            cookies={"session": "synthetic"},
+            )
+        auth.assert_called_once_with(Path("session.json"), generate_new_cookies=True)
+        workflow.assert_called_once_with(
+            download.download_tasks(),
+            Path("csv"),
+            Path("html"),
+            cookies={},
             use_local_html=False,
-            debug=False,
+            debug=True,
         )
+
+    def test_removed_commands_fail_before_authentication(self):
+        for command in ("refresh", "download"):
+            with (
+                self.subTest(command=command),
+                patch.object(download, "resolve_cookies") as auth,
+                patch("sys.stderr"),
+                self.assertRaises(SystemExit) as error,
+            ):
+                cli.main([command])
+            self.assertEqual(error.exception.code, 2)
+            auth.assert_not_called()
+
+    def test_api_default_and_downloads_do_not_load_citations(self):
+        with (
+            patch(
+                "analysis_lister.api.download_registry", return_value={}
+            ) as operation,
+            patch("analysis_lister.citation_store.cached_citations") as citations,
+        ):
+            cli.main(["download-api"])
+        operation.assert_called_once_with(
+            cli.API_SNAPSHOT_PATH, login=False, allow_count_drop=False
+        )
+        citations.assert_not_called()
+        parser = cli.parser()
+        for command in ("download-api", "download-html", "build-registry"):
+            self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
 
     def test_lookup_command_reviews_explicit_snapshot(self):
         with TemporaryDirectory() as directory:
@@ -123,10 +111,17 @@ assert "bs4" not in sys.modules
     def test_registry_command_forwards_count_override(self):
         with (
             patch.object(cli, "configure_logging"),
-            patch("analysis_lister.refresh.update_registry") as workflow,
+            patch(
+                "analysis_lister.registry.build_registry", return_value={}
+            ) as workflow,
         ):
             cli.main(["build-registry", "--allow-count-drop"])
-        workflow.assert_called_once_with(cli.CSV_DIR, cli.SNAPSHOT_PATH, force=True)
+        workflow.assert_called_once_with(
+            cli.API_SNAPSHOT_PATH,
+            cli.SUPPLEMENT_CSV_DIR,
+            cli.CURATED_SNAPSHOT_PATH,
+            allow_count_drop=True,
+        )
 
     def test_offline_cli_never_reads_credentials(self):
         with (
@@ -136,14 +131,13 @@ assert "bs4" not in sys.modules
                 "load_cookies",
                 side_effect=AssertionError("credentials read"),
             ),
-            patch("analysis_lister.refresh.refresh_analysis_lists") as workflow,
+            patch("analysis_lister.html_download.download_html_csvs") as workflow,
         ):
-            cli.main(["refresh", "--from-html", "saved"])
+            cli.main(["download-html", "--from-html", "saved"])
         workflow.assert_called_once_with(
-            cli.CSV_DIR,
+            download.download_tasks(),
+            cli.SUPPLEMENT_CSV_DIR,
             Path("saved"),
-            cli.SNAPSHOT_PATH,
-            force=False,
             use_local_html=True,
             cookies=None,
             debug=False,
@@ -152,14 +146,14 @@ assert "bs4" not in sys.modules
     def test_invalid_combinations_fail_before_work_starts(self):
         for flags in (
             [],
-            ["refresh", "--from-html", "saved", "--login"],
-            ["download", "--from-html", "saved", "--save-html", "saved"],
+            ["download-html", "--from-html", "saved", "--login"],
+            ["download-html", "--from-html", "saved", "--save-html", "saved"],
             ["render", "--login"],
-            ["download", "--allow-count-drop"],
-            ["refresh", "--force"],
-            ["download", "--debug"],
-            ["download", "--snapshot", "snapshot.json"],
-            ["refresh", "--output-dir", "pages"],
+            ["download-html", "--allow-count-drop"],
+            ["build-registry", "--force"],
+            ["download-html", "--debug"],
+            ["download-html", "--snapshot", "snapshot.json"],
+            ["build-registry", "--output-dir", "pages"],
             ["render", "--allow-count-drop"],
             ["validate-lookups", "--csv-dir", "csv"],
         ):
@@ -216,10 +210,14 @@ assert "bs4" not in sys.modules
 
     def test_executable_help_errors_and_lookup_validation(self):
         with TemporaryDirectory() as directory:
-            cases = [(["--help"], 0), (["validate-lookups"], 0)]
+            cases = [
+                (["--help"], 0),
+                (["validate-lookups"], 0),
+                (["download-api", "--help"], 0),
+                (["download-api", "--from-html", "missing"], 2),
+            ]
             for command in (
-                "refresh",
-                "download",
+                "download-html",
                 "build-registry",
                 "render",
                 "validate-lookups",
@@ -227,7 +225,7 @@ assert "bs4" not in sys.modules
             ):
                 cases.append(([command, "--help"], 0))
                 flags = [command]
-                if command in ("refresh", "download"):
+                if command == "download-html":
                     flags += ["--from-html", "missing"]
                 elif command == "validate-lookups":
                     flags += ["--snapshot", "missing.json"]

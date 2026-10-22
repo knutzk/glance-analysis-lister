@@ -8,7 +8,6 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
 from attrs import fields
 
@@ -18,8 +17,6 @@ from analysis_lister.glance.glance_registry import GlanceRegistry
 from analysis_lister.glance.paper import Paper
 from analysis_lister.glance.subgroups import TX, XS
 from analysis_lister.markdown.mkdown_renderer import MarkdownPageRenderer
-from analysis_lister.refresh import compare_to_snapshot
-from analysis_lister.retrieval import load_scope
 
 logger = logging.getLogger(__name__)
 
@@ -70,39 +67,6 @@ class LookupReportingTests(unittest.TestCase):
         self.assertEqual(
             [record.levelno for record in logs.records], [logging.INFO, logging.WARNING]
         )
-
-    def test_baseline_comparison_does_not_report_old_lookup_gaps(self):
-        with TemporaryDirectory() as directory:
-            path = Path(directory) / "baseline.json"
-            path.touch()
-
-            def baseline(_):
-                lookup_notice(logger, logging.WARNING, "old gap")
-                return GlanceRegistry(retrieval_scope=load_scope())
-
-            with (
-                patch(
-                    "analysis_lister.refresh.GlanceRegistry.from_json",
-                    side_effect=baseline,
-                ),
-                patch("analysis_lister.refresh.counts", return_value={"entries": 1}),
-                self.assertNoLogs(level="WARNING"),
-                lookup_report(),
-            ):
-                self.assertEqual(
-                    compare_to_snapshot(
-                        GlanceRegistry(retrieval_scope=load_scope()), path
-                    ),
-                    [],
-                )
-            with (
-                patch(
-                    "analysis_lister.refresh.GlanceRegistry.from_json",
-                    side_effect=ValueError("invalid snapshot"),
-                ),
-                self.assertRaisesRegex(ValueError, "invalid snapshot"),
-            ):
-                compare_to_snapshot(object(), path)
 
     def test_multi_subgroup_paper_uses_glance_title_without_warnings(self):
         data = {field.name: "" for field in fields(Paper) if field.init}

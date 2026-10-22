@@ -132,14 +132,14 @@ class LookupValidationTests(unittest.TestCase):
             validate_lookups(self.directory)
 
     def test_registry_loaders_validate_before_reading_input(self):
-        with patch(
-            "analysis_lister.glance.glance_registry.validate_lookups",
-            side_effect=ValueError("invalid lookups"),
+        with (
+            patch(
+                "analysis_lister.glance.glance_registry.validate_lookups",
+                side_effect=ValueError("invalid lookups"),
+            ),
+            self.assertRaisesRegex(ValueError, "invalid lookups"),
         ):
-            with self.assertRaisesRegex(ValueError, "invalid lookups"):
-                GlanceRegistry.from_csv(csv_dir=self.directory / "missing")
-            with self.assertRaisesRegex(ValueError, "invalid lookups"):
-                GlanceRegistry.from_json(self.directory / "missing.json")
+            GlanceRegistry.from_json(self.directory / "missing.json")
 
 
 if __name__ == "__main__":

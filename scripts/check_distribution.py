@@ -7,6 +7,7 @@ Run after building and installing the wheel in a clean environment:
     python -I scripts/check_distribution.py
 """
 
+import csv
 import json
 import subprocess
 import sys
@@ -17,8 +18,9 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citation_store import default_store_path, load_store
-from analysis_lister.download import INTERMEDIATE_CA, trusted_ca_bundle
-from analysis_lister.retrieval import load_scope
+from analysis_lister.download import INTERMEDIATE_CA, download_tasks, trusted_ca_bundle
+from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
+from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
 
 def main():
@@ -77,6 +79,7 @@ def main():
         commands = [
             ["--help"],
             ["download-api", "--help"],
+            ["download-html", "--help"],
             ["validate-lookups"],
             [
                 "resolve-dois",
@@ -105,6 +108,83 @@ def main():
         executable = Path(sys.executable).parent / "analysis-lister"
         for command in commands:
             subprocess.run([str(executable), *command], cwd=work, check=True)
+        api_input = work / "api.json"
+        supplemental = work / "supplemental"
+        supplemental.mkdir()
+        tasks = download_tasks()
+        (supplemental / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
+        (supplemental / SUPPLEMENT_MANIFEST).write_text(
+            json.dumps(
+                {
+                    "schema": "glance-csv-supplements",
+                    "schema_version": 1,
+                    "tables": {task.name: list(task.columns) for task in tasks},
+                }
+            )
+        )
+        resources = ("analyses", "papers", "confnotes", "pubnotes")
+        raw = {
+            "schema": "glance-api-registry",
+            "schema_version": 1,
+            "fetched_at": "2099-01-01T00:00:00+00:00",
+            "source": {
+                "selection": "all-accessible",
+                "base_url": "https://example.test/api",
+            },
+            "counts": dict.fromkeys(resources, 1),
+        }
+        for resource, prefix in zip(
+            resources, ("ANA-", "", "CONF-", "PUB-"), strict=True
+        ):
+            key = (
+                "temporaryReferenceCode"
+                if resource in {"confnotes", "pubnotes"}
+                else "referenceCode"
+            )
+            raw[resource] = [
+                {
+                    key: prefix + "DEMO-2099-01",
+                    "analysisTeam": [
+                        {
+                            "firstName": "Invented",
+                            "lastName": "Editor",
+                            "isContactEditor": True,
+                        }
+                    ],
+                    "metadata": {"keywords": [{"name": "Synthetic"}]},
+                }
+            ]
+        for task in tasks:
+            row = dict.fromkeys(task.columns, "")
+            key = (
+                "temporaryReferenceCode" if task.name == "pubnotes" else "referenceCode"
+            )
+            row[task.key] = raw[task.name][0][key]
+            with (supplemental / task.csv_filename).open("w", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=task.columns)
+                writer.writeheader()
+                writer.writerow(row)
+        api_input.write_text(json.dumps(raw))
+        curated_path = work / "curated.json"
+        subprocess.run(
+            [
+                str(executable),
+                "build-registry",
+                "--api-snapshot",
+                str(api_input),
+                "--csv-dir",
+                str(supplemental),
+                "--output",
+                str(curated_path),
+            ],
+            cwd=work,
+            check=True,
+        )
+        curated = json.loads(curated_path.read_text())
+        assert curated["schema"] == "glance-curated-registry"
+        assert curated["analyses"][0]["contactEditors"] == ["Invented Editor"]
+        assert curated["analyses"][0]["metadata"]["keywords"] == ["Synthetic"]
+        assert "analysisTeam" not in curated["analyses"][0]
         subprocess.run(
             [sys.executable, "-I", "-m", "analysis_lister", "--help"],
             cwd=work,

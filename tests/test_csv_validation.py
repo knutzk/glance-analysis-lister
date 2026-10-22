@@ -10,8 +10,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from analysis_lister.csv_io import read_csv_rows
 from analysis_lister.download import HTMLParser
-from analysis_lister.glance.csv_loader import read_csv_rows
 from analysis_lister.html_tables import (
     parse_html_table,
     table_to_rows,
