@@ -223,6 +223,59 @@ class CuratedTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be strings"):
             registry.string_list([{"name": 42}])
 
+    def test_groups_are_flattened_and_removed_after_enrichment(self):
+        groups = {
+            "leadingGroup": {"name": "Example group"},
+            "leadingSubgroup": {"name": "Example subgroup"},
+            "subgroups": [{"name": "Example subgroup"}, {"name": "Other subgroup"}],
+            "otherGroups": [{"name": "Other group"}, {"name": "Other group"}],
+        }
+        before = copy.deepcopy(groups)
+        for resource in RESOURCES:
+            self.api[resource][0]["groups"] = copy.deepcopy(groups)
+        with self.assertNoLogs(registry.logger, level="WARNING"):
+            result = registry.curate(self.api, {})
+        for resource in RESOURCES:
+            record = result[resource][0]
+            self.assertNotIn("groups", record)
+            self.assertEqual(
+                record["gal_groups"],
+                {
+                    "leadingGroup": "Example group",
+                    "leadingSubgroup": "Example subgroup",
+                    "subgroups": ["Example subgroup", "Other subgroup"],
+                    "otherGroups": ["Other group"],
+                },
+            )
+        self.assertEqual(groups, before)
+        self.assertEqual(self.api["analyses"][0]["groups"], before)
+
+    def test_non_singular_leading_assignments_warn_with_record_reference(self):
+        self.api["analyses"][0]["groups"] = {
+            "leadingGroup": [{"name": "First group"}, {"name": "Second group"}],
+            "leadingSubgroup": None,
+            "subgroups": [],
+            "otherGroups": [],
+        }
+        with self.assertLogs(registry.logger, level="WARNING") as messages:
+            result = registry.curate(self.api, {})
+        self.assertEqual(len(messages.output), 1)
+        for message in messages.output:
+            self.assertIn("ANA-DEMO-2099-01", message)
+        groups = result["analyses"][0]["gal_groups"]
+        self.assertEqual(groups["leadingGroup"], "First group")
+        self.assertIsNone(groups["leadingSubgroup"])
+        with self.assertRaisesRegex(ValueError, "Groups must be an object"):
+            registry.compact_groups([], reference="DEMO")
+
+    def test_null_leading_assignments_are_preserved_without_warnings(self):
+        with self.assertNoLogs(registry.logger, level="WARNING"):
+            result = registry.compact_groups(
+                {"leadingGroup": None, "leadingSubgroup": None}, reference="DEMO"
+            )
+        self.assertIsNone(result["leadingGroup"])
+        self.assertIsNone(result["leadingSubgroup"])
+
     def test_repositories_are_dropped_and_statistical_tools_keep_only_names(self):
         for resource in RESOURCES:
             self.api[resource][0]["metadata"]["statisticalTools"] = [

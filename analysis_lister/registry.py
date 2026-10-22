@@ -28,6 +28,7 @@ REMOVED_KEYS = [
     "triggers",
     "statisticalTools",
     "repositories",
+    "groups",
     "editorialBoard",
     "readers",
     "signOffResponsible",
@@ -68,6 +69,32 @@ def string_list(values, value_key="name", *, label="Values"):
         entry.get(value_key) if isinstance(entry, dict) else entry for entry in values
     ]
     return unique_names([value for value in extracted if value is not None])
+
+
+def compact_groups(groups, *, reference):
+    """Flatten group names, warning when a leading assignment is not singular."""
+    if not isinstance(groups, dict):
+        raise ValueError("Groups must be an object")
+    result = copy.deepcopy(groups)
+    for key in ("leadingGroup", "leadingSubgroup"):
+        value = groups.get(key)
+        entries = (
+            value if isinstance(value, list) else ([] if value is None else [value])
+        )
+        names = string_list(entries, label=key)
+        if value is not None and (len(entries) != 1 or len(names) != 1):
+            logger.warning(
+                "%s: groups.%s expected one named assignment; found %d entries "
+                "and %d distinct names; using the first name or null",
+                reference,
+                key,
+                len(entries),
+                len(names),
+            )
+        result[key] = names[0] if names else None
+    for key in ("subgroups", "otherGroups"):
+        result[key] = string_list(groups.get(key) or [], label=key)
+    return result
 
 
 def person_name(person):
@@ -115,6 +142,8 @@ def compact(value, *, reference="Unknown record"):
             continue  # Contacts and editors are derived separately in curate().
         if key in STRING_LIST_FIELDS:
             result[PREFIX + key] = string_list(item, STRING_LIST_FIELDS[key], label=key)
+        elif key == "groups":
+            result[PREFIX + key] = compact_groups(item, reference=reference)
         elif key == "editorialBoard":
             board = item or []
             if not isinstance(board, list):

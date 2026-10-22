@@ -94,6 +94,11 @@ The container's `schema` and `schema_version` identify the curated format.
 - `metadata.keywords` is replaced by `metadata.gal_keywords`, a list of strings.
 - `statisticalTools` becomes `gal_statisticalTools`, a list of tool names.
   Original `statisticalTools` and all `repositories` keys are removed.
+- `groups` becomes `gal_groups`: `leadingGroup` and `leadingSubgroup` are
+  name strings or `null`; `subgroups` and `otherGroups` are lists of names.
+  Null leading assignments remain `null` without warnings. Multiple or malformed
+  assignments produce warnings with the record reference; multiple assignments
+  use the first name.
 - HTML supplies `gal_internalNoteEditors` on analyses,
   `gal_figuresUrl` and `gal_currentPaperDraft` on papers, and `gal_finalReferenceCode`
   on PUB notes. Internal-note editors are split from the
