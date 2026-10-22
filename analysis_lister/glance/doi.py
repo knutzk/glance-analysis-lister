@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # original article from the later correction.
 _DOI_DATE_PATTERNS = (
     # JHEP, e.g. 10.1007/JHEP07(2023)203
-    re.compile(r"/JHEP(?P<month>\d{2})\((?P<year>\d{4})\)"),
+    re.compile(r"/JHEP(?P<month>\d{2})\((?P<year>\d{4})\)", re.IGNORECASE),
     # Springer EPJ, e.g. 10.1140/epjc/s10052-023-11573-0 (year modulo 1000)
     re.compile(r"/epj\w*/s\d+-(?P<year>\d{3})-"),
     # Elsevier, e.g. 10.1016/j.physletb.2022.137379
@@ -62,7 +62,7 @@ def format_url_dois(url_str: str) -> list[str]:
     return [u for u in urls if "doi.org/" in u]
 
 
-def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
+def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[str]:
     """Deduplicate and order DOIs, warning when dates cannot resolve the order.
 
     Missing months cover the entire year, so they overlap any dated DOI in
@@ -79,9 +79,10 @@ def order_doi_urls(urls: list[str], ref_code: str) -> list[str]:
 
     # Explicit cached material labels distinguish an original from a correction
     # without guessing publication dates. Multiple corrections still need dates.
+    store = citation_store.Citations if citations is None else citations
     materials = []
     for doi in by_doi:
-        entry = citation_store.Citations.get(normalize_doi(doi), {})
+        entry = store.get(normalize_doi(doi), {})
         materials.append(entry.get("material") if isinstance(entry, dict) else None)
     if (
         len(by_doi) == 2

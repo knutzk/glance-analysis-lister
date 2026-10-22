@@ -7,11 +7,14 @@ import copy
 import json
 import logging
 from datetime import UTC, date, datetime
+from hashlib import sha256
 from pathlib import Path
 
 from .api import RESOURCES, record_key, validate_registry as validate_api
+from .citation_store import DEFAULT_CACHE, load_store
 from .csv_io import read_csv_rows
 from .download import download_tasks
+from .publication_dois import enrich_paper
 from .retrieval import SCOPE_FILENAME, RetrievalScope, check_scope, read_scope
 from .storage import SUPPLEMENT_MANIFEST, atomic_write_text, require_complete_csv_batch
 
@@ -103,7 +106,7 @@ def compact(value):
     return result
 
 
-def curate(api, supplements):
+def curate(api, supplements, *, citations=None):
     """Preserve independent API identities; merge by native identifier only."""
     validate_api(api)
     as_of = datetime.fromisoformat(api["fetched_at"]).date()
@@ -111,6 +114,13 @@ def curate(api, supplements):
     result["schema"] = SCHEMA
     result["schema_version"] = 1
     statistics = {}
+    citations = citations if citations is not None else {}
+    doi_stats = {
+        "papers_with_dois": 0,
+        "resolved": 0,
+        "unresolved": 0,
+        "malformed_links": 0,
+    }
     for resource in RESOURCES:
         rows = supplements.get(resource, {})
         matched = conflicts = 0
@@ -147,6 +157,14 @@ def curate(api, supplements):
                             conflicts += 1
                         continue
                     record[field] = value
+            if resource == "papers":
+                entries, malformed = enrich_paper(record, citations)
+                doi_stats["papers_with_dois"] += bool(entries)
+                doi_stats["resolved"] += sum(entry["resolved"] for entry in entries)
+                doi_stats["unresolved"] += sum(
+                    not entry["resolved"] for entry in entries
+                )
+                doi_stats["malformed_links"] += malformed
             records.append(compact(record))
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
@@ -164,6 +182,13 @@ def curate(api, supplements):
         "api_schema": api["schema"],
         "supplement_fields": SUPPLEMENTS,
         "supplement_statistics": statistics,
+        "doi_statistics": doi_stats,
+        "citation_store": {
+            "entries": len(citations),
+            "sha256": sha256(
+                json.dumps(citations, sort_keys=True, ensure_ascii=False).encode()
+            ).hexdigest(),
+        },
     }
     return result
 
@@ -222,16 +247,19 @@ def read_supplements(directory):
     return result, {"manifest": manifest, "retrieval_scope": scope.metadata()}
 
 
-def build_registry(api_path, csv_dir, output, *, allow_count_drop=False):
+def build_registry(
+    api_path, csv_dir, output, *, allow_count_drop=False, doi_cache=DEFAULT_CACHE
+):
     """Build offline and atomically publish without overwriting source inputs."""
     api_path, csv_dir, output = Path(api_path), Path(csv_dir), Path(output)
     inputs = [api_path, csv_dir / SUPPLEMENT_MANIFEST, csv_dir / SCOPE_FILENAME]
+    inputs.append(Path(doi_cache))
     inputs.extend(csv_dir / task.csv_filename for task in download_tasks())
     if any(output.resolve() == path.resolve() for path in inputs):
         raise ValueError("Registry output must not overwrite an input")
     api = json.loads(api_path.read_text(encoding="utf-8"))
     supplements, provenance = read_supplements(csv_dir)
-    candidate = curate(api, supplements)
+    candidate = curate(api, supplements, citations=load_store(Path(doi_cache)))
     candidate["curation"]["html_source"] = provenance
     validate_registry(candidate)
     if output.exists():

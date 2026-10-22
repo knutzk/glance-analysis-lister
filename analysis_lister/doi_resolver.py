@@ -299,24 +299,38 @@ class InspireClient:
 def snapshot_dois(path: Path):
     """Read DOI inputs only, without reconstructing private analysis records."""
     data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not isinstance(data.get("entries"), dict):
-        raise ValueError("Snapshot requires an entries dictionary")
+    if not isinstance(data, dict):
+        raise ValueError("Snapshot must be an object")
     result = set()
     malformed = 0
-    for entry in data["entries"].values():
-        if not isinstance(entry, dict):
-            raise ValueError("Invalid snapshot entry")
-        # The raw URLs are authoritative; serialized derived DOIs can be stale.
-        values = entry.get("doi_urls", entry.get("dois", []))
-        if not isinstance(values, list):
-            raise ValueError("Snapshot DOI fields must be lists")
-        for doi in values:
-            if not doi:
-                continue
-            try:
-                result.add(normalize_doi(doi))
-            except ValueError:
-                malformed += 1
+    if data.get("schema") in {"glance-api-registry", "glance-curated-registry"}:
+        from .publication_dois import paper_dois
+
+        if not isinstance(data.get("papers"), list):
+            raise ValueError("Snapshot requires a papers list")
+        for paper in data["papers"]:
+            if not isinstance(paper, dict):
+                raise ValueError("Invalid paper record")
+            dois, invalid = paper_dois(paper)
+            result.update(dois)
+            malformed += invalid
+    elif isinstance(data.get("entries"), dict):
+        for entry in data["entries"].values():
+            if not isinstance(entry, dict):
+                raise ValueError("Invalid snapshot entry")
+            # The raw URLs are authoritative; serialized derived DOIs can be stale.
+            values = entry.get("doi_urls", entry.get("dois", []))
+            if not isinstance(values, list):
+                raise ValueError("Snapshot DOI fields must be lists")
+            for doi in values:
+                if not doi:
+                    continue
+                try:
+                    result.add(normalize_doi(doi))
+                except ValueError:
+                    malformed += 1
+    else:
+        raise ValueError("Unsupported DOI snapshot format")
     if malformed:
         lookup_notice(
             logger,

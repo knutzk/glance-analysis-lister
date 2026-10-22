@@ -88,7 +88,7 @@ assert "bs4" not in sys.modules
         )
         citations.assert_not_called()
         parser = cli.parser()
-        for command in ("download-api", "download-html", "build-registry"):
+        for command in ("download-api", "download-html"):
             self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
 
     def test_lookup_command_reviews_explicit_snapshot(self):
@@ -121,6 +121,7 @@ assert "bs4" not in sys.modules
             cli.SUPPLEMENT_CSV_DIR,
             cli.CURATED_SNAPSHOT_PATH,
             allow_count_drop=True,
+            doi_cache=Path("json/doi_metadata.json"),
         )
 
     def test_offline_cli_never_reads_credentials(self):

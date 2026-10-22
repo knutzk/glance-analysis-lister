@@ -90,6 +90,24 @@ clone or citation rules are not applied by this build step.
   `figuresUrl` and `currentPaperDraft` on papers, and `finalReferenceCode`
   on PUB notes. Internal-note editors are split from the
   CSV's comma-separated names. Other API fields are preserved.
+- Paper `publicationPhase.dois` contains normalized DOI records with canonical
+  URLs, a `resolved` flag, and cached citation text/material/provenance where
+  available. Each correction stays paired with its own metadata. Original API
+  links are preserved. Missing citations remain explicitly unresolved.
+
+The build reads the citation store selected by `--doi-cache` (default:
+`json/doi_metadata.json`, falling back to the packaged store). It performs no
+network requests and does not modify that store. To resolve new DOI metadata
+before building, use the existing resolver with the API or curated snapshot:
+
+```bash
+analysis-lister resolve-dois --snapshot json/glance_api_registry.json --method auto
+analysis-lister build-registry
+```
+
+`--method auto` tries offline inference and then public INSPIRE requests;
+`--method infer` stays offline. The curated output records DOI coverage and
+a fingerprint of the citation store used, so consumers need no separate cache.
 
 Nonempty API values take precedence over HTML values. Empty HTML values never
 erase API values. Supplemental rows without a native API match never create

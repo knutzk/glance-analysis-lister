@@ -224,6 +224,31 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(result["readers"], ["Reader Example"])
         self.assertEqual(result["firstReaders"], result["secondReaders"])
 
+    def test_build_embeds_the_selected_citation_store_without_network(self):
+        doi = "10.1007/jhep01(2099)001"
+        self.api["papers"][0]["publicationPhase"] = {
+            "finalJournalPublicationUrls": [{"url": "https://doi.org/" + doi}],
+        }
+        self.api_path.write_text(json.dumps(self.api))
+        cache = self.root / "citations.json"
+        cache.write_text(
+            json.dumps({doi: {"citation": "Synthetic citation", "source": "manual"}})
+        )
+        before = cache.read_bytes()
+        with patch("requests.get", side_effect=AssertionError("network not allowed")):
+            registry.build_registry(
+                self.api_path, self.csv_dir, self.output, doi_cache=cache
+            )
+        result = json.loads(self.output.read_text())
+        entry = result["papers"][0]["publicationPhase"]["dois"][0]
+        self.assertEqual(entry["citation"], "Synthetic citation")
+        self.assertEqual(entry["source"], "manual")
+        self.assertTrue(entry["resolved"])
+        self.assertEqual(result["curation"]["doi_statistics"]["resolved"], 1)
+        self.assertEqual(cache.read_bytes(), before)
+        with self.assertRaisesRegex(ValueError, "overwrite an input"):
+            registry.build_registry(self.api_path, self.csv_dir, cache, doi_cache=cache)
+
     def test_retired_html_fields_are_ignored_but_api_values_are_preserved(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
         self.api["analyses"][0]["creationDate"] = "2098-12-01"

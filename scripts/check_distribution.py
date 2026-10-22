@@ -164,6 +164,11 @@ def main():
                 writer = csv.DictWriter(stream, fieldnames=task.columns)
                 writer.writeheader()
                 writer.writerow(row)
+        raw["papers"][0]["publicationPhase"] = {
+            "finalJournalPublicationUrls": [
+                {"url": "https://doi.org/10.1007/JHEP07(2099)999"}
+            ],
+        }
         api_input.write_text(json.dumps(raw))
         curated_path = work / "curated.json"
         subprocess.run(
@@ -176,6 +181,8 @@ def main():
                 str(supplemental),
                 "--output",
                 str(curated_path),
+                "--doi-cache",
+                str(work / "citations.json"),
             ],
             cwd=work,
             check=True,
@@ -185,6 +192,10 @@ def main():
         assert curated["analyses"][0]["contactEditors"] == ["Invented Editor"]
         assert curated["analyses"][0]["metadata"]["keywords"] == ["Synthetic"]
         assert "analysisTeam" not in curated["analyses"][0]
+        assert (
+            curated["papers"][0]["publicationPhase"]["dois"][0]["citation"]
+            == "JHEP 07 (2099) 999"
+        )
         subprocess.run(
             [sys.executable, "-I", "-m", "analysis_lister", "--help"],
             cwd=work,

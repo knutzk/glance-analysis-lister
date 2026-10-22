@@ -205,7 +205,7 @@ def parser():
             help=description,
             description=description,
             parents=[*parents, console]
-            if name in {"build-registry", "download-html"}
+            if name == "download-html"
             else [*parents, citations, console],
         )
         sub.set_defaults(handler=handler)
@@ -314,6 +314,7 @@ def _run_build_registry(args):
         args.csv_dir,
         args.output,
         allow_count_drop=args.allow_count_drop,
+        doi_cache=args.doi_cache,
     )
     print_summary(
         "Registry ready", [("Registry", args.output), *result.items()], color=args.color
@@ -379,7 +380,7 @@ def _run_format_citations(args):
 
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
-    if not hasattr(args, "doi_cache"):
+    if args.command == "build-registry" or not hasattr(args, "doi_cache"):
         args.handler(args)
         return
     from analysis_lister.citation_store import cached_citations
