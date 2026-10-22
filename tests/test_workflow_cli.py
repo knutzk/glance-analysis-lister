@@ -12,7 +12,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister import cli, download
+from analysis_lister import cli
+from analysis_lister.downloaders import html as download
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 
@@ -25,7 +26,7 @@ import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
     import analysis_lists
-    import analysis_lister.html_download
+    import analysis_lister.downloaders.publication
     import analysis_lister.render
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
@@ -39,7 +40,9 @@ assert "bs4" not in sys.modules
         with (
             patch.object(cli, "configure_logging"),
             patch.object(download, "resolve_cookies", return_value={}) as auth,
-            patch("analysis_lister.html_download.download_html_csvs") as workflow,
+            patch(
+                "analysis_lister.downloaders.publication.download_html_csvs"
+            ) as workflow,
         ):
             cli.main(
                 [
@@ -78,7 +81,7 @@ assert "bs4" not in sys.modules
     def test_api_default_and_downloads_do_not_load_citations(self):
         with (
             patch(
-                "analysis_lister.api.download_registry", return_value={}
+                "analysis_lister.downloaders.api.download_registry", return_value={}
             ) as operation,
             patch("analysis_lister.citation_store.cached_citations") as citations,
         ):
@@ -112,7 +115,7 @@ assert "bs4" not in sys.modules
         with (
             patch.object(cli, "configure_logging"),
             patch(
-                "analysis_lister.registry.build_registry", return_value={}
+                "analysis_lister.registry.builder.build_registry", return_value={}
             ) as workflow,
         ):
             cli.main(["build-registry", "--allow-count-drop"])
@@ -132,7 +135,9 @@ assert "bs4" not in sys.modules
                 "load_cookies",
                 side_effect=AssertionError("credentials read"),
             ),
-            patch("analysis_lister.html_download.download_html_csvs") as workflow,
+            patch(
+                "analysis_lister.downloaders.publication.download_html_csvs"
+            ) as workflow,
         ):
             cli.main(["download-html", "--from-html", "saved"])
         workflow.assert_called_once_with(

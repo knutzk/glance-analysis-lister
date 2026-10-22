@@ -6,15 +6,19 @@
 import copy
 import csv
 import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli, registry
-from analysis_lister.api import RESOURCES
-from analysis_lister.download import download_tasks
-from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
+from analysis_lister import cli
+from analysis_lister.downloaders.api import RESOURCES
+from analysis_lister.downloaders.html import download_tasks
+from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.registry import builder, enrichment as registry
+from analysis_lister.registry.schema import validate_registry
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
 
@@ -333,7 +337,7 @@ class CuratedTests(unittest.TestCase):
         previous = registry.curate(self.api, {})
         previous["schema_version"] = 1
         previous["curation"] = previous.pop("gal_curation")
-        _, provenance = registry.read_supplements(self.csv_dir)
+        _, provenance = builder.read_supplements(self.csv_dir)
         previous["curation"]["html_source"] = provenance
         for resource in RESOURCES:
             for record in previous[resource]:
@@ -341,11 +345,45 @@ class CuratedTests(unittest.TestCase):
                     record[name] = record.pop("gal_" + name)
         self.output.parent.mkdir(parents=True, exist_ok=True)
         self.output.write_text(json.dumps(previous))
-        registry.build_registry(self.api_path, self.csv_dir, self.output)
+        builder.build_registry(self.api_path, self.csv_dir, self.output)
         rebuilt = json.loads(self.output.read_text())
         self.assertEqual(rebuilt["schema_version"], 2)
         self.assertIn("gal_curation", rebuilt)
         self.assertNotIn("curation", rebuilt)
+
+    def test_new_workflow_runs_with_legacy_and_authentication_imports_blocked(self):
+        code = """
+import importlib.abc
+import sys
+class BlockLegacyAndAuthentication(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if any(fullname == name or fullname.startswith(name + ".")
+               for name in ("analysis_lister.glance", "stare", "selenium")):
+            raise AssertionError("Forbidden dependency: " + fullname)
+sys.meta_path.insert(0, BlockLegacyAndAuthentication())
+from analysis_lister.downloaders import api, html, publication, tables
+from analysis_lister.cli import main
+from analysis_lister.registry import CuratedRegistry
+main(["build-registry", "--api-snapshot", sys.argv[1],
+      "--csv-dir", sys.argv[2], "--output", sys.argv[3]])
+registry = CuratedRegistry.from_json(sys.argv[3])
+assert registry.get("analyses", "ANA-DEMO-2099-01") is not None
+assert not any(name.startswith("analysis_lister.glance") for name in sys.modules)
+"""
+        subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                code,
+                str(self.api_path),
+                str(self.csv_dir),
+                str(self.output),
+            ],
+            cwd=Path(__file__).resolve().parents[1],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
     def test_complete_offline_cli_build_merges_supplements(self):
         with patch(
@@ -363,7 +401,7 @@ class CuratedTests(unittest.TestCase):
                 ]
             )
         result = json.loads(self.output.read_text())
-        registry.validate_registry(result)
+        validate_registry(result)
         self.assertNotIn("fullTitle", result["analyses"][0])
         self.assertEqual(
             result["analyses"][0]["gal_internalNoteEditors"],
@@ -422,7 +460,7 @@ class CuratedTests(unittest.TestCase):
         )
         before = cache.read_bytes()
         with patch("requests.get", side_effect=AssertionError("network not allowed")):
-            registry.build_registry(
+            builder.build_registry(
                 self.api_path, self.csv_dir, self.output, doi_cache=cache
             )
         result = json.loads(self.output.read_text())
@@ -433,7 +471,7 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
         self.assertEqual(cache.read_bytes(), before)
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
-            registry.build_registry(self.api_path, self.csv_dir, cache, doi_cache=cache)
+            builder.build_registry(self.api_path, self.csv_dir, cache, doi_cache=cache)
 
     def test_retired_html_fields_are_ignored_but_api_values_are_preserved(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
@@ -463,15 +501,15 @@ class CuratedTests(unittest.TestCase):
     def test_failed_inputs_and_overwriting_source_are_rejected(self):
         before = self.api_path.read_bytes()
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
-            registry.build_registry(self.api_path, self.csv_dir, self.api_path)
+            builder.build_registry(self.api_path, self.csv_dir, self.api_path)
         self.assertEqual(before, self.api_path.read_bytes())
         (self.csv_dir / CSV_REFRESH_MARKER).touch()
         with self.assertRaisesRegex(ValueError, "Incomplete CSV"):
-            registry.build_registry(self.api_path, self.csv_dir, self.output)
+            builder.build_registry(self.api_path, self.csv_dir, self.output)
         self.assertFalse(self.output.exists())
 
     def test_scope_change_is_rejected_even_with_count_override(self):
-        registry.build_registry(self.api_path, self.csv_dir, self.output)
+        builder.build_registry(self.api_path, self.csv_dir, self.output)
         before = self.output.read_bytes()
         (self.csv_dir / SCOPE_FILENAME).write_text(
             json.dumps(
@@ -486,13 +524,13 @@ class CuratedTests(unittest.TestCase):
             )
         )
         with self.assertRaisesRegex(ValueError, "scope differs"):
-            registry.build_registry(
+            builder.build_registry(
                 self.api_path, self.csv_dir, self.output, allow_count_drop=True
             )
         self.assertEqual(before, self.output.read_bytes())
 
     def test_count_guard_and_failed_publication_preserve_previous_output(self):
-        registry.build_registry(self.api_path, self.csv_dir, self.output)
+        builder.build_registry(self.api_path, self.csv_dir, self.output)
         previous = json.loads(self.output.read_text())
         for resource in RESOURCES:
             second = copy.deepcopy(previous[resource][0])
@@ -507,19 +545,19 @@ class CuratedTests(unittest.TestCase):
         self.output.write_text(json.dumps(previous))
         before = self.output.read_bytes()
         with self.assertRaisesRegex(ValueError, "20%"):
-            registry.build_registry(self.api_path, self.csv_dir, self.output)
+            builder.build_registry(self.api_path, self.csv_dir, self.output)
         self.assertEqual(before, self.output.read_bytes())
         with (
             patch.object(
-                registry, "atomic_write_text", side_effect=OSError("disk full")
+                builder, "atomic_write_text", side_effect=OSError("disk full")
             ),
             self.assertRaises(OSError),
         ):
-            registry.build_registry(
+            builder.build_registry(
                 self.api_path, self.csv_dir, self.output, allow_count_drop=True
             )
         self.assertEqual(before, self.output.read_bytes())
-        registry.build_registry(
+        builder.build_registry(
             self.api_path, self.csv_dir, self.output, allow_count_drop=True
         )
         self.assertEqual(

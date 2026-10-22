@@ -13,26 +13,15 @@ from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
 
-from .storage import atomic_write_text
+from ..registry.schema import (
+    API_SCHEMA as SCHEMA,
+    RESOURCES,
+    record_key,
+    validate_api_registry as validate_registry,
+)
+from ..storage import atomic_write_text
 
 logger = logging.getLogger(__name__)
-SCHEMA = "glance-api-registry"
-RESOURCES = ("analyses", "papers", "confnotes", "pubnotes")
-
-
-def record_key(record, resource):
-    """Use the native identifier, including note and analysis prefixes."""
-    if not isinstance(record, dict):
-        raise ValueError(f"{resource}: record must be an object")
-    field = (
-        "temporaryReferenceCode"
-        if resource in {"confnotes", "pubnotes"}
-        else "referenceCode"
-    )
-    key = record.get(field)
-    if not isinstance(key, str) or not key:
-        raise ValueError(f"{resource}: missing {field}")
-    return key
 
 
 def collect_registry(client, *, page_size=100, client_version=None):
@@ -83,26 +72,6 @@ def collect_registry(client, *, page_size=100, client_version=None):
         "counts": counts,
         **data,
     }
-
-
-def validate_registry(data):
-    """Validate stored source-registry structure before using its counts."""
-    if (
-        not isinstance(data, dict)
-        or data.get("schema") != SCHEMA
-        or data.get("schema_version") != 1
-        or not isinstance(data.get("source"), dict)
-        or data["source"].get("selection") != "all-accessible"
-        or not isinstance(data.get("counts"), dict)
-    ):
-        raise ValueError("Destination is not a supported GLANCE API registry")
-    for name in RESOURCES:
-        records = data.get(name)
-        if not isinstance(records, list) or not records:
-            raise ValueError(f"{name}: missing or empty records")
-        keys = [record_key(record, name) for record in records]
-        if len(set(keys)) != len(keys) or data["counts"].get(name) != len(keys):
-            raise ValueError(f"{name}: inconsistent registry counts or identifiers")
 
 
 def publish_registry(candidate, destination, *, allow_count_drop=False):

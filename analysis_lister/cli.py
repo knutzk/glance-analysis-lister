@@ -261,7 +261,7 @@ def parser():
 
 
 def _run_download_api(args):
-    from analysis_lister.api import download_registry
+    from analysis_lister.downloaders.api import download_registry
 
     counts = download_registry(
         args.output, login=args.login, allow_count_drop=args.allow_count_drop
@@ -274,7 +274,7 @@ def _run_download_api(args):
 
 
 def _download_cookies(args):
-    from analysis_lister.download import resolve_cookies
+    from analysis_lister.downloaders.html import resolve_cookies
 
     if args.from_html is not None:
         return None
@@ -282,14 +282,14 @@ def _download_cookies(args):
 
 
 def _retrieval_options(args):
-    from analysis_lister.retrieval import load_scope
+    from analysis_lister.downloaders.scope import load_scope
 
     return {"scope": load_scope(args.config)} if args.config is not None else {}
 
 
 def _run_download(args):
-    from analysis_lister.download import download_tasks
-    from analysis_lister.html_download import download_html_csvs
+    from analysis_lister.downloaders.html import download_tasks
+    from analysis_lister.downloaders.publication import download_html_csvs
 
     options = _retrieval_options(args)
     download_html_csvs(
@@ -307,7 +307,7 @@ def _run_download(args):
 
 
 def _run_build_registry(args):
-    from analysis_lister.registry import build_registry
+    from analysis_lister.registry.builder import build_registry
 
     result = build_registry(
         args.api_snapshot,

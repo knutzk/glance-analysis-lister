@@ -17,10 +17,10 @@ from pathlib import Path
 from attrs import asdict
 
 from ..diagnostics import lookup_notice
+from ..downloaders.scope import RetrievalScope
 from ..lookup_dicts.ignored_analyses import IgnoredAnalyses
 from ..lookup_review import lookup_review_notices
 from ..lookup_validation import validate_lookups
-from ..retrieval import RetrievalScope
 from ..storage import atomic_write_text
 from .analysis import Analysis
 from .clones import clone_exclusions

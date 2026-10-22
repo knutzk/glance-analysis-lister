@@ -8,9 +8,9 @@ import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
-from .download import DownloadTable, staged_csv_files
-from .retrieval import SCOPE_FILENAME, RetrievalScope
-from .storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
+from ..storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
+from .html import DownloadTable, staged_csv_files
+from .scope import SCOPE_FILENAME, RetrievalScope
 
 logger = logging.getLogger(__name__)
 

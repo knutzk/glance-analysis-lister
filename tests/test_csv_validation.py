@@ -10,9 +10,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.csv_io import read_csv_rows
-from analysis_lister.download import HTMLParser
-from analysis_lister.html_tables import (
+from analysis_lister.downloaders.csv_io import read_csv_rows
+from analysis_lister.downloaders.html import HTMLParser
+from analysis_lister.downloaders.tables import (
     parse_html_table,
     table_to_rows,
     validate_table_completeness,

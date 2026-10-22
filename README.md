@@ -135,10 +135,10 @@ records. The `gal_curation` metadata records input provenance, the contact date,
 field mappings and per-resource coverage/conflict counts. Review those counts
 when source snapshots were collected at different times. Its `removed_keys`
 list records the source keys stripped recursively after enrichment. Maintain
-that list in `registry.REMOVED_KEYS`; it is independent of enrichment rules.
+that list in `registry.enrichment.REMOVED_KEYS`; it is independent of enrichment rules.
 Enrichment retains the original fields until the separate removal pass runs.
 To simplify another collection of named objects, add its source key and the
-inner string key to `registry.STRING_LIST_FIELDS` (for example,
+inner string key to `registry.enrichment.STRING_LIST_FIELDS` (for example,
 `"statisticalTools": "name"`). The shared `string_list()` helper preserves
 order, trims names, skips missing values and removes duplicates. Add the source
 key separately to `REMOVED_KEYS` if its original representation should be dropped.
@@ -146,6 +146,43 @@ Generic person fields gain `gal_<sourceKey>` names; add their source keys to
 the removal list when those originals should be dropped. A nonempty unchanged API field wins
 over HTML, and no additional `gal_` alias is created for it. Existing version 1
 outputs can be rebuilt in place while retaining scope and count-drop checks.
+
+The Python implementation has two independent packages:
+
+- `analysis_lister.downloaders`: stare API retrieval (`api.py`), authenticated
+  HTML retrieval (`html.py`), table parsing (`tables.py`), CSV reading
+  (`csv_io.py`), retrieval scope (`scope.py`), and transactional HTML batch
+  publication (`publication.py`).
+- `analysis_lister.registry`: offline construction (`builder.py`), enrichment
+  and removal rules (`enrichment.py`), schema validation (`schema.py`), DOI
+  processing (`doi.py`, `publication_dois.py`), and curated access (`reader.py`).
+
+Neither package imports the legacy `glance/` models. Those models remain for
+existing downstream views; `glance.doi` forwards to the new DOI implementation.
+CLI commands and saved formats are unchanged by this module reorganisation.
+The old top-level downloader module paths have been replaced by the paths above.
+
+Python clients can read the current curated format without importing builders,
+downloaders, authentication libraries or legacy models:
+
+```python
+from analysis_lister.registry import CuratedRegistry
+
+registry = CuratedRegistry.from_json("json/glance_curated_registry.json")
+analyses = registry.records("analyses")
+# Use a native identifier from a record or explicit relationship:
+analysis = registry.get("analyses", analyses[0]["referenceCode"])
+publications = [
+    registry.resolve_link(link) for link in analysis.get("relatedPublications", [])
+]
+```
+
+`get(resource, reference)` and `resolve_link(link)` return `None` for absent
+records. Link types select the resource explicitly; dangling links are never
+repaired or inferred. Unknown link types raise `ValueError`. The reader retains
+all records and applies no clone, status, subgroup or publication-precedence
+rules. Returned records and metadata are copies. It reads schema version 2;
+version 1 curated outputs can still be rebuilt using the builder.
 
 Output is published atomically after validation. Source files cannot be
 overwritten. Existing output must have the curated schema and the same API

@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister import download as downloader
+from analysis_lister.downloaders import html as downloader
 
 
 class DownloadTests(unittest.TestCase):
@@ -76,7 +76,9 @@ class DownloadTests(unittest.TestCase):
                 get.reset_mock()
                 get.side_effect = error("test failure")
                 with (
-                    self.assertLogs("analysis_lister.download", level="ERROR") as logs,
+                    self.assertLogs(
+                        "analysis_lister.downloaders.html", level="ERROR"
+                    ) as logs,
                     self.assertRaises(error),
                 ):
                     downloader.DataFetcher.fetch_html("https://example.test", {}, {})
@@ -93,7 +95,7 @@ class DownloadTests(unittest.TestCase):
     def test_http_error_propagates(self, get):
         get.return_value.raise_for_status.side_effect = requests.HTTPError("503")
         with (
-            self.assertLogs("analysis_lister.download", level="ERROR") as logs,
+            self.assertLogs("analysis_lister.downloaders.html", level="ERROR") as logs,
             self.assertRaises(requests.HTTPError),
         ):
             downloader.DataFetcher.fetch_html("https://example.test", {}, {})

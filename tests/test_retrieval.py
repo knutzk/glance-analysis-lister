@@ -9,15 +9,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli, download, html_download
-from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.retrieval import (
+from analysis_lister import cli
+from analysis_lister.downloaders import html as download, publication as html_download
+from analysis_lister.downloaders.scope import (
     SCOPE_FILENAME,
     RetrievalScope,
     check_scope,
     load_scope,
     read_scope,
 )
+from analysis_lister.glance.glance_registry import GlanceRegistry
 
 HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>DEMO-2099-01</td></tr></table>"
 CONFIG = """name = "Synthetic group"

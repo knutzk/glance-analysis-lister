@@ -18,8 +18,13 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citation_store import default_store_path, load_store
-from analysis_lister.download import INTERMEDIATE_CA, download_tasks, trusted_ca_bundle
-from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
+from analysis_lister.downloaders.html import (
+    INTERMEDIATE_CA,
+    download_tasks,
+    trusted_ca_bundle,
+)
+from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.registry import CuratedRegistry
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
 
@@ -187,13 +192,16 @@ def main():
             cwd=work,
             check=True,
         )
+        reader = CuratedRegistry.from_json(curated_path)
+        assert len(reader.records("papers")) == 1
+        assert reader.get("analyses", "ANA-DEMO-2099-01") is not None
         curated = json.loads(curated_path.read_text())
         assert curated["schema"] == "glance-curated-registry"
-        assert curated["analyses"][0]["contactEditors"] == ["Invented Editor"]
-        assert curated["analyses"][0]["metadata"]["keywords"] == ["Synthetic"]
+        assert curated["analyses"][0]["gal_contactEditors"] == ["Invented Editor"]
+        assert curated["analyses"][0]["metadata"]["gal_keywords"] == ["Synthetic"]
         assert "analysisTeam" not in curated["analyses"][0]
         assert (
-            curated["papers"][0]["publicationPhase"]["dois"][0]["citation"]
+            curated["papers"][0]["publicationPhase"]["gal_dois"][0]["citation"]
             == "JHEP 07 (2099) 999"
         )
         subprocess.run(

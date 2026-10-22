@@ -1,26 +1,25 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Build a compact curated registry from saved API and HTML downloads."""
+"""Curate saved API records, retaining sources until the final removal pass."""
 
 import copy
 import json
 import logging
 from datetime import UTC, date, datetime
 from hashlib import sha256
-from pathlib import Path
 
-from .api import RESOURCES, record_key, validate_registry as validate_api
-from .citation_store import DEFAULT_CACHE, load_store
-from .csv_io import read_csv_rows
-from .download import download_tasks
 from .publication_dois import enrich_paper
-from .retrieval import SCOPE_FILENAME, RetrievalScope, check_scope, read_scope
-from .storage import SUPPLEMENT_MANIFEST, atomic_write_text, require_complete_csv_batch
+from .schema import (
+    PREFIX,
+    RESOURCES,
+    SCHEMA,
+    SCHEMA_VERSION,
+    record_key,
+    validate_api_registry as validate_api,
+)
 
 logger = logging.getLogger(__name__)
-SCHEMA = "glance-curated-registry"
-PREFIX = "gal_"
 # Removed recursively only after all enrichments have been computed.
 REMOVED_KEYS = [
     "analysisTeam",
@@ -249,7 +248,7 @@ def curate(api, supplements, *, citations=None):
     as_of = datetime.fromisoformat(api["fetched_at"]).date()
     result = copy.deepcopy(api)
     result["schema"] = SCHEMA
-    result["schema_version"] = 2
+    result["schema_version"] = SCHEMA_VERSION
     statistics = {}
     citations = citations if citations is not None else {}
     doi_stats = {
@@ -333,105 +332,3 @@ def curate(api, supplements, *, citations=None):
         },
     }
     return result
-
-
-def validate_registry(data):
-    """Validate the curated container independently of legacy view models."""
-    if (
-        not isinstance(data, dict)
-        or data.get("schema") != SCHEMA
-        or data.get("schema_version") not in (1, 2)
-        or not isinstance(data.get("counts"), dict)
-    ):
-        raise ValueError("Destination is not a supported curated registry")
-    for resource in RESOURCES:
-        records = data.get(resource)
-        if not isinstance(records, list) or not records:
-            raise ValueError(f"{resource}: missing or empty records")
-        keys = [record_key(record, resource) for record in records]
-        if len(keys) != len(set(keys)) or data["counts"].get(resource) != len(keys):
-            raise ValueError(f"{resource}: inconsistent counts or identifiers")
-        for record in records:
-            if "analysisTeam" in record:
-                raise ValueError("Curated registry must not contain analysisTeam")
-            for name in ("analysisContacts", "contactEditors"):
-                field = PREFIX + name if data["schema_version"] == 2 else name
-                if not isinstance(record.get(field), list) or any(
-                    not isinstance(name, str) for name in record[field]
-                ):
-                    raise ValueError(f"{resource}: invalid curated people list")
-
-
-def read_supplements(directory):
-    """Require a complete, identifiable supplemental batch with scope metadata."""
-    require_complete_csv_batch(directory)
-    manifest = json.loads((directory / SUPPLEMENT_MANIFEST).read_text(encoding="utf-8"))
-    tasks = download_tasks()
-    if (
-        not isinstance(manifest, dict)
-        or manifest.get("schema") != "glance-csv-supplements"
-        or manifest.get("schema_version") != 1
-        or manifest.get("tables") != {task.name: list(task.columns) for task in tasks}
-    ):
-        raise ValueError("Unsupported supplemental CSV schema")
-    scope = read_scope(directory)
-    if scope is None:
-        raise ValueError("Supplemental CSVs require retrieval scope metadata")
-    result = {}
-    for task in tasks:
-        rows = read_csv_rows(
-            directory / task.csv_filename,
-            task.columns,
-            key=task.key,
-            prefix=task.prefix,
-        )
-        result[task.name] = {row[task.key]: row for row in rows}
-    require_complete_csv_batch(directory)
-    return result, {"manifest": manifest, "retrieval_scope": scope.metadata()}
-
-
-def build_registry(
-    api_path, csv_dir, output, *, allow_count_drop=False, doi_cache=DEFAULT_CACHE
-):
-    """Build offline and atomically publish without overwriting source inputs."""
-    api_path, csv_dir, output = Path(api_path), Path(csv_dir), Path(output)
-    inputs = [api_path, csv_dir / SUPPLEMENT_MANIFEST, csv_dir / SCOPE_FILENAME]
-    inputs.append(Path(doi_cache))
-    inputs.extend(csv_dir / task.csv_filename for task in download_tasks())
-    if any(output.resolve() == path.resolve() for path in inputs):
-        raise ValueError("Registry output must not overwrite an input")
-    api = json.loads(api_path.read_text(encoding="utf-8"))
-    supplements, provenance = read_supplements(csv_dir)
-    candidate = curate(api, supplements, citations=load_store(Path(doi_cache)))
-    candidate["gal_curation"]["html_source"] = provenance
-    validate_registry(candidate)
-    if output.exists():
-        previous = json.loads(output.read_text(encoding="utf-8"))
-        validate_registry(previous)
-        previous_scope = (
-            previous.get("gal_curation", previous.get("curation", {}))
-            .get("html_source", {})
-            .get("retrieval_scope")
-        )
-        check_scope(
-            RetrievalScope.from_dict(provenance["retrieval_scope"]),
-            RetrievalScope.from_dict(previous_scope)
-            if previous_scope is not None
-            else None,
-        )
-        if previous.get("source", {}).get("base_url") != candidate["source"].get(
-            "base_url"
-        ):
-            raise ValueError("API endpoint differs; choose a new output")
-        for resource in RESOURCES:
-            if (
-                not allow_count_drop
-                and candidate["counts"][resource] < previous["counts"][resource] * 0.8
-            ):
-                raise ValueError(f"{resource}: count dropped by more than 20%")
-    atomic_write_text(
-        output, json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
-    )
-    for resource, counts in candidate["gal_curation"]["supplement_statistics"].items():
-        logger.info("HTML supplement %s: %s", resource, counts)
-    return candidate["counts"]

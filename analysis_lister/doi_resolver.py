@@ -304,7 +304,7 @@ def snapshot_dois(path: Path):
     result = set()
     malformed = 0
     if data.get("schema") in {"glance-api-registry", "glance-curated-registry"}:
-        from .publication_dois import paper_dois
+        from .registry.publication_dois import paper_dois
 
         if not isinstance(data.get("papers"), list):
             raise ValueError("Snapshot requires a papers list")

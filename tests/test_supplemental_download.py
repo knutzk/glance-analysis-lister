@@ -11,8 +11,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli, download, html_download
-from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
+from analysis_lister import cli
+from analysis_lister.downloaders import html as download, publication as html_download
+from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
 

@@ -16,18 +16,18 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 import requests
 from attrs import field, frozen
 
-from analysis_lister.csv_io import read_csv_rows
-from analysis_lister.html_tables import (
-    parse_html_table,
-    table_to_rows,
-    validate_table_completeness,
-)
-from analysis_lister.retrieval import (
+from analysis_lister.downloaders.csv_io import read_csv_rows
+from analysis_lister.downloaders.scope import (
     SCOPE_FILENAME,
     RetrievalScope,
     check_scope,
     load_scope,
     read_scope,
+)
+from analysis_lister.downloaders.tables import (
+    parse_html_table,
+    table_to_rows,
+    validate_table_completeness,
 )
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
 INTERMEDIATE_CA = (
-    Path(__file__).resolve().parent
+    Path(__file__).resolve().parent.parent
     / "certs/sectigo-public-server-authentication-ca-ov-r36.pem"
 )
 URLS = {

@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from analysis_lister.api import (
+from analysis_lister.downloaders.api import (
     RESOURCES,
     collect_registry,
     download_registry,

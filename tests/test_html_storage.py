@@ -13,9 +13,9 @@ from unittest.mock import patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister import download as downloader, html_download
+from analysis_lister.downloaders import html as downloader, publication as html_download
+from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
 from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.retrieval import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import CSV_REFRESH_MARKER, require_complete_csv_batch
 
 HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
@@ -206,7 +206,9 @@ class CsvBatchTests(unittest.TestCase):
 
         with (
             patch.object(Path, "replace", fail_promotion_and_rollback),
-            self.assertLogs("analysis_lister.download", level="WARNING") as logs,
+            self.assertLogs(
+                "analysis_lister.downloaders.html", level="WARNING"
+            ) as logs,
             self.assertRaises(OSError),
         ):
             html_download.download_html_csvs(
