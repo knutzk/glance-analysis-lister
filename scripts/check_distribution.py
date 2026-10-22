@@ -76,6 +76,7 @@ def main():
         notes = work / "obsidian_output"
         commands = [
             ["--help"],
+            ["download-api", "--help"],
             ["validate-lookups"],
             [
                 "resolve-dois",

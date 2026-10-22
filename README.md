@@ -56,6 +56,32 @@ CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
 rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
 build operations sequentially.
 
+## Experimental API source registry
+
+The standard installation includes stare. Run:
+
+```bash
+analysis-lister download-api --login --output json/glance_api_registry.json
+```
+
+Later runs can omit `--login` and reuse stare's credential storage. This uses
+CERN browser SSO without Selenium, verifies TLS and disables response caching.
+All accessible analyses, papers, CONF notes and PUB notes are downloaded
+sequentially. Nested metadata and separate record identities are retained in a
+versioned API source snapshot; unknown fields rejected by stare abort the run.
+This is validated model output, not an unmodified HTTP-response archive.
+
+The API source format is **not yet input to `render`, `build-registry` or
+`export-obsidian`**. Use a separate destination from the CSV-derived registry.
+The adapter does not yet map API statuses, missing title/link fields or curated
+overrides into the existing view models. No private lookup files are needed
+because this command does not construct an enriched view registry.
+
+No file is published until all four resources pass pagination and identifier
+checks. Existing API registries reject per-resource count drops greater than
+20% unless `--allow-count-drop` is supplied. Credentials and private source
+snapshots must not be committed.
+
 ## Console output
 
 Normal output shows concise progress and a final summary. Diagnostics go to

@@ -226,7 +226,32 @@ def parser():
         help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
     )
     formatting.set_defaults(handler=_run_format_citations)
+    api = commands.add_parser(
+        "download-api",
+        help="Download a separate, rich API source registry using browser SSO.",
+        parents=[citations, console, counts],
+    )
+    api.add_argument(
+        "--output", type=Path, required=True, help="API source JSON destination."
+    )
+    api.add_argument(
+        "--login", action="store_true", help="Open CERN SSO in your browser."
+    )
+    api.set_defaults(handler=_run_download_api)
     return command
+
+
+def _run_download_api(args):
+    from analysis_lister.api import download_registry
+
+    counts = download_registry(
+        args.output, login=args.login, allow_count_drop=args.allow_count_drop
+    )
+    print_summary(
+        "API registry downloaded",
+        [("Registry", args.output), *counts.items()],
+        color=args.color,
+    )
 
 
 def _download_cookies(args):

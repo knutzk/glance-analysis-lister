@@ -11,7 +11,7 @@ license = "GPL-3.0-only"
 license-files = ["LICENCE"]
 authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
-dependencies = ["attrs>=26.1", "requests>=2.34"]
+dependencies = ["attrs>=26.1", "requests>=2.34", "stare==0.5.2"]
 
 [project.urls]
 Repository = "https://github.com/knutzk/glance-analysis-lister.git"
