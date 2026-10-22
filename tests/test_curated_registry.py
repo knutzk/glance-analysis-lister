@@ -138,28 +138,129 @@ class CuratedTests(unittest.TestCase):
         for resource in RESOURCES:
             record = result[resource][0]
             self.assertNotIn("analysisTeam", record)
-            self.assertEqual(record["analysisContacts"], ["Current Example"])
+            self.assertEqual(record["gal_analysisContacts"], ["Current Example"])
             self.assertEqual(
-                record["contactEditors"], ["Current Example", "Editor Example"]
+                record["gal_contactEditors"], ["Current Example", "Editor Example"]
             )
             phase = record.get("phase0") or record["phase1"]
             self.assertEqual(
-                phase["editorialBoard"], ["Chair Example", "Observer Example"]
+                phase["gal_editorialBoard"], ["Chair Example", "Observer Example"]
             )
-            self.assertEqual(phase["editorialBoardChairs"], ["Chair Example"])
-            self.assertEqual(phase["editorialBoardExOfficio"], ["Observer Example"])
-            self.assertEqual(phase["signOffResponsible"], "Official Example")
-            self.assertEqual(record["metadata"]["keywords"], ["Keyword", "Other"])
+            self.assertEqual(phase["gal_editorialBoardChairs"], ["Chair Example"])
+            self.assertEqual(phase["gal_editorialBoardExOfficio"], ["Observer Example"])
+            self.assertEqual(phase["gal_signOffResponsible"], "Official Example")
+            self.assertEqual(record["metadata"]["gal_keywords"], ["Keyword", "Other"])
             self.assertEqual(
                 record["relatedPublications"],
                 self.api[resource][0]["relatedPublications"],
             )
-            self.assertEqual(
-                record["documentation"], self.api[resource][0]["documentation"]
-            )
+            self.assertNotIn("repositories", record["documentation"])
         self.assertNotIn("cernCcid", json.dumps(result))
         self.assertNotIn("@example.test", json.dumps(result))
         self.assertEqual(before, self.api)
+
+    def test_reserved_namespace_and_removed_keys_are_explicit(self):
+        result = registry.curate(self.api, {})
+        self.assertEqual(result["schema_version"], 2)
+        self.assertEqual(result["gal_curation"]["removed_keys"], registry.REMOVED_KEYS)
+
+        def check_keys(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    self.assertNotIn(key, registry.REMOVED_KEYS)
+                    check_keys(item)
+            elif isinstance(value, list):
+                for item in value:
+                    check_keys(item)
+
+        for resource in RESOURCES:
+            check_keys(result[resource])
+        self.api["papers"][0]["metadata"]["gal_future"] = "collision"
+        with self.assertRaisesRegex(ValueError, "reserved gal_"):
+            registry.curate(self.api, {})
+
+    def test_enrichment_retains_sources_and_removal_is_independent(self):
+        source = {
+            "keywords": [{"name": "Synthetic keyword"}],
+            "analysisTeam": [person("Team")],
+            "signOffResponsible": person("Official"),
+            "unused": {"dropMe": "value", "keepMe": "value"},
+        }
+        before = copy.deepcopy(source)
+        enriched = registry.compact(source)
+        for key, value in source.items():
+            self.assertEqual(enriched[key], value)
+        self.assertEqual(enriched["gal_keywords"], ["Synthetic keyword"])
+        self.assertEqual(enriched["gal_signOffResponsible"], "Official Example")
+        pruned = registry.remove_keys(enriched, ["keywords", "dropMe"])
+        self.assertNotIn("keywords", pruned)
+        self.assertNotIn("dropMe", pruned["unused"])
+        self.assertEqual(pruned["gal_keywords"], enriched["gal_keywords"])
+        self.assertEqual(pruned["analysisTeam"], source["analysisTeam"])
+        self.assertEqual(source, before)
+        self.assertIn("keywords", enriched)
+        self.assertEqual(registry.remove_keys(enriched, []), enriched)
+
+    def test_string_collections_share_conversion_without_removing_sources(self):
+        values = [{"name": " First "}, "Second", {"name": "First"}, {}, None, ""]
+        source = {key: copy.deepcopy(values) for key in registry.STRING_LIST_FIELDS}
+        before = copy.deepcopy(source)
+        result = registry.compact({"nested": source})["nested"]
+        for key in registry.STRING_LIST_FIELDS:
+            self.assertEqual(result["gal_" + key], ["First", "Second"])
+            self.assertEqual(result[key], values)
+        self.assertEqual(source, before)
+        self.assertEqual(
+            registry.string_list([{"label": "Example"}], "label"), ["Example"]
+        )
+        self.assertEqual(registry.string_list([]), [])
+        for invalid in (None, {}, "name"):
+            with (
+                self.subTest(invalid=invalid),
+                self.assertRaisesRegex(ValueError, "must be a list"),
+            ):
+                registry.string_list(invalid)
+        with self.assertRaisesRegex(ValueError, "must be strings"):
+            registry.string_list([{"name": 42}])
+
+    def test_repositories_are_dropped_and_statistical_tools_keep_only_names(self):
+        for resource in RESOURCES:
+            self.api[resource][0]["metadata"]["statisticalTools"] = [
+                {"name": "Synthetic tool", "id": 1},
+                {"name": "Other tool", "id": 2},
+            ]
+            self.api[resource][0]["repositories"] = [
+                {"url": "https://example.test/code"}
+            ]
+            self.api[resource][0]["metadata"]["repositories"] = []
+        result = registry.curate(self.api, {})
+        for resource in RESOURCES:
+            record = result[resource][0]
+            self.assertNotIn("repositories", record)
+            self.assertNotIn("repositories", record["metadata"])
+            self.assertNotIn("statisticalTools", record["metadata"])
+            self.assertEqual(
+                record["metadata"]["gal_statisticalTools"],
+                ["Synthetic tool", "Other tool"],
+            )
+
+    def test_version_one_output_can_be_rebuilt(self):
+        previous = registry.curate(self.api, {})
+        previous["schema_version"] = 1
+        previous["curation"] = previous.pop("gal_curation")
+        _, provenance = registry.read_supplements(self.csv_dir)
+        previous["curation"]["html_source"] = provenance
+        for resource in RESOURCES:
+            for record in previous[resource]:
+                for name in ("analysisContacts", "contactEditors"):
+                    record[name] = record.pop("gal_" + name)
+        self.output.parent.mkdir(parents=True, exist_ok=True)
+        self.output.write_text(json.dumps(previous))
+        registry.build_registry(self.api_path, self.csv_dir, self.output)
+        rebuilt = json.loads(self.output.read_text())
+        self.assertEqual(rebuilt["schema_version"], 2)
+        self.assertIn("gal_curation", rebuilt)
+        self.assertNotIn("curation", rebuilt)
 
     def test_complete_offline_cli_build_merges_supplements(self):
         with patch(
@@ -180,15 +281,15 @@ class CuratedTests(unittest.TestCase):
         registry.validate_registry(result)
         self.assertNotIn("fullTitle", result["analyses"][0])
         self.assertEqual(
-            result["analyses"][0]["internalNoteEditors"],
+            result["analyses"][0]["gal_internalNoteEditors"],
             ["First Editor", "Second Editor"],
         )
         self.assertEqual(
-            result["papers"][0]["figuresUrl"], "https://example.test/figures"
+            result["papers"][0]["gal_figuresUrl"], "https://example.test/figures"
         )
         self.assertNotIn("creationDate", result["pubnotes"][0])
         self.assertEqual(
-            result["pubnotes"][0]["finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
+            result["pubnotes"][0]["gal_finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
         )
         self.assertEqual(result["counts"], self.api["counts"])
         self.assertEqual(json.loads(self.api_path.read_text()), self.api)
@@ -211,7 +312,7 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(
             result["pubnotes"][0]["finalReferenceCode"], "ATL-PHYS-PUB-2099-003"
         )
-        stats = result["curation"]["supplement_statistics"]["pubnotes"]
+        stats = result["gal_curation"]["supplement_statistics"]["pubnotes"]
         self.assertEqual(stats["conflicting_fields_api_retained"], 1)
         self.assertEqual(stats["supplement_without_api"], 1)
         self.assertEqual(len(result["analyses"]), 1)
@@ -221,8 +322,8 @@ class CuratedTests(unittest.TestCase):
         result = registry.compact(
             {"readers": [person("Reader", isFirstReader=True, isSecondReader=True)]}
         )
-        self.assertEqual(result["readers"], ["Reader Example"])
-        self.assertEqual(result["firstReaders"], result["secondReaders"])
+        self.assertEqual(result["gal_readers"], ["Reader Example"])
+        self.assertEqual(result["gal_firstReaders"], result["gal_secondReaders"])
 
     def test_build_embeds_the_selected_citation_store_without_network(self):
         doi = "10.1007/jhep01(2099)001"
@@ -240,11 +341,11 @@ class CuratedTests(unittest.TestCase):
                 self.api_path, self.csv_dir, self.output, doi_cache=cache
             )
         result = json.loads(self.output.read_text())
-        entry = result["papers"][0]["publicationPhase"]["dois"][0]
+        entry = result["papers"][0]["publicationPhase"]["gal_dois"][0]
         self.assertEqual(entry["citation"], "Synthetic citation")
         self.assertEqual(entry["source"], "manual")
         self.assertTrue(entry["resolved"])
-        self.assertEqual(result["curation"]["doi_statistics"]["resolved"], 1)
+        self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
         self.assertEqual(cache.read_bytes(), before)
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
             registry.build_registry(self.api_path, self.csv_dir, cache, doi_cache=cache)

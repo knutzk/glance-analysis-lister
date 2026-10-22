@@ -77,20 +77,28 @@ arrays, native identifiers, statuses, nested phases and explicit relationships.
 Records are not collapsed into a single analysis/publication entry, and legacy
 clone or citation rules are not applied by this build step.
 
-- `analysisTeam` is removed. `analysisContacts` and `contactEditors` are lists
+Schema version 2 reserves the `gal_` prefix for fields added or reformatted by
+this package. Unchanged stare fields retain their original names. An entire
+`gal_` object belongs to the package, so keys within it need no repeated prefix.
+The container's `schema` and `schema_version` identify the curated format.
+
+- `analysisTeam` is removed. `gal_analysisContacts` and `gal_contactEditors` are lists
   of full names. Contact assignments are evaluated at the API snapshot's date;
   expired and future assignments are excluded. Duplicate names are collapsed.
-- Each phase's `editorialBoard` becomes a list of names, with separate name
-  lists `editorialBoardChairs` and `editorialBoardExOfficio` preserving roles.
-- PUB `readers` become names, with `firstReaders` and `secondReaders` lists.
-  Other named-person objects, such as sign-off officials, become full-name strings.
+- Each phase's `editorialBoard` is replaced by `gal_editorialBoard`, a list of names, with separate name
+  lists `gal_editorialBoardChairs` and `gal_editorialBoardExOfficio` preserving roles.
+- PUB `readers` become `gal_readers` names, with `gal_firstReaders` and `gal_secondReaders` lists.
+  Other named-person fields become `gal_<sourceKey>` full-name strings or lists;
+  for example, `signOffResponsible` becomes `gal_signOffResponsible`.
   CERN IDs, emails and other person details are removed.
-- `metadata.keywords` becomes a list of strings.
-- HTML supplies `internalNoteEditors` on analyses,
-  `figuresUrl` and `currentPaperDraft` on papers, and `finalReferenceCode`
+- `metadata.keywords` is replaced by `metadata.gal_keywords`, a list of strings.
+- `statisticalTools` becomes `gal_statisticalTools`, a list of tool names.
+  Original `statisticalTools` and all `repositories` keys are removed.
+- HTML supplies `gal_internalNoteEditors` on analyses,
+  `gal_figuresUrl` and `gal_currentPaperDraft` on papers, and `gal_finalReferenceCode`
   on PUB notes. Internal-note editors are split from the
   CSV's comma-separated names. Other API fields are preserved.
-- Paper `publicationPhase.dois` contains normalized DOI records with canonical
+- Paper `publicationPhase.gal_dois` contains normalized DOI records with canonical
   URLs, a `resolved` flag, and cached citation text/material/provenance where
   available. Each correction stays paired with its own metadata. Original API
   links are preserved. Missing citations remain explicitly unresolved.
@@ -111,9 +119,21 @@ a fingerprint of the citation store used, so consumers need no separate cache.
 
 Nonempty API values take precedence over HTML values. Empty HTML values never
 erase API values. Supplemental rows without a native API match never create
-records. The `curation` metadata records input provenance, the contact date,
+records. The `gal_curation` metadata records input provenance, the contact date,
 field mappings and per-resource coverage/conflict counts. Review those counts
-when source snapshots were collected at different times.
+when source snapshots were collected at different times. Its `removed_keys`
+list records the source keys stripped recursively after enrichment. Maintain
+that list in `registry.REMOVED_KEYS`; it is independent of enrichment rules.
+Enrichment retains the original fields until the separate removal pass runs.
+To simplify another collection of named objects, add its source key and the
+inner string key to `registry.STRING_LIST_FIELDS` (for example,
+`"statisticalTools": "name"`). The shared `string_list()` helper preserves
+order, trims names, skips missing values and removes duplicates. Add the source
+key separately to `REMOVED_KEYS` if its original representation should be dropped.
+Generic person fields gain `gal_<sourceKey>` names; add their source keys to
+the removal list when those originals should be dropped. A nonempty unchanged API field wins
+over HTML, and no additional `gal_` alias is created for it. Existing version 1
+outputs can be rebuilt in place while retaining scope and count-drop checks.
 
 Output is published atomically after validation. Source files cannot be
 overwritten. Existing output must have the curated schema and the same API

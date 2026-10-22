@@ -20,6 +20,28 @@ from .storage import SUPPLEMENT_MANIFEST, atomic_write_text, require_complete_cs
 
 logger = logging.getLogger(__name__)
 SCHEMA = "glance-curated-registry"
+PREFIX = "gal_"
+# Removed recursively only after all enrichments have been computed.
+REMOVED_KEYS = [
+    "analysisTeam",
+    "keywords",
+    "triggers",
+    "statisticalTools",
+    "repositories",
+    "editorialBoard",
+    "readers",
+    "signOffResponsible",
+    "firstSignOffResponsible",
+    "secondSignOffResponsible",
+    "pubcommChairOrDeputyOrDelegated",
+    "spokespersonOrDeputyOrDelegated",
+]
+# Source collection -> dictionary field to extract into gal_<collection>.
+STRING_LIST_FIELDS = {
+    "keywords": "name",
+    "triggers": "name",
+    "statisticalTools": "name",
+}
 SUPPLEMENTS = {
     "analyses": {
         "Internal Note Editors": "internalNoteEditors",
@@ -36,6 +58,16 @@ def unique_names(values):
     if any(not isinstance(value, str) for value in values):
         raise ValueError("Names must be strings")
     return list(dict.fromkeys(value.strip() for value in values if value.strip()))
+
+
+def string_list(values, value_key="name", *, label="Values"):
+    """Extract strings from records or strings, preserving order and deduplicating."""
+    if not isinstance(values, list):
+        raise ValueError(f"{label} must be a list")
+    extracted = [
+        entry.get(value_key) if isinstance(entry, dict) else entry for entry in values
+    ]
+    return unique_names([value for value in extracted if value is not None])
 
 
 def person_name(person):
@@ -59,60 +91,102 @@ def current_contact(person, as_of):
     )
 
 
-def compact(value):
-    """Consolidate named collections and replace other person objects by names."""
+def reject_reserved_keys(value):
+    """Fail explicitly if a future API field would collide with our namespace."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key.startswith(PREFIX):
+                raise ValueError("API input uses reserved gal_ namespace")
+            reject_reserved_keys(item)
+    elif isinstance(value, list):
+        for item in value:
+            reject_reserved_keys(item)
+
+
+def compact(value, *, reference="Unknown record"):
+    """Add curated fields while retaining every original source field."""
     if isinstance(value, list):
-        return [compact(item) for item in value]
+        return [compact(item, reference=reference) for item in value]
     if not isinstance(value, dict):
         return value
-    if "firstName" in value or "lastName" in value:
-        return person_name(value)
-    result = {}
+    result = copy.deepcopy(value)
     for key, item in value.items():
-        if key == "keywords":
-            if not isinstance(item, list):
-                raise ValueError("Keywords must be a list")
-            result[key] = unique_names(
-                [
-                    entry.get("name") if isinstance(entry, dict) else entry
-                    for entry in item
-                    if (entry.get("name") if isinstance(entry, dict) else entry)
-                    is not None
-                ]
-            )
+        if key == "analysisTeam":
+            continue  # Contacts and editors are derived separately in curate().
+        if key in STRING_LIST_FIELDS:
+            result[PREFIX + key] = string_list(item, STRING_LIST_FIELDS[key], label=key)
         elif key == "editorialBoard":
             board = item or []
             if not isinstance(board, list):
                 raise ValueError("Editorial board must be a list")
-            result[key] = unique_names([person_name(person) for person in board])
-            result["editorialBoardChairs"] = unique_names(
+            result[PREFIX + key] = unique_names(
+                [person_name(person) for person in board]
+            )
+            result["gal_editorialBoardChairs"] = unique_names(
                 [person_name(person) for person in board if person.get("isChair")]
             )
-            result["editorialBoardExOfficio"] = unique_names(
+            result["gal_editorialBoardExOfficio"] = unique_names(
                 [person_name(person) for person in board if person.get("isExOfficio")]
             )
         elif key == "readers":
             readers = item or []
-            result[key] = unique_names([person_name(person) for person in readers])
+            result[PREFIX + key] = unique_names(
+                [person_name(person) for person in readers]
+            )
             for flag, field in (
-                ("isFirstReader", "firstReaders"),
-                ("isSecondReader", "secondReaders"),
+                ("isFirstReader", "gal_firstReaders"),
+                ("isSecondReader", "gal_secondReaders"),
             ):
                 result[field] = unique_names(
                     [person_name(person) for person in readers if person.get(flag)]
                 )
         else:
-            result[key] = compact(item)
+
+            def is_person(value):
+                return isinstance(value, dict) and (
+                    "firstName" in value or "lastName" in value
+                )
+
+            renamed = is_person(item) or (
+                isinstance(item, list) and any(is_person(entry) for entry in item)
+            )
+            if renamed:
+                result[PREFIX + key] = (
+                    [
+                        person_name(entry)
+                        if is_person(entry)
+                        else compact(entry, reference=reference)
+                        for entry in item
+                    ]
+                    if isinstance(item, list)
+                    else person_name(item)
+                )
+            else:
+                result[key] = compact(item, reference=reference)
     return result
+
+
+def remove_keys(value, keys):
+    """Remove configured source keys without depending on enrichment rules."""
+    if isinstance(value, list):
+        return [remove_keys(item, keys) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: remove_keys(item, keys)
+            for key, item in value.items()
+            if key not in keys
+        }
+    return value
 
 
 def curate(api, supplements, *, citations=None):
     """Preserve independent API identities; merge by native identifier only."""
     validate_api(api)
+    reject_reserved_keys(api)
     as_of = datetime.fromisoformat(api["fetched_at"]).date()
     result = copy.deepcopy(api)
     result["schema"] = SCHEMA
-    result["schema_version"] = 1
+    result["schema_version"] = 2
     statistics = {}
     citations = citations if citations is not None else {}
     doi_stats = {
@@ -126,17 +200,17 @@ def curate(api, supplements, *, citations=None):
         matched = conflicts = 0
         records = []
         for record in result[resource]:
-            team = record.pop("analysisTeam", []) or []
+            team = record.get("analysisTeam", []) or []
             if not isinstance(team, list):
                 raise ValueError("Analysis team must be a list")
-            record["analysisContacts"] = unique_names(
+            record["gal_analysisContacts"] = unique_names(
                 [
                     person_name(person)
                     for person in team
                     if current_contact(person, as_of)
                 ]
             )
-            record["contactEditors"] = unique_names(
+            record["gal_contactEditors"] = unique_names(
                 [
                     person_name(person)
                     for person in team
@@ -156,7 +230,7 @@ def curate(api, supplements, *, citations=None):
                         if record[field] != value:
                             conflicts += 1
                         continue
-                    record[field] = value
+                    record[PREFIX + field] = value
             if resource == "papers":
                 entries, malformed = enrich_paper(record, citations)
                 doi_stats["papers_with_dois"] += bool(entries)
@@ -165,7 +239,8 @@ def curate(api, supplements, *, citations=None):
                     not entry["resolved"] for entry in entries
                 )
                 doi_stats["malformed_links"] += malformed
-            records.append(compact(record))
+            enriched = compact(record, reference=record_key(record, resource))
+            records.append(remove_keys(enriched, REMOVED_KEYS))
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
         )
@@ -176,11 +251,15 @@ def curate(api, supplements, *, citations=None):
                 "supplement_without_api": len(rows) - matched,
                 "conflicting_fields_api_retained": conflicts,
             }
-    result["curation"] = {
+    result["gal_curation"] = {
         "built_at": datetime.now(UTC).isoformat(),
         "contacts_as_of": as_of.isoformat(),
         "api_schema": api["schema"],
-        "supplement_fields": SUPPLEMENTS,
+        "supplement_fields": {
+            resource: {column: PREFIX + field for column, field in fields.items()}
+            for resource, fields in SUPPLEMENTS.items()
+        },
+        "removed_keys": list(REMOVED_KEYS),
         "supplement_statistics": statistics,
         "doi_statistics": doi_stats,
         "citation_store": {
@@ -198,7 +277,7 @@ def validate_registry(data):
     if (
         not isinstance(data, dict)
         or data.get("schema") != SCHEMA
-        or data.get("schema_version") != 1
+        or data.get("schema_version") not in (1, 2)
         or not isinstance(data.get("counts"), dict)
     ):
         raise ValueError("Destination is not a supported curated registry")
@@ -212,7 +291,8 @@ def validate_registry(data):
         for record in records:
             if "analysisTeam" in record:
                 raise ValueError("Curated registry must not contain analysisTeam")
-            for field in ("analysisContacts", "contactEditors"):
+            for name in ("analysisContacts", "contactEditors"):
+                field = PREFIX + name if data["schema_version"] == 2 else name
                 if not isinstance(record.get(field), list) or any(
                     not isinstance(name, str) for name in record[field]
                 ):
@@ -260,13 +340,15 @@ def build_registry(
     api = json.loads(api_path.read_text(encoding="utf-8"))
     supplements, provenance = read_supplements(csv_dir)
     candidate = curate(api, supplements, citations=load_store(Path(doi_cache)))
-    candidate["curation"]["html_source"] = provenance
+    candidate["gal_curation"]["html_source"] = provenance
     validate_registry(candidate)
     if output.exists():
         previous = json.loads(output.read_text(encoding="utf-8"))
         validate_registry(previous)
         previous_scope = (
-            previous.get("curation", {}).get("html_source", {}).get("retrieval_scope")
+            previous.get("gal_curation", previous.get("curation", {}))
+            .get("html_source", {})
+            .get("retrieval_scope")
         )
         check_scope(
             RetrievalScope.from_dict(provenance["retrieval_scope"]),
@@ -287,6 +369,6 @@ def build_registry(
     atomic_write_text(
         output, json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
     )
-    for resource, counts in candidate["curation"]["supplement_statistics"].items():
+    for resource, counts in candidate["gal_curation"]["supplement_statistics"].items():
         logger.info("HTML supplement %s: %s", resource, counts)
     return candidate["counts"]

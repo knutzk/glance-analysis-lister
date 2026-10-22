@@ -61,5 +61,5 @@ def enrich_paper(paper, citations):
             entry.update(citation_record(citations[doi]))
         entries.append(entry)
     if paper.get("publicationPhase") is not None:
-        paper["publicationPhase"]["dois"] = entries
+        paper["publicationPhase"]["gal_dois"] = entries
     return entries, malformed

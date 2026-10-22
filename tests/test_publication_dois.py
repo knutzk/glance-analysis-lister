@@ -55,6 +55,8 @@ class PublicationDoiTests(unittest.TestCase):
         }
         entries, invalid = enrich_paper(record, citations)
         self.assertEqual(invalid, 0)
+        self.assertEqual(record["publicationPhase"]["gal_dois"], entries)
+        self.assertNotIn("dois", record["publicationPhase"])
         self.assertEqual([entry["doi"] for entry in entries], [ORIGINAL, CORRECTION])
         self.assertEqual(
             [entry["citation"] for entry in entries],
@@ -92,6 +94,6 @@ class PublicationDoiTests(unittest.TestCase):
             path = Path(directory) / "snapshot.json"
             for schema in ("glance-api-registry", "glance-curated-registry"):
                 record = paper("https://doi.org/" + ORIGINAL)
-                record["publicationPhase"]["dois"] = [{"doi": CORRECTION}]
+                record["publicationPhase"]["gal_dois"] = [{"doi": CORRECTION}]
                 path.write_text(json.dumps({"schema": schema, "papers": [record]}))
                 self.assertEqual(snapshot_dois(path), {ORIGINAL})
