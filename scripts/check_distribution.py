@@ -18,11 +18,8 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
-from analysis_lister.downloaders.html import (
-    INTERMEDIATE_CA,
-    download_tasks,
-    trusted_ca_bundle,
-)
+from analysis_lister.downloaders.html import download_tasks
+from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.storage import SUPPLEMENT_MANIFEST

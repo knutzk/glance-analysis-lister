@@ -153,7 +153,7 @@ The Python implementation has two independent packages:
 - `analysis_lister.downloaders`: stare API retrieval (`api.py`), authenticated
   HTML retrieval (`html.py`), table parsing (`tables.py`), CSV reading
   (`csv_io.py`), retrieval scope (`scope.py`), and transactional HTML batch
-  publication (`publication.py`).
+  publication (`csv_batch.py`).
 - `analysis_lister.registry`: offline construction (`builder.py`), enrichment
   and removal rules (`enrichment.py`), schema validation (`schema.py`), DOI
   processing (`doi.py`, `publication_dois.py`), and curated access (`reader.py`).
@@ -619,3 +619,7 @@ Citation implementation lives in `citations/store.py`, `formatting.py`,
 `ordering.py`, `inspire.py` (verified, bounded public HTTP client), and
 `resolver.py` (incremental resolution workflow). GLANCE link extraction stays
 in `registry/publication_dois.py`; registry building never performs a lookup.
+
+HTML downloader responsibilities are separated into `auth.py` (saved cookies and
+Selenium login), `http.py` (GLANCE endpoints, requests and verified TLS),
+`html.py` (staged conversion), and `csv_batch.py` (transactional publication).

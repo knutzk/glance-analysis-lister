@@ -12,7 +12,11 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from analysis_lister import cli
-from analysis_lister.downloaders import html as download, publication as html_download
+from analysis_lister.downloaders import (
+    auth,
+    csv_batch as html_download,
+    html as download,
+)
 from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
@@ -64,8 +68,8 @@ class SupplementTests(unittest.TestCase):
 
     def run_download(self):
         with (
-            patch.object(download.CookieManager, "load_cookies") as cookies,
-            patch.object(download.DataFetcher, "fetch_html") as network,
+            patch.object(auth.CookieManager, "load_cookies") as cookies,
+            patch.object(download.http.DataFetcher, "fetch_html") as network,
         ):
             cli.main(
                 [
@@ -126,7 +130,7 @@ class SupplementTests(unittest.TestCase):
         )
         before = previous.read_bytes()
         with (
-            patch.object(download.DataFetcher, "fetch_html") as network,
+            patch.object(download.http.DataFetcher, "fetch_html") as network,
             self.assertRaisesRegex(ValueError, "different CSV format"),
         ):
             html_download.download_html_csvs(

@@ -13,7 +13,7 @@ from unittest.mock import patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.downloaders import html as downloader, publication as html_download
+from analysis_lister.downloaders import csv_batch as html_download, html as downloader
 from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
 from analysis_lister.storage import (
     CSV_REFRESH_MARKER,
@@ -89,14 +89,14 @@ class CsvBatchTests(unittest.TestCase):
             "notes", "https://example.test/notes", ("Reference Code",), "final_ref_code"
         )
         with patch.object(
-            downloader.DataFetcher, "fetch_html", return_value=HTML
+            downloader.http.DataFetcher, "fetch_html", return_value=HTML
         ) as fetch:
             html_download.download_html_csvs(
                 (table,), self.csv_dir, self.debug_dir, cookies={"session": "synthetic"}
             )
         fetch.assert_called_once_with(
             table.url,
-            downloader.COMMON_PARAMS
+            downloader.http.COMMON_PARAMS
             | load_scope().query_params()
             | {"s[0][name]": "final_ref_code"},
             {"session": "synthetic"},
@@ -107,7 +107,7 @@ class CsvBatchTests(unittest.TestCase):
 
     def test_debug_tables_use_the_supplied_directory(self):
         debug_dir = self.root / "diagnostics" / "tables"
-        with patch.object(downloader.DataFetcher, "fetch_html", return_value=HTML):
+        with patch.object(downloader.http.DataFetcher, "fetch_html", return_value=HTML):
             html_download.download_html_csvs(
                 self.tasks, self.csv_dir, debug_dir, cookies={}, debug=True
             )
@@ -148,7 +148,7 @@ class CsvBatchTests(unittest.TestCase):
     def test_failed_final_download_preserves_old_batch(self):
         with (
             patch.object(
-                downloader.DataFetcher,
+                downloader.http.DataFetcher,
                 "fetch_html",
                 side_effect=[HTML, HTML, HTML, requests.ReadTimeout("timed out")],
             ),

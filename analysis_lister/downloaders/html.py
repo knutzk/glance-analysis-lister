@@ -6,14 +6,12 @@
 import csv
 import json
 import logging
-import os
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory
 
-import requests
 from attrs import field, frozen
 
 from analysis_lister.downloaders.csv_io import read_csv_rows
@@ -31,124 +29,9 @@ from analysis_lister.downloaders.tables import (
 )
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
+from . import http
+
 logger = logging.getLogger(__name__)
-
-REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
-INTERMEDIATE_CA = (
-    Path(__file__).resolve().parent.parent
-    / "certs/sectigo-public-server-authentication-ca-ov-r36.pem"
-)
-URLS = {
-    "analyses": "https://atlas-glance.cern.ch/atlas/analysis/analyses/main.php",
-    "papers": "https://atlas-glance.cern.ch/atlas/analysis/papers/main.php",
-    "pubnotes": "https://atlas-glance.cern.ch/atlas/analysis/pubnotes/main.php",
-    "confnotes": "https://atlas-glance.cern.ch/atlas/analysis/confnotes/main.php",
-}
-COMMON_PARAMS = {
-    "s[0][descending]": "false",
-    "only_deleted_input": "false",
-}
-
-
-@contextmanager
-def trusted_ca_bundle():
-    """Complete GLANCE's chain without disabling certificate verification.
-
-    Preserve Requests' CA-bundle environment overrides. Otherwise supplement
-    its trusted roots with the intermediate GLANCE currently omits. The
-    temporary bundle stays available until the request and redirects finish.
-    """
-    override = os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("CURL_CA_BUNDLE")
-    if override:
-        yield override
-        return
-
-    with NamedTemporaryFile(suffix=".pem") as bundle:
-        bundle.write(Path(requests.certs.where()).read_bytes())
-        bundle.write(b"\n")
-        bundle.write(INTERMEDIATE_CA.read_bytes())
-        bundle.flush()
-        yield bundle.name
-
-
-class CookieManager:
-    @staticmethod
-    def load_cookies(cookie_file: Path):
-        """Load cookies from a JSON file if available."""
-        if cookie_file.exists():
-            logger.debug(f"Loading cookies from {cookie_file}")
-            return json.loads(cookie_file.read_text())
-        logger.debug("No cookie file found.")
-        return None
-
-    @staticmethod
-    def save_cookies(cookies, cookie_file: Path):
-        """Save cookies to a JSON file."""
-        cookie_file.write_text(json.dumps(cookies))
-        logger.debug(f"Cookies successfully saved to {cookie_file}")
-
-    @staticmethod
-    def generate_cookies(cookie_file: Path):
-        """Use Selenium to retrieve new cookies after logging in manually."""
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
-
-        logger.info("Starting Selenium to retrieve new cookies.")
-        chrome_options = Options()
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-
-        driver = webdriver.Chrome(service=Service(), options=chrome_options)
-        try:
-            url = URLS["analyses"]
-            logger.info(f"Opening URL: {url}")
-            driver.get(url)
-            logger.info("Please log in manually if required.")
-            input("Press Enter after completing login...")
-            cookies = driver.get_cookies()
-            CookieManager.save_cookies(cookies, cookie_file)
-            return cookies
-        finally:
-            driver.quit()
-            logger.debug("Selenium session ended.")
-
-    @staticmethod
-    def to_requests_format(cookies):
-        """Convert cookies from Selenium format to Requests format."""
-        logger.debug("Converting cookies to Requests-compatible format.")
-        return {cookie["name"]: cookie["value"] for cookie in cookies}
-
-
-class DataFetcher:
-    @staticmethod
-    def fetch_html(url, params, cookies):
-        """Fetch HTML content from a URL."""
-        try:
-            logger.debug(f"Fetching data from {url} with params: {params}")
-            with trusted_ca_bundle() as ca_bundle:
-                response = requests.get(
-                    url,
-                    params=params,
-                    cookies=cookies,
-                    verify=ca_bundle,
-                    timeout=REQUEST_TIMEOUT,
-                )
-            response.raise_for_status()
-            if "Sign in to your account" in response.text:
-                logger.error("Invalid or expired cookies detected.")
-                raise ValueError("Invalid or expired cookies detected.")
-            return response.text
-        except requests.exceptions.SSLError:
-            logger.error(
-                "TLS verification failed for %s. Check the server certificate "
-                "chain or supply a trusted PEM bundle with REQUESTS_CA_BUNDLE.",
-                url,
-            )
-            raise
-        except requests.RequestException as e:
-            logger.error(f"Error fetching data from {url}: {e}")
-            raise
 
 
 class HTMLParser:
@@ -247,9 +130,11 @@ def staged_csv_files(
             if use_local_html:
                 html = (debug_dir / task.html_filename).read_text(encoding="utf-8")
             else:
-                html = DataFetcher.fetch_html(
+                html = http.DataFetcher.fetch_html(
                     task.url,
-                    COMMON_PARAMS | scope.query_params() | {"s[0][name]": task.sort_by},
+                    http.COMMON_PARAMS
+                    | scope.query_params()
+                    | {"s[0][name]": task.sort_by},
                     cookies,
                 )
             HTMLParser.parse_to_csv(
@@ -304,7 +189,7 @@ def download_tasks() -> tuple[DownloadTable, ...]:
     return (
         DownloadTable(
             "analyses",
-            URLS["analyses"],
+            http.URLS["analyses"],
             ("Reference Code", "Internal Note Editors"),
             "reference_code",
             key="Reference Code",
@@ -312,31 +197,17 @@ def download_tasks() -> tuple[DownloadTable, ...]:
         ),
         DownloadTable(
             "papers",
-            URLS["papers"],
+            http.URLS["papers"],
             ("Reference Code", "Figures", "Current Paper Draft"),
             "reference_code",
             key="Reference Code",
         ),
         DownloadTable(
             "pubnotes",
-            URLS["pubnotes"],
+            http.URLS["pubnotes"],
             ("Temporary Reference Code", "Reference Code"),
             "final_ref_code",
             key="Temporary Reference Code",
             prefix="PUB-",
         ),
     )
-
-
-def resolve_cookies(
-    cookie_file: Path, *, generate_new_cookies: bool = False
-) -> dict[str, str]:
-    """Load or generate credentials for a live download."""
-    cookies = (
-        CookieManager.generate_cookies(cookie_file)
-        if generate_new_cookies
-        else CookieManager.load_cookies(cookie_file)
-    )
-    if not cookies:
-        raise ValueError("No cookies found. Use --login.")
-    return CookieManager.to_requests_format(cookies)

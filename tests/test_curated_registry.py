@@ -353,7 +353,7 @@ class BlockLegacyAndAuthentication(importlib.abc.MetaPathFinder):
                for name in ("analysis_lister.glance", "stare", "selenium")):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, BlockLegacyAndAuthentication())
-from analysis_lister.downloaders import api, html, publication, tables
+from analysis_lister.downloaders import api, html, csv_batch, tables
 from analysis_lister.cli import main
 from analysis_lister.registry import CuratedRegistry
 main(["build-registry", "--api-snapshot", sys.argv[1],

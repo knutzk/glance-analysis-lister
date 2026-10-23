@@ -254,7 +254,7 @@ def _run_download_api(args):
 
 
 def _download_cookies(args):
-    from analysis_lister.downloaders.html import resolve_cookies
+    from analysis_lister.downloaders.auth import resolve_cookies
 
     if args.from_html is not None:
         return None
@@ -268,8 +268,8 @@ def _retrieval_options(args):
 
 
 def _run_download(args):
+    from analysis_lister.downloaders.csv_batch import download_html_csvs
     from analysis_lister.downloaders.html import download_tasks
-    from analysis_lister.downloaders.publication import download_html_csvs
 
     options = _retrieval_options(args)
     download_html_csvs(

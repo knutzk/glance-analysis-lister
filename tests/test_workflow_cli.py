@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import cli
-from analysis_lister.downloaders import html as download
+from analysis_lister.downloaders import auth, html as download
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 
@@ -25,7 +25,7 @@ import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
     import analysis_lister.cli
-    import analysis_lister.downloaders.publication
+    import analysis_lister.downloaders.csv_batch
     import analysis_lister.views.build
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
@@ -38,9 +38,9 @@ assert "bs4" not in sys.modules
     def test_download_flags_and_paths_reach_workflows(self):
         with (
             patch.object(cli, "configure_logging"),
-            patch.object(download, "resolve_cookies", return_value={}) as auth,
+            patch.object(auth, "resolve_cookies", return_value={}) as credentials,
             patch(
-                "analysis_lister.downloaders.publication.download_html_csvs"
+                "analysis_lister.downloaders.csv_batch.download_html_csvs"
             ) as workflow,
         ):
             cli.main(
@@ -55,7 +55,9 @@ assert "bs4" not in sys.modules
                     "csv",
                 ]
             )
-        auth.assert_called_once_with(Path("session.json"), generate_new_cookies=True)
+        credentials.assert_called_once_with(
+            Path("session.json"), generate_new_cookies=True
+        )
         workflow.assert_called_once_with(
             download.download_tasks(),
             Path("csv"),
@@ -75,13 +77,13 @@ assert "bs4" not in sys.modules
         ):
             with (
                 self.subTest(command=command),
-                patch.object(download, "resolve_cookies") as auth,
+                patch.object(auth, "resolve_cookies") as credentials,
                 patch("sys.stderr"),
                 self.assertRaises(SystemExit) as error,
             ):
                 cli.main([command])
             self.assertEqual(error.exception.code, 2)
-            auth.assert_not_called()
+            credentials.assert_not_called()
 
     def test_api_default_and_downloads_do_not_load_citations(self):
         with (
@@ -119,12 +121,12 @@ assert "bs4" not in sys.modules
         with (
             patch.object(cli, "configure_logging"),
             patch.object(
-                download.CookieManager,
+                auth.CookieManager,
                 "load_cookies",
                 side_effect=AssertionError("credentials read"),
             ),
             patch(
-                "analysis_lister.downloaders.publication.download_html_csvs"
+                "analysis_lister.downloaders.csv_batch.download_html_csvs"
             ) as workflow,
         ):
             cli.main(["download-html", "--from-html", "saved"])
@@ -163,11 +165,11 @@ assert "bs4" not in sys.modules
 
     def test_login_passes_cookie_path_and_returns_credentials(self):
         with patch.object(
-            download.CookieManager,
+            auth.CookieManager,
             "generate_cookies",
             return_value=[{"name": "session", "value": "synthetic"}],
         ) as generate:
-            cookies = download.resolve_cookies(
+            cookies = auth.resolve_cookies(
                 Path("session.json"), generate_new_cookies=True
             )
         generate.assert_called_once_with(Path("session.json"))
@@ -177,12 +179,12 @@ assert "bs4" not in sys.modules
         with TemporaryDirectory() as directory:
             cookie_file = Path(directory) / "session.json"
             with self.assertRaisesRegex(ValueError, "No cookies found"):
-                download.resolve_cookies(cookie_file)
-            download.CookieManager.save_cookies(
+                auth.resolve_cookies(cookie_file)
+            auth.CookieManager.save_cookies(
                 [{"name": "test", "value": "synthetic"}], cookie_file
             )
             self.assertEqual(
-                download.resolve_cookies(cookie_file),
+                auth.resolve_cookies(cookie_file),
                 {"test": "synthetic"},
             )
 

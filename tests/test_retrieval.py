@@ -10,7 +10,11 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from analysis_lister import cli
-from analysis_lister.downloaders import html as download, publication as html_download
+from analysis_lister.downloaders import (
+    auth,
+    csv_batch as html_download,
+    html as download,
+)
 from analysis_lister.downloaders.scope import (
     SCOPE_FILENAME,
     RetrievalScope,
@@ -90,19 +94,19 @@ class RetrievalTests(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 self.config.write_text(invalid)
                 with (
-                    patch.object(download, "resolve_cookies") as auth,
+                    patch.object(auth, "resolve_cookies") as credentials,
                     patch.object(html_download, "download_html_csvs") as workflow,
                     self.assertRaises(SystemExit),
                 ):
                     cli.main(["download-html", "--config", str(self.config)])
-                auth.assert_not_called()
+                credentials.assert_not_called()
                 workflow.assert_not_called()
 
     def test_custom_scope_reaches_html_cli_workflow(self):
         for command, operation in (("download-html", "download_html_csvs"),):
             with (
                 self.subTest(command=command),
-                patch.object(download, "resolve_cookies", return_value={}),
+                patch.object(auth, "resolve_cookies", return_value={}),
                 patch.object(html_download, operation) as workflow,
             ):
                 cli.main([command, "--config", str(self.config)])
@@ -112,7 +116,7 @@ class RetrievalTests(unittest.TestCase):
         csv_dir = self.root / "csv"
         debug_dir = self.root / "html"
         with patch.object(
-            download.DataFetcher, "fetch_html", return_value=HTML
+            download.http.DataFetcher, "fetch_html", return_value=HTML
         ) as fetch:
             html_download.download_html_csvs(
                 self.tasks, csv_dir, debug_dir, scope=self.scope, debug=True
@@ -122,7 +126,7 @@ class RetrievalTests(unittest.TestCase):
             self.assertEqual(call.args[0], task.url)
             self.assertEqual(
                 call.args[1],
-                download.COMMON_PARAMS
+                download.http.COMMON_PARAMS
                 | self.scope.query_params()
                 | {"s[0][name]": task.sort_by},
             )
@@ -131,7 +135,7 @@ class RetrievalTests(unittest.TestCase):
 
         original = {p.name: p.read_bytes() for p in csv_dir.iterdir()}
         with (
-            patch.object(download.DataFetcher, "fetch_html") as fetch,
+            patch.object(download.http.DataFetcher, "fetch_html") as fetch,
             self.assertRaisesRegex(ValueError, "scope differs"),
         ):
             html_download.download_html_csvs(self.tasks, csv_dir, debug_dir)
@@ -176,7 +180,7 @@ class RetrievalTests(unittest.TestCase):
         old = csv_dir / "analyses.csv"
         old.write_text("previous CSV")
         with (
-            patch.object(download.DataFetcher, "fetch_html") as fetch,
+            patch.object(download.http.DataFetcher, "fetch_html") as fetch,
             self.assertRaisesRegex(ValueError, "no retrieval scope metadata"),
         ):
             html_download.download_html_csvs(self.tasks, csv_dir, self.root / "html")
@@ -197,7 +201,7 @@ class RetrievalTests(unittest.TestCase):
 
     def test_scope_metadata_rolls_back_with_csvs(self):
         csv_dir = self.root / "csv"
-        with patch.object(download.DataFetcher, "fetch_html", return_value=HTML):
+        with patch.object(download.http.DataFetcher, "fetch_html", return_value=HTML):
             html_download.download_html_csvs(
                 self.tasks, csv_dir, self.root / "html", scope=self.scope
             )
@@ -210,7 +214,7 @@ class RetrievalTests(unittest.TestCase):
             return replace(source, destination)
 
         with (
-            patch.object(download.DataFetcher, "fetch_html", return_value=HTML),
+            patch.object(download.http.DataFetcher, "fetch_html", return_value=HTML),
             patch.object(Path, "replace", fail_metadata),
             self.assertRaisesRegex(OSError, "metadata publication"),
         ):
