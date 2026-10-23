@@ -1,120 +1,30 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Incremental DOI inference and explicit, bounded INSPIRE metadata retrieval."""
+"""Citation inspire: isolated concerns with no registry model dependency."""
 
-import json
-import logging
-import re
 import time
-from collections import Counter
 from contextlib import suppress
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from pathlib import Path
 from urllib.parse import quote
 
 import requests
 
-from analysis_lister.citation_store import (
-    load_store,
-    normalize_doi,
-    save_store,
-)
-from analysis_lister.diagnostics import lookup_notice, lookup_report
+from .formatting import format_journal_name, starting_page
+from .store import normalize_doi
 
-logger = logging.getLogger(__name__)
 API = "https://inspirehep.net/api/doi/"
+
+
 TIMEOUT = (10, 30)
-JHEP = re.compile(r"10\.1007/jhep(0[1-9]|1[0-2])\((\d{4})\)(\d{3,})", re.I)
+
+
 PREFIXES = {
     "erratum": "Erratum: ",
     "addendum": "Addendum: ",
     "editorial note": "Editorial note: ",
 }
-# Presentation spellings follow the existing manual citations. Explicit aliases
-# also reconcile INSPIRE's Rept. abbreviations with the project's Rep. style.
-JOURNAL_NAMES = {
-    "phys.lett.b": "Phys. Lett. B",
-    "phys.rev.c": "Phys. Rev. C",
-    "phys.rev.d": "Phys. Rev. D",
-    "phys.rev.lett.": "Phys. Rev. Lett.",
-    "phys.rept.": "Phys. Rep.",
-    "phys.rep.": "Phys. Rep.",
-    "rept.prog.phys.": "Rep. Prog. Phys.",
-    "rep.prog.phys.": "Rep. Prog. Phys.",
-    "eur.phys.j.c": "Eur. Phys. J. C",
-    "comput.softw.bigsci.": "Comput. Softw. Big Sci.",
-    "sci.bull.": "Sci. Bull.",
-    "newj.phys.": "New J. Phys.",
-    "chin.phys.c": "Chin. Phys. C",
-    "naturephys.": "Nature Phys.",
-    "naturecommun.": "Nature Commun.",
-    "eur.phys.j.plus": "Eur. Phys. J. Plus",
-    "mach.learn.sci.tech.": "Mach. Learn. Sci. Tech.",
-}
-
-
-def format_journal_name(journal):
-    """Normalise known abbreviations without guessing punctuation for others."""
-    key = re.sub(r"\s+", "", journal).casefold()
-    return JOURNAL_NAMES.get(key, " ".join(journal.split()))
-
-
-def starting_page(locator):
-    """Shorten conventional numeric or letter-prefixed page ranges."""
-    match = re.fullmatch(
-        r"(?P<prefix>[A-Za-z]*)(?P<start>\d+)\s*[-–—]\s*"
-        r"(?P<end_prefix>[A-Za-z]*)(?P<end>\d+)",
-        locator,
-    )
-    if (
-        match
-        and match["end_prefix"] in ("", match["prefix"])
-        and int(match["end"]) >= int(match["start"])
-    ):
-        return match["prefix"] + match["start"]
-    return locator
-
-
-def format_citations(path: Path):
-    """Apply journal typography offline, retaining manual entries and provenance."""
-    entries = load_store(path)
-    changed = 0
-    pattern = re.compile(
-        r"(?P<prefix>(?:Erratum|Addendum|Editorial note): )?"
-        r"(?P<journal>.+?) (?P<volume>\S+) \((?P<year>\d{4})\) (?P<locator>.+)",
-    )
-    for entry in entries.values():
-        if entry["source"] == "manual":
-            continue
-        match = pattern.fullmatch(entry["citation"])
-        if match is None:
-            continue
-        citation = (
-            (match["prefix"] or "")
-            + format_journal_name(match["journal"])
-            + f" {match['volume']} ({match['year']}) "
-            + starting_page(match["locator"])
-        )
-        if citation != entry["citation"]:
-            entry["citation"] = citation
-            changed += 1
-    if changed:
-        save_store(path, entries)
-    return changed
-
-
-def infer_citation(doi):
-    """Infer only a fully specified JHEP citation; material remains unknown."""
-    match = JHEP.fullmatch(normalize_doi(doi))
-    if match is None:
-        return None
-    month, year, article = match.groups()
-    return {
-        "citation": f"JHEP {month} ({year}) {article}",
-        "source": "doi-pattern:jhep",
-    }
 
 
 def _format_publication(info):
@@ -294,124 +204,3 @@ class InspireClient:
             response.raise_for_status()
             return response.json()
         raise ValueError("INSPIRE retry limit reached")
-
-
-def snapshot_dois(path: Path):
-    """Read DOI inputs only, without reconstructing private analysis records."""
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("Snapshot must be an object")
-    result = set()
-    malformed = 0
-    if data.get("schema") in {"glance-api-registry", "glance-curated-registry"}:
-        from .registry.publication_dois import paper_dois
-
-        if not isinstance(data.get("papers"), list):
-            raise ValueError("Snapshot requires a papers list")
-        for paper in data["papers"]:
-            if not isinstance(paper, dict):
-                raise ValueError("Invalid paper record")
-            dois, invalid = paper_dois(paper)
-            result.update(dois)
-            malformed += invalid
-    else:
-        raise ValueError("Unsupported DOI snapshot format")
-    if malformed:
-        lookup_notice(
-            logger,
-            logging.WARNING,
-            "Skipped %d malformed DOI values in snapshot; valid DOIs will still be processed",
-            malformed,
-        )
-    return result
-
-
-@lookup_report()
-def resolve_dois(dois, cache_path: Path, *, method="infer", refresh=False, limit=None):
-    """Resolve missing entries; atomically checkpoint each success, never failures."""
-    if method not in {"infer", "inspire", "auto"}:
-        raise ValueError("Unknown DOI resolution method")
-    if limit is not None and (type(limit) is not int or limit < 1):
-        raise ValueError("Resolution limit must be positive")
-    inputs = sorted({normalize_doi(doi) for doi in dois})
-    logger.info("Resolving citations for %s DOIs using %s", f"{len(inputs):,}", method)
-    records = load_store(cache_path)
-    summary = Counter(
-        resolved=0, existing=0, locked=0, unresolved=0, failed=0, deferred=0
-    )
-    client = None
-    attempted = 0
-    try:
-        for doi in inputs:
-            previous = records.get(doi)
-            if previous is not None:
-                if previous["source"] == "manual":
-                    summary["locked"] += 1
-                    continue
-                if not refresh:
-                    summary["existing"] += 1
-                    continue
-            if limit is not None and attempted >= limit:
-                summary["deferred"] += 1
-                continue
-            attempted += 1
-            if attempted == 1 or attempted % 25 == 0:
-                logger.info(
-                    "Citation lookup %s; %s resolved so far",
-                    f"{attempted:,}",
-                    f"{summary['resolved']:,}",
-                )
-            logger.debug("Resolving DOI %s", doi)
-            try:
-                record = infer_citation(doi) if method in {"infer", "auto"} else None
-                if record is None and method in {"inspire", "auto"}:
-                    if client is None:
-                        client = InspireClient()
-                    payload = client.fetch(doi)
-                    record = (
-                        inspire_citation(doi, payload) if payload is not None else None
-                    )
-                if record is None:
-                    summary["unresolved"] += 1
-                    lookup_notice(
-                        logger,
-                        logging.WARNING,
-                        "%s: no citation resolved; entry remains retryable",
-                        doi,
-                    )
-                    continue
-            except requests.RequestException:
-                summary["failed"] += 1
-                lookup_notice(
-                    logger,
-                    logging.WARNING,
-                    "%s: INSPIRE request failed; entry remains retryable",
-                    doi,
-                )
-                continue
-            except ValueError as error:
-                summary["unresolved"] += 1
-                lookup_notice(
-                    logger,
-                    logging.WARNING,
-                    "%s: %s; entry remains retryable",
-                    doi,
-                    error,
-                )
-                continue
-            record["resolved_at"] = datetime.now(UTC).isoformat()
-            if (
-                previous is not None
-                and previous.get("material", "unknown") != "unknown"
-                and record.get("material", "unknown") == "unknown"
-            ):
-                summary["existing"] += 1
-                continue
-            records[doi] = record
-            save_store(cache_path, records)
-            summary["resolved"] += 1
-        save_store(cache_path, records)
-    finally:
-        if client is not None:
-            client.close()
-    return dict(summary)

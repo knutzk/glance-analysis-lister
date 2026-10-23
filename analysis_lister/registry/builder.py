@@ -7,7 +7,7 @@ import json
 import logging
 from pathlib import Path
 
-from ..citation_store import DEFAULT_CACHE, load_store
+from ..citations.store import DEFAULT_CACHE, load_store
 from ..downloaders.csv_io import read_csv_rows
 from ..downloaders.html import download_tasks
 from ..downloaders.scope import SCOPE_FILENAME, RetrievalScope, check_scope, read_scope

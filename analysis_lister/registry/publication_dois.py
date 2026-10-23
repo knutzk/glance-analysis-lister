@@ -5,8 +5,8 @@
 
 from urllib.parse import unquote, urlsplit
 
-from ..citation_store import citation_record, normalize_doi
-from .doi import order_doi_urls
+from ..citations.ordering import order_doi_urls
+from ..citations.store import citation_record, normalize_doi
 
 
 def paper_dois(paper):

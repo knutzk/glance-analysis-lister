@@ -137,7 +137,10 @@ class ConsoleTests(unittest.TestCase):
                 self.subTest(mode=mode),
                 patch.dict(os.environ, {"NO_COLOR": "1"}),
                 patch("sys.stdout", io.StringIO()) as output,
-                patch("analysis_lister.doi_resolver.format_citations", return_value=0),
+                patch(
+                    "analysis_lister.citations.formatting.format_citations",
+                    return_value=0,
+                ),
             ):
                 cli.main(
                     [

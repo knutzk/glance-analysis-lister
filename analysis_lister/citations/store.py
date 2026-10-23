@@ -85,7 +85,7 @@ def _unique_pairs(pairs):
 
 def default_store_path():
     """Locate the single tracked store in a checkout or installed distribution."""
-    checkout = Path(__file__).resolve().parent.parent / DEFAULT_CACHE
+    checkout = Path(__file__).resolve().parents[2] / DEFAULT_CACHE
     if checkout.is_file():
         return checkout
     try:

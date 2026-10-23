@@ -4,15 +4,15 @@
 """DOI extraction, deduplication, and publication/correction ordering.
 
 Cached material labels and conservative date inference share this implementation
-for CSV and JSON loading. Ambiguous order retains the input and emits a notice.
+for curated registry enrichment. Ambiguous order retains the input and emits a notice.
 """
 
 import logging
 import re
 
-from .. import citation_store
-from ..citation_store import normalize_doi
+from ..citations.store import normalize_doi
 from ..diagnostics import lookup_notice
+from . import store as citation_store
 
 logger = logging.getLogger(__name__)
 

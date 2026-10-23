@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from analysis_lister.doi_resolver import snapshot_dois
+from analysis_lister.citations.resolver import snapshot_dois
 from analysis_lister.registry.publication_dois import enrich_paper, paper_dois
 
 ORIGINAL = "10.1007/jhep01(2099)001"

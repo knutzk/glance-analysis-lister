@@ -13,22 +13,20 @@ from unittest.mock import Mock, patch
 import requests
 
 from analysis_lister import cli
-from analysis_lister.citation_store import (
+from analysis_lister.citations.formatting import format_citations, format_journal_name
+from analysis_lister.citations.inspire import InspireClient, inspire_citation
+from analysis_lister.citations.resolver import (
+    infer_citation,
+    resolve_dois,
+    snapshot_dois,
+)
+from analysis_lister.citations.store import (
     Citations,
     cached_citations,
     default_store_path,
     load_store,
     normalize_doi,
     save_store,
-)
-from analysis_lister.doi_resolver import (
-    InspireClient,
-    format_citations,
-    format_journal_name,
-    infer_citation,
-    inspire_citation,
-    resolve_dois,
-    snapshot_dois,
 )
 
 DOI = "10.9999/demo"
@@ -272,7 +270,7 @@ class ResolutionTests(unittest.TestCase):
 
     def test_inference_is_incremental_and_never_contacts_inspire(self):
         with patch(
-            "analysis_lister.doi_resolver.InspireClient",
+            "analysis_lister.citations.resolver.InspireClient",
             side_effect=AssertionError("network"),
         ):
             first = resolve_dois([JHEP, JHEP.lower()], self.path)
@@ -284,7 +282,7 @@ class ResolutionTests(unittest.TestCase):
 
     def test_locked_entries_are_protected_even_on_explicit_refresh(self):
         save_store(self.path, {DOI: record()})
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         client.assert_not_called()
         self.assertEqual(summary["locked"], 1)
@@ -292,12 +290,12 @@ class ResolutionTests(unittest.TestCase):
 
     def test_source_alone_controls_protection_for_legacy_entries(self):
         self.path.write_text(json.dumps({DOI: record(source="manual", locked=False)}))
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         client.assert_not_called()
         self.assertEqual(summary["locked"], 1)
         self.path.write_text(json.dumps({DOI: record(source="inspire", locked=True)}))
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.return_value = payload()
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         self.assertEqual(summary["resolved"], 1)
@@ -307,7 +305,7 @@ class ResolutionTests(unittest.TestCase):
         self,
     ):
         save_store(self.path, {DOI: record("Old", source="inspire")})
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.return_value = payload()
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         self.assertEqual(summary["resolved"], 1)
@@ -332,21 +330,21 @@ class ResolutionTests(unittest.TestCase):
 
     def test_failures_are_retryable_and_successes_survive_interruption(self):
         second = "10.9999/other"
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = [requests.ReadTimeout(), payload()]
             first = resolve_dois([DOI], self.path, method="inspire")
             self.assertNotIn(DOI, load_store(self.path))
             retry = resolve_dois([DOI], self.path, method="inspire")
         self.assertEqual(first["failed"], 1)
         self.assertEqual(retry["resolved"], 1)
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = KeyboardInterrupt()
             with self.assertRaises(KeyboardInterrupt):
                 resolve_dois([second], self.path, method="inspire")
         self.assertIn(DOI, load_store(self.path))
 
     def test_auto_infers_before_api_and_limit_counts_only_attempts(self):
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([JHEP, DOI], self.path, method="auto", limit=1)
         client.assert_not_called()  # The JHEP DOI sorts first.
         self.assertEqual(summary["resolved"], 1)
@@ -529,8 +527,8 @@ class InspireTests(unittest.TestCase):
             inspire_citation(DOI, data)["citation"], "Demo J. 12 (2099) 101"
         )
 
-    @patch("analysis_lister.doi_resolver.time.sleep")
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_http_client_uses_verified_tls_timeouts_and_bounded_rate_limit_retry(
         self, session, sleep
     ):
@@ -549,8 +547,8 @@ class InspireTests(unittest.TestCase):
         client.close()
         session.return_value.close.assert_called_once()
 
-    @patch("analysis_lister.doi_resolver.time.sleep")
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_tls_errors_are_not_retried_and_long_retry_after_is_deferred(
         self, session, sleep
     ):
@@ -567,7 +565,24 @@ class InspireTests(unittest.TestCase):
             InspireClient().fetch(DOI)
         sleep.assert_not_called()
 
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
+    def test_http_date_retry_after_uses_utc_and_remains_bounded(self, session, sleep):
+        from datetime import UTC, datetime
+
+        session.return_value.get.side_effect = [
+            response(429, headers={"Retry-After": "Thu, 01 Jan 2099 00:00:06 GMT"}),
+            response(),
+        ]
+        with patch("analysis_lister.citations.inspire.datetime") as clock:
+            clock.now.return_value = datetime(2099, 1, 1, tzinfo=UTC)
+            self.assertEqual(InspireClient().fetch(DOI), payload())
+        self.assertIn(
+            ((6.0,), {}), [(call.args, call.kwargs) for call in sleep.call_args_list]
+        )
+        self.assertEqual(session.return_value.get.call_count, 2)
+
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_not_found_is_unresolved(self, session):
         session.return_value.get.return_value = response(404)
         self.assertIsNone(InspireClient().fetch(DOI))

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.registry.doi import order_doi_urls
+from analysis_lister.citations.ordering import order_doi_urls
 
 ORIGINAL = "10.1140/epjc/s10052-024-11111-1"
 CORRECTION = "10.1140/epjc/s10052-024-99999-9"
@@ -19,7 +19,7 @@ class DoiOrderTests(unittest.TestCase):
     def test_cached_material_orders_correction_before_date_inference(self):
         with (
             patch.dict(
-                "analysis_lister.citation_store.Citations",
+                "analysis_lister.citations.store.Citations",
                 {
                     ORIGINAL: {"material": "publication"},
                     CORRECTION: {"material": "erratum"},

@@ -325,7 +325,7 @@ def _run_render_group(args):
 
 
 def _run_resolve_dois(args):
-    from analysis_lister.doi_resolver import resolve_dois, snapshot_dois
+    from analysis_lister.citations.resolver import resolve_dois, snapshot_dois
 
     dois = snapshot_dois(args.snapshot) if args.snapshot is not None else args.doi
     summary = resolve_dois(
@@ -344,7 +344,7 @@ def _run_resolve_dois(args):
 
 
 def _run_format_citations(args):
-    from analysis_lister.doi_resolver import format_citations
+    from analysis_lister.citations.formatting import format_citations
 
     changed = format_citations(args.doi_cache)
     print_summary(f"Updated formatting in {changed} citation(s).", color=args.color)
@@ -355,7 +355,7 @@ def run(args):
     if args.command == "build-registry" or not hasattr(args, "doi_cache"):
         args.handler(args)
         return
-    from analysis_lister.citation_store import cached_citations
+    from analysis_lister.citations.store import cached_citations
 
     with cached_citations(args.doi_cache):
         args.handler(args)

@@ -614,3 +614,8 @@ Python clients can pass `PublicationPolicy` separately through
 `GroupProfile(..., publication_policy=policy)`. `None` means missing configuration;
 an empty `PublicationPolicy()` is explicit and selects no publications. Reports
 use schema version 2 and include this policy under `profile.publication_policy`.
+
+Citation implementation lives in `citations/store.py`, `formatting.py`,
+`ordering.py`, `inspire.py` (verified, bounded public HTTP client), and
+`resolver.py` (incremental resolution workflow). GLANCE link extraction stays
+in `registry/publication_dois.py`; registry building never performs a lookup.

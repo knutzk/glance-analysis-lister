@@ -88,7 +88,7 @@ assert "bs4" not in sys.modules
             patch(
                 "analysis_lister.downloaders.api.download_registry", return_value={}
             ) as operation,
-            patch("analysis_lister.citation_store.cached_citations") as citations,
+            patch("analysis_lister.citations.store.cached_citations") as citations,
         ):
             cli.main(["download-api"])
         operation.assert_called_once_with(

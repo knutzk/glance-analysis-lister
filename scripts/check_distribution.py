@@ -17,7 +17,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import analysis_lister
-from analysis_lister.citation_store import default_store_path, load_store
+from analysis_lister.citations.store import default_store_path, load_store
 from analysis_lister.downloaders.html import (
     INTERMEDIATE_CA,
     download_tasks,
