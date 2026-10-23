@@ -4,12 +4,12 @@
 # fall back to their internal identifier token, with a warning.
 
 [groups.TOPQ]
-title = "Top Quark Physics"
+title = "Top physics"
 groups = ["TOPQ"]
 subgroups = ["HIGG-HSG8", "HIGP-Tops"]
 keywords = []
 
 [groups.HIGP]
-title = "Higgs Boson Physics"
+title = "Higgs physics"
 groups = ["HIGP", "HIGG"]
 subgroups = ["HDBS-DiHiggs"]
