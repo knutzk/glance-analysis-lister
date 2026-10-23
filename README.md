@@ -189,6 +189,92 @@ overwritten. Existing output must have the curated schema and the same API
 endpoint. Drops greater than 20% per resource are rejected unless
 `--allow-count-drop` is supplied; other validations still apply.
 
+### Group-wide ongoing analysis cards
+
+The `views/` package reads the curated registry independently of the legacy
+models and Markdown views. It supports any exact main-group name in the snapshot:
+
+```bash
+analysis-lister render-group --group TOPQ \
+  --snapshot json/glance_curated_registry.json --output-dir pages/topq
+```
+
+This writes `ongoing.md`, `view-report.json`, and reusable CSS/JavaScript under
+`assets/`. `--group-title` optionally changes the display title. Rendering is
+entirely offline: it does not download data, authenticate, or resolve citations.
+The existing `render` and `export-obsidian` commands still consume legacy data.
+
+Each native analysis appears once, with leading or additional group participation.
+Closed and not-started analyses are excluded. Active phase 0 or an explicitly
+linked publication under review establishes an ongoing analysis. Resolved
+publications beyond review prevent stale phase-0 status from double-counting.
+A finished phase 0 without enough publication evidence is listed separately as
+needing review. Publication-owned relationships take precedence over contradictory
+analysis links; usable one-way links are reported. No title or legacy clone
+matching is applied.
+
+Other Python clients can reuse the prepared data without Markdown:
+
+```python
+from analysis_lister.registry import CuratedRegistry
+from analysis_lister.views.profiles import GroupProfile
+from analysis_lister.views.selection import prepare_group
+
+view = prepare_group(
+    CuratedRegistry.from_json("json/glance_curated_registry.json"),
+    GroupProfile("TOPQ"),
+)
+# view.ongoing, view.needs_review, view.decisions
+```
+
+Cards show short titles, GLANCE buttons, group/subgroup tags, and a five-step
+approval flow. Leading affiliations carry a solid accent marker. Click a collapsed
+card to expand contacts, editors, editorial-board chairs, phase-0/paper milestones,
+email addresses, supporting documents, statistical tools, triggers, and keywords.
+Expanded cards stay open until their bottom Collapse button is used. Keyboard
+users can expand through the title. Expand all / Collapse all applies to visible
+cards. Every card has a `#` permalink that opens and scrolls to it; filters reset
+if they would hide the linked target.
+
+Filters offer group-namespaced subgroup buttons and keyword/trigger checkbox
+dropdowns, plus text search, result count and reset. Subgroup choices match leading
+or additional assignments and appear only when the page has matching records.
+Selections use OR within each category and AND across categories. Review sorting
+uses the exact visible tick pattern, with later ticks taking precedence; identical
+tick patterns sort by analysis identifier. The flow and headers adapt to the
+card width. Without JavaScript, all cards and details remain readable.
+
+Subgroup selections can be shared using repeated `subgroup` query parameters:
+`ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second`. Use exact namespaced values
+available on the destination page, URL-encoded as needed. Subgroup changes update
+the address bar and Reset removes them; other filters are not persisted in URLs.
+
+Enable one copy of the generated assets in the documentation site's configuration.
+For output under `docs/analyses/previews/topq`:
+
+```yaml
+extra_css:
+  - analyses/previews/topq/assets/gal-views.css
+extra_javascript:
+  - analyses/previews/topq/assets/gal-views.js
+```
+
+Append these entries to existing lists. Initialization supports Zensical/Material
+instant navigation and inserted page content. The report records the snapshot
+SHA-256, source timestamps, rule versions, source fields, relationship diagnostics,
+and inclusion/sort decisions. Keep reports private with the generated pages.
+No private lookup files or data need to be copied into this package.
+
+The development-only browser check uses independently invented fixtures:
+
+```bash
+python scripts/check_card_filters.py --driver /path/to/chromedriver
+```
+
+It checks filtering, sorting, subgroup URLs, permalinks, card expansion, keyboard
+interaction, responsive layout, repeated initialization, document replacement,
+and the no-JavaScript fallback. The runtime renderer does not depend on Selenium.
+
 ## Supplemental HTML downloads
 
 ```bash

@@ -85,6 +85,7 @@ def main():
             ["--help"],
             ["download-api", "--help"],
             ["download-html", "--help"],
+            ["render-group", "--help"],
             ["validate-lookups"],
             [
                 "resolve-dois",
@@ -174,6 +175,14 @@ def main():
                 {"url": "https://doi.org/10.1007/JHEP07(2099)999"}
             ],
         }
+        raw["analyses"][0]["status"] = "Phase 0 Active"
+        raw["analyses"][0]["groups"] = {
+            "leadingGroup": {"name": "DEMO"},
+            "leadingSubgroup": None,
+            "otherGroups": [],
+            "subgroups": [],
+        }
+        raw["analyses"][0]["phase0"] = {"startDate": "2099-01-01"}
         api_input.write_text(json.dumps(raw))
         curated_path = work / "curated.json"
         subprocess.run(
@@ -204,6 +213,29 @@ def main():
             curated["papers"][0]["publicationPhase"]["gal_dois"][0]["citation"]
             == "JHEP 07 (2099) 999"
         )
+        group_output = work / "group-pages"
+        subprocess.run(
+            [
+                str(executable),
+                "render-group",
+                "--group",
+                "DEMO",
+                "--snapshot",
+                str(curated_path),
+                "--output-dir",
+                str(group_output),
+            ],
+            cwd=work,
+            check=True,
+        )
+        assert (group_output / "ongoing.md").is_file()
+        assert "data-gal-item" in (group_output / "ongoing.md").read_text()
+        for name in ("gal-views.js", "gal-views.css"):
+            assert (group_output / "assets" / name).read_bytes() == (
+                root / "analysis_lister/views/assets" / name
+            ).read_bytes()
+        report = json.loads((group_output / "view-report.json").read_text())
+        assert report["counts"]["ongoing_analyses"] == 1
         subprocess.run(
             [sys.executable, "-I", "-m", "analysis_lister", "--help"],
             cwd=work,
