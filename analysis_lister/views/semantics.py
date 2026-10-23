@@ -5,6 +5,9 @@
 
 import re
 from datetime import datetime
+from urllib.parse import urlsplit
+
+from attrs import asdict
 
 from .models import Decision
 
@@ -43,6 +46,82 @@ def group_membership(record, group):
         leading or additional,
         "leading" if leading else "additional" if additional else "not affiliated",
         inputs,
+    )
+
+
+def publication_subgroups(record, related):
+    """Current-snapshot labels; an explicit analysis link supplies missing labels."""
+
+    def labels(value):
+        groups = value.get("gal_groups") or {}
+        return list(
+            dict.fromkeys(
+                name
+                for name in [
+                    groups.get("leadingSubgroup"),
+                    *(groups.get("subgroups") or []),
+                ]
+                if name
+            )
+        )
+
+    direct = labels(record)
+    inputs = {
+        "gal_groups.leadingSubgroup": (record.get("gal_groups") or {}).get(
+            "leadingSubgroup"
+        ),
+        "gal_groups.subgroups": (record.get("gal_groups") or {}).get("subgroups", []),
+    }
+    reason = "subgroup assignments recorded on the publication in the current snapshot"
+    value = direct
+    if not direct and related is not None:
+        value = labels(related)
+        inputs.update(
+            {
+                "relatedAnalysis": record.get("relatedAnalysis"),
+                "analysis.gal_groups": related.get("gal_groups"),
+            }
+        )
+        reason = "missing publication subgroups inherited through its explicit analysis link; current snapshot assignments"
+    return Decision("publication-current-subgroups/v1", value, reason, inputs)
+
+
+def publication_leading_subgroup(record, related):
+    value = (record.get("gal_groups") or {}).get("leadingSubgroup")
+    inputs = {"gal_groups.leadingSubgroup": value}
+    reason = "leading subgroup recorded on the publication in the current snapshot"
+    if not value and related is not None:
+        value = (related.get("gal_groups") or {}).get("leadingSubgroup")
+        inputs.update(
+            {
+                "relatedAnalysis": record.get("relatedAnalysis"),
+                "analysis.gal_groups.leadingSubgroup": value,
+            }
+        )
+        reason = "missing leading subgroup inherited through the explicit analysis link; current snapshot assignment"
+    return Decision("publication-leading-subgroup/v1", value or None, reason, inputs)
+
+
+def publication_filter_values(record, related, field):
+    path = "metadata." + field
+    values = (record.get("metadata") or {}).get(field) or []
+    inputs = {path: values}
+    reason = "values recorded on the publication"
+    if not values and related is not None:
+        values = (related.get("metadata") or {}).get(field) or []
+        inputs.update(
+            {
+                "relatedAnalysis": record.get("relatedAnalysis"),
+                "analysis." + path: values,
+            }
+        )
+        reason = (
+            "missing values inherited through the explicit analysis link"
+            if values
+            else "no values recorded on the publication or linked analysis"
+        )
+    return Decision(
+        "publication-filter-metadata/v1", list(dict.fromkeys(values)), reason, inputs
     )
 
 
@@ -291,6 +370,106 @@ def analysis_email_lists(reference):
     )
 
 
+def publication_details(record, resource, related=None):
+    """Prepare publication-owned people and links without legacy models or requests."""
+    phase = record.get("phase1") or {}
+    publication = record.get("publicationPhase") or {}
+    sources = {
+        "gal_analysisContacts": record.get("gal_analysisContacts") or [],
+        "gal_contactEditors": record.get("gal_contactEditors") or [],
+        "phase1.gal_editorialBoard": phase.get("gal_editorialBoard") or [],
+        "gal_groups": record.get("gal_groups") or {},
+        "gal_figuresUrl": record.get("gal_figuresUrl"),
+        "phase1.publicWebPageUrlForFiguresAndTables": phase.get(
+            "publicWebPageUrlForFiguresAndTables"
+        ),
+        "publicationPhase.arXivUrls": publication.get("arXivUrls") or [],
+        "publicationPhase.gal_dois": publication.get("gal_dois") or [],
+        "documentation.supportingInternalDocuments": (
+            record.get("documentation") or {}
+        ).get("supportingInternalDocuments")
+        or [],
+    }
+    groups = sources["gal_groups"]
+    if (
+        not groups.get("leadingGroup")
+        and not groups.get("otherGroups")
+        and related is not None
+    ):
+        groups = related.get("gal_groups") or {}
+        sources["relatedAnalysis"] = record.get("relatedAnalysis")
+        sources["relatedAnalysis.gal_groups"] = groups
+    links = []
+    public_url = (
+        sources["gal_figuresUrl"]
+        or sources["phase1.publicWebPageUrlForFiguresAndTables"]
+    )
+    if public_url:
+        links.append({"label": "Public page", "url": public_url})
+    for source, label in (
+        ("publicationPhase.arXivUrls", "arXiv"),
+        ("publicationPhase.gal_dois", "DOI"),
+        ("documentation.supportingInternalDocuments", "Supporting document"),
+    ):
+        for item in sources[source]:
+            if isinstance(item, dict):
+                links.append(
+                    {
+                        "label": item.get("label") or label,
+                        "url": item.get("url")
+                        or (
+                            "https://doi.org/" + item["doi"]
+                            if item.get("doi")
+                            else None
+                        ),
+                    }
+                )
+    publication_records = []
+    for item in sources["publicationPhase.arXivUrls"]:
+        if isinstance(item, dict) and item.get("url"):
+            publication_records.append({"label": "arXiv", "url": item["url"]})
+    for item in sources["publicationPhase.gal_dois"]:
+        if isinstance(item, dict):
+            url = item.get("url") or (
+                "https://doi.org/" + item["doi"] if item.get("doi") else None
+            )
+            if url:
+                publication_records.append(
+                    {
+                        "label": item.get("citation") or item.get("doi") or "DOI",
+                        "url": url,
+                    }
+                )
+    is_note = resource in {"confnotes", "pubnotes"}
+    cds_record = note_cds_record(record, resource) if is_note else None
+    conf_details = note_expansion(record, resource) if is_note else None
+    if cds_record is not None:
+        sources["cds_record"] = asdict(cds_record)
+        sources[
+            "conf_note_expansion" if resource == "confnotes" else "pub_note_expansion"
+        ] = asdict(conf_details)
+    milestone = last_paper_milestone(record) if resource == "papers" else None
+    if milestone is not None:
+        sources["last_paper_milestone"] = asdict(milestone)
+    return Decision(
+        "publication-details/v3",
+        {
+            "last_milestone": milestone.value if milestone else None,
+            "publication_records": publication_records,
+            "contacts": sources["gal_analysisContacts"],
+            "editors": sources["gal_contactEditors"],
+            "board": sources["phase1.gal_editorialBoard"],
+            "groups": groups,
+            "links": links,
+            "cds_url": cds_record.value if cds_record else None,
+            "conf_note": conf_details.value if resource == "confnotes" else None,
+            "pub_note": conf_details.value if resource == "pubnotes" else None,
+        },
+        "people and links recorded directly on the publication; missing main groups use the explicitly linked analysis affiliation; no inferred people or external requests",
+        sources,
+    )
+
+
 def associated_paper_statuses(record, papers):
     """Expose native paper status after phase 0, without replacing analysis status."""
     return Decision(
@@ -391,3 +570,183 @@ def analysis_review_order(progress):
             }
         },
     )
+
+
+def note_cds_record(record, resource):
+    """Use the recorded CDS record URL; do not guess a URL from note identifiers."""
+    raw = (record.get("phase1") or {}).get("draftCdsUrl")
+    value = None
+    if isinstance(raw, str):
+        try:
+            parsed = urlsplit(raw.strip())
+            if (
+                parsed.scheme in {"https", "http"}
+                and parsed.hostname in {"cds.cern.ch", "cdsweb.cern.ch"}
+                and re.fullmatch(r"/records?/\d+/?", parsed.path)
+            ):
+                value = raw.strip()
+        except ValueError:
+            pass
+    return Decision(
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-cds-record/v1",
+        value,
+        "recorded phase-1 CDS record link with HTTP(S) and a CDS record path; absent or invalid URLs stay empty",
+        {"phase1.draftCdsUrl": raw},
+    )
+
+
+def note_expansion(record, resource):
+    """Prepare recorded note people, supersession and auxiliary metadata."""
+    phase = record.get("phase1") or {}
+    metadata = record.get("metadata") or {}
+    paths = {
+        "Analysis contacts": (
+            "gal_analysisContacts",
+            record.get("gal_analysisContacts") or [],
+        ),
+        "Contact editors": (
+            "gal_contactEditors",
+            record.get("gal_contactEditors") or [],
+        ),
+        "Editorial board": (
+            "phase1.gal_editorialBoard",
+            phase.get("gal_editorialBoard") or [],
+        ),
+        "Editorial-board chairs": (
+            "phase1.gal_editorialBoardChairs",
+            phase.get("gal_editorialBoardChairs") or [],
+        ),
+        "Ex-officio editorial board": (
+            "phase1.gal_editorialBoardExOfficio",
+            phase.get("gal_editorialBoardExOfficio") or [],
+        ),
+        "First sign-off responsible": (
+            "phase1.gal_firstSignOffResponsible",
+            phase.get("gal_firstSignOffResponsible") or [],
+        ),
+        "Second sign-off responsible": (
+            "phase1.gal_secondSignOffResponsible",
+            phase.get("gal_secondSignOffResponsible") or [],
+        ),
+    }
+
+    if resource == "pubnotes":
+        paths = {
+            "Analysis contacts": paths["Analysis contacts"],
+            "Contact editors": paths["Contact editors"],
+            **{
+                label: ("phase1." + field, phase.get(field) or [])
+                for label, field in (
+                    ("Readers", "gal_readers"),
+                    ("First readers", "gal_firstReaders"),
+                    ("Second readers", "gal_secondReaders"),
+                )
+            },
+        }
+
+    def name_list(value):
+        if isinstance(value, str):
+            return [value.strip()] if value.strip() else []
+        return (
+            [name.strip() for name in value if isinstance(name, str) and name.strip()]
+            if isinstance(value, (list, tuple))
+            else []
+        )
+
+    people = []
+    chairs = name_list(paths.get("Editorial-board chairs", ("", []))[1])
+    for label, (_, names) in paths.items():
+        names = name_list(names)
+        if label == "Editorial-board chairs":
+            continue  # Chairs are marked in the combined board list.
+        if label == "Editorial board":
+            names = [
+                name + (" (chair)" if name in chairs else "")
+                for name in dict.fromkeys([*names, *chairs])
+            ]
+        people.append({"label": label, "names": list(names)})
+    if "gal_internalNoteEditors" in record:
+        paths["Internal-note editors"] = (
+            "gal_internalNoteEditors",
+            record["gal_internalNoteEditors"] or [],
+        )
+        people.insert(
+            1,
+            {
+                "label": "Internal-note editors",
+                "names": name_list(paths["Internal-note editors"][1]),
+            },
+        )
+    tools = [
+        item.get("name") if isinstance(item, dict) else item
+        for item in metadata.get("mvaMlTools") or []
+    ]
+    collisions = []
+    for entry in metadata.get("collisions") or []:
+        if not isinstance(entry, dict):
+            continue
+        parts = [entry.get("year"), entry.get("run"), entry.get("type")]
+        for value_key, unit_key in (
+            ("ecmValue", "ecmUnit"),
+            ("luminosityValue", "luminosityUnit"),
+        ):
+            value = entry.get(value_key)
+            if value:
+                parts.append(
+                    " ".join(str(v) for v in (value, entry.get(unit_key)) if v)
+                )
+        if any(parts):
+            collisions.append(" · ".join(str(part) for part in parts if part))
+    supersession = note_supersession(record, resource)
+    return Decision(
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-expansion/v2",
+        {
+            "people": people,
+            "tags": [
+                {
+                    "label": "MVA / ML tools",
+                    "values": list(
+                        dict.fromkeys(t for t in tools if isinstance(t, str) and t)
+                    ),
+                },
+                {"label": "Collisions", "values": list(dict.fromkeys(collisions))},
+            ],
+            "superseded": supersession.value,
+            "superseded_by": [
+                dict(link)
+                for link in record.get("supersededBy") or []
+                if isinstance(link, dict)
+            ],
+            "related_analysis": record.get("relatedAnalysis"),
+        },
+        "direct recorded names; board chairs marked and deduplicated; readable metadata labels; explicit supersession links; missing values remain empty",
+        {
+            **dict(paths.values()),
+            "metadata.mvaMlTools": metadata.get("mvaMlTools"),
+            "metadata.collisions": metadata.get("collisions"),
+            "supersession": asdict(supersession),
+            "relatedAnalysis": record.get("relatedAnalysis"),
+        },
+    )
+
+
+def note_supersession(record, resource):
+    links = record.get("supersededBy") or []
+    return Decision(
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-supersession/v1",
+        bool(links),
+        "superseded when the source records a replacing publication/analysis link; target resolution is not required; no inference from title or date",
+        {"supersededBy": links},
+    )
+
+
+def conf_note_cds_record(record):
+    return note_cds_record(record, "confnotes")
+
+
+def conf_note_expansion(record):
+    return note_expansion(record, "confnotes")
+
+
+def conf_note_supersession(record):
+    return note_supersession(record, "confnotes")

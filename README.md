@@ -184,96 +184,40 @@ all records and applies no clone, status, subgroup or publication-precedence
 rules. Returned records and metadata are copies. It reads schema version 2;
 version 1 curated outputs can still be rebuilt using the builder.
 
-Output is published atomically after validation. Source files cannot be
-overwritten. Existing output must have the curated schema and the same API
-endpoint. Drops greater than 20% per resource are rejected unless
-`--allow-count-drop` is supplied; other validations still apply.
+### Curated group views
 
-### Group-wide ongoing analysis cards
-
-The `views/` package reads the curated registry independently of the legacy
-models and Markdown views. It supports any exact main-group name in the snapshot:
+Render ongoing analyses, papers, CONF notes and PUB notes from a saved curated
+registry, independently of the legacy models:
 
 ```bash
-analysis-lister render-group --group TOPQ \
-  --snapshot json/glance_curated_registry.json --output-dir pages/topq
+analysis-lister render-group --group DEMO \
+  --curation-config publication-curation.toml \
+  --snapshot json/glance_curated_registry.json --output-dir pages/demo
 ```
 
-This writes `ongoing.md`, `view-report.json`, and reusable CSS/JavaScript under
-`assets/`. `--group-title` optionally changes the display title. Rendering is
-entirely offline: it does not download data, authenticate, or resolve citations.
-The existing `render` and `export-obsidian` commands still consume legacy data.
+This writes `ongoing.md`, `papers.md`, `confnotes.md`, `pubnotes.md`, a private
+`view-report.json` and reusable assets. Rendering is offline. The report records
+the snapshot hash, source fields, rule versions and selection evidence. Other
+clients can reuse `prepare_group(registry, GroupProfile(...))` and `view.archive`
+without Markdown. Ongoing analyses use leading/additional main-group affiliation;
+publication curation is separately configurable as described below.
 
-Each native analysis appears once, with leading or additional group participation.
-Closed and not-started analyses are excluded. Active phase 0 or an explicitly
-linked publication under review establishes an ongoing analysis. Resolved
-publications beyond review prevent stale phase-0 status from double-counting.
-A finished phase 0 without enough publication evidence is listed separately as
-needing review. Publication-owned relationships take precedence over contradictory
-analysis links; usable one-way links are reported. No title or legacy clone
-matching is applied.
-
-Other Python clients can reuse the prepared data without Markdown:
-
-```python
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.selection import prepare_group
-
-view = prepare_group(
-    CuratedRegistry.from_json("json/glance_curated_registry.json"),
-    GroupProfile("TOPQ"),
-)
-# view.ongoing, view.needs_review, view.decisions
-```
-
-Cards show short titles, GLANCE buttons, group/subgroup tags, and a five-step
-approval flow. Leading affiliations carry a solid accent marker. Click a collapsed
-card to expand contacts, editors, editorial-board chairs, phase-0/paper milestones,
-email addresses, supporting documents, statistical tools, triggers, and keywords.
-Expanded cards stay open until their bottom Collapse button is used. Keyboard
-users can expand through the title. Expand all / Collapse all applies to visible
-cards. Every card has a `#` permalink that opens and scrolls to it; filters reset
-if they would hide the linked target.
-
-Filters offer group-namespaced subgroup buttons and keyword/trigger checkbox
-dropdowns, plus text search, result count and reset. Subgroup choices match leading
-or additional assignments and appear only when the page has matching records.
-Selections use OR within each category and AND across categories. Review sorting
-uses the exact visible tick pattern, with later ticks taking precedence; identical
-tick patterns sort by analysis identifier. The flow and headers adapt to the
-card width. Without JavaScript, all cards and details remain readable.
-
-Subgroup selections can be shared using repeated `subgroup` query parameters:
-`ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second`. Use exact namespaced values
-available on the destination page, URL-encoded as needed. Subgroup changes update
-the address bar and Reset removes them; other filters are not persisted in URLs.
-
-Enable one copy of the generated assets in the documentation site's configuration.
-For output under `docs/analyses/previews/topq`:
+Enable one shared copy of the generated assets in the documentation site:
 
 ```yaml
 extra_css:
   - analyses/previews/topq/assets/gal-views.css
+  - analyses/previews/topq/assets/gal-publications.css
+  - analyses/previews/topq/assets/gal-confnotes.css
 extra_javascript:
   - analyses/previews/topq/assets/gal-views.js
+  - analyses/previews/topq/assets/gal-publications.js
+  - analyses/previews/topq/assets/gal-confnotes.js
 ```
 
-Append these entries to existing lists. Initialization supports Zensical/Material
-instant navigation and inserted page content. The report records the snapshot
-SHA-256, source timestamps, rule versions, source fields, relationship diagnostics,
-and inclusion/sort decisions. Keep reports private with the generated pages.
-No private lookup files or data need to be copied into this package.
-
-The development-only browser check uses independently invented fixtures:
-
-```bash
-python scripts/check_card_filters.py --driver /path/to/chromedriver
-```
-
-It checks filtering, sorting, subgroup URLs, permalinks, card expansion, keyboard
-interaction, responsive layout, repeated initialization, document replacement,
-and the no-JavaScript fallback. The runtime renderer does not depend on Selenium.
+Append these to existing asset lists. Filters initialize on Zensical instant
+navigation and dynamically inserted content; the full collections remain readable
+without JavaScript. Rendering and filtering require no Selenium dependency.
 
 ## Supplemental HTML downloads
 
@@ -652,3 +596,74 @@ The bundled Sectigo certificate is a third-party artifact, whose issuer and
 provenance are documented [separately](analysis_lister/certs/README.md).
 
 Maintainer: [Knut Zoch](https://github.com/knutzk).
+
+
+Group view links can preselect subgroup buttons with a repeated `subgroup` query
+parameter, for example `ongoing/?subgroup=DEMO-Subgroup`. Multiple values use OR:
+`ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second`. Use exact namespaced labels
+present on the destination page, with URL encoding when needed. This also works
+on the publication archive. Subgroup button changes update the address bar;
+Reset filters removes those parameters. Other filters are not persisted in URLs.
+Without JavaScript, the complete static collection remains available.
+
+Each ongoing card has a `#` permalink that opens and scrolls to that card.
+If a linked card is hidden by active filters, the filters reset to reveal it.
+The Expand all / Collapse all control applies to the currently visible cards.
+
+
+### Publication archive views
+
+Papers, CONF notes and PUB notes have separate expandable tables, with alternating
+summary rows, hover highlighting and plain detail panels. Click a row to toggle
+its details or use its Collapse button. Expand all / Collapse all affects visible
+results. Identifier buttons open GLANCE; papers also link to arXiv and each DOI's
+own cached citation, while notes link to their recorded public CDS URL.
+
+All three pages search identifiers, subgroup names, short titles, citations,
+keywords and people. Paper search also includes bare DOIs, and note search includes
+CDS URLs. There are no metadata dropdowns or note subgroup buttons. People and
+metadata remain available in expanded details. Papers filter by DOI presence
+(Published / Under review); notes filter explicit supersession, defaulting to
+non-superseded notes. Superseding objects remain linked even if absent locally.
+
+Inclusive year/month bounds use publication dates for papers and release dates
+for notes. Undated entries remain visible unless a before bound is set. Reset
+clears search and dates and restores the default status selection. Filters update
+shareable `q`, `after`, `before`, paper `status` and note `supersession` URL
+parameters, restored on reload and browser navigation. No pagination is applied.
+
+Publication search/rendering is separate from ongoing analysis search. Papers
+use `views/markdown/archive.py`, `publication_filtering.py` and `gal-publications`
+assets. Notes share `notes.py` and `gal-confnotes` assets. Ongoing cards retain
+subgroup buttons, review-stage sorting and free-text keyword/trigger search.
+Expand and Reset controls are grouped at the right across all views.
+
+Publication curation is the OR of explicitly configured groups, subgroups and
+keywords, with no implicit extra group criterion. Groups match internal identifier
+tokens or leading/additional affiliations; subgroups match exact leading/additional
+names; keywords match exact labels ignoring case. Missing affiliations/metadata
+can use the explicitly linked analysis, with source evidence in the report.
+
+```toml
+[groups.DEMO]
+title = "Demonstration physics"
+groups = ["DEMO", "LEGACY"]
+subgroups = ["OTHER-Invented"]
+keywords = ["Invented topic"]
+```
+
+Pass this file with `--curation-config`. Every rendered group should have an
+explicit table, including groups using only their own group name. `title` controls
+publication headings without changing the ongoing heading. A configured empty
+policy selects nothing. Missing group configuration prints a stdout warning and
+falls back to the internal identifier's group token only. Private policies belong
+in the consuming repository, never bundled with this package.
+
+Run synthetic browser checks with an installed Chrome/ChromeDriver:
+
+```bash
+python scripts/check_card_filters.py --driver /path/to/chromedriver
+python scripts/check_publication_filters.py --driver /path/to/chromedriver
+python scripts/check_confnote_filters.py --resource confnotes --driver /path/to/chromedriver
+python scripts/check_confnote_filters.py --resource pubnotes --driver /path/to/chromedriver
+```

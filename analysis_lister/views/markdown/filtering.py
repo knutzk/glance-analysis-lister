@@ -60,10 +60,11 @@ def render_controls(
             out += (
                 f'<option value="{escape(value, quote=True)}">{escape(label)}</option>'
             )
-        out += '</select></div><button type="button" data-gal-expand-all aria-pressed="false">Expand all</button>'
+        out += "</select></div>"
+    out += '<div class="gal-filter-action-buttons"><button type="button" data-gal-expand-all aria-pressed="false">Expand all</button>'
     return (
         out
-        + '<button type="button" class="gal-reset" data-gal-reset>Reset filters</button></div></div>\n'
+        + '<button type="button" class="gal-reset" data-gal-reset>Reset filters</button></div></div></div>\n'
     )
 
 

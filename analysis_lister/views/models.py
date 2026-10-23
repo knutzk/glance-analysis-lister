@@ -38,11 +38,49 @@ class AnalysisRow:
 
 
 @frozen
+class PublicationRow:
+    resource: str
+    reference: str
+    label: str
+    title: str
+    state: str
+    date: str | None
+    subgroups: tuple
+    citations: tuple
+    filter_metadata: dict
+    provenance: dict
+    details: dict
+
+
+@frozen
 class GroupView:
     profile: object
     ongoing: tuple
     needs_review: tuple
+    publications: tuple
+    recent: tuple
     decisions: tuple
     source_metadata: dict
+    publication_filters: dict
     subgroup_buttons: tuple
     subgroup_button_provenance: dict
+
+    @property
+    def archive(self):
+        """Submitted/published papers and released notes, newest known dates first."""
+        return tuple(
+            sorted(
+                (
+                    row
+                    for row in self.publications
+                    if row.state in {"submitted", "published", "released"}
+                ),
+                key=lambda row: (
+                    row.date is not None,
+                    row.date or "",
+                    row.resource,
+                    row.reference,
+                ),
+                reverse=True,
+            )
+        )

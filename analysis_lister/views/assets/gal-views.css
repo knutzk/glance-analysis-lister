@@ -197,3 +197,6 @@
 .gal-card .gal-badge--leading { color: inherit; border-color: var(--gal-border); background: transparent; font-weight: 700; }
 /* A solid marker distinguishes leading affiliations without link-button styling. */
 .gal-card .gal-badge--leading { border-inline-start: 3px solid var(--gal-accent); background: color-mix(in srgb, var(--md-default-fg-color, #253041) 5%, var(--md-default-bg-color, #fff)); font-weight: 700; }
+
+.gal-ongoing .gal-filter-action-buttons { display: flex; gap: .4rem; margin-left: auto; align-items: center; }
+.gal-ongoing .gal-filter-action-buttons .gal-reset { margin-left: 0; }

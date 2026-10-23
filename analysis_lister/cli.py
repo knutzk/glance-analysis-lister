@@ -225,7 +225,7 @@ def parser():
     group = commands.add_parser(
         "render-group",
         parents=[console],
-        help="Render group-wide ongoing analyses from a curated registry.",
+        help="Render ongoing analyses and separate publication pages.",
     )
     group.add_argument(
         "--snapshot",
@@ -239,13 +239,18 @@ def parser():
         help="Exact leading/additional main-group name, e.g. TOPQ.",
     )
     group.add_argument(
+        "--curation-config",
+        type=Path,
+        help="TOML file with optional [groups.GROUP] title, groups, subgroups and keywords for publication archives.",
+    )
+    group.add_argument(
         "--group-title", default="", help="Display title (default: group name)."
     )
     group.add_argument(
         "--output-dir",
         type=Path,
         default=Path("pages/group"),
-        help="Destination for the ongoing page, assets and report (default: %(default)s).",
+        help="Destination for group pages, assets and report (default: %(default)s).",
     )
     group.set_defaults(handler=_run_render_group)
     resolve = commands.add_parser(
@@ -349,12 +354,17 @@ def _run_build_registry(args):
 
 def _run_render_group(args):
     from analysis_lister.views.build import render_group
+    from analysis_lister.views.curation import load_archive_policy
     from analysis_lister.views.profiles import GroupProfile
 
     counts = render_group(
         args.snapshot,
         args.output_dir,
-        GroupProfile(args.group, args.group_title),
+        GroupProfile(
+            args.group,
+            args.group_title,
+            **load_archive_policy(args.curation_config, args.group),
+        ),
     )
     print_summary(
         "Group views rendered",

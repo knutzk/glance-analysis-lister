@@ -1,0 +1,52 @@
+/* SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+ * SPDX-License-Identifier: GPL-3.0-only */
+.gal-publications { width: 100%; border-collapse: collapse; font-size: .67rem; }
+.gal-publications :is(th, td) { padding: .35rem .5rem; white-space: nowrap; overflow-wrap: normal; word-break: normal; text-align: left; font-weight: 400; }
+.gal-publications thead th { font-weight: 600; border-bottom: 2px solid var(--gal-border); }
+.gal-publications tbody :is(th, td) { border-bottom: 1px solid color-mix(in srgb, var(--md-default-fg-color, #253041) 22%, transparent); }
+.gal-publications tbody tr:nth-child(4n+3), .gal-papers--interactive .gal-publications tbody tr.gal-paper--stripe { background: color-mix(in srgb, var(--gal-accent) 6%, transparent); }
+.gal-papers--interactive .gal-publications tbody tr:not(.gal-paper--stripe) { background: transparent; }
+.gal-publications tbody tr[data-gal-item]:hover, .gal-papers--interactive .gal-publications tbody tr[data-gal-item]:hover, .gal-publications tbody tr:focus-within { background: color-mix(in srgb, var(--gal-accent) 13%, transparent); }
+.gal-publications [data-gal-item] > td:nth-child(2) { width: 100%; }
+.gal-publications a.gal-publication-link { display: inline-block; padding: .12rem .4rem; border: 1px solid var(--gal-accent); border-radius: 0; color: var(--gal-accent); font-size: .6rem; line-height: 1.4; text-decoration: none; }
+.gal-publications a.gal-publication-link:hover { background: color-mix(in srgb, var(--gal-accent) 12%, transparent); }
+.gal-publication-records { display: inline-flex; align-items: center; gap: .2rem; }
+.gal-papers--interactive [data-gal-item] { cursor: pointer; }
+.gal-publications [data-gal-paper-toggle]:focus-visible { outline: 2px solid var(--gal-accent); outline-offset: 2px; }
+.gal-publications .gal-paper-detail-row > td { white-space: normal; padding: .65rem .75rem; }
+.gal-publication-details__body { overflow-wrap: anywhere; }
+.gal-publication-details__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.gal-publication-details__columns > div { min-width: 0; }
+.gal-publication-details__body .gal-card__fields { margin: .5rem 0; }
+.gal-publication-details__body .gal-card__fields dd { margin: .1rem 0 .45rem; }
+.gal-publication-details__body .gal-card__label { margin: .4rem 0 .2rem; }
+.gal-publication-details__body :is(p, ul, li, a) { font-family: inherit; font-size: inherit; }
+.gal-publication-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.gal-publications .gal-badge { font-size: .6rem; padding: .12rem .4rem; }
+.gal-publications .gal-badge--leading { color: inherit; border-inline-start: 3px solid var(--gal-accent); background: color-mix(in srgb, var(--md-default-fg-color, #253041) 5%, var(--md-default-bg-color, #fff)); font-weight: 700; }
+.gal-paper-collapse-row { display: flex; justify-content: flex-start; margin-top: .6rem; }
+.gal-paper-collapse-row button { padding: .3rem .6rem; border: 1px solid var(--gal-border); border-radius: .3rem; color: var(--gal-accent); background: transparent; font: inherit; cursor: pointer; }
+.gal-paper-collapse-row button:hover { border-color: var(--gal-accent); background: color-mix(in srgb, var(--gal-accent) 12%, transparent); }
+@media (max-width: 600px) { .gal-publication-details__columns { grid-template-columns: minmax(0, 1fr); gap: .4rem; } }
+
+.gal-publications tbody tr.gal-paper-detail-row, .gal-papers--interactive .gal-publications tbody tr.gal-paper-detail-row, .gal-publications .gal-paper-detail-row > td { background: var(--md-default-bg-color, #fff); }
+
+
+.gal-publications [data-gal-item] > td:nth-child(2) { white-space: normal; min-width: 12rem; }
+.gal-publications caption { text-align: left; color: var(--gal-muted); padding: .5rem 0; }
+.gal-table-scroll { max-width: 100%; overflow-x: auto; }
+
+.gal-archive .gal-date-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem .8rem; margin: .6rem 0; }
+.gal-archive .gal-date-filters label { display: flex; flex-direction: column; gap: .2rem; font-size: .65rem; }
+.gal-archive .gal-date-filters input { width: 9rem; padding: .3rem .4rem; border: 1px solid var(--gal-border); background: var(--md-default-bg-color, #fff); color: inherit; font: inherit; }
+.gal-archive .gal-date-help { font-size: .6rem; color: var(--gal-muted); }
+.gal-confnote-filters > .gal-filter-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+@media (max-width: 600px) { .gal-confnote-filters { align-items: stretch; flex-direction: column; } }
+
+.gal-archive .gal-publication-filter-row { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem 1rem; }
+.gal-archive .gal-publication-filter-row fieldset { margin: 0; flex: 0 1 auto; }
+.gal-archive .gal-publication-filter-row .gal-filter-actions { justify-content: flex-start; flex-wrap: nowrap; gap: .4rem; margin: 0; }
+.gal-archive .gal-publication-filter-row .gal-reset { margin-left: 0; }
+.gal-archive .gal-confnote-filters { display: block; }
+
+.gal-archive .gal-publication-filter-row .gal-filter-actions { margin-left: auto; }

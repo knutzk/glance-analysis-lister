@@ -11,7 +11,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+from markdown_it import MarkdownIt
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -81,6 +81,7 @@ def main():
         record["metadata"]["gal_keywords"] = [
             "Signal" if record in (first, fourth) else "Background"
         ]
+    first["metadata"]["gal_triggers"] = ["Invented trigger"]
     first["shortTitle"] = "Synthetic first analysis"
     second["shortTitle"] = "Synthetic second analysis"
     second["phase0"]["gal_editorialBoard"] = ["Example Reviewer"]
@@ -90,14 +91,11 @@ def main():
     view = prepare_group(
         CuratedRegistry(snapshot(first, second, third, fourth)), GroupProfile("DEMO")
     )
-    markup = str(
-        BeautifulSoup(ongoing_page(view), "html.parser").select_one(
-            "[data-gal-collection]"
-        )
-    )
+    markup = MarkdownIt("commonmark").enable("table").render(ongoing_page(view))
     css = (root / "analysis_lister/views/assets/gal-views.css").as_uri()
     js = (root / "analysis_lister/views/assets/gal-views.js").as_uri()
-    html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{js}"></script></body></html>'''
+    archive_js = (root / "analysis_lister/views/assets/gal-publications.js").as_uri()
+    html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
     output = Path("/tmp/gal-cards-browser-fixture.html")
     output.write_text(html)
     options = Options()
@@ -220,9 +218,17 @@ def main():
         reset()
         choose("subgroups", "DEMO-Alpha, with comma")
         count(2)
-        choose("keywords", "Signal")
+        assert not driver.find_elements(
+            By.CSS_SELECTOR,
+            '[data-gal-filter="keywords"], [data-gal-filter="triggers"]',
+        )
+        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search.send_keys("Signal")
         count(1)
-        choose("keywords", "")
+        search.clear()
+        search.send_keys("Invented trigger")
+        count(1)
+        search.clear()
         count(2)
         sorter = Select(driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]"))
         sorter.select_by_value("stage-desc")

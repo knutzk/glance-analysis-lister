@@ -8,7 +8,7 @@
   }
   const initialized = new WeakSet();
   function initialize() {
-    document.querySelectorAll("[data-gal-collection]").forEach((root) => {
+    document.querySelectorAll(".gal-ongoing[data-gal-collection]").forEach((root) => {
       if (initialized.has(root)) return;
       const controls = root.querySelector("[data-gal-controls]");
       const search = root.querySelector("[data-gal-search]");
@@ -173,13 +173,13 @@
     });
   }
   document.addEventListener("click", (event) => {
-    document.querySelectorAll(".gal-multiselect[open]").forEach((menu) => {
+    document.querySelectorAll(".gal-ongoing .gal-multiselect[open]").forEach((menu) => {
       if (!menu.contains(event.target)) menu.open = false;
     });
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    document.querySelectorAll(".gal-multiselect[open]").forEach((menu) => {
+    document.querySelectorAll(".gal-ongoing .gal-multiselect[open]").forEach((menu) => {
       if (menu.contains(document.activeElement)) menu.querySelector("summary").focus();
       menu.open = false;
     });

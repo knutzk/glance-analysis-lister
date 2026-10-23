@@ -229,8 +229,18 @@ def main():
             check=True,
         )
         assert (group_output / "ongoing.md").is_file()
+        assert "gal-publications" in (group_output / "papers.md").read_text()
+        assert (group_output / "confnotes.md").is_file()
+        assert (group_output / "pubnotes.md").is_file()
         assert "data-gal-item" in (group_output / "ongoing.md").read_text()
-        for name in ("gal-views.js", "gal-views.css"):
+        for name in (
+            "gal-views.js",
+            "gal-views.css",
+            "gal-publications.js",
+            "gal-publications.css",
+            "gal-confnotes.js",
+            "gal-confnotes.css",
+        ):
             assert (group_output / "assets" / name).read_bytes() == (
                 root / "analysis_lister/views/assets" / name
             ).read_bytes()

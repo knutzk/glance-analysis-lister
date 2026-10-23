@@ -1,11 +1,31 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Ongoing analyses, rendered without selection or file I/O."""
+"""Publication pages and ongoing analyses, rendered without selection or file I/O."""
 
+from ..curation import archive_curation_statement
+from .archive import archive_table
 from .cards import ongoing_cards
 from .formatting import text
 from .links import external, glance_url
+from .notes import note_table
+
+
+def archive_curation_intro(view):
+    out = text(archive_curation_statement(view.profile)) + "\n\n"
+    for label, values in (
+        ("Keywords", view.profile.archive_keywords),
+        ("Groups", view.profile.archive_groups or ()),
+        ("Subgroups", view.profile.archive_subgroups),
+    ):
+        if values:
+            out += (
+                label
+                + ": "
+                + ", ".join("`" + text(value) + "`" for value in values)
+                + ".\n\n"
+            )
+    return out
 
 
 def provenance(view):
@@ -24,6 +44,7 @@ def provenance(view):
 def ongoing_page(view):
     out = "---\nhide:\n  - toc\n---\n\n"
     out += f"# {text(view.profile.title)} ongoing analyses\n\n"
+    out += "[Papers](papers.md) · [CONF notes](confnotes.md) · [PUB notes](pubnotes.md)\n\n"
     out += "Includes analyses with leading or additional group participation that are in active phase 0 or have an explicitly linked publication under review. "
     out += "Completed and closed analyses are excluded; uncertain entries are listed at the bottom. "
     out += "Each analysis appears once.\n\nClick a collapsed card for more information and links; use Collapse at the bottom to close it. The GLANCE buttons open the analysis or publication entry directly.\n\n"
@@ -38,3 +59,51 @@ def ongoing_page(view):
             out += f"- {external(row.reference, glance_url('analyses', row.reference))} – {text(row.title)}\n"
         out += "\n"
     return out + provenance(view)
+
+
+def publication_page(view, resource):
+    labels = {"papers": "Papers", "confnotes": "CONF notes", "pubnotes": "PUB notes"}
+    label = labels[resource]
+    out = "---\nhide:\n  - toc\n---\n\n"
+    out += f"# {text(view.profile.archive_title or view.profile.title)} {label.lower()}\n\n"
+    out += "[Ongoing analyses](ongoing.md)\n\n"
+    out += (
+        " · ".join(
+            f"[{name}]({key}.md)" for key, name in labels.items() if key != resource
+        )
+        + "\n\n"
+    )
+    out += (
+        "Submitted and published papers across all available years. "
+        if resource == "papers"
+        else "Released notes across all available years, including superseded historical notes. "
+    )
+    out += archive_curation_intro(view)
+    out += (
+        "Dates are paper publication dates.\n\n"
+        if resource == "papers"
+        else "Dates are note release dates.\n\n"
+    )
+    return out + archive_table(view, resource) + provenance(view)
+
+
+def papers_page(view):
+    return publication_page(view, "papers")
+
+
+def confnotes_page(view):
+    out = "---\nhide:\n  - toc\n---\n\n"
+    out += f"# {text(view.profile.archive_title or view.profile.title)} CONF notes\n\n"
+    out += "[Papers](papers.md) · [PUB notes](pubnotes.md) · [Ongoing analyses](ongoing.md)\n\n"
+    out += archive_curation_intro(view)
+    out += "Superseded notes are hidden by default.\n\n"
+    return out + note_table(view, "confnotes") + provenance(view)
+
+
+def pubnotes_page(view):
+    out = "---\nhide:\n  - toc\n---\n\n"
+    out += f"# {text(view.profile.archive_title or view.profile.title)} PUB notes\n\n"
+    out += "[Papers](papers.md) · [CONF notes](confnotes.md) · [Ongoing analyses](ongoing.md)\n\n"
+    out += archive_curation_intro(view)
+    out += "Superseded notes are hidden by default.\n\n"
+    return out + note_table(view, "pubnotes") + provenance(view)

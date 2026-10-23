@@ -6,7 +6,7 @@
 import json
 from html import escape
 
-from .filtering import active_subgroup_buttons, dropdown_options, render_controls
+from .filtering import active_subgroup_buttons, render_controls
 from .links import anchor, glance_url, html_link
 
 
@@ -156,13 +156,8 @@ def filter_controls(rows, group, subgroup_buttons):
     return render_controls(
         prefix,
         "Search analyses",
-        "Identifier, title, people or keywords",
+        "Identifier, title, people, keywords or triggers",
         [("subgroups", "Subgroups", active_subgroup_buttons(rows, subgroup_buttons))],
-        dropdowns=[
-            option
-            for option in dropdown_options(rows)
-            if option[0] != "statistical_tools"
-        ],
         sort_options=[
             ("stage-desc", "Review stage: most advanced first"),
             ("stage-asc", "Review stage: earliest first"),

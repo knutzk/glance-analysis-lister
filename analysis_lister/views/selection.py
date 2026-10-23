@@ -7,7 +7,8 @@ from attrs import asdict
 
 from ..registry.reader import LINK_RESOURCES
 from ..registry.schema import record_key
-from .models import AnalysisRow, Decision, GroupView
+from .curation import archive_curation
+from .models import AnalysisRow, Decision, GroupView, PublicationRow
 from .semantics import (
     ONGOING,
     analysis_email_lists,
@@ -16,9 +17,14 @@ from .semantics import (
     approval_progress,
     associated_paper_statuses,
     group_membership,
+    iso_date,
     last_milestone,
     last_paper_milestone,
+    publication_details,
+    publication_filter_values,
+    publication_leading_subgroup,
     publication_state,
+    publication_subgroups,
     subgroup_button_choices,
 )
 
@@ -61,13 +67,196 @@ def prepare_group(registry, profile):
                         "analysis_group_evidence": asdict(inherited),
                     },
                 )
-            publications[resource, reference] = (record, state)
+            phase = (
+                record.get("publicationPhase") or {}
+                if resource == "papers"
+                else record.get("phase1") or {}
+            )
+            date_field = (
+                "publishedOnlineDate" if resource == "papers" else "releaseDate"
+            )
+            day = iso_date(phase.get(date_field))
+            subgroup_decision = publication_subgroups(record, related)
+            leading_subgroup = publication_leading_subgroup(record, related)
+            metadata_decisions = {
+                key: publication_filter_values(record, related, field)
+                for key, field in (
+                    ("keywords", "gal_keywords"),
+                    ("triggers", "gal_triggers"),
+                    ("statistical_tools", "gal_statisticalTools"),
+                )
+            }
+            details = publication_details(record, resource, related)
+            affiliation_evidence = Decision(
+                "publication-affiliations/v1",
+                details.value["groups"],
+                "publication main-group assignment; explicit linked-analysis fallback when no main groups are recorded",
+                {
+                    key: value
+                    for key, value in details.inputs.items()
+                    if key
+                    in {"gal_groups", "relatedAnalysis", "relatedAnalysis.gal_groups"}
+                },
+            )
+            curation = archive_curation(
+                reference,
+                profile,
+                metadata_decisions["keywords"],
+                affiliation_evidence,
+                subgroup_decision,
+            )
+            keywords = metadata_decisions["keywords"].value
+            dois = (record.get("publicationPhase") or {}).get("gal_dois") or []
+            citations = tuple(
+                entry.get("citation") or entry.get("doi", "") for entry in dois
+            )
+            if resource == "papers":
+                metadata_decisions["publication_status"] = Decision(
+                    "paper-doi-status/v1",
+                    "published"
+                    if any(entry.get("doi") for entry in dois)
+                    else "under-review",
+                    "published means at least one cached DOI; archived papers without a DOI are under review",
+                    {"publicationPhase.gal_dois": dois},
+                )
+            people_sources = {
+                "gal_analysisContacts": record.get("gal_analysisContacts"),
+                "gal_contactEditors": record.get("gal_contactEditors"),
+                "gal_internalNoteEditors": record.get("gal_internalNoteEditors"),
+                **{
+                    "phase1." + key: (record.get("phase1") or {}).get(key)
+                    for key in (
+                        "gal_editorialBoard",
+                        "gal_editorialBoardChairs",
+                        "gal_editorialBoardExOfficio",
+                        "gal_firstSignOffResponsible",
+                        "gal_secondSignOffResponsible",
+                        "gal_readers",
+                        "gal_firstReaders",
+                        "gal_secondReaders",
+                    )
+                },
+            }
+            people = list(
+                dict.fromkeys(
+                    name
+                    for value in people_sources.values()
+                    for name in ([value] if isinstance(value, str) else value or [])
+                    if isinstance(name, str) and name.strip()
+                )
+            )
+            metadata_decisions["people"] = Decision(
+                "publication-search-people/v2",
+                people,
+                "recorded publication contacts, editors, editorial board, readers and sign-off responsible names; no inferred people",
+                people_sources,
+            )
+            label = (
+                record.get("finalReferenceCode")
+                or record.get("gal_finalReferenceCode")
+                or reference
+            )
+            title = record.get("shortTitle") or reference
+            filters = {
+                "publication_type": resource,
+                "leading_subgroup": leading_subgroup.value,
+                **{key: decision.value for key, decision in metadata_decisions.items()},
+                "subgroups": subgroup_decision.value,
+                "state": state.value,
+                "text": " ".join(
+                    [
+                        reference,
+                        label,
+                        title,
+                        *citations,
+                        *metadata_decisions["people"].value,
+                        *(
+                            [entry.get("doi") or "" for entry in dois]
+                            if resource == "papers"
+                            else [details.value.get("cds_url") or ""]
+                        ),
+                        *subgroup_decision.value,
+                        *keywords,
+                        *metadata_decisions["triggers"].value,
+                        *metadata_decisions["statistical_tools"].value,
+                    ]
+                ),
+            }
+            date_decision = Decision(
+                "publication-calendar-date/v2",
+                day,
+                "ISO calendar date without timezone conversion; absent or invalid dates remain null",
+                {
+                    ("publicationPhase." if resource == "papers" else "phase1.")
+                    + date_field: phase.get(date_field)
+                },
+            )
+            citation_decision = Decision(
+                "publication-citation-text/v1",
+                list(citations),
+                "cached citation text, falling back to the DOI; no external lookup",
+                {"publicationPhase.gal_dois": dois},
+            )
+            row = PublicationRow(
+                resource,
+                reference,
+                label,
+                title,
+                state.value,
+                day,
+                tuple(subgroup_decision.value),
+                citations,
+                filters,
+                {
+                    "membership": asdict(membership),
+                    "curation": asdict(curation),
+                    "subgroups": asdict(subgroup_decision),
+                    "leading_subgroup": asdict(leading_subgroup),
+                    "filter_metadata": {
+                        key: asdict(decision)
+                        for key, decision in metadata_decisions.items()
+                    },
+                    "state": asdict(state),
+                    "date": asdict(date_decision),
+                    "citation": asdict(citation_decision),
+                    "details": asdict(details),
+                },
+                details.value,
+            )
+            publications[resource, reference] = (record, row, state)
             traces.append(
                 {
                     "resource": resource,
                     "reference": reference,
                     "membership": asdict(membership),
+                    "curation": asdict(curation),
+                    "subgroups": asdict(subgroup_decision),
+                    "leading_subgroup": asdict(leading_subgroup),
+                    "filter_metadata": {
+                        key: asdict(decision)
+                        for key, decision in metadata_decisions.items()
+                    },
                     "state": asdict(state),
+                    "date": asdict(date_decision),
+                    "citation": asdict(citation_decision),
+                    "details": asdict(details),
+                    "inclusion": asdict(
+                        Decision(
+                            "group-publication-collection/v1",
+                            curation.value,
+                            "curated publication records; no year cutoff",
+                            {"curation": curation.value},
+                        )
+                    ),
+                    "archive_inclusion": asdict(
+                        Decision(
+                            "group-publication-archive/v1",
+                            curation.value
+                            and state.value in {"submitted", "published", "released"},
+                            "curated submitted/published paper or released note; all years and historical superseded releases retained",
+                            {"curation": curation.value, "state": state.value},
+                        )
+                    ),
                     "relatedAnalysis": relation,
                     "relationship_issue": "unresolved relatedAnalysis"
                     if relation and related is None
@@ -107,7 +296,7 @@ def prepare_group(registry, profile):
                 linked[reference][key] = {
                     "resource": resource,
                     "reference": key[1],
-                    "state": target[1].value,
+                    "state": target[2].value,
                     "relationship": "analysis.relatedPublications (one-way)",
                 }
                 issues[reference].append(
@@ -264,23 +453,76 @@ def prepare_group(registry, profile):
             ongoing.append(row)
         elif state.value == "unknown":
             review.append(row)
-    if not any(
-        trace["resource"] == "analyses" and trace["membership"]["value"]
+    included_keys = {
+        (trace["resource"], trace["reference"])
         for trace in traces
+        if trace["resource"] != "analyses" and trace["inclusion"]["value"]
+    }
+    selected = tuple(
+        value[1] for key, value in publications.items() if key in included_keys
+    )
+    if not any(
+        (trace.get("curation") or trace["membership"])["value"] for trace in traces
     ):
         raise ValueError(
             f"No leading or additional affiliation found for group {profile.group!r}"
         )
+    recent = sorted(
+        (
+            row
+            for row in selected
+            if row.state in {"published", "released"} and row.date
+        ),
+        key=lambda row: (row.date, row.resource, row.reference),
+        reverse=True,
+    )[: profile.recent_limit]
     subgroup_buttons = subgroup_button_choices(
         profile.group,
-        [name for row in ongoing for name in row.filter_metadata["subgroups"]],
+        [
+            name
+            for row in [*ongoing, *selected]
+            for name in row.filter_metadata["subgroups"]
+        ],
     )
     return GroupView(
         profile,
         tuple(sorted(ongoing, key=lambda row: row.reference)),
         tuple(sorted(review, key=lambda row: row.reference)),
+        selected,
+        tuple(recent),
         tuple(traces),
         registry.metadata,
+        {
+            "between_categories": "and",
+            "within_categories": "or",
+            "subgroups": sorted({name for row in selected for name in row.subgroups}),
+            "publication_type": [
+                resource
+                for resource in ("papers", "confnotes", "pubnotes")
+                if any(row.resource == resource for row in selected)
+            ],
+            "subgroup_assignment": "current snapshot",
+            "triggers": sorted(
+                {value for row in selected for value in row.filter_metadata["triggers"]}
+            ),
+            "statistical_tools": sorted(
+                {
+                    value
+                    for row in selected
+                    for value in row.filter_metadata["statistical_tools"]
+                }
+            ),
+            "leading_subgroup": sorted(
+                {
+                    row.filter_metadata["leading_subgroup"]
+                    for row in selected
+                    if row.filter_metadata["leading_subgroup"]
+                }
+            ),
+            "keywords": sorted(
+                {value for row in selected for value in row.filter_metadata["keywords"]}
+            ),
+        },
         tuple(subgroup_buttons.value),
         asdict(subgroup_buttons),
     )
