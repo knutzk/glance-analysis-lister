@@ -4,7 +4,7 @@
 """Download a complete, typed GLANCE API source registry using stare.
 
 This format preserves independent source records and their nested metadata.
-It is deliberately distinct from the enriched CSV registry used by renderers.
+It is deliberately distinct from the curated registry used by renderers.
 """
 
 import json

@@ -20,7 +20,7 @@ import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
 from analysis_lister.downloaders.html import download_tasks
 from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
-from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
@@ -33,6 +33,8 @@ def main():
 
     package = distribution("glance-analysis-lister")
     retired = (
+        "analysis_lister/configs/",
+        "analysis_lister/downloaders/scope.py",
         "analysis_lister/glance/",
         "analysis_lister/markdown/",
         "analysis_lister/lookup_dicts/",
@@ -64,9 +66,6 @@ def main():
     assert len(licences) == 1, "Wheel must contain LICENCE"
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
-    assert load_scope().all and not load_scope().query_params(), (
-        "Default retrieval must be unfiltered"
-    )
     citation_path = default_store_path()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
@@ -81,11 +80,6 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
-        scope_file = "analysis_lister/configs/all.toml"
-        assert (
-            archive.extractfile(prefix + scope_file).read()
-            == (root / scope_file).read_bytes()
-        )
         sample = "examples/synthetic_registry.json"
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()
@@ -141,15 +135,8 @@ def main():
         supplemental = work / "supplemental"
         supplemental.mkdir()
         tasks = download_tasks()
-        (supplemental / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
         (supplemental / SUPPLEMENT_MANIFEST).write_text(
-            json.dumps(
-                {
-                    "schema": "glance-csv-supplements",
-                    "schema_version": 1,
-                    "tables": {task.name: list(task.columns) for task in tasks},
-                }
-            )
+            json.dumps(make_manifest(tasks))
         )
         resources = ("analyses", "papers", "confnotes", "pubnotes")
         raw = {

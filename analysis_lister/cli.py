@@ -86,11 +86,6 @@ def parser():
     )
 
     download = argparse.ArgumentParser(add_help=False)
-    download.add_argument(
-        "--config",
-        type=Path,
-        help="Retrieval TOML configuration (default: all accessible ATLAS records).",
-    )
     source = download.add_mutually_exclusive_group()
     source.add_argument(
         "--login",
@@ -261,17 +256,10 @@ def _download_cookies(args):
     return resolve_cookies(args.cookies, generate_new_cookies=args.login)
 
 
-def _retrieval_options(args):
-    from analysis_lister.downloaders.scope import load_scope
-
-    return {"scope": load_scope(args.config)} if args.config is not None else {}
-
-
 def _run_download(args):
     from analysis_lister.downloaders.csv_batch import download_html_csvs
     from analysis_lister.downloaders.html import download_tasks
 
-    options = _retrieval_options(args)
     download_html_csvs(
         download_tasks(),
         args.csv_dir,
@@ -279,7 +267,6 @@ def _run_download(args):
         cookies=_download_cookies(args),
         use_local_html=args.from_html is not None,
         debug=args.save_html is not None,
-        **options,
     )
     print_summary(
         "Download complete", [("CSV directory", args.csv_dir)], color=args.color

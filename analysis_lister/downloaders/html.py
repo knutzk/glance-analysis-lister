@@ -8,20 +8,12 @@ import json
 import logging
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from attrs import field, frozen
 
 from analysis_lister.downloaders.csv_io import read_csv_rows
-from analysis_lister.downloaders.scope import (
-    SCOPE_FILENAME,
-    RetrievalScope,
-    check_scope,
-    load_scope,
-    read_scope,
-)
 from analysis_lister.downloaders.tables import (
     parse_html_table,
     table_to_rows,
@@ -30,6 +22,7 @@ from analysis_lister.downloaders.tables import (
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
 from . import http
+from .manifest import make_manifest, read_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -94,12 +87,10 @@ def staged_csv_files(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
-    scope: RetrievalScope | None = None,
 ) -> Iterator[Path]:
     """Yield a complete CSV batch without modifying the current data."""
-    scope = scope or load_scope()
-    if any(csv_dir.glob("*.csv")) or (csv_dir / SCOPE_FILENAME).exists():
-        check_scope(scope, read_scope(csv_dir))
+    if any(csv_dir.glob("*.csv")) or (csv_dir / SUPPLEMENT_MANIFEST).exists():
+        read_manifest(csv_dir, tasks)
         for task in tasks:
             existing = csv_dir / task.csv_filename
             if task.key and existing.exists():
@@ -110,15 +101,16 @@ def staged_csv_files(
                         "Destination contains a different CSV format; use a separate "
                         "directory for API supplements (default: csv/supplemental)."
                     )
-    if use_local_html:
-        check_scope(scope, read_scope(debug_dir))
+    manifest = (
+        read_manifest(debug_dir, tasks) if use_local_html else make_manifest(tasks)
+    )
     csv_dir.mkdir(parents=True, exist_ok=True)
     # Stage on the same filesystem so individual replacements are atomic.
     temporary = TemporaryDirectory(prefix=".refresh-", dir=csv_dir, delete=False)
     staging = Path(temporary.name)
     try:
         if debug and not use_local_html:
-            (debug_dir / SCOPE_FILENAME).unlink(missing_ok=True)
+            (debug_dir / SUPPLEMENT_MANIFEST).unlink(missing_ok=True)
         for index, task in enumerate(tasks, start=1):
             logger.info(
                 "%s %s (%d/%d)",
@@ -132,9 +124,7 @@ def staged_csv_files(
             else:
                 html = http.DataFetcher.fetch_html(
                     task.url,
-                    http.COMMON_PARAMS
-                    | scope.query_params()
-                    | {"s[0][name]": task.sort_by},
+                    http.COMMON_PARAMS | {"s[0][name]": task.sort_by},
                     cookies,
                 )
             HTMLParser.parse_to_csv(
@@ -152,24 +142,10 @@ def staged_csv_files(
                     key=task.key,
                     prefix=task.prefix,
                 )
-        metadata = json.dumps(scope.metadata(), indent=2) + "\n"
-        (staging / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
-        if all(task.key for task in tasks):
-            (staging / SUPPLEMENT_MANIFEST).write_text(
-                json.dumps(
-                    {
-                        "schema": "glance-csv-supplements",
-                        "schema_version": 1,
-                        "fetched_at": datetime.now(UTC).isoformat(),
-                        "tables": {task.name: list(task.columns) for task in tasks},
-                    },
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
+        metadata = json.dumps(manifest, indent=2) + "\n"
+        (staging / SUPPLEMENT_MANIFEST).write_text(metadata, encoding="utf-8")
         if debug and not use_local_html:
-            (debug_dir / SCOPE_FILENAME).write_text(metadata, encoding="utf-8")
+            (debug_dir / SUPPLEMENT_MANIFEST).write_text(metadata, encoding="utf-8")
         yield staging
     finally:
         if (csv_dir / CSV_REFRESH_MARKER).exists():

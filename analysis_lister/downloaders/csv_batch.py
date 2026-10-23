@@ -10,7 +10,6 @@ from pathlib import Path
 
 from ..storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 from .html import DownloadTable, staged_csv_files
-from .scope import SCOPE_FILENAME, RetrievalScope
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +62,6 @@ def download_html_csvs(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
-    scope: RetrievalScope | None = None,
 ) -> None:
     """Fetch and publish CSVs only, for the standalone download command."""
     with staged_csv_files(
@@ -73,17 +71,10 @@ def download_html_csvs(
         cookies=cookies,
         use_local_html=use_local_html,
         debug=debug,
-        scope=scope,
     ) as staging:
         publish_csv_batch(
             staging,
             csv_dir,
-            [t.csv_filename for t in tasks]
-            + [SCOPE_FILENAME]
-            + (
-                [SUPPLEMENT_MANIFEST]
-                if (staging / SUPPLEMENT_MANIFEST).exists()
-                else []
-            ),
+            [t.csv_filename for t in tasks] + [SUPPLEMENT_MANIFEST],
         )
     logger.debug("Published complete CSV batch.")

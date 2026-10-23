@@ -10,7 +10,7 @@ from pathlib import Path
 from ..citations.store import DEFAULT_CACHE, load_store
 from ..downloaders.csv_io import read_csv_rows
 from ..downloaders.html import download_tasks
-from ..downloaders.scope import SCOPE_FILENAME, RetrievalScope, check_scope, read_scope
+from ..downloaders.manifest import read_manifest, validate_manifest
 from ..storage import SUPPLEMENT_MANIFEST, atomic_write_text, require_complete_csv_batch
 from .enrichment import curate
 from .schema import RESOURCES, validate_registry
@@ -19,20 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 def read_supplements(directory):
-    """Require a complete, identifiable supplemental batch with scope metadata."""
+    """Require a complete, identifiable supplemental batch with all-accessible provenance."""
     require_complete_csv_batch(directory)
-    manifest = json.loads((directory / SUPPLEMENT_MANIFEST).read_text(encoding="utf-8"))
     tasks = download_tasks()
-    if (
-        not isinstance(manifest, dict)
-        or manifest.get("schema") != "glance-csv-supplements"
-        or manifest.get("schema_version") != 1
-        or manifest.get("tables") != {task.name: list(task.columns) for task in tasks}
-    ):
-        raise ValueError("Unsupported supplemental CSV schema")
-    scope = read_scope(directory)
-    if scope is None:
-        raise ValueError("Supplemental CSVs require retrieval scope metadata")
+    manifest = read_manifest(directory, tasks)
     result = {}
     for task in tasks:
         rows = read_csv_rows(
@@ -43,7 +33,7 @@ def read_supplements(directory):
         )
         result[task.name] = {row[task.key]: row for row in rows}
     require_complete_csv_batch(directory)
-    return result, {"manifest": manifest, "retrieval_scope": scope.metadata()}
+    return result, {"manifest": manifest}
 
 
 def build_registry(
@@ -51,7 +41,7 @@ def build_registry(
 ):
     """Build offline and atomically publish without overwriting source inputs."""
     api_path, csv_dir, output = Path(api_path), Path(csv_dir), Path(output)
-    inputs = [api_path, csv_dir / SUPPLEMENT_MANIFEST, csv_dir / SCOPE_FILENAME]
+    inputs = [api_path, csv_dir / SUPPLEMENT_MANIFEST]
     inputs.append(Path(doi_cache))
     inputs.extend(csv_dir / task.csv_filename for task in download_tasks())
     if any(output.resolve() == path.resolve() for path in inputs):
@@ -64,16 +54,9 @@ def build_registry(
     if output.exists():
         previous = json.loads(output.read_text(encoding="utf-8"))
         validate_registry(previous)
-        previous_scope = (
-            previous.get("gal_curation", {})
-            .get("html_source", {})
-            .get("retrieval_scope")
-        )
-        check_scope(
-            RetrievalScope.from_dict(provenance["retrieval_scope"]),
-            RetrievalScope.from_dict(previous_scope)
-            if previous_scope is not None
-            else None,
+        validate_manifest(
+            previous.get("gal_curation", {}).get("html_source", {}).get("manifest"),
+            download_tasks(),
         )
         if previous.get("source", {}).get("base_url") != candidate["source"].get(
             "base_url"

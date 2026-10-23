@@ -17,7 +17,7 @@ from analysis_lister.downloaders import (
     csv_batch as html_download,
     html as download,
 )
-from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 
 
@@ -52,7 +52,9 @@ class SupplementTests(unittest.TestCase):
                 "Short Title": "Invented short title",
             },
         }
-        (self.source / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
+        (self.source / SUPPLEMENT_MANIFEST).write_text(
+            json.dumps(make_manifest(download.download_tasks()))
+        )
         self.write_html()
 
     def write_html(self):
@@ -125,8 +127,8 @@ class SupplementTests(unittest.TestCase):
         self.destination.mkdir()
         previous = self.destination / "analyses.csv"
         previous.write_text("Reference Code,Status\nANA-DEMO-2099-01,Active\n")
-        (self.destination / SCOPE_FILENAME).write_text(
-            json.dumps(load_scope().metadata())
+        (self.destination / SUPPLEMENT_MANIFEST).write_text(
+            json.dumps(make_manifest(download.download_tasks()))
         )
         before = previous.read_bytes()
         with (

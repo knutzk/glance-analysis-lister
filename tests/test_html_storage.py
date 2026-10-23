@@ -14,9 +14,10 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.downloaders import csv_batch as html_download, html as downloader
-from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.storage import (
     CSV_REFRESH_MARKER,
+    SUPPLEMENT_MANIFEST,
     atomic_write_text,
     require_complete_csv_batch,
 )
@@ -46,9 +47,11 @@ class CsvBatchTests(unittest.TestCase):
                     sort_by="reference_code",
                 )
             )
-        (self.csv_dir / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
-        (self.debug_dir / SCOPE_FILENAME).write_text(
-            json.dumps(load_scope().metadata())
+        (self.csv_dir / SUPPLEMENT_MANIFEST).write_text(
+            json.dumps(make_manifest(self.tasks))
+        )
+        (self.debug_dir / SUPPLEMENT_MANIFEST).write_text(
+            json.dumps(make_manifest(self.tasks))
         )
         self.original = {p.name: p.read_bytes() for p in self.csv_dir.iterdir()}
 
@@ -92,17 +95,19 @@ class CsvBatchTests(unittest.TestCase):
             downloader.http.DataFetcher, "fetch_html", return_value=HTML
         ) as fetch:
             html_download.download_html_csvs(
-                (table,), self.csv_dir, self.debug_dir, cookies={"session": "synthetic"}
+                (table,),
+                self.root / "custom-csv",
+                self.debug_dir,
+                cookies={"session": "synthetic"},
             )
         fetch.assert_called_once_with(
             table.url,
-            downloader.http.COMMON_PARAMS
-            | load_scope().query_params()
-            | {"s[0][name]": "final_ref_code"},
+            downloader.http.COMMON_PARAMS | {"s[0][name]": "final_ref_code"},
             {"session": "synthetic"},
         )
         self.assertEqual(
-            (self.csv_dir / "notes.csv").read_text(), '"Reference Code"\n"new"\n'
+            (self.root / "custom-csv" / "notes.csv").read_text(),
+            '"Reference Code"\n"new"\n',
         )
 
     def test_debug_tables_use_the_supplied_directory(self):

@@ -16,7 +16,7 @@ from unittest.mock import patch
 from analysis_lister import cli
 from analysis_lister.downloaders.api import RESOURCES
 from analysis_lister.downloaders.html import download_tasks
-from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
+from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.registry import builder, enrichment as registry
 from analysis_lister.registry.schema import validate_registry
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
@@ -108,15 +108,8 @@ class CuratedTests(unittest.TestCase):
         self.api_path.write_text(json.dumps(self.api))
         tasks = download_tasks()
         (self.csv_dir / SUPPLEMENT_MANIFEST).write_text(
-            json.dumps(
-                {
-                    "schema": "glance-csv-supplements",
-                    "schema_version": 1,
-                    "tables": {task.name: list(task.columns) for task in tasks},
-                }
-            )
+            json.dumps(make_manifest(tasks))
         )
-        (self.csv_dir / SCOPE_FILENAME).write_text(json.dumps(load_scope().metadata()))
         rows = {
             "analyses": [
                 "ANA-DEMO-2099-01",
@@ -500,22 +493,13 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
             builder.build_registry(self.api_path, self.csv_dir, self.output)
         self.assertFalse(self.output.exists())
 
-    def test_scope_change_is_rejected_even_with_count_override(self):
+    def test_filtered_batch_is_rejected_even_with_count_override(self):
         builder.build_registry(self.api_path, self.csv_dir, self.output)
         before = self.output.read_bytes()
-        (self.csv_dir / SCOPE_FILENAME).write_text(
-            json.dumps(
-                {
-                    "name": "Synthetic selection",
-                    "selection": {
-                        "field": "subgroups",
-                        "operator": "contains",
-                        "values": [901],
-                    },
-                }
-            )
-        )
-        with self.assertRaisesRegex(ValueError, "scope differs"):
+        manifest = make_manifest(download_tasks())
+        manifest["selection"] = "filtered"
+        (self.csv_dir / SUPPLEMENT_MANIFEST).write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, "all-accessible"):
             builder.build_registry(
                 self.api_path, self.csv_dir, self.output, allow_count_drop=True
             )
