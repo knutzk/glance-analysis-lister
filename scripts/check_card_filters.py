@@ -21,8 +21,8 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.views.markdown.pages import ongoing_page
+from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.selection import prepare_group
 
 ROOT = Path(__file__).resolve().parents[1]
 

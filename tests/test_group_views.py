@@ -18,6 +18,7 @@ from test_curated_registry import api_fixture
 from analysis_lister import cli
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.enrichment import curate
+from analysis_lister.views.analyses import analysis_state, last_milestone
 from analysis_lister.views.build import render_group
 from analysis_lister.views.markdown.links import external
 from analysis_lister.views.markdown.pages import (
@@ -26,13 +27,9 @@ from analysis_lister.views.markdown.pages import (
     papers_page,
     pubnotes_page,
 )
+from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.selection import prepare_group
-from analysis_lister.views.semantics import (
-    analysis_state,
-    last_milestone,
-    publication_state,
-)
+from analysis_lister.views.publications import publication_state
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -744,7 +741,7 @@ if __name__ == "__main__":
 
 class ApprovalProgressTests(unittest.TestCase):
     def test_milestones_require_independent_evidence(self):
-        from analysis_lister.views.semantics import approval_progress
+        from analysis_lister.views.analyses import approval_progress
 
         record = analysis(1)
         record["phase0"] = {"gal_approvalMeetingDates": ["2099-01-04"]}
@@ -838,7 +835,7 @@ class AssociatedPaperStatusTests(unittest.TestCase):
         )
 
     def test_missing_or_active_phase_zero_does_not_invent_paper_status(self):
-        from analysis_lister.views.semantics import associated_paper_statuses
+        from analysis_lister.views.analyses import associated_paper_statuses
 
         self.assertEqual(
             associated_paper_statuses(
@@ -896,7 +893,7 @@ class SubgroupButtonTests(unittest.TestCase):
             self.assertNotIn("Leading subgroup (snapshot)", page)
 
     def test_namespace_includes_historical_names_without_configuration(self):
-        from analysis_lister.views.semantics import subgroup_button_choices
+        from analysis_lister.views.common import subgroup_button_choices
 
         decision = subgroup_button_choices(
             "DEMO", ["DEMO-Old", "OTHER-Current", "DEMO-Current"]
@@ -985,7 +982,7 @@ class FoldedMilestoneTests(unittest.TestCase):
         )
 
     def test_missing_dates_do_not_use_paper_status(self):
-        from analysis_lister.views.semantics import last_paper_milestone
+        from analysis_lister.views.publications import last_paper_milestone
 
         self.assertIsNone(
             last_paper_milestone(
@@ -999,7 +996,7 @@ class FoldedMilestoneTests(unittest.TestCase):
 
 class PaperMilestonePhaseTests(unittest.TestCase):
     def test_milestone_labels_identify_source_phase(self):
-        from analysis_lister.views.semantics import last_paper_milestone
+        from analysis_lister.views.publications import last_paper_milestone
 
         for section, field, expected in (
             ("phase1", "draftReleasedDate", "Phase 1 · ATLAS circulation 1"),
@@ -1068,8 +1065,8 @@ class PaperReviewOrderTests(unittest.TestCase):
         )
 
     def test_later_tick_outweighs_all_earlier_ticks(self):
+        from analysis_lister.views.analyses import analysis_review_order
         from analysis_lister.views.models import Decision
-        from analysis_lister.views.semantics import analysis_review_order
 
         def rank(ticks):
             return analysis_review_order(
@@ -1223,7 +1220,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(evidence["rule"], "conf-note-cds-record/v1")
 
     def test_missing_cds_link_is_blank_without_guessing_a_record(self):
-        from analysis_lister.views.semantics import note_cds_record
+        from analysis_lister.views.notes import note_cds_record
 
         for value in (
             None,
@@ -1308,7 +1305,7 @@ class ConfNoteExpansionTests(unittest.TestCase):
 
 class ConfNoteResponsibleNameTests(unittest.TestCase):
     def test_scalar_responsibles_and_chairs_are_names_not_characters(self):
-        from analysis_lister.views.semantics import note_expansion
+        from analysis_lister.views.notes import note_expansion
 
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         note["phase1"].update(
