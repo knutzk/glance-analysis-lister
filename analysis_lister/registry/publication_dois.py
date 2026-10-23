@@ -3,7 +3,7 @@
 
 """Extract API paper DOIs and embed cached citations without network access."""
 
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from ..citation_store import citation_record, normalize_doi
 from .doi import order_doi_urls
@@ -21,27 +21,35 @@ def paper_dois(paper):
     malformed = 0
     for link in links:
         value = link.get("url") if isinstance(link, dict) else link
-        if not value:
-            continue
-        try:
-            if (
-                isinstance(value, str)
-                and value.strip().lower().startswith(("https://", "http://"))
-                and (urlsplit(value.strip()).hostname or "").lower()
-                not in {
+        candidates = []
+        if isinstance(link, dict):
+            label = link.get("label")
+            if isinstance(label, str) and label.strip().lower().startswith("doi:"):
+                candidates.append(label)
+        if value:
+            if isinstance(value, str) and value.strip().lower().startswith(
+                ("https://", "http://")
+            ):
+                parsed = urlsplit(value.strip())
+                if (parsed.hostname or "").lower() in {
                     "doi.org",
                     "www.doi.org",
                     "dx.doi.org",
                     "www.dx.doi.org",
-                }
-            ):
+                }:
+                    candidates.append(value)
+                elif "/doi/" in parsed.path:
+                    candidates.append(unquote(parsed.path.split("/doi/", 1)[1]))
+            else:
+                candidates.append(value)
+        for candidate in candidates:
+            try:
+                doi = normalize_doi(candidate)
+            except ValueError:
+                malformed += 1
                 continue
-            doi = normalize_doi(value)
-        except ValueError:
-            malformed += 1
-            continue
-        if doi not in result:
-            result.append(doi)
+            if doi not in result:
+                result.append(doi)
     return result, malformed
 
 

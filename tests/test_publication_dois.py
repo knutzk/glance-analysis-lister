@@ -36,6 +36,18 @@ class PublicationDoiTests(unittest.TestCase):
         )
         self.assertEqual(paper_dois(record), ([ORIGINAL], 1))
 
+    def test_explicit_doi_labels_and_publisher_paths_are_supported(self):
+        record = paper()
+        record["publicationPhase"]["finalJournalPublicationUrls"] = [
+            {"label": "DOI:" + ORIGINAL, "url": "https://example.test/literature/123"},
+            {"label": "Publisher", "url": "https://example.test/doi/" + ORIGINAL},
+            {"label": "Publisher", "url": "https://example.test/doi/" + CORRECTION},
+        ]
+        self.assertEqual(paper_dois(record), ([ORIGINAL, CORRECTION], 0))
+        entries, _ = enrich_paper(record, {ORIGINAL: "Invented citation"})
+        self.assertEqual(entries[0]["citation"], "Invented citation")
+        self.assertEqual(entries[1]["doi"], CORRECTION)
+
     def test_each_correction_keeps_its_citation_and_provenance(self):
         record = paper("https://doi.org/" + CORRECTION, "https://doi.org/" + ORIGINAL)
         links = record["publicationPhase"]["finalJournalPublicationUrls"].copy()
