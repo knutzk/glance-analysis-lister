@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from test_curated_registry import api_fixture
+from view_fixtures import api_fixture
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.enrichment import curate

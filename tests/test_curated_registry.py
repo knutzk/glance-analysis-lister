@@ -13,6 +13,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from view_fixtures import api_fixture, person
+
 from analysis_lister import cli
 from analysis_lister.downloaders.api import RESOURCES
 from analysis_lister.downloaders.html import download_tasks
@@ -20,79 +22,6 @@ from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.registry import builder, enrichment as registry
 from analysis_lister.registry.schema import validate_registry
 from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
-
-
-def person(first, last="Example", **roles):
-    return {
-        "firstName": first,
-        "lastName": last,
-        "cernCcid": "invented-id",
-        "email": "invented@example.test",
-        **roles,
-    }
-
-
-def api_fixture():
-    records = {
-        "analyses": {"referenceCode": "ANA-DEMO-2099-01"},
-        "papers": {"referenceCode": "DEMO-2099-01"},
-        "confnotes": {"temporaryReferenceCode": "CONF-DEMO-2099-01"},
-        "pubnotes": {"temporaryReferenceCode": "PUB-DEMO-2099-01"},
-    }
-    source = {
-        "schema": "glance-api-registry",
-        "schema_version": 1,
-        "fetched_at": "2099-01-10T12:00:00+00:00",
-        "source": {
-            "selection": "all-accessible",
-            "base_url": "https://example.test/api",
-        },
-        "counts": dict.fromkeys(RESOURCES, 1),
-    }
-    for resource, record in records.items():
-        record.update(
-            {
-                "analysisTeam": [
-                    person("Current", isAnalysisContact=True, isContactEditor=True),
-                    person("Current", isAnalysisContact=True),
-                    person(
-                        "Former",
-                        isAnalysisContact=True,
-                        analysisContactAssignment={"endDate": "2099-01-09"},
-                    ),
-                    person(
-                        "Future",
-                        isAnalysisContact=True,
-                        analysisContactAssignment={"startDate": "2099-01-11"},
-                    ),
-                    person("Editor", isContactEditor=True),
-                    person("Member"),
-                ],
-                "metadata": {
-                    "keywords": [
-                        {"name": "Keyword"},
-                        {"name": "Keyword"},
-                        {"name": "Other"},
-                    ]
-                },
-                "phase0" if resource == "analyses" else "phase1": {
-                    "editorialBoard": [
-                        person("Chair", isChair=True),
-                        person("Observer", isExOfficio=True),
-                    ],
-                    "signOffResponsible": person("Official"),
-                    "startDate": "2099-01-01",
-                },
-                "relatedPublications": [
-                    {"referenceCode": "DEMO-2099-01", "type": "Paper"}
-                ],
-                "documentation": {
-                    "repositories": [{"url": "https://example.test/code"}]
-                },
-            }
-        )
-        source[resource] = [record]
-    return source
 
 
 class CuratedTests(unittest.TestCase):

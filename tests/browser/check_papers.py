@@ -9,6 +9,7 @@ Run from an editable checkout with --driver /path/to/chromedriver.
 import argparse
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -23,15 +24,15 @@ from analysis_lister.views.markdown.pages import papers_page
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
-def main():
+def run_checks(work_dir):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--driver", type=Path, required=True)
     args = parser.parse_args()
     sys.path.insert(0, str(ROOT / "tests"))
-    from test_group_views import analysis, publication, snapshot
+    from view_fixtures import analysis, publication, snapshot
 
     papers = [publication(n) for n in range(1, 5)]
     for n, paper in enumerate(papers):
@@ -63,7 +64,7 @@ def main():
         f'<script src="{(assets / name).as_uri()}"></script>'
         for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js")
     )
-    path = Path("/tmp/gal-papers-browser-fixture.html")
+    path = work_dir / "fixture.html"
     path.write_text(
         f'<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details{{content-visibility:auto}}</style>{css}</head><body class="md-typeset">{markup}{js}</body></html>'
     )
@@ -75,7 +76,7 @@ def main():
         "--window-size=1280,1000",
     ):
         options.add_argument(flag)
-    service = Service(str(args.driver), log_output="/tmp/gal-paper-filter-driver.log")
+    service = Service(str(args.driver), log_output=str(work_dir / "chromedriver.log"))
     with webdriver.Chrome(service=service, options=options) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(path.as_uri())
@@ -247,6 +248,11 @@ def main():
         print(
             "Paper browser checks passed: independent initialization, filters, search, unpaginated rows, row disclosure, document replacement and no-JavaScript fallback."
         )
+
+
+def main():
+    with TemporaryDirectory(prefix="gal-papers-browser-") as directory:
+        run_checks(Path(directory))
 
 
 if __name__ == "__main__":

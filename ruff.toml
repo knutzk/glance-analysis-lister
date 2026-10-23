@@ -17,8 +17,3 @@ ignore = [
 # Keep "from x import (a as b, c as d)" in one statement. Without this the
 # renderer's aliased page imports are split into one statement per alias.
 combine-as-imports = true
-
-[lint.per-file-ignores]
-# The lambdas here are handed straight to registry.count(), which calls them
-# within the same iteration, so the late binding B023 warns about cannot bite.
-"analysis_lister/markdown/global_pages/ongoing.py" = ["B023"]

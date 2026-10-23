@@ -4,12 +4,13 @@
 """Exercise card filtering in local Chrome using synthetic records only.
 
 Run from an editable development checkout:
-    python scripts/check_card_filters.py --driver /path/to/chromedriver
+    python tests/browser/check_ongoing.py --driver /path/to/chromedriver
 """
 
 import argparse
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -24,7 +25,7 @@ from analysis_lister.views.markdown.pages import ongoing_page
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def choose_filter(driver, category, value):
@@ -37,9 +38,9 @@ def choose_filter(driver, category, value):
         return
 
 
-def main():
+def run_checks(work_dir):
     sys.path.insert(0, str(ROOT / "tests"))
-    from test_group_views import analysis, snapshot
+    from view_fixtures import analysis, snapshot
 
     arguments = argparse.ArgumentParser(description=__doc__)
     arguments.add_argument(
@@ -87,7 +88,7 @@ def main():
     js = (root / "analysis_lister/views/assets/gal-ongoing.js").as_uri()
     archive_js = (root / "analysis_lister/views/assets/gal-papers.js").as_uri()
     html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{common_css}"><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{common_js}"></script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
-    output = Path("/tmp/gal-cards-browser-fixture.html")
+    output = work_dir / "fixture.html"
     output.write_text(html)
     options = Options()
     for value in (
@@ -100,7 +101,7 @@ def main():
         "--window-size=1280,1600",
     ):
         options.add_argument(value)
-    service = Service(str(args.driver), log_output="/tmp/gal-cards-chromedriver.log")
+    service = Service(str(args.driver), log_output=str(work_dir / "chromedriver.log"))
     with webdriver.Chrome(options=options, service=service) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(output.as_uri())
@@ -281,12 +282,12 @@ def main():
         assert driver.execute_script(
             "return getComputedStyle(document.querySelector('.gal-progress')).flexDirection === 'row'"
         )
-        driver.save_screenshot("/tmp/gal-cards-desktop.png")
+        driver.save_screenshot(str(work_dir / "desktop.png"))
         driver.set_window_size(390, 1000)
         assert driver.execute_script(
             "return document.documentElement.scrollWidth <= window.innerWidth"
         )
-        driver.save_screenshot("/tmp/gal-cards-mobile.png")
+        driver.save_screenshot(str(work_dir / "mobile.png"))
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
         driver.refresh()
         assert (
@@ -313,6 +314,11 @@ def main():
         print(
             "Browser checks passed: OR/AND filters, search, reset, keyboard, instant replacement, idempotence, mobile overflow and no-JavaScript fallback."
         )
+
+
+def main():
+    with TemporaryDirectory(prefix="gal-ongoing-browser-") as directory:
+        run_checks(Path(directory))
 
 
 if __name__ == "__main__":

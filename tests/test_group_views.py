@@ -13,11 +13,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
-from test_curated_registry import api_fixture
+from view_fixtures import analysis, publication, snapshot
 
 from analysis_lister import cli
 from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.enrichment import curate
 from analysis_lister.views.analyses import analysis_state, last_milestone
 from analysis_lister.views.build import render_group
 from analysis_lister.views.markdown.links import external
@@ -32,91 +31,6 @@ from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 from analysis_lister.views.publications import publication_state
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def analysis(number, *, group="DEMO", status="Phase 0 Active", additional=()):
-    return {
-        "referenceCode": f"ANA-DEMO-2099-{number:02}",
-        "status": status,
-        "shortTitle": "Invented | title [link] <tag>",
-        "gal_analysisContacts": ["Example Contact"],
-        "gal_contactEditors": [],
-        "gal_groups": {
-            "leadingGroup": group,
-            "otherGroups": list(additional),
-            "leadingSubgroup": "Example subgroup, with comma",
-            "subgroups": [],
-        },
-        "metadata": {"gal_keywords": ["Synthetic"]},
-        "phase0": {"startDate": "2099-01-01", "gal_editorialBoard": []},
-        "relatedPublications": [],
-    }
-
-
-def publication(
-    number,
-    *,
-    resource="papers",
-    group="DEMO",
-    related=None,
-    status="Publication Phase Finished",
-    date="2099-02-01",
-):
-    key = "referenceCode" if resource == "papers" else "temporaryReferenceCode"
-    prefix = {"papers": "", "confnotes": "CONF-", "pubnotes": "PUB-"}[resource]
-    value = {
-        key: f"{prefix}DEMO-2099-{number:02}",
-        "status": status,
-        "shortTitle": "Synthetic publication",
-        "publicShortTitle": "Synthetic public title",
-        "gal_analysisContacts": [],
-        "gal_contactEditors": [],
-        "gal_groups": {
-            "leadingGroup": group,
-            "otherGroups": [],
-            "leadingSubgroup": None,
-            "subgroups": [],
-        },
-        "relatedAnalysis": {"type": "Analysis", "referenceCode": related}
-        if related
-        else None,
-    }
-    if resource == "papers":
-        value["publicationPhase"] = {
-            "publishedOnlineDate": date,
-            "arXivSubmissionDate": None,
-            "gal_dois": [
-                {"doi": "10.9999/synthetic", "citation": "Synthetic citation"}
-            ],
-        }
-    else:
-        value["finalReferenceCode"] = (
-            f"{'ATLAS-CONF' if resource == 'confnotes' else 'ATL-PHYS-PUB'}-2099-{number:03}"
-        )
-        value["phase1"] = {
-            "releaseDate": date,
-            "publicWebPageUrlForFiguresAndTables": "https://example.test/note",
-        }
-    return value
-
-
-def snapshot(*analyses, papers=(), confnotes=(), pubnotes=()):
-    data = curate(api_fixture(), {})
-    data["analyses"] = list(analyses) or [analysis(99, group="OTHER", status="Closed")]
-    for resource, records in (
-        ("papers", papers),
-        ("confnotes", confnotes),
-        ("pubnotes", pubnotes),
-    ):
-        fallback = publication(99, resource=resource, group="OTHER", status="Closed")
-        fallback[
-            "referenceCode" if resource == "papers" else "temporaryReferenceCode"
-        ] = "OTHER-2099-99"
-        data[resource] = list(records) or [fallback]
-    data["counts"] = {
-        key: len(data[key]) for key in ("analyses", "papers", "confnotes", "pubnotes")
-    }
-    return data
 
 
 class GroupViewTests(unittest.TestCase):

@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Exercise compact CONF/PUB-note tables and subgroup filtering with synthetic records."""
+"""Exercise CONF/PUB-note search, dates, supersession and expansion with synthetic records."""
 
 import argparse
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -21,10 +22,10 @@ from analysis_lister.views.markdown.pages import confnotes_page, pubnotes_page
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
-def main():
+def run_checks(work_dir):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--driver", type=Path, required=True)
     parser.add_argument(
@@ -32,7 +33,7 @@ def main():
     )
     args = parser.parse_args()
     sys.path.insert(0, str(ROOT / "tests"))
-    from test_group_views import analysis, publication, snapshot
+    from view_fixtures import analysis, publication, snapshot
 
     notes = [
         publication(n, resource=args.resource, status="Phase 1 Finished")
@@ -71,7 +72,7 @@ def main():
         f'<script src="{(assets / name).as_uri()}"></script>'
         for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js", "gal-notes.js")
     )
-    output = Path("/tmp/gal-notes-browser-fixture.html")
+    output = work_dir / "fixture.html"
     output.write_text(
         f'<!doctype html><html><head><meta charset="utf-8">{css}</head><body>{markup}{js}</body></html>'
     )
@@ -85,7 +86,9 @@ def main():
         options.add_argument(flag)
     with webdriver.Chrome(
         options=options,
-        service=Service(str(args.driver), log_output="/tmp/gal-notes-driver.log"),
+        service=Service(
+            str(args.driver), log_output=str(work_dir / "chromedriver.log")
+        ),
     ) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(output.as_uri())
@@ -311,6 +314,11 @@ def main():
         print(
             f"{args.resource} browser checks passed: three single-line columns and expandable details, free-text subgroup/people/CDS search, date bounds, URL reload, visible-row striping, hover, keyboard, mobile scrolling and static fallback."
         )
+
+
+def main():
+    with TemporaryDirectory(prefix="gal-notes-browser-") as directory:
+        run_checks(Path(directory))
 
 
 if __name__ == "__main__":
