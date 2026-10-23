@@ -6,9 +6,9 @@
 import json
 from html import escape
 
-from .cards import affiliation_tags, fields
+from .fragments import affiliation_tags, fields
 from .links import anchor, glance_url, html_link
-from .publication_filtering import render_controls
+from .publication_controls import render_controls
 
 
 def paper_details(row):
@@ -68,9 +68,8 @@ def record_button(label, url):
     return html_link(label, url).replace("<a ", '<a class="gal-publication-link" ', 1)
 
 
-def archive_table(view, resource="papers"):
-    if resource != "papers":
-        raise ValueError("Use note_table for note archives")
+def paper_table(view):
+    resource = "papers"
     rows = tuple(row for row in view.archive if row.resource == resource)
     out = '<section class="gal-collection gal-archive" data-gal-resource="papers" data-gal-archive data-gal-collection data-gal-noun="papers" aria-label="Papers archive">'
     out += render_controls(
@@ -86,7 +85,7 @@ def archive_table(view, resource="papers"):
         ],
     )
     out += f'<p class="gal-result-count" data-gal-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} papers</p>'
-    out += '<div class="gal-table-scroll" role="region" aria-label="Publication archive table" tabindex="0"><table class="gal-publications"><thead><tr>'
+    out += '<div class="gal-table-scroll" role="region" aria-label="Publication archive table" tabindex="0"><table class="gal-papers"><thead><tr>'
     out += "".join(
         f'<th scope="col">{label}</th>'
         for label in ("Identifier", "Title", "Publication record", "Publication date")

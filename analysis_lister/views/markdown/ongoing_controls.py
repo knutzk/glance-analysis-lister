@@ -5,14 +5,7 @@
 
 from html import escape
 
-
-def category_buttons(key, label, values):
-    if not values:
-        return ""
-    out = f'<fieldset data-gal-filter="{escape(key, quote=True)}"><legend>{escape(label)}</legend><div class="gal-filter-buttons">'
-    for value, title in values:
-        out += f'<button type="button" data-gal-value="{escape(value, quote=True)}" aria-pressed="false">{escape(title)}</button>'
-    return out + "</div></fieldset>"
+from .controls import category_buttons
 
 
 def render_controls(prefix, search_label, placeholder, categories, *, sort_options=()):

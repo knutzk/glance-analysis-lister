@@ -2,8 +2,10 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  if (window.GALPublications) {
-    window.GALPublications.initialize();
+  const common = window.GALCommon;
+  if (!common) return;
+  if (window.GALPapers) {
+    window.GALPapers.initialize();
     return;
   }
   const initialized = new WeakSet();
@@ -38,13 +40,10 @@
         categories.forEach(category => {
           const values = params.getAll(urlKeys[category.dataset.galFilter] || category.dataset.galFilter);
           category.querySelectorAll("[data-gal-value]").forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.galValue))));
-          category.querySelectorAll("[data-gal-choice]").forEach(choice => { choice.checked = values.includes(choice.value); });
-          category.querySelectorAll("[data-gal-select]").forEach(select => { select.value = values[0] || ""; });
         });
       }
       function writeURL(selections) {
         const url = new URL(location.href);
-        ["keyword", "trigger", "tool"].forEach(key => url.searchParams.delete(key));
         for (const [key, value] of [["q", search.value.trim()], ["after", after.value], ["before", before.value]]) {
           url.searchParams.delete(key);
           if (value) url.searchParams.set(key, value);
@@ -54,17 +53,13 @@
           url.searchParams.delete(param);
           values.forEach(value => url.searchParams.append(param, value));
         });
-        if (url.href !== location.href) {
-          try { history.replaceState(history.state, "", url); } catch (_) { /* Keep local filtering usable. */ }
-        }
+        common.replaceURL(url);
       }
       function syncExpandAll() {
         if (!expandAll) return;
         const visible = items.filter(item => !item.element.hidden);
         const expanded = visible.length > 0 && visible.every(item => item.expanded);
-        expandAll.disabled = visible.length === 0;
-        expandAll.textContent = expanded ? "Collapse all" : "Expand all";
-        expandAll.setAttribute("aria-pressed", String(expanded));
+        common.updateExpandButton(expandAll, visible.length, expanded);
       }
       function update() {
         const query = search.value.trim().toLowerCase();
@@ -72,19 +67,10 @@
           key: category.dataset.galFilter,
           values: [
             ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.galValue),
-            ...Array.from(category.querySelectorAll("input[data-gal-choice]:checked"), (choice) => choice.value),
-            ...Array.from(category.querySelectorAll("select[data-gal-select]"), (select) => select.value).filter(Boolean),
           ],
         }));
-        categories.forEach((category) => {
-          const summary = category.querySelector("[data-gal-selection-summary]");
-          if (!summary) return;
-          const chosen = Array.from(category.querySelectorAll("[data-gal-choice]:checked"), (choice) => choice.value);
-          summary.textContent = chosen.length === 0 ? summary.dataset.galDefault : chosen.length === 1 ? chosen[0] : `${chosen.length} selected`;
-        });
         const matched = items.filter(({metadata, element}) => {
-          const month = (element.dataset.galDate || "").slice(0, 7);
-          const dateMatches = (!after.value || !month || month >= after.value) && (!before.value || (month && month <= before.value));
+          const dateMatches = common.monthMatches(element.dataset.galDate, after.value, before.value);
           const matches = dateMatches && (!query || (metadata.text || "").toLowerCase().includes(query)) &&
             selections.every(({key, values}) => {
               const available = Array.isArray(metadata[key]) ? metadata[key] : [metadata[key]];
@@ -118,9 +104,6 @@
           after.value = "";
           before.value = "";
           search.value = "";
-          controls.querySelectorAll("input[data-gal-choice]").forEach((choice) => { choice.checked = false; });
-          controls.querySelectorAll(".gal-multiselect[open]").forEach((menu) => { menu.open = false; });
-          controls.querySelectorAll("select[data-gal-select]").forEach((select) => { select.selectedIndex = 0; });
           controls.querySelectorAll("[data-gal-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
         } else if (button.hasAttribute("data-gal-value")) {
           button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true");
@@ -166,14 +149,6 @@
       update();
     });
   }
-  window.GALPublications = {initialize};
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, {once: true});
-  else initialize();
-  // Material/Zensical instant navigation publishes replaced documents here.
-  if (typeof document$ !== "undefined" && document$.subscribe) document$.subscribe(initialize);
-  // Also handle content inserted after startup or when no document$ is exposed.
-  new MutationObserver((changes) => {
-    if (changes.some((change) => Array.from(change.addedNodes).some((node) =>
-      node.nodeType === 1 && (node.matches("[data-gal-archive]") || node.querySelector("[data-gal-archive]"))))) initialize();
-  }).observe(document.documentElement, {childList: true, subtree: true});
+  window.GALPapers = {initialize};
+  common.observeCollections('[data-gal-archive]', initialize);
 })();

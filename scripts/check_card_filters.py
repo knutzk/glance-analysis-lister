@@ -11,7 +11,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from markdown_it import MarkdownIt
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -35,19 +35,6 @@ def choose_filter(driver, category, value):
             if (button.get_attribute("aria-pressed") == "true") != expected:
                 button.click()
         return
-    selects = container.find_elements(By.CSS_SELECTOR, "select")
-    if selects:
-        Select(selects[0]).select_by_value(value)
-        return
-    menu = container.find_element(By.CSS_SELECTOR, "details")
-    if not menu.get_attribute("open"):
-        menu.find_element(By.CSS_SELECTOR, "summary").click()
-    for checkbox in container.find_elements(By.CSS_SELECTOR, "[data-gal-choice]"):
-        if (value == "" and checkbox.is_selected()) or (
-            checkbox.get_attribute("value") == value and not checkbox.is_selected()
-        ):
-            checkbox.click()
-    menu.find_element(By.CSS_SELECTOR, "summary").send_keys(Keys.ESCAPE)
 
 
 def main():
@@ -91,11 +78,15 @@ def main():
     view = prepare_group(
         CuratedRegistry(snapshot(first, second, third, fourth)), GroupProfile("DEMO")
     )
-    markup = MarkdownIt("commonmark").enable("table").render(ongoing_page(view))
-    css = (root / "analysis_lister/views/assets/gal-views.css").as_uri()
-    js = (root / "analysis_lister/views/assets/gal-views.js").as_uri()
-    archive_js = (root / "analysis_lister/views/assets/gal-publications.js").as_uri()
-    html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
+    markup = str(
+        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-ongoing")
+    )
+    common_css = (root / "analysis_lister/views/assets/gal-common.css").as_uri()
+    common_js = (root / "analysis_lister/views/assets/gal-common.js").as_uri()
+    css = (root / "analysis_lister/views/assets/gal-ongoing.css").as_uri()
+    js = (root / "analysis_lister/views/assets/gal-ongoing.js").as_uri()
+    archive_js = (root / "analysis_lister/views/assets/gal-papers.js").as_uri()
+    html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{common_css}"><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{common_js}"></script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
     output = Path("/tmp/gal-cards-browser-fixture.html")
     output.write_text(html)
     options = Options()
@@ -282,7 +273,7 @@ def main():
         count(2)
         reset()
         driver.execute_script(
-            (root / "analysis_lister/views/assets/gal-views.js").read_text()
+            (root / "analysis_lister/views/assets/gal-ongoing.js").read_text()
         )
         choose("subgroups", "DEMO-Beta")
         count(2)

@@ -1136,7 +1136,7 @@ class SeparatePublicationPageTests(unittest.TestCase):
         ):
             soup = BeautifulSoup(render(view), "html.parser")
             rows = soup.select(
-                "tbody tr:not([data-gal-confnote-details]):not([data-gal-paper-details])"
+                "tbody tr:not([data-gal-note-details]):not([data-gal-paper-details])"
             )
             self.assertEqual(len(rows), 1)
             if resource == "confnotes":
@@ -1156,20 +1156,20 @@ class SeparatePublicationPageTests(unittest.TestCase):
 
     def test_publication_search_has_its_own_module_and_browser_entrypoint(self):
         from analysis_lister.views.markdown import (
-            archive,
-            cards,
-            filtering,
-            publication_filtering,
+            ongoing,
+            ongoing_controls,
+            papers,
+            publication_controls,
         )
 
-        self.assertIs(cards.render_controls, filtering.render_controls)
-        self.assertIs(archive.render_controls, publication_filtering.render_controls)
-        self.assertIsNot(cards.render_controls, archive.render_controls)
-        ongoing = (ROOT / "analysis_lister/views/assets/gal-views.js").read_text()
-        paper = (ROOT / "analysis_lister/views/assets/gal-publications.js").read_text()
+        self.assertIs(ongoing.render_controls, ongoing_controls.render_controls)
+        self.assertIs(papers.render_controls, publication_controls.render_controls)
+        self.assertIsNot(ongoing.render_controls, papers.render_controls)
+        ongoing = (ROOT / "analysis_lister/views/assets/gal-ongoing.js").read_text()
+        paper = (ROOT / "analysis_lister/views/assets/gal-papers.js").read_text()
         self.assertIn(".gal-ongoing[data-gal-collection]", ongoing)
-        self.assertIn("window.GALPublications", paper)
-        self.assertNotIn("window.GALViews", paper)
+        self.assertIn("window.GALPapers", paper)
+        self.assertNotIn("window.GALOngoing", paper)
 
 
 class ConfNoteTableTests(unittest.TestCase):
@@ -1210,9 +1210,7 @@ class ConfNoteTableTests(unittest.TestCase):
         )
         self.assertFalse(soup.select('[data-gal-filter="subgroups"]'))
         self.assertIsNotNone(soup.select_one("[data-gal-search]"))
-        self.assertTrue(
-            soup.select_one("[data-gal-confnote-controls]").has_attr("hidden")
-        )
+        self.assertTrue(soup.select_one("[data-gal-note-controls]").has_attr("hidden"))
         self.assertFalse(row.has_attr("hidden"))
         evidence = next(
             r for r in view.archive if r.resource == "confnotes"
@@ -1241,9 +1239,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(
             [
                 a.text
-                for a in soup.select_one("[data-gal-confnote]").select(
-                    "th:first-child a"
-                )
+                for a in soup.select_one("[data-gal-note]").select("th:first-child a")
             ],
             [note["finalReferenceCode"]],
         )
@@ -1274,14 +1270,14 @@ class ConfNoteExpansionTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
-        detail = soup.select_one("[data-gal-confnote-details]")
+        detail = soup.select_one("[data-gal-note-details]")
         self.assertEqual(detail.td["colspan"], "3")
         self.assertIn("Invented Chair (chair)", detail.get_text())
         self.assertIn("Invented Contact", detail.get_text())
         self.assertIn("Not recorded", detail.get_text())
         self.assertNotIn("2099-01-03", detail.get_text())
         self.assertEqual(
-            [tag.text for tag in detail.select(".gal-confnote-tags .gal-badge")],
+            [tag.text for tag in detail.select(".gal-note-tags .gal-badge")],
             ["Invented keyword", "Invented tool", "Invented ML tool", "2099 · 13 TeV"],
         )
         self.assertEqual(
@@ -1293,7 +1289,7 @@ class ConfNoteExpansionTests(unittest.TestCase):
         )
         self.assertIn("DEMO-Beta", detail.get_text())
         self.assertTrue(
-            detail.select_one("[data-gal-confnote-collapse]").has_attr("hidden")
+            detail.select_one("[data-gal-note-collapse]").has_attr("hidden")
         )
         self.assertFalse(detail.has_attr("hidden"))  # Complete static fallback.
         prepared = next(row for row in view.archive if row.resource == "confnotes")
@@ -1344,7 +1340,7 @@ class ConfNoteResponsibleNameTests(unittest.TestCase):
         )
         markup = (
             BeautifulSoup(confnotes_page(view), "html.parser")
-            .select_one("[data-gal-confnote-details]")
+            .select_one("[data-gal-note-details]")
             .get_text()
         )
         self.assertIn("Invented First Person", markup)
@@ -1379,25 +1375,23 @@ class ConfNoteSupersessionTests(unittest.TestCase):
         self.assertEqual(evidence["inputs"]["supersededBy"], superseded["supersededBy"])
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
         self.assertEqual(
-            soup.select_one('[data-gal-confnote-supersession="non-superseded"]')[
+            soup.select_one('[data-gal-note-supersession="non-superseded"]')[
                 "aria-pressed"
             ],
             "true",
         )
         self.assertEqual(
-            soup.select_one('[data-gal-confnote-supersession="superseded"]')[
+            soup.select_one('[data-gal-note-supersession="superseded"]')[
                 "aria-pressed"
             ],
             "false",
         )
+        self.assertEqual(soup.select_one("[data-gal-note-count]").text, "2 of 2 notes")
         self.assertEqual(
-            soup.select_one("[data-gal-confnote-count]").text, "2 of 2 notes"
-        )
-        self.assertEqual(
-            len(soup.select('[data-gal-confnote][data-gal-superseded="true"]')), 1
+            len(soup.select('[data-gal-note][data-gal-superseded="true"]')), 1
         )
         self.assertFalse(
-            any(row.has_attr("hidden") for row in soup.select("[data-gal-confnote]"))
+            any(row.has_attr("hidden") for row in soup.select("[data-gal-note]"))
         )
 
 
@@ -1414,7 +1408,7 @@ class ConfNoteSupersedingLinksTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
-        links = soup.select(".gal-confnote-superseders a")
+        links = soup.select(".gal-note-superseders a")
         self.assertEqual(len(links), 3)
         for link, target, resource in zip(
             links,
@@ -1432,7 +1426,7 @@ class ConfNoteSupersedingLinksTests(unittest.TestCase):
         )
         self.assertFalse(
             BeautifulSoup(confnotes_page(current_view), "html.parser").select(
-                ".gal-confnote-superseders"
+                ".gal-note-superseders"
             )
         )
 
@@ -1456,7 +1450,7 @@ class PubNotePageTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(pubnotes_page(view), "html.parser")
-        summary = soup.select_one("[data-gal-confnote]")
+        summary = soup.select_one("[data-gal-note]")
         cells = summary.select(":scope > td, :scope > th")
         self.assertEqual(len(cells), 3)
         self.assertEqual(cells[0].a.text, "ATL-PHYS-PUB-2099-001")
@@ -1469,18 +1463,16 @@ class PubNotePageTests(unittest.TestCase):
                 "CDS",
             ],
         )
-        details = soup.select_one("[data-gal-confnote-details]")
+        details = soup.select_one("[data-gal-note-details]")
         self.assertIn("Invented Reader", details.get_text())
         self.assertIn("Invented First Reader", details.get_text())
         self.assertIn("Second readers", details.get_text())
         self.assertIn("Not recorded", details.get_text())
         self.assertNotIn("Editorial board", details.get_text())
-        self.assertTrue(details.select(".gal-confnote-superseders a"))
-        self.assertTrue(details.select("[data-gal-confnote-collapse]"))
-        self.assertTrue(soup.select("[data-gal-confnote-supersession]"))
-        self.assertEqual(
-            soup.select_one("[data-gal-confnote-count]").text, "1 of 1 notes"
-        )
+        self.assertTrue(details.select(".gal-note-superseders a"))
+        self.assertTrue(details.select("[data-gal-note-collapse]"))
+        self.assertTrue(soup.select("[data-gal-note-supersession]"))
+        self.assertEqual(soup.select_one("[data-gal-note-count]").text, "1 of 1 notes")
         row = next(row for row in view.archive if row.resource == "pubnotes")
         self.assertEqual(
             row.provenance["details"]["inputs"]["pub_note_expansion"]["rule"],

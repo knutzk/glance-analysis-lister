@@ -5,10 +5,10 @@
 
 import json
 import logging
-from importlib.resources import files
 from pathlib import Path
 
 from ..registry import CuratedRegistry
+from .assets import asset_documents
 from .markdown.pages import (
     confnotes_page,
     ongoing_page,
@@ -40,19 +40,7 @@ def render_group(snapshot, output_dir, profile):
         "pubnotes.md": pubnotes_page(view),
         "view-report.json": json.dumps(report, ensure_ascii=False, indent=2) + "\n",
     }
-    for name in (
-        "gal-views.css",
-        "gal-views.js",
-        "gal-publications.css",
-        "gal-publications.js",
-        "gal-confnotes.css",
-        "gal-confnotes.js",
-    ):
-        documents["assets/" + name] = (
-            files("analysis_lister.views")
-            .joinpath("assets", name)
-            .read_text(encoding="utf-8")
-        )
+    documents.update(asset_documents())
     write_documents(output_dir, documents, snapshot=snapshot)
     if issues:
         logger.warning(

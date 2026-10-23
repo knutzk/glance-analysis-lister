@@ -40,6 +40,16 @@ def main():
         "analysis_lister/obsidian.py",
         "analysis_lister/lookup_review.py",
         "analysis_lister/lookup_validation.py",
+        "analysis_lister/citation_store.py",
+        "analysis_lister/doi_resolver.py",
+        "analysis_lister/registry/doi.py",
+        "analysis_lister/downloaders/publication.py",
+        "analysis_lister/views/selection.py",
+        "analysis_lister/views/semantics.py",
+        "analysis_lister/views/markdown/cards.py",
+        "analysis_lister/views/markdown/archive.py",
+        "analysis_lister/views/markdown/filtering.py",
+        "analysis_lister/views/markdown/publication_filtering.py",
     )
     assert not any(str(path).startswith(retired) for path in package.files), (
         "Retired modules must not ship in the wheel"
@@ -242,17 +252,19 @@ def main():
             check=True,
         )
         assert (group_output / "ongoing.md").is_file()
-        assert "gal-publications" in (group_output / "papers.md").read_text()
+        assert "gal-papers" in (group_output / "papers.md").read_text()
         assert (group_output / "confnotes.md").is_file()
         assert (group_output / "pubnotes.md").is_file()
         assert "data-gal-item" in (group_output / "ongoing.md").read_text()
         for name in (
-            "gal-views.js",
-            "gal-views.css",
-            "gal-publications.js",
-            "gal-publications.css",
-            "gal-confnotes.js",
-            "gal-confnotes.css",
+            "gal-common.js",
+            "gal-ongoing.js",
+            "gal-common.css",
+            "gal-ongoing.css",
+            "gal-papers.js",
+            "gal-papers.css",
+            "gal-notes.js",
+            "gal-notes.css",
         ):
             assert (group_output / "assets" / name).read_bytes() == (
                 root / "analysis_lister/views/assets" / name

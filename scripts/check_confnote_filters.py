@@ -55,18 +55,23 @@ def main():
         BeautifulSoup(
             (confnotes_page if args.resource == "confnotes" else pubnotes_page)(view),
             "html.parser",
-        ).select_one("[data-gal-confnotes]")
+        ).select_one("[data-gal-notes]")
     )
     assets = ROOT / "analysis_lister/views/assets"
     css = "".join(
         f'<link rel="stylesheet" href="{(assets / name).as_uri()}">'
-        for name in ("gal-views.css", "gal-publications.css", "gal-confnotes.css")
+        for name in (
+            "gal-common.css",
+            "gal-ongoing.css",
+            "gal-papers.css",
+            "gal-notes.css",
+        )
     )
     js = "".join(
         f'<script src="{(assets / name).as_uri()}"></script>'
-        for name in ("gal-views.js", "gal-publications.js", "gal-confnotes.js")
+        for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js", "gal-notes.js")
     )
-    output = Path("/tmp/gal-confnotes-browser-fixture.html")
+    output = Path("/tmp/gal-notes-browser-fixture.html")
     output.write_text(
         f'<!doctype html><html><head><meta charset="utf-8">{css}</head><body>{markup}{js}</body></html>'
     )
@@ -80,20 +85,20 @@ def main():
         options.add_argument(flag)
     with webdriver.Chrome(
         options=options,
-        service=Service(str(args.driver), log_output="/tmp/gal-confnotes-driver.log"),
+        service=Service(str(args.driver), log_output="/tmp/gal-notes-driver.log"),
     ) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(output.as_uri())
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-confnote-controls]"
+                By.CSS_SELECTOR, "[data-gal-note-controls]"
             ).is_displayed()
         )
 
         def visible():
             return [
                 r
-                for r in driver.find_elements(By.CSS_SELECTOR, "[data-gal-confnote]")
+                for r in driver.find_elements(By.CSS_SELECTOR, "[data-gal-note]")
                 if r.is_displayed()
             ]
 
@@ -101,9 +106,7 @@ def main():
             wait.until(
                 lambda d: (
                     len(visible()) == n
-                    and d.find_element(
-                        By.CSS_SELECTOR, "[data-gal-confnote-count]"
-                    ).text
+                    and d.find_element(By.CSS_SELECTOR, "[data-gal-note-count]").text
                     == f"{n} of 4 notes"
                 )
             )
@@ -119,7 +122,7 @@ def main():
         assert "q=209900000000" in driver.current_url
         search_for("Invented Editor")
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
         count(3)
 
         def month(bound, value):
@@ -156,7 +159,7 @@ def main():
         assert driver.find_element(
             By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
         ).get_attribute("disabled")
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
         count(3)
         expand_all = driver.find_element(
             By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
@@ -168,7 +171,7 @@ def main():
                 [
                     panel
                     for panel in driver.find_elements(
-                        By.CSS_SELECTOR, "[data-gal-confnote-details]"
+                        By.CSS_SELECTOR, "[data-gal-note-details]"
                     )
                     if panel.is_displayed()
                 ]
@@ -180,7 +183,7 @@ def main():
         assert not any(
             panel.is_displayed()
             for panel in driver.find_elements(
-                By.CSS_SELECTOR, "[data-gal-confnote-details]"
+                By.CSS_SELECTOR, "[data-gal-note-details]"
             )
         )
         assert not driver.find_elements(
@@ -194,16 +197,16 @@ def main():
             len(row.find_elements(By.CSS_SELECTOR, "td, th")) == 3 for row in visible()
         )
         assert driver.execute_script(
-            "return Array.from(document.querySelectorAll('.gal-confnotes tbody tr[data-gal-confnote] > *')).every(e=>getComputedStyle(e).whiteSpace==='nowrap')"
+            "return Array.from(document.querySelectorAll('.gal-notes tbody tr[data-gal-note] > *')).every(e=>getComputedStyle(e).whiteSpace==='nowrap')"
         )
         driver.execute_script(
-            "window.GALViews.initialize();window.GALPublications.initialize();window.GALConfNotes.initialize();window.GALConfNotes.initialize()"
+            "window.GALOngoing.initialize();window.GALPapers.initialize();window.GALNotes.initialize();window.GALNotes.initialize()"
         )
         current = driver.find_element(
-            By.CSS_SELECTOR, '[data-gal-confnote-supersession="non-superseded"]'
+            By.CSS_SELECTOR, '[data-gal-note-supersession="non-superseded"]'
         )
         superseded = driver.find_element(
-            By.CSS_SELECTOR, '[data-gal-confnote-supersession="superseded"]'
+            By.CSS_SELECTOR, '[data-gal-note-supersession="superseded"]'
         )
         superseded.click()
         count(4)
@@ -212,38 +215,38 @@ def main():
         assert "supersession=superseded" in driver.current_url
         driver.refresh()
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
         count(3)
         row = next(
             row
             for row in visible()
             if "OTHER-Outside" in row.get_attribute("data-gal-subgroups")
         )
-        toggle = row.find_element(By.CSS_SELECTOR, "[data-gal-confnote-toggle]")
+        toggle = row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]")
         panel_id = toggle.get_attribute("aria-controls")
         toggle.send_keys(Keys.ENTER)
         panel = driver.find_element(By.ID, panel_id)
         assert panel.is_displayed()
         panel.find_element(By.CSS_SELECTOR, "dd").click()
         assert panel.is_displayed()
-        row.find_element(By.CSS_SELECTOR, "[data-gal-confnote-toggle]").click()
+        row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]").click()
         assert not panel.is_displayed()
-        row.find_element(By.CSS_SELECTOR, "[data-gal-confnote-toggle]").send_keys(
+        row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]").send_keys(
             Keys.ENTER
         )
         assert panel.is_displayed()
         assert driver.execute_script(
-            "return getComputedStyle(arguments[0]).backgroundColor===getComputedStyle(document.querySelector('.gal-confnote-detail-row > td')).backgroundColor",
+            "return getComputedStyle(arguments[0]).backgroundColor===getComputedStyle(document.querySelector('.gal-note-detail-row > td')).backgroundColor",
             panel,
         )
 
         search_for("DEMO-Alpha")
         count(2)
         assert not panel.is_displayed()
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
         count(3)
         assert panel.is_displayed()
-        panel.find_element(By.CSS_SELECTOR, "[data-gal-confnote-collapse]").send_keys(
+        panel.find_element(By.CSS_SELECTOR, "[data-gal-note-collapse]").send_keys(
             Keys.SPACE
         )
         assert not panel.is_displayed()
@@ -259,17 +262,14 @@ def main():
         count(2)
         assert "q=DEMO-Alpha" in driver.current_url
         assert (
-            sum(
-                "gal-confnote--stripe" in row.get_attribute("class")
-                for row in visible()
-            )
+            sum("gal-note--stripe" in row.get_attribute("class") for row in visible())
             == 1
         )
         search_for("DEMO-Beta")
         count(1)
         driver.refresh()
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
         count(3)
         row = next(
             row
@@ -287,25 +287,23 @@ def main():
         driver.refresh()
         count(4)
         assert not driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-confnote-controls]"
+            By.CSS_SELECTOR, "[data-gal-note-controls]"
         ).is_displayed()
         assert all(
             p.is_displayed()
-            for p in driver.find_elements(
-                By.CSS_SELECTOR, "[data-gal-confnote-details]"
-            )
+            for p in driver.find_elements(By.CSS_SELECTOR, "[data-gal-note-details]")
         )
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
         driver.get(output.as_uri())
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-confnote-controls]"
+                By.CSS_SELECTOR, "[data-gal-note-controls]"
             ).is_displayed()
         )
         driver.execute_script(
-            "const root=document.querySelector('[data-gal-confnotes]');const copy=root.cloneNode(true);copy.querySelector('[data-gal-confnote-controls]').remove();root.replaceWith(copy)"
+            "const root=document.querySelector('[data-gal-notes]');const copy=root.cloneNode(true);copy.querySelector('[data-gal-note-controls]').remove();root.replaceWith(copy)"
         )
-        toggle = driver.find_element(By.CSS_SELECTOR, "[data-gal-confnote-toggle]")
+        toggle = driver.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]")
         toggle.send_keys(Keys.ENTER)
         assert driver.find_element(
             By.ID, toggle.get_attribute("aria-controls")

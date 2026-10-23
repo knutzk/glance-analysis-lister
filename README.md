@@ -148,7 +148,7 @@ the removal list when those originals should be dropped. A nonempty unchanged AP
 over HTML, and no additional `gal_` alias is created for it. Only the current
 curated schema is accepted; use a new output path when replacing older formats.
 
-The Python implementation has two independent packages:
+Download and storage responsibilities live in two packages:
 
 - `analysis_lister.downloaders`: stare API retrieval (`api.py`), authenticated
   HTML retrieval (`html.py`), table parsing (`tables.py`), CSV reading
@@ -156,7 +156,7 @@ The Python implementation has two independent packages:
   publication (`csv_batch.py`).
 - `analysis_lister.registry`: offline construction (`builder.py`), enrichment
   and removal rules (`enrichment.py`), schema validation (`schema.py`), DOI
-  processing (`doi.py`, `publication_dois.py`), and curated access (`reader.py`).
+  link extraction (`publication_dois.py`), and curated access (`reader.py`).
 
 The `glance/` domain models and old top-level `markdown/` renderer have been
 removed. The current `views/markdown/` renderers consume prepared curated data.
@@ -206,13 +206,15 @@ Enable one shared copy of the generated assets in the documentation site:
 
 ```yaml
 extra_css:
-  - analyses/previews/topq/assets/gal-views.css
-  - analyses/previews/topq/assets/gal-publications.css
-  - analyses/previews/topq/assets/gal-confnotes.css
+  - analyses/previews/topq/assets/gal-common.css
+  - analyses/previews/topq/assets/gal-ongoing.css
+  - analyses/previews/topq/assets/gal-papers.css
+  - analyses/previews/topq/assets/gal-notes.css
 extra_javascript:
-  - analyses/previews/topq/assets/gal-views.js
-  - analyses/previews/topq/assets/gal-publications.js
-  - analyses/previews/topq/assets/gal-confnotes.js
+  - analyses/previews/topq/assets/gal-common.js
+  - analyses/previews/topq/assets/gal-ongoing.js
+  - analyses/previews/topq/assets/gal-papers.js
+  - analyses/previews/topq/assets/gal-notes.js
 ```
 
 Append these to existing asset lists. Filters initialize on Zensical instant
@@ -572,8 +574,8 @@ shareable `q`, `after`, `before`, paper `status` and note `supersession` URL
 parameters, restored on reload and browser navigation. No pagination is applied.
 
 Publication search/rendering is separate from ongoing analysis search. Papers
-use `views/markdown/archive.py`, `publication_filtering.py` and `gal-publications`
-assets. Notes share `notes.py` and `gal-confnotes` assets. Ongoing cards retain
+use `views/markdown/papers.py`, `publication_controls.py` and `gal-papers`
+assets. Notes share `notes.py` and `gal-notes` assets. Ongoing cards retain
 subgroup buttons, review-stage sorting and free-text keyword/trigger search.
 Expand and Reset controls are grouped at the right across all views.
 
@@ -623,3 +625,30 @@ in `registry/publication_dois.py`; registry building never performs a lookup.
 HTML downloader responsibilities are separated into `auth.py` (saved cookies and
 Selenium login), `http.py` (GLANCE endpoints, requests and verified TLS),
 `html.py` (staged conversion), and `csv_batch.py` (transactional publication).
+
+Load `gal-common.css` and `gal-common.js` before the ongoing, papers and notes
+assets. The common script owns only DOM lifecycle, safe URL writes, month bounds
+and expansion-button feedback; each view retains its own filter state and search.
+
+Prepared data can be used without rendering:
+
+```python
+from analysis_lister.registry import CuratedRegistry
+from analysis_lister.views.curation import load_publication_policy
+from analysis_lister.views.prepare import prepare_group
+from analysis_lister.views.profiles import GroupProfile
+
+registry = CuratedRegistry.from_json("json/glance_curated_registry.json")
+policy = load_publication_policy("publication-curation.toml", "DEMO")
+view = prepare_group(registry, GroupProfile("DEMO", publication_policy=policy))
+for publication in view.archive:
+    for link in publication.details.publication_records:
+        print(publication.label, link.label, link.url)
+```
+
+`views/analyses.py`, `publications.py` and `notes.py` own record interpretation
+and preparation; `relationships.py` reconciles explicit links. `prepare.py`
+assembles collections, `report.py` scopes provenance, and `build.py` renders and
+writes the output. Shared HTML fragments and control primitives live in
+`views/markdown/fragments.py` and `controls.py`; the ongoing and publication
+control modules keep their searches independent.

@@ -1,0 +1,46 @@
+/* SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+ * SPDX-License-Identifier: GPL-3.0-only */
+.gal-note-filters > .gal-filter-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+@media (max-width: 600px) {
+  .gal-note-filters { align-items: stretch; flex-direction: column; }
+}
+.gal-archive .gal-note-filters { display: block; }
+.gal-notes { width: 100%; border-collapse: collapse; font-size: .67rem; }
+.gal-notes :is(th, td) { padding: .35rem .5rem; white-space: nowrap; overflow-wrap: normal; word-break: normal; text-align: left; font-weight: 400; }
+.gal-notes thead th { font-weight: 600; border-bottom: 2px solid var(--gal-border); }
+.gal-notes tbody :is(th, td) { border-bottom: 1px solid color-mix(in srgb, var(--md-default-fg-color, #253041) 22%, transparent); }
+.gal-notes tbody tr:nth-child(4n+3), .gal-notes--filtered .gal-notes tbody tr.gal-note--stripe { background: color-mix(in srgb, var(--gal-accent) 6%, transparent); }
+.gal-notes--filtered .gal-notes tbody tr:not(.gal-note--stripe) { background: transparent; }
+.gal-notes tbody tr[data-gal-note]:hover { background: color-mix(in srgb, var(--gal-accent) 13%, transparent); }
+.gal-notes--filtered .gal-notes tbody tr[data-gal-note]:hover { background: color-mix(in srgb, var(--gal-accent) 13%, transparent); }
+.gal-notes tbody tr:focus-within { background: color-mix(in srgb, var(--gal-accent) 13%, transparent); }
+.gal-notes [data-gal-note] > td:nth-child(2) { width: 100%; }
+.gal-notes a.gal-note-link { display: inline-block; padding: .12rem .4rem; border: 1px solid var(--gal-accent); border-radius: 0; color: var(--gal-accent); font-size: .6rem; line-height: 1.4; text-decoration: none; }
+.gal-notes a.gal-note-link:hover { background: color-mix(in srgb, var(--gal-accent) 12%, transparent); }
+.gal-note-links { display: inline-flex; align-items: center; gap: .2rem; }
+.gal-note-filters { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .5rem .7rem; margin-bottom: .7rem; }
+.gal-note-filters fieldset { flex: 1; min-width: 0; margin: 0; }
+.gal-note-filters > button { flex-shrink: 0; }
+.gal-notes--filtered [data-gal-note] { cursor: pointer; }
+.gal-notes [data-gal-note-toggle]:focus-visible { outline: 2px solid var(--gal-accent); outline-offset: 2px; }
+.gal-note-details { overflow-wrap: anywhere; }
+.gal-note-details__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.gal-note-details__columns > div { min-width: 0; }
+.gal-note-details .gal-card__fields { margin: .5rem 0; }
+.gal-note-details .gal-card__fields dd { margin: .1rem 0 .45rem; }
+.gal-note-details .gal-card__label { margin: .4rem 0 .2rem; }
+.gal-note-details :is(p, ul, li, a) { font-family: inherit; font-size: inherit; }
+.gal-note-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.gal-notes .gal-badge { font-size: .6rem; padding: .12rem .4rem; }
+.gal-notes .gal-badge--leading { color: inherit; border-inline-start: 3px solid var(--gal-accent); background: color-mix(in srgb, var(--md-default-fg-color, #253041) 5%, var(--md-default-bg-color, #fff)); font-weight: 700; }
+.gal-note-collapse-row { display: flex; justify-content: flex-start; margin-top: .6rem; }
+.gal-note-collapse-row button { padding: .3rem .6rem; border: 1px solid var(--gal-border); border-radius: .3rem; color: var(--gal-accent); background: transparent; font: inherit; cursor: pointer; }
+.gal-note-collapse-row button:hover { border-color: var(--gal-accent); background: color-mix(in srgb, var(--gal-accent) 12%, transparent); }
+@media (max-width: 600px) {
+  .gal-note-details__columns { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+}
+.gal-notes tbody tr.gal-note-detail-row { background: var(--md-default-bg-color, #fff); }
+.gal-notes--filtered .gal-notes tbody tr.gal-note-detail-row { background: var(--md-default-bg-color, #fff); }
+.gal-notes .gal-note-detail-row > td { white-space: normal; padding: .65rem .75rem; background: var(--md-default-bg-color, #fff); }
+.gal-note-filter-groups { min-width: 0; flex: 1; }
+.gal-note-filters [data-gal-note-status] { margin-top: .6rem; }

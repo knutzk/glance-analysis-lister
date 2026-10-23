@@ -57,11 +57,11 @@ def main():
     assets = ROOT / "analysis_lister/views/assets"
     css = "".join(
         f'<link rel="stylesheet" href="{(assets / name).as_uri()}">'
-        for name in ("gal-views.css", "gal-publications.css")
+        for name in ("gal-common.css", "gal-ongoing.css", "gal-papers.css")
     )
     js = "".join(
         f'<script src="{(assets / name).as_uri()}"></script>'
-        for name in ("gal-views.js", "gal-publications.js")
+        for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js")
     )
     path = Path("/tmp/gal-papers-browser-fixture.html")
     path.write_text(
@@ -193,7 +193,7 @@ def main():
             By.CSS_SELECTOR, ".gal-multiselect, [data-gal-choice]"
         )
         driver.execute_script(
-            "window.GALViews.initialize();window.GALPublications.initialize();window.GALPublications.initialize()"
+            "window.GALOngoing.initialize();window.GALPapers.initialize();window.GALPapers.initialize()"
         )
         toggle = driver.find_element(By.CSS_SELECTOR, "[data-gal-paper-toggle]")
         toggle.send_keys(Keys.ENTER)

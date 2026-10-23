@@ -4,11 +4,11 @@
 """Publication pages and ongoing analyses, rendered without selection or file I/O."""
 
 from ..curation import archive_curation_statement
-from .archive import archive_table
-from .cards import ongoing_cards
 from .formatting import text
 from .links import external, glance_url
 from .notes import note_table
+from .ongoing import ongoing_cards
+from .papers import paper_table
 
 
 def archive_curation_intro(view):
@@ -85,7 +85,7 @@ def publication_page(view, resource):
         if resource == "papers"
         else "Dates are note release dates.\n\n"
     )
-    return out + archive_table(view, resource) + provenance(view)
+    return out + paper_table(view) + provenance(view)
 
 
 def papers_page(view):

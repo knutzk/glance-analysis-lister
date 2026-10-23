@@ -6,44 +6,9 @@
 import json
 from html import escape
 
-from .filtering import active_subgroup_buttons, render_controls
+from .fragments import affiliation_tags, fields
 from .links import anchor, glance_url, html_link
-
-
-def fields(items, *, missing="Not recorded"):
-    return (
-        '<dl class="gal-card__fields">'
-        + "".join(
-            f"<dt>{escape(label)}</dt><dd>{escape(value or missing)}</dd>"
-            for label, value in items
-        )
-        + "</dl>"
-    )
-
-
-def affiliation_tags(groups):
-    out = ""
-    out += '<div class="gal-card__affiliations" aria-label="Groups and subgroups in the current snapshot">'
-    for names, leading, kind in (
-        (
-            [groups.get("leadingGroup"), *(groups.get("otherGroups") or [])],
-            groups.get("leadingGroup"),
-            "group",
-        ),
-        (
-            [groups.get("leadingSubgroup"), *(groups.get("subgroups") or [])],
-            groups.get("leadingSubgroup"),
-            "subgroup",
-        ),
-    ):
-        if kind == "subgroup":
-            out += '<span class="gal-card__divider" aria-hidden="true">|</span>'
-        out += f'<span class="gal-card__tagset" aria-label="{kind.capitalize()}s">'
-        for name in dict.fromkeys(name for name in names if name):
-            lead = name == leading
-            out += f'<span class="gal-badge{" gal-badge--leading" if lead else ""}">{escape(name)}<span class="gal-visually-hidden"> ({"leading" if lead else "additional"} {kind})</span></span>'
-        out += "</span>"
-    return out + "</div>"
+from .ongoing_controls import active_subgroup_buttons, render_controls
 
 
 def analysis_card(row, group):

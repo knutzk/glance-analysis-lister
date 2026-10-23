@@ -2,8 +2,10 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  if (window.GALViews) {
-    window.GALViews.initialize();
+  const common = window.GALCommon;
+  if (!common) return;
+  if (window.GALOngoing) {
+    window.GALOngoing.initialize();
     return;
   }
   const initialized = new WeakSet();
@@ -36,10 +38,7 @@
         url.searchParams.delete("subgroup");
         subgroupButtons.filter(button => button.getAttribute("aria-pressed") === "true")
           .forEach(button => url.searchParams.append("subgroup", button.dataset.galValue));
-        if (url.href !== window.location.href) {
-          try { window.history.replaceState(window.history.state, "", url); }
-          catch (_) { /* Filtering still works when history updates are unavailable. */ }
-        }
+        common.replaceURL(url);
       }
       readSubgroupURL();
       const cardControllers = [];
@@ -48,9 +47,7 @@
         if (!expandAll) return;
         const visible = cardControllers.filter(({card}) => !card.hidden);
         const expanded = visible.length > 0 && visible.every(({panel}) => !panel.hidden);
-        expandAll.disabled = visible.length === 0;
-        expandAll.textContent = expanded ? "Collapse all" : "Expand all";
-        expandAll.setAttribute("aria-pressed", String(expanded));
+        common.updateExpandButton(expandAll, visible.length, expanded);
       }
       function update() {
         if (sorter && cardContainer) {
@@ -65,16 +62,8 @@
           key: category.dataset.galFilter,
           values: [
             ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.galValue),
-            ...Array.from(category.querySelectorAll("input[data-gal-choice]:checked"), (choice) => choice.value),
-            ...Array.from(category.querySelectorAll("select[data-gal-select]"), (select) => select.value).filter(Boolean),
           ],
         }));
-        categories.forEach((category) => {
-          const summary = category.querySelector("[data-gal-selection-summary]");
-          if (!summary) return;
-          const chosen = Array.from(category.querySelectorAll("[data-gal-choice]:checked"), (choice) => choice.value);
-          summary.textContent = chosen.length === 0 ? summary.dataset.galDefault : chosen.length === 1 ? chosen[0] : `${chosen.length} selected`;
-        });
         const matched = items.filter(({metadata}) => {
           const matches = (!query || (metadata.text || "").toLowerCase().includes(query)) &&
             selections.every(({key, values}) => {
@@ -102,9 +91,6 @@
         if (button.hasAttribute("data-gal-reset")) {
           search.value = "";
           if (sorter) sorter.selectedIndex = 0;
-          controls.querySelectorAll("input[data-gal-choice]").forEach((choice) => { choice.checked = false; });
-          controls.querySelectorAll(".gal-multiselect[open]").forEach((menu) => { menu.open = false; });
-          controls.querySelectorAll("select[data-gal-select]").forEach((select) => { select.selectedIndex = 0; });
           controls.querySelectorAll("[data-gal-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
         } else if (button.hasAttribute("data-gal-value")) {
           button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true");
@@ -172,26 +158,6 @@
       openAnchoredCard();
     });
   }
-  document.addEventListener("click", (event) => {
-    document.querySelectorAll(".gal-ongoing .gal-multiselect[open]").forEach((menu) => {
-      if (!menu.contains(event.target)) menu.open = false;
-    });
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape") return;
-    document.querySelectorAll(".gal-ongoing .gal-multiselect[open]").forEach((menu) => {
-      if (menu.contains(document.activeElement)) menu.querySelector("summary").focus();
-      menu.open = false;
-    });
-  });
-  window.GALViews = {initialize};
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, {once: true});
-  else initialize();
-  // Material/Zensical instant navigation publishes replaced documents here.
-  if (typeof document$ !== "undefined" && document$.subscribe) document$.subscribe(initialize);
-  // Also handle content inserted after startup or when no document$ is exposed.
-  new MutationObserver((changes) => {
-    if (changes.some((change) => Array.from(change.addedNodes).some((node) =>
-      node.nodeType === 1 && (node.matches("[data-gal-collection]") || node.querySelector("[data-gal-collection]"))))) initialize();
-  }).observe(document.documentElement, {childList: true, subtree: true});
+  window.GALOngoing = {initialize};
+  common.observeCollections('.gal-ongoing[data-gal-collection]', initialize);
 })();
