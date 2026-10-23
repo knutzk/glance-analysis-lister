@@ -13,3 +13,13 @@ keywords = []
 title = "Higgs physics"
 groups = ["HIGP", "HIGG"]
 subgroups = ["HDBS-DiHiggs"]
+
+[groups.EXOT]
+title = "Exotics"
+groups = ["EXOT"]
+subgroups = []
+keywords = []
+
+[groups.FTAG]
+title = "Flavour tagging"
+groups = ["FTAG"]
