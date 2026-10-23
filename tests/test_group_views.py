@@ -28,7 +28,7 @@ from analysis_lister.views.markdown.pages import (
     pubnotes_page,
 )
 from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 from analysis_lister.views.publications import publication_state
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -387,7 +387,7 @@ class GroupViewTests(unittest.TestCase):
         paper["publicationPhase"]["journalAcceptanceDate"] = "2099-04-01"
         view = self.prepare(snapshot(analysis(1), papers=(paper,)))
         self.assertEqual(
-            view.archive[0].details["last_milestone"],
+            view.archive[0].details.last_milestone,
             ("Submission · Journal acceptance", "2099-04-01"),
         )
 
@@ -722,7 +722,7 @@ class Block(importlib.abc.MetaPathFinder):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, Block())
 from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 render_group(sys.argv[1], sys.argv[2], GroupProfile("DEMO"))
 assert "requests" not in sys.modules
 """
@@ -1366,12 +1366,10 @@ class ConfNoteSupersessionTests(unittest.TestCase):
             row.reference: row for row in view.archive if row.resource == "confnotes"
         }
         self.assertFalse(
-            rows[current["temporaryReferenceCode"]].details["conf_note"]["superseded"]
+            rows[current["temporaryReferenceCode"]].details.conf_note.superseded
         )
         self.assertTrue(
-            rows[superseded["temporaryReferenceCode"]].details["conf_note"][
-                "superseded"
-            ]
+            rows[superseded["temporaryReferenceCode"]].details.conf_note.superseded
         )
         self.assertTrue(all(row.state == "released" for row in rows.values()))
         evidence = rows[superseded["temporaryReferenceCode"]].provenance["details"][
@@ -1516,7 +1514,10 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             records[2]["metadata"] = {"gal_keywords": ["Invented topic suffix"]}
             data = snapshot(analysis(1), **{resource: tuple(records)})
             profile = GroupProfile(
-                "DEMO", archive_groups=("DEMO",), archive_keywords=("Invented topic",)
+                "DEMO",
+                publication_policy=PublicationPolicy(
+                    groups=("DEMO",), keywords=("Invented topic",)
+                ),
             )
             view = prepare_group(CuratedRegistry(data), profile)
             self.assertEqual(
@@ -1562,8 +1563,9 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             records[6]["gal_groups"]["leadingGroup"] = "LEGACYX"
             profile = GroupProfile(
                 "DEMO",
-                archive_groups=("LEGACY",),
-                archive_subgroups=("OTHER-Merged",),
+                publication_policy=PublicationPolicy(
+                    groups=("LEGACY",), subgroups=("OTHER-Merged",)
+                ),
             )
             view = prepare_group(
                 CuratedRegistry(snapshot(analysis(1), **{resource: tuple(records)})),
@@ -1594,8 +1596,9 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             CuratedRegistry(snapshot(own, papers=(paper,))),
             GroupProfile(
                 "DEMO",
-                archive_groups=("LEGACY",),
-                archive_subgroups=("OTHER-Merged",),
+                publication_policy=PublicationPolicy(
+                    groups=("LEGACY",), subgroups=("OTHER-Merged",)
+                ),
             ),
         )
         self.assertEqual(len(view.archive), 1)
@@ -1620,8 +1623,9 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             profile = GroupProfile(
                 "DEMO",
-                archive_groups=("LEGACY",),
-                archive_title="Invented publication title",
+                publication_policy=PublicationPolicy(
+                    groups=("LEGACY",), title="Invented publication title"
+                ),
             )
             view = prepare_group(CuratedRegistry(data), profile)
             self.assertEqual(
@@ -1630,7 +1634,10 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             self.assertEqual(
                 len(
                     prepare_group(
-                        CuratedRegistry(data), GroupProfile("DEMO", archive_groups=())
+                        CuratedRegistry(data),
+                        GroupProfile(
+                            "DEMO", publication_policy=PublicationPolicy(groups=())
+                        ),
                     ).archive
                 ),
                 0,
@@ -1649,37 +1656,34 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
                 self.assertEqual("WARNING:" in stdout.getvalue(), warn)
 
     def test_config_is_optional_and_validated(self):
-        from analysis_lister.views.curation import load_archive_policy
+        from analysis_lister.views.curation import load_publication_policy
 
-        self.assertEqual(load_archive_policy(None, "DEMO"), {})
+        self.assertEqual(load_publication_policy(None, "DEMO"), None)
         with TemporaryDirectory() as folder:
             path = Path(folder) / "curation.toml"
             path.write_text('[groups.DEMO]\nkeywords = ["Invented topic"]\n')
             self.assertEqual(
-                load_archive_policy(path, "DEMO"),
-                {
-                    "archive_title": "",
-                    "archive_groups": (),
-                    "archive_subgroups": (),
-                    "archive_keywords": ("Invented topic",),
-                },
+                load_publication_policy(path, "DEMO"),
+                PublicationPolicy(
+                    title="", groups=(), subgroups=(), keywords=("Invented topic",)
+                ),
             )
-            self.assertEqual(load_archive_policy(path, "OTHER"), {})
+            self.assertEqual(load_publication_policy(path, "OTHER"), None)
             path.write_text(
                 '[groups.DEMO]\ngroups = ["LEGACY"]\nsubgroups = ["OTHER-Merged"]\n'
             )
             self.assertEqual(
-                load_archive_policy(path, "DEMO"),
-                {
-                    "archive_groups": ("LEGACY",),
-                    "archive_subgroups": ("OTHER-Merged",),
-                    "archive_title": "",
-                    "archive_keywords": (),
-                },
+                load_publication_policy(path, "DEMO"),
+                PublicationPolicy(
+                    groups=("LEGACY",),
+                    subgroups=("OTHER-Merged",),
+                    title="",
+                    keywords=(),
+                ),
             )
             path.write_text('[groups.DEMO]\nkeywords = "invalid"\n')
             with self.assertRaises(ValueError):
-                load_archive_policy(path, "DEMO")
+                load_publication_policy(path, "DEMO")
 
     def test_cli_loads_keyword_configuration_into_report(self):
         paper = publication(1)
@@ -1711,7 +1715,9 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             )
             report = json.loads((output / "view-report.json").read_text())
             self.assertEqual(report["counts"]["archive_publications"], 1)
-            self.assertEqual(report["profile"]["archive_keywords"], ["Invented topic"])
+            self.assertEqual(
+                report["profile"]["publication_policy"]["keywords"], ["Invented topic"]
+            )
             self.assertIn("`Invented topic`", (output / "papers.md").read_text())
             self.assertIn(
                 "# Invented archive papers", (output / "papers.md").read_text()
@@ -1724,7 +1730,10 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
         view = prepare_group(
             CuratedRegistry(snapshot(own, foreign)),
             GroupProfile(
-                "DEMO", archive_groups=("DEMO",), archive_keywords=("Invented topic",)
+                "DEMO",
+                publication_policy=PublicationPolicy(
+                    groups=("DEMO",), keywords=("Invented topic",)
+                ),
             ),
         )
         self.assertEqual(

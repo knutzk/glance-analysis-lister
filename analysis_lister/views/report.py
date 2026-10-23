@@ -15,6 +15,7 @@ from .curation import archive_curation_statement
 
 def build_report(view, snapshot, raw):
     profile = view.profile
+    policy = profile.publication_policy
     relevant = [
         trace
         for trace in view.decisions
@@ -61,7 +62,7 @@ def build_report(view, snapshot, raw):
     ]
     report = {
         "schema": "glance-group-view-report",
-        "schema_version": 1,
+        "schema_version": 2,
         "snapshot": {
             "filename": Path(snapshot).name,
             "sha256": sha256(raw).hexdigest(),
@@ -102,11 +103,9 @@ def build_report(view, snapshot, raw):
     }
     report["archive_keyword_policy"] = {
         "rule": "archive-configured-curation/v3",
-        "keywords": list(profile.archive_keywords),
-        "groups": list(profile.archive_groups)
-        if profile.archive_groups is not None
-        else None,
-        "subgroups": list(profile.archive_subgroups),
+        "keywords": list(policy.keywords) if policy else [],
+        "groups": list(policy.groups) if policy else None,
+        "subgroups": list(policy.subgroups) if policy else [],
         "matching": "exact case-insensitive keyword equality",
     }
     return report

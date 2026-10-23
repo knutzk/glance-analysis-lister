@@ -3,7 +3,11 @@
 
 """Small view datasets and machine-readable derivation evidence."""
 
+from typing import TypedDict
+
 from attrs import frozen
+
+from .profiles import GroupProfile
 
 
 @frozen
@@ -12,6 +16,107 @@ class Decision:
     value: object
     reason: str
     inputs: dict
+
+
+class RuleEvidence(TypedDict):
+    rule: str
+    value: object
+    reason: str
+    inputs: dict
+
+
+class SearchMetadata(TypedDict, total=False):
+    text: str
+    subgroups: list[str]
+    leading_subgroup: str | None
+    keywords: list[str]
+    triggers: list[str]
+    statistical_tools: list[str]
+    people: list[str]
+    publication_type: str
+    publication_status: str
+    state: str
+    stage: str
+    stage_order: int
+    participation: str
+
+
+@frozen
+class PublicationLink:
+    label: str
+    url: str | None
+
+
+@frozen
+class PeopleRole:
+    label: str
+    names: tuple[str, ...]
+
+
+@frozen
+class TagGroup:
+    label: str
+    values: tuple[str, ...]
+
+
+@frozen
+class NoteDetails:
+    people: tuple[PeopleRole, ...]
+    tags: tuple[TagGroup, ...]
+    superseded: bool
+    superseded_by: tuple[dict, ...]
+    related_analysis: dict | None
+
+    @classmethod
+    def from_evidence(cls, value):
+        if value is None:
+            return None
+        return cls(
+            tuple(
+                PeopleRole(person["label"], tuple(person["names"]))
+                for person in value["people"]
+            ),
+            tuple(
+                TagGroup(tag["label"], tuple(tag["values"])) for tag in value["tags"]
+            ),
+            value["superseded"],
+            tuple(value["superseded_by"]),
+            value["related_analysis"],
+        )
+
+
+@frozen
+class PublicationDetails:
+    last_milestone: tuple[str, str] | None
+    publication_records: tuple[PublicationLink, ...]
+    contacts: tuple[str, ...]
+    editors: tuple[str, ...]
+    board: tuple[str, ...]
+    groups: dict
+    links: tuple[PublicationLink, ...]
+    cds_url: str | None
+    conf_note: NoteDetails | None
+    pub_note: NoteDetails | None
+
+    @classmethod
+    def from_evidence(cls, value):
+        return cls(
+            value["last_milestone"],
+            tuple(
+                PublicationLink(link["label"], link["url"])
+                for link in value["publication_records"]
+            ),
+            tuple(value["contacts"]),
+            tuple(value["editors"]),
+            tuple(value["board"]),
+            value["groups"],
+            tuple(
+                PublicationLink(link["label"], link["url"]) for link in value["links"]
+            ),
+            value["cds_url"],
+            NoteDetails.from_evidence(value["conf_note"]),
+            NoteDetails.from_evidence(value["pub_note"]),
+        )
 
 
 @frozen
@@ -28,7 +133,7 @@ class AnalysisRow:
     milestone: tuple | None
     documents: tuple
     publications: tuple
-    filter_metadata: dict
+    filter_metadata: SearchMetadata
     progress: tuple
     status: str
     email_lists: tuple
@@ -47,18 +152,18 @@ class PublicationRow:
     date: str | None
     subgroups: tuple
     citations: tuple
-    filter_metadata: dict
-    provenance: dict
-    details: dict
+    filter_metadata: SearchMetadata
+    provenance: dict[str, RuleEvidence | dict]
+    details: PublicationDetails
 
 
 @frozen
 class GroupView:
-    profile: object
-    ongoing: tuple
-    needs_review: tuple
-    publications: tuple
-    recent: tuple
+    profile: GroupProfile
+    ongoing: tuple[AnalysisRow, ...]
+    needs_review: tuple[AnalysisRow, ...]
+    publications: tuple[PublicationRow, ...]
+    recent: tuple[PublicationRow, ...]
     decisions: tuple
     source_metadata: dict
     publication_filters: dict

@@ -303,7 +303,7 @@ def _run_build_registry(args):
 
 def _run_render_group(args):
     from analysis_lister.views.build import render_group
-    from analysis_lister.views.curation import load_archive_policy
+    from analysis_lister.views.curation import load_publication_policy
     from analysis_lister.views.profiles import GroupProfile
 
     counts = render_group(
@@ -312,7 +312,9 @@ def _run_render_group(args):
         GroupProfile(
             args.group,
             args.group_title,
-            **load_archive_policy(args.curation_config, args.group),
+            publication_policy=load_publication_policy(
+                args.curation_config, args.group
+            ),
         ),
     )
     print_summary(

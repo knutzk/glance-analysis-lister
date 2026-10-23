@@ -10,7 +10,7 @@ from attrs import asdict
 from ..registry.schema import record_key
 from .common import group_membership, iso_date
 from .curation import archive_curation
-from .models import Decision, PublicationRow
+from .models import Decision, PublicationDetails, PublicationRow
 from .notes import note_cds_record, note_expansion
 
 
@@ -518,7 +518,7 @@ def prepare_publications(registry, profile, analyses):
                     "citation": asdict(citation_decision),
                     "details": asdict(details),
                 },
-                details.value,
+                PublicationDetails.from_evidence(details.value),
             )
             publications[resource, reference] = (record, row, state)
             traces.append(

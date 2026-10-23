@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def render_group(snapshot, output_dir, profile):
-    if profile.archive_groups is None:
+    if profile.publication_policy is None:
         print(
             f"WARNING: No publication curation configuration for {profile.group}; using only its internal identifier group token."
         )

@@ -609,3 +609,8 @@ python scripts/check_confnote_filters.py --resource pubnotes --driver /path/to/c
 
 Use the `analysis-lister` executable or `python -m analysis_lister`. The old
 `analysis_lists.py` launcher and legacy CLI commands have been removed.
+
+Python clients can pass `PublicationPolicy` separately through
+`GroupProfile(..., publication_policy=policy)`. `None` means missing configuration;
+an empty `PublicationPolicy()` is explicit and selects no publications. Reports
+use schema version 2 and include this policy under `profile.publication_policy`.

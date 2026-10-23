@@ -10,11 +10,12 @@ from pathlib import Path
 from attrs import asdict
 
 from .models import Decision
+from .profiles import PublicationPolicy
 
 
-def load_archive_policy(path, group):
+def load_publication_policy(path, group):
     if path is None:
-        return {}
+        return None
     data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
     if set(data) != {"groups"} or not isinstance(data["groups"], dict):
         raise ValueError("Curation config requires a groups table")
@@ -37,15 +38,15 @@ def load_archive_policy(path, group):
                     f"Group {name} {key} must be a list of nonempty strings"
                 )
     if group not in data["groups"]:
-        return {}
+        return None
     policy = data["groups"][group]
-    return {
-        "archive_title": policy.get("title", ""),
+    return PublicationPolicy(
+        title=policy.get("title", ""),
         **{
-            "archive_" + key: tuple(policy.get(key, []))
+            key: tuple(policy.get(key, []))
             for key in ("groups", "subgroups", "keywords")
         },
-    }
+    )
 
 
 def identifier_matches(reference, group):
@@ -55,21 +56,20 @@ def identifier_matches(reference, group):
 
 
 def archive_curation(reference, profile, keywords, affiliations, subgroups):
-    allowed = {word.strip().casefold() for word in profile.archive_keywords}
+    policy = profile.publication_policy or PublicationPolicy()
+    allowed = {word.strip().casefold() for word in policy.keywords}
     matched = [word for word in keywords.value if word.strip().casefold() in allowed]
-    identifier_match = profile.archive_groups is None and identifier_matches(
+    identifier_match = profile.publication_policy is None and identifier_matches(
         reference, profile.group
     )
     groups = affiliations.value
     recorded_groups = [groups.get("leadingGroup"), *(groups.get("otherGroups") or [])]
     group_matches = [
         name
-        for name in (profile.archive_groups or ())
+        for name in policy.groups
         if identifier_matches(reference, name) or name in recorded_groups
     ]
-    subgroup_matches = [
-        name for name in profile.archive_subgroups if name in subgroups.value
-    ]
+    subgroup_matches = [name for name in policy.subgroups if name in subgroups.value]
     return Decision(
         "archive-configured-curation/v3",
         identifier_match or bool(matched or group_matches or subgroup_matches),
@@ -80,9 +80,9 @@ def archive_curation(reference, profile, keywords, affiliations, subgroups):
             "identifier_match": identifier_match,
             "keyword_evidence": asdict(keywords),
             "matching_keywords": matched,
-            "configured_keywords": list(profile.archive_keywords),
-            "configured_groups": list(profile.archive_groups or ()),
-            "configured_subgroups": list(profile.archive_subgroups),
+            "configured_keywords": list(policy.keywords),
+            "configured_groups": list(policy.groups),
+            "configured_subgroups": list(policy.subgroups),
             "matching_groups": group_matches,
             "matching_subgroups": subgroup_matches,
             "affiliation_evidence": asdict(affiliations),
@@ -92,6 +92,6 @@ def archive_curation(reference, profile, keywords, affiliations, subgroups):
 
 
 def archive_curation_statement(profile):
-    if profile.archive_groups is None:
+    if profile.publication_policy is None:
         return f"No publication curation configuration was supplied for {profile.group}. Include publications whose internal identifier contains the {profile.group} group token."
     return "Include a publication if ANY listed criterion matches: a group (internal identifier token or leading/additional affiliation), a leading/additional subgroup (exact name), or a keyword (exact case-insensitive match)."

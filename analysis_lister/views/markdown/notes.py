@@ -8,25 +8,28 @@ import re
 from html import escape
 
 from ...registry.reader import LINK_RESOURCES
+from ..models import TagGroup
 from .cards import affiliation_tags, fields
 from .links import anchor, glance_url, html_link
 from .publication_filtering import date_controls, expansion_control, search_control
 
 
 def note_details(row):
-    groups = dict(row.details["groups"])
+    groups = dict(row.details.groups)
     groups["leadingSubgroup"] = row.filter_metadata["leading_subgroup"]
     groups["subgroups"] = list(row.subgroups)
-    extra = row.details["conf_note" if row.resource == "confnotes" else "pub_note"]
+    extra = (
+        row.details.conf_note if row.resource == "confnotes" else row.details.pub_note
+    )
     out = affiliation_tags(groups)
     if (
         "inherited" in row.provenance["subgroups"]["reason"]
         or "inherited" in row.provenance["leading_subgroup"]["reason"]
     ):
         out += '<p class="gal-card__label">Subgroup assignments via linked analysis</p>'
-    if extra["superseded"]:
+    if extra.superseded:
         out += '<p class="gal-card__label">Superseded by</p><ul class="gal-confnote-superseders">'
-        for link in extra["superseded_by"]:
+        for link in extra.superseded_by:
             kind = link.get("type") or "Publication"
             reference = link.get("referenceCode") or "Not recorded"
             resource = LINK_RESOURCES.get(kind)
@@ -42,32 +45,30 @@ def note_details(row):
             )
         out += "</ul>"
     out += '<div class="gal-confnote-details__columns"><div>'
-    out += fields(
-        [(person["label"], ", ".join(person["names"])) for person in extra["people"]]
-    )
+    out += fields([(person.label, ", ".join(person.names)) for person in extra.people])
     out += "</div><div>"
     tags = [
-        {"label": label, "values": row.filter_metadata[key]}
+        TagGroup(label, tuple(row.filter_metadata[key]))
         for label, key in (
             ("Keywords", "keywords"),
             ("Triggers", "triggers"),
             ("Statistical tools", "statistical_tools"),
         )
-    ] + extra["tags"]
+    ] + list(extra.tags)
     for category in tags:
-        out += f'<p class="gal-card__label">{escape(category["label"])}</p>'
-        if category["values"]:
+        out += f'<p class="gal-card__label">{escape(category.label)}</p>'
+        if category.values:
             out += (
                 '<div class="gal-confnote-tags">'
                 + "".join(
                     f'<span class="gal-badge">{escape(value)}</span>'
-                    for value in category["values"]
+                    for value in category.values
                 )
                 + "</div>"
             )
         else:
             out += "<p>Not recorded</p>"
-    relation = extra["related_analysis"] or {}
+    relation = extra.related_analysis or {}
     if relation.get("type") == "Analysis" and relation.get("referenceCode"):
         reference = relation["referenceCode"]
         out += (
@@ -75,11 +76,11 @@ def note_details(row):
             + html_link(reference, glance_url("analyses", reference))
             + "</p>"
         )
-    if row.details["links"]:
+    if row.details.links:
         out += '<p class="gal-card__label">Supporting links</p><ul>'
-        for link in row.details["links"]:
-            url = link.get("url") or ""
-            label = link.get("label") or ""
+        for link in row.details.links:
+            url = link.url or ""
+            label = link.label or ""
             prefix = escape(label) + ": " if label and label != url else ""
             out += f"<li>{prefix}{html_link(url, url)}</li>"
         out += "</ul>"
@@ -122,16 +123,13 @@ def note_table(view, resource):
         subgroups = escape(
             json.dumps(row.filter_metadata["subgroups"], ensure_ascii=False), quote=True
         )
-        superseded = (
-            "true"
-            if row.details["conf_note" if resource == "confnotes" else "pub_note"][
-                "superseded"
-            ]
-            else "false"
+        extra = (
+            row.details.conf_note if resource == "confnotes" else row.details.pub_note
         )
+        superseded = "true" if extra.superseded else "false"
         out += f'<tr id="{identifier}" data-gal-confnote data-gal-search-text="{escape(row.filter_metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-subgroups="{subgroups}" data-gal-superseded="{superseded}">'
         out += f'<th scope="row"><div class="gal-confnote-links"><a class="gal-confnote-link" href="{escape(glance_url(resource, row.reference), quote=True)}" aria-label="GLANCE entry for {escape(row.label, quote=True)}">{escape(row.label)}</a>'
-        cds_url = row.details.get("cds_url")
+        cds_url = row.details.cds_url
         if cds_url:
             out += html_link("CDS", cds_url).replace(
                 "<a ", '<a class="gal-confnote-link" ', 1

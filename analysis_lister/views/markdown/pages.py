@@ -13,10 +13,11 @@ from .notes import note_table
 
 def archive_curation_intro(view):
     out = text(archive_curation_statement(view.profile)) + "\n\n"
+    policy = view.profile.publication_policy
     for label, values in (
-        ("Keywords", view.profile.archive_keywords),
-        ("Groups", view.profile.archive_groups or ()),
-        ("Subgroups", view.profile.archive_subgroups),
+        ("Keywords", policy.keywords if policy else ()),
+        ("Groups", policy.groups if policy else ()),
+        ("Subgroups", policy.subgroups if policy else ()),
     ):
         if values:
             out += (
@@ -65,7 +66,7 @@ def publication_page(view, resource):
     labels = {"papers": "Papers", "confnotes": "CONF notes", "pubnotes": "PUB notes"}
     label = labels[resource]
     out = "---\nhide:\n  - toc\n---\n\n"
-    out += f"# {text(view.profile.archive_title or view.profile.title)} {label.lower()}\n\n"
+    out += f"# {text(view.profile.publication_title)} {label.lower()}\n\n"
     out += "[Ongoing analyses](ongoing.md)\n\n"
     out += (
         " · ".join(
@@ -93,7 +94,7 @@ def papers_page(view):
 
 def confnotes_page(view):
     out = "---\nhide:\n  - toc\n---\n\n"
-    out += f"# {text(view.profile.archive_title or view.profile.title)} CONF notes\n\n"
+    out += f"# {text(view.profile.publication_title)} CONF notes\n\n"
     out += "[Papers](papers.md) · [PUB notes](pubnotes.md) · [Ongoing analyses](ongoing.md)\n\n"
     out += archive_curation_intro(view)
     out += "Superseded notes are hidden by default.\n\n"
@@ -102,7 +103,7 @@ def confnotes_page(view):
 
 def pubnotes_page(view):
     out = "---\nhide:\n  - toc\n---\n\n"
-    out += f"# {text(view.profile.archive_title or view.profile.title)} PUB notes\n\n"
+    out += f"# {text(view.profile.publication_title)} PUB notes\n\n"
     out += "[Papers](papers.md) · [CONF notes](confnotes.md) · [Ongoing analyses](ongoing.md)\n\n"
     out += archive_curation_intro(view)
     out += "Superseded notes are hidden by default.\n\n"

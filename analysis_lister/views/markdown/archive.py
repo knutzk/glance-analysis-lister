@@ -12,7 +12,7 @@ from .publication_filtering import render_controls
 
 
 def paper_details(row):
-    groups = dict(row.details["groups"])
+    groups = dict(row.details.groups)
     groups["leadingSubgroup"] = row.filter_metadata["leading_subgroup"]
     groups["subgroups"] = list(row.subgroups)
     out = affiliation_tags(groups)
@@ -22,14 +22,14 @@ def paper_details(row):
     ):
         out += '<p class="gal-affiliation-source">Via linked analysis</p>'
     out += '<div class="gal-publication-details__columns"><div>'
-    milestone = row.details["last_milestone"]
+    milestone = row.details.last_milestone
     status = f"{milestone[0]} · {milestone[1]}" if milestone else row.state
     out += fields(
         [
             ("Paper status", status),
-            ("Analysis contacts", ", ".join(row.details["contacts"])),
-            ("Contact editors", ", ".join(row.details["editors"])),
-            ("Editorial board", ", ".join(row.details["board"])),
+            ("Analysis contacts", ", ".join(row.details.contacts)),
+            ("Contact editors", ", ".join(row.details.editors)),
+            ("Editorial board", ", ".join(row.details.board)),
         ]
     )
     out += "</div><div>"
@@ -51,14 +51,13 @@ def paper_details(row):
         )
     links = [
         link
-        for link in row.details["links"]
-        if link.get("url")
-        not in {item["url"] for item in row.details["publication_records"]}
+        for link in row.details.links
+        if link.url not in {item.url for item in row.details.publication_records}
     ]
     if links:
         out += '<p class="gal-card__label">Supporting links</p><ul>'
         for link in links:
-            label, url = link.get("label"), link.get("url")
+            label, url = link.label, link.url
             prefix = escape(label) + ": " if label and label != url else ""
             out += f"<li>{prefix}{html_link(url, url)}</li>"
         out += "</ul>"
@@ -103,8 +102,8 @@ def archive_table(view, resource="papers"):
         out += f'<tr id="{identifier}" data-gal-item data-gal-date="{row.date or ""}" data-gal-metadata="{metadata}"><th scope="row">{record_button(row.label, glance_url("papers", row.reference))}</th>'
         out += f'<td><span data-gal-paper-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td><div class="gal-publication-records">'
         out += "".join(
-            record_button(item["label"], item["url"])
-            for item in row.details["publication_records"]
+            record_button(item.label, item.url)
+            for item in row.details.publication_records
         )
         out += "</div></td><td>"
         if row.date:
