@@ -74,7 +74,7 @@ class GroupViewTests(unittest.TestCase):
         value["phase0"]["pgcOrSgcSignOffDate"] = "2099-01-03T12:00:00Z"
         decision = analysis_state(value, [])
         self.assertEqual(decision.value, "preapproved")
-        self.assertEqual(decision.rule, "analysis-state/v1")
+        self.assertEqual(decision.rule, "analysis-state")
         self.assertIn("phase0.pgcOrSgcSignOffDate", decision.inputs)
         value["phase0"]["gal_approvalMeetingDates"] = ["2099-01-03"]
         self.assertEqual(
@@ -175,11 +175,11 @@ class GroupViewTests(unittest.TestCase):
         )
         self.assertIn("Synthetic citation", row.filter_metadata["text"])
         self.assertEqual(
-            row.provenance["citation"]["rule"], "publication-citation-text/v1"
+            row.provenance["citation"]["rule"], "publication-citation-text"
         )
         self.assertIn("inherited", row.provenance["subgroups"]["reason"])
         self.assertEqual(
-            row.provenance["membership"]["rule"], "publication-group-fallback/v1"
+            row.provenance["membership"]["rule"], "publication-group-fallback"
         )
         self.assertEqual(
             next(
@@ -685,7 +685,7 @@ class ApprovalProgressTests(unittest.TestCase):
         self.assertEqual(decision.value[1]["date"], "2099-01-03")
         self.assertEqual(decision.value[2]["date"], "2099-01-05")
         self.assertIsNone(decision.value[0]["date"])
-        self.assertEqual(decision.rule, "analysis-approval-progress/v2")
+        self.assertEqual(decision.rule, "analysis-approval-progress")
 
     def test_card_exposes_milestones_people_and_trace(self):
         view = prepare_group(
@@ -745,7 +745,7 @@ class AssociatedPaperStatusTests(unittest.TestCase):
         self.assertNotIn("Paper status", markup)
         trace = next(item for item in view.decisions if item["resource"] == "analyses")
         self.assertEqual(
-            trace["associated_paper_statuses"]["rule"], "associated-paper-status/v1"
+            trace["associated_paper_statuses"]["rule"], "associated-paper-status"
         )
 
     def test_missing_or_active_phase_zero_does_not_invent_paper_status(self):
@@ -815,7 +815,7 @@ class SubgroupButtonTests(unittest.TestCase):
         self.assertEqual(
             decision.value, (("DEMO-Current", "DEMO-Current"), ("DEMO-Old", "DEMO-Old"))
         )
-        self.assertEqual(decision.rule, "group-subgroup-buttons/v2")
+        self.assertEqual(decision.rule, "group-subgroup-buttons")
 
 
 class PageSubgroupChoicesTests(unittest.TestCase):
@@ -892,7 +892,7 @@ class FoldedMilestoneTests(unittest.TestCase):
         )
         self.assertEqual(
             view.ongoing[0].paper_milestones[0]["milestone"]["rule"],
-            "last-paper-milestone/v2",
+            "last-paper-milestone",
         )
 
     def test_missing_dates_do_not_use_paper_status(self):
@@ -975,7 +975,7 @@ class PaperReviewOrderTests(unittest.TestCase):
             )
         traces = [t for t in view.decisions if t["resource"] == "analyses"]
         self.assertTrue(
-            all(t["review_order"]["rule"] == "analysis-review-order/v2" for t in traces)
+            all(t["review_order"]["rule"] == "analysis-review-order" for t in traces)
         )
 
     def test_later_tick_outweighs_all_earlier_ticks(self):
@@ -985,7 +985,7 @@ class PaperReviewOrderTests(unittest.TestCase):
         def rank(ticks):
             return analysis_review_order(
                 Decision(
-                    "test/v1",
+                    "test",
                     [{"reached": tick} for tick in ticks],
                     "synthetic ticks",
                     {},
@@ -1129,7 +1129,7 @@ class ConfNoteTableTests(unittest.TestCase):
         evidence = next(
             r for r in view.archive if r.resource == "confnotes"
         ).provenance["details"]["inputs"]["cds_record"]
-        self.assertEqual(evidence["rule"], "conf-note-cds-record/v1")
+        self.assertEqual(evidence["rule"], "conf-note-cds-record")
 
     def test_missing_cds_link_is_blank_without_guessing_a_record(self):
         from analysis_lister.views.notes import note_cds_record
@@ -1209,7 +1209,7 @@ class ConfNoteExpansionTests(unittest.TestCase):
         prepared = next(row for row in view.archive if row.resource == "confnotes")
         self.assertEqual(
             prepared.provenance["details"]["inputs"]["conf_note_expansion"]["rule"],
-            "conf-note-expansion/v2",
+            "conf-note-expansion",
         )
 
 
@@ -1285,7 +1285,7 @@ class ConfNoteSupersessionTests(unittest.TestCase):
         evidence = rows[superseded["temporaryReferenceCode"]].provenance["details"][
             "inputs"
         ]["conf_note_expansion"]["inputs"]["supersession"]
-        self.assertEqual(evidence["rule"], "conf-note-supersession/v1")
+        self.assertEqual(evidence["rule"], "conf-note-supersession")
         self.assertEqual(evidence["inputs"]["supersededBy"], superseded["supersededBy"])
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
         self.assertEqual(
@@ -1390,11 +1390,11 @@ class PubNotePageTests(unittest.TestCase):
         row = next(row for row in view.archive if row.resource == "pubnotes")
         self.assertEqual(
             row.provenance["details"]["inputs"]["pub_note_expansion"]["rule"],
-            "pub-note-expansion/v2",
+            "pub-note-expansion",
         )
         self.assertEqual(
             row.provenance["details"]["inputs"]["cds_record"]["rule"],
-            "pub-note-cds-record/v1",
+            "pub-note-cds-record",
         )
 
 

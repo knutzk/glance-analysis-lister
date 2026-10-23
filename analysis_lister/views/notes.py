@@ -27,7 +27,7 @@ def note_cds_record(record, resource):
         except ValueError:
             pass
     return Decision(
-        ("conf-note" if resource == "confnotes" else "pub-note") + "-cds-record/v1",
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-cds-record",
         value,
         "recorded phase-1 CDS record link with HTTP(S) and a CDS record path; absent or invalid URLs stay empty",
         {"phase1.draftCdsUrl": raw},
@@ -138,7 +138,7 @@ def note_expansion(record, resource):
             collisions.append(" · ".join(str(part) for part in parts if part))
     supersession = note_supersession(record, resource)
     return Decision(
-        ("conf-note" if resource == "confnotes" else "pub-note") + "-expansion/v2",
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-expansion",
         {
             "people": people,
             "tags": [
@@ -172,7 +172,7 @@ def note_expansion(record, resource):
 def note_supersession(record, resource):
     links = record.get("supersededBy") or []
     return Decision(
-        ("conf-note" if resource == "confnotes" else "pub-note") + "-supersession/v1",
+        ("conf-note" if resource == "confnotes" else "pub-note") + "-supersession",
         bool(links),
         "superseded when the source records a replacing publication/analysis link; target resolution is not required; no inference from title or date",
         {"supersededBy": links},

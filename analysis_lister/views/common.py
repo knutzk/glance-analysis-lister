@@ -26,7 +26,7 @@ def group_membership(record, group):
     leading = groups.get("leadingGroup") == group
     additional = group in (groups.get("otherGroups") or [])
     return Decision(
-        "group-membership/v1",
+        "group-membership",
         leading or additional,
         "leading" if leading else "additional" if additional else "not affiliated",
         inputs,
@@ -36,7 +36,7 @@ def group_membership(record, group):
 def subgroup_button_choices(group, recorded):
     """Use all recorded names in the exact group namespace, including older labels."""
     return Decision(
-        "group-subgroup-buttons/v2",
+        "group-subgroup-buttons",
         tuple(
             (name, name)
             for name in sorted(set(recorded))

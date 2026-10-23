@@ -71,7 +71,7 @@ def analysis_state(record, linked_states):
                     "phase0",
                     "active phase 0 without board or sign-off evidence",
                 )
-    return Decision("analysis-state/v1", state, reason, inputs)
+    return Decision("analysis-state", state, reason, inputs)
 
 
 def last_milestone(record):
@@ -96,7 +96,7 @@ def last_milestone(record):
     latest = max(candidates) if candidates else None
     value = (latest[2], latest[0]) if latest else None
     return Decision(
-        "last-phase0-milestone/v1",
+        "last-phase0-milestone",
         value,
         "latest recorded date; later review step breaks date ties"
         if latest
@@ -126,7 +126,7 @@ def approval_progress(record, publications):
         for field in ("draftReleasedDate", "draft2ReleasedDate")
     ]
     return Decision(
-        "analysis-approval-progress/v2",
+        "analysis-approval-progress",
         [
             {
                 "label": "EdBoard assignment",
@@ -178,7 +178,7 @@ def analysis_email_lists(reference):
             )
         ]
     return Decision(
-        "analysis-email-convention/v1",
+        "analysis-email-convention",
         value,
         "addresses derived from native analysis reference using the CERN list naming convention; not verified",
         {"referenceCode": reference},
@@ -188,7 +188,7 @@ def analysis_email_lists(reference):
 def associated_paper_statuses(record, papers):
     """Expose native paper status after phase 0, without replacing analysis status."""
     return Decision(
-        "associated-paper-status/v1",
+        "associated-paper-status",
         [paper for paper in papers if paper.get("status")]
         if record.get("status") == "Phase 0 Finished"
         else [],
@@ -200,7 +200,7 @@ def associated_paper_statuses(record, papers):
 def analysis_review_order(progress):
     """Order by the exact displayed ticks, with later milestones taking precedence."""
     return Decision(
-        "analysis-review-order/v2",
+        "analysis-review-order",
         sum(1 << index for index, step in enumerate(progress.value) if step["reached"]),
         "visible approval ticks determine ordering; each later tick outweighs all earlier ticks combined; identical tick patterns use identifier order; no separate status or date ordering",
         {
@@ -283,7 +283,7 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
             "relationship_issues": issues[reference],
             "inclusion": asdict(
                 Decision(
-                    "group-ongoing-collection/v1",
+                    "group-ongoing-collection",
                     include,
                     "affiliated analysis with an explicitly recognised ongoing state",
                     {"membership": membership.value, "state": state.value},

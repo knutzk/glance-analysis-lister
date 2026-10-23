@@ -102,7 +102,7 @@ def build_report(view, snapshot, raw):
         },
     }
     report["archive_keyword_policy"] = {
-        "rule": "archive-configured-curation/v3",
+        "rule": "archive-configured-curation",
         "keywords": list(policy.keywords) if policy else [],
         "groups": list(policy.groups) if policy else None,
         "subgroups": list(policy.subgroups) if policy else [],

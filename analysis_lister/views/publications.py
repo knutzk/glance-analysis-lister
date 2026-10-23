@@ -48,7 +48,7 @@ def publication_subgroups(record, related):
             }
         )
         reason = "missing publication subgroups inherited through its explicit analysis link; current snapshot assignments"
-    return Decision("publication-current-subgroups/v1", value, reason, inputs)
+    return Decision("publication-current-subgroups", value, reason, inputs)
 
 
 def publication_leading_subgroup(record, related):
@@ -64,7 +64,7 @@ def publication_leading_subgroup(record, related):
             }
         )
         reason = "missing leading subgroup inherited through the explicit analysis link; current snapshot assignment"
-    return Decision("publication-leading-subgroup/v1", value or None, reason, inputs)
+    return Decision("publication-leading-subgroup", value or None, reason, inputs)
 
 
 def publication_filter_values(record, related, field):
@@ -86,7 +86,7 @@ def publication_filter_values(record, related, field):
             else "no values recorded on the publication or linked analysis"
         )
     return Decision(
-        "publication-filter-metadata/v1", list(dict.fromkeys(values)), reason, inputs
+        "publication-filter-metadata", list(dict.fromkeys(values)), reason, inputs
     )
 
 
@@ -173,7 +173,7 @@ def publication_state(record, resource):
                 "under_review",
                 "active note review without release evidence",
             )
-    return Decision("publication-state/v1", state, reason, inputs)
+    return Decision("publication-state", state, reason, inputs)
 
 
 def publication_details(record, resource, related=None):
@@ -258,7 +258,7 @@ def publication_details(record, resource, related=None):
     if milestone is not None:
         sources["last_paper_milestone"] = asdict(milestone)
     return Decision(
-        "publication-details/v3",
+        "publication-details",
         {
             "last_milestone": milestone.value if milestone else None,
             "publication_records": publication_records,
@@ -329,7 +329,7 @@ def last_paper_milestone(record):
                 candidates.append((day, len(inputs), f"{phase} · {event}"))
     latest = max(candidates) if candidates else None
     return Decision(
-        "last-paper-milestone/v2",
+        "last-paper-milestone",
         (latest[2], latest[0]) if latest else None,
         "latest valid recorded paper date; later review step breaks date ties; no inference from status",
         inputs,
@@ -355,7 +355,7 @@ def prepare_publications(registry, profile, analyses):
             ):
                 inherited = group_membership(related, profile.group)
                 membership = Decision(
-                    "publication-group-fallback/v1",
+                    "publication-group-fallback",
                     inherited.value,
                     "unassigned publication uses its explicitly linked analysis affiliation",
                     {
@@ -385,7 +385,7 @@ def prepare_publications(registry, profile, analyses):
             }
             details = publication_details(record, resource, related)
             affiliation_evidence = Decision(
-                "publication-affiliations/v1",
+                "publication-affiliations",
                 details.value["groups"],
                 "publication main-group assignment; explicit linked-analysis fallback when no main groups are recorded",
                 {
@@ -409,7 +409,7 @@ def prepare_publications(registry, profile, analyses):
             )
             if resource == "papers":
                 metadata_decisions["publication_status"] = Decision(
-                    "paper-doi-status/v1",
+                    "paper-doi-status",
                     "published"
                     if any(entry.get("doi") for entry in dois)
                     else "under-review",
@@ -443,7 +443,7 @@ def prepare_publications(registry, profile, analyses):
                 )
             )
             metadata_decisions["people"] = Decision(
-                "publication-search-people/v2",
+                "publication-search-people",
                 people,
                 "recorded publication contacts, editors, editorial board, readers and sign-off responsible names; no inferred people",
                 people_sources,
@@ -480,7 +480,7 @@ def prepare_publications(registry, profile, analyses):
                 ),
             }
             date_decision = Decision(
-                "publication-calendar-date/v2",
+                "publication-calendar-date",
                 day,
                 "ISO calendar date without timezone conversion; absent or invalid dates remain null",
                 {
@@ -489,7 +489,7 @@ def prepare_publications(registry, profile, analyses):
                 },
             )
             citation_decision = Decision(
-                "publication-citation-text/v1",
+                "publication-citation-text",
                 list(citations),
                 "cached citation text, falling back to the DOI; no external lookup",
                 {"publicationPhase.gal_dois": dois},
@@ -528,7 +528,7 @@ def prepare_publications(registry, profile, analyses):
                     **row.provenance,
                     "inclusion": asdict(
                         Decision(
-                            "group-publication-collection/v1",
+                            "group-publication-collection",
                             curation.value,
                             "curated publication records; no year cutoff",
                             {"curation": curation.value},
@@ -536,7 +536,7 @@ def prepare_publications(registry, profile, analyses):
                     ),
                     "archive_inclusion": asdict(
                         Decision(
-                            "group-publication-archive/v1",
+                            "group-publication-archive",
                             curation.value
                             and state.value in {"submitted", "published", "released"},
                             "curated submitted/published paper or released note; all years and historical superseded releases retained",

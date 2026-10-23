@@ -89,7 +89,7 @@ def archive_curation(reference, profile, keywords, affiliations, subgroups):
     ]
     subgroup_matches = [name for name in policy.subgroups if name in subgroups.value]
     return Decision(
-        "archive-configured-curation/v3",
+        "archive-configured-curation",
         identifier_match or bool(matched or group_matches or subgroup_matches),
         "OR of configured groups, subgroups and keywords; absent configuration uses only the internal group token",
         {

@@ -180,7 +180,7 @@ The default destination is `pages/group`. Output consists of `ongoing.md`,
 `--group-title` changes the ongoing-page display title.
 
 The render command prints the `view-report.json` path to stdout; pages do not link
-to this report. The report records the input hash, source timestamps, policy, rule versions and
+to this report. The report records the input hash, source timestamps, policy, rule identifiers and
 source evidence. It includes the selected records and their explicit one-hop
 relationship context. Treat it as private data alongside the generated pages.
 
