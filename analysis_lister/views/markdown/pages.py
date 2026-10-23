@@ -51,7 +51,7 @@ def provenance(view):
 def ongoing_page(view):
     out = "---\nhide:\n  - toc\n---\n\n"
     out += f"# {text(view.profile.title)} ongoing analyses\n\n"
-    out += "Includes analyses with leading or additional group participation that are in active phase 0 or have an explicitly linked publication under review. "
+    out += "Includes analyses with leading or additional group participation that are in active phase 0, have an explicitly linked publication under review, or have finished phase 0 and are awaiting review of a linked publication marked Created. "
     out += "Completed and closed analyses are excluded; uncertain entries are listed at the bottom. "
     out += "Each analysis appears once.\n\nClick a collapsed card for more information and links; use Collapse at the bottom to close it. The GLANCE buttons open the analysis or publication entry directly.\n\n"
     if view.ongoing:

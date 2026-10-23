@@ -25,7 +25,8 @@ def analysis_card(row, group):
     out += f'<a class="gal-glance-button" href="{escape(glance_url("analyses", row.reference), quote=True)}" aria-label="GLANCE analysis {escape(row.reference, quote=True)}">{escape(row.reference)}</a>'
     for link in row.publications:
         if link["resource"] in {"papers", "confnotes", "pubnotes"} and (
-            link["resource"] != "papers" or row.stage == "publication_review"
+            link["resource"] != "papers"
+            or row.stage in {"publication_review", "awaiting_publication_review"}
         ):
             kind = {
                 "papers": "Paper",
@@ -41,6 +42,8 @@ def analysis_card(row, group):
     out += '<div class="gal-card__actions">'
     out += f'<a class="gal-card__permalink" href="#{identifier}" aria-label="Link to {escape(row.reference, quote=True)}" title="Link to this analysis">#</a>'
     out += "</div></header>"
+    if row.stage == "awaiting_publication_review":
+        out += '<p class="gal-card__label">Awaiting publication review</p>'
     out += '<ol class="gal-progress" aria-label="Approval milestones">'
     flow_labels = {
         "EdBoard assignment": "EdBoard",

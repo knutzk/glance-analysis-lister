@@ -11,13 +11,20 @@ from .common import group_membership, iso_date
 from .models import AnalysisRow, Decision
 from .publications import last_paper_milestone
 
-ONGOING = {"phase0", "editorial_review", "preapproved", "publication_review"}
+ONGOING = {
+    "phase0",
+    "editorial_review",
+    "preapproved",
+    "awaiting_publication_review",
+    "publication_review",
+}
 
 
 STAGE_LABELS = {
     "phase0": "Phase 0",
     "editorial_review": "Editorial review",
     "preapproved": "Pre-approved",
+    "awaiting_publication_review": "Awaiting publication review",
     "publication_review": "Publication review",
     "closed": "Closed",
     "not_started": "Not started",
@@ -31,6 +38,7 @@ def analysis_state(record, linked_states):
     status = record.get("status")
     inputs = {
         "status": status,
+        "phase0.state": phase.get("state"),
         "phase0.pgcOrSgcSignOffDate": phase.get("pgcOrSgcSignOffDate"),
         "phase0.editorialBoardFormedDate": phase.get("editorialBoardFormedDate"),
         "phase0.gal_editorialBoard": phase.get("gal_editorialBoard", []),
@@ -55,6 +63,26 @@ def analysis_state(record, linked_states):
             state, reason = (
                 "completed",
                 "all resolved publications are beyond active review",
+            )
+        elif (
+            status == "Phase 0 Finished"
+            and "not_started" in states
+            and all(
+                value
+                in {
+                    "not_started",
+                    "published",
+                    "submitted",
+                    "released",
+                    "closed",
+                    "superseded",
+                }
+                for value in states
+            )
+        ):
+            state, reason = (
+                "awaiting_publication_review",
+                "phase 0 finished and at least one linked publication is Created; all other linked publications are resolved and beyond active review",
             )
         elif status == "Phase 0 Active":
             if iso_date(phase.get("pgcOrSgcSignOffDate")):
