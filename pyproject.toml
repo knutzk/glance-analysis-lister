@@ -30,4 +30,4 @@ include = ["analysis_lister*"]
 analysis_lister = ["certs/*.pem", "certs/README.md", "views/assets/*.js", "views/assets/*.css"]
 
 [tool.setuptools.data-files]
-"share/glance-analysis-lister" = ["json/doi_metadata.json"]
+"share/glance-analysis-lister" = ["json/doi_metadata.json", "publication-curation.toml"]

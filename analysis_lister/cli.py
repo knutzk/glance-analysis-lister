@@ -10,6 +10,7 @@ from pathlib import Path
 import requests
 
 from .console import configure_logging, print_summary
+from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,8 @@ def parser():
     group.add_argument(
         "--curation-config",
         type=Path,
-        help="TOML file with optional [groups.GROUP] title, groups, subgroups and keywords for publication archives.",
+        default=default_curation_path(),
+        help="Publication policies TOML (default: shared package policy).",
     )
     group.add_argument(
         "--group-title", default="", help="Display title (default: group name)."

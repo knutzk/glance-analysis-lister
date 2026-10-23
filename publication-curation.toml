@@ -1,0 +1,15 @@
+# Shared publication archive policies. All listed groups, subgroups and
+# keywords are combined with OR. A group matches an internal identifier
+# token or a leading/additional affiliation. Groups absent from this file
+# fall back to their internal identifier token, with a warning.
+
+[groups.TOPQ]
+title = "Top Quark Physics"
+groups = ["TOPQ"]
+subgroups = ["HIGG-HSG8", "HIGP-Tops"]
+keywords = []
+
+[groups.HIGP]
+title = "Higgs Boson Physics"
+groups = ["HIGP", "HIGG"]
+subgroups = ["HDBS-DiHiggs"]

@@ -5,12 +5,30 @@
 
 import re
 import tomllib
+from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 from attrs import asdict
 
 from .models import Decision
 from .profiles import PublicationPolicy
+
+
+def default_curation_path():
+    """Locate the shared policies in a checkout or installed distribution."""
+    checkout = Path(__file__).resolve().parents[2] / "publication-curation.toml"
+    if checkout.is_file():
+        return checkout
+    try:
+        package = distribution("glance-analysis-lister")
+        for path in package.files or []:
+            if str(path).endswith(
+                "share/glance-analysis-lister/publication-curation.toml"
+            ):
+                return Path(package.locate_file(path))
+    except PackageNotFoundError:
+        pass
+    raise ValueError("The packaged publication curation policy is missing")
 
 
 def load_publication_policy(path, group):

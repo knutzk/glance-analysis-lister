@@ -3,6 +3,7 @@
 
 include requirements*.txt
 include json/doi_metadata.json
+include publication-curation.toml
 recursive-include examples *.json *.py *.md
 include scripts/check_distribution.py
 recursive-include tests *.py

@@ -125,7 +125,10 @@ controls which source keys are dropped. The current curated schema is version 2.
 
 ## Configure and render group pages
 
-Define publication inclusion in a user-owned TOML file:
+The shared [`publication-curation.toml`](publication-curation.toml) defines publication
+inclusion for all consumers and is bundled with the package. `render-group` uses
+it automatically, regardless of the working directory. Edit this file to maintain
+shared policies; use `--curation-config PATH` for an explicit alternative. For example:
 
 ```toml
 [groups.TOPQ]
@@ -152,7 +155,6 @@ stdout and falls back to the internal identifier's group token.
 
 ```bash
 analysis-lister render-group --group TOPQ \
-  --curation-config publication-curation.toml \
   --snapshot json/glance_curated_registry.json \
   --output-dir docs/analyses/topq
 ```

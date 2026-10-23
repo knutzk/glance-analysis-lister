@@ -23,6 +23,10 @@ from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
+from analysis_lister.views.curation import (
+    default_curation_path,
+    load_publication_policy,
+)
 
 
 def main():
@@ -70,6 +74,12 @@ def main():
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
     assert load_store(citation_path), "Installed citation dictionary must not be empty"
+    policy_path = default_curation_path()
+    assert not policy_path.is_relative_to(root), (
+        "Must load installed publication policy"
+    )
+    assert policy_path.read_bytes() == (root / "publication-curation.toml").read_bytes()
+    assert load_publication_policy(policy_path, "TOPQ") is not None
     with trusted_ca_bundle() as bundle:
         assert INTERMEDIATE_CA.read_bytes() in Path(bundle).read_bytes()
 
@@ -80,6 +90,10 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
+        assert (
+            archive.extractfile(prefix + "publication-curation.toml").read()
+            == (root / "publication-curation.toml").read_bytes()
+        )
         sample = "examples/synthetic_registry.json"
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()
