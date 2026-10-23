@@ -3,7 +3,6 @@
 
 """Check executable boundaries separately from reusable workflow operations."""
 
-import io
 import subprocess
 import sys
 import unittest
@@ -25,9 +24,9 @@ import logging
 import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
-    import analysis_lists
+    import analysis_lister.cli
     import analysis_lister.downloaders.publication
-    import analysis_lister.render
+    import analysis_lister.views.build
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
 """
@@ -67,7 +66,13 @@ assert "bs4" not in sys.modules
         )
 
     def test_removed_commands_fail_before_authentication(self):
-        for command in ("refresh", "download"):
+        for command in (
+            "refresh",
+            "download",
+            "render",
+            "export-obsidian",
+            "validate-lookups",
+        ):
             with (
                 self.subTest(command=command),
                 patch.object(download, "resolve_cookies") as auth,
@@ -93,23 +98,6 @@ assert "bs4" not in sys.modules
         parser = cli.parser()
         for command in ("download-api", "download-html"):
             self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
-
-    def test_lookup_command_reviews_explicit_snapshot(self):
-        with TemporaryDirectory() as directory:
-            snapshot = Path(directory) / "empty.json"
-            snapshot.write_text('{"entries": {}, "threshold_year": "2020"}')
-            with (
-                patch.object(cli, "configure_logging"),
-                patch("sys.stdout", new_callable=io.StringIO) as output,
-            ):
-                cli.main(["validate-lookups", "--snapshot", str(snapshot)])
-            self.assertRegex(
-                output.getvalue(),
-                r"Snapshot review: \d+ notice\(s\); no entries changed\.",
-            )
-            self.assertIn(
-                "All analysis lookup dictionaries are valid.", output.getvalue()
-            )
 
     def test_registry_command_forwards_count_override(self):
         with (
@@ -173,22 +161,6 @@ assert "bs4" not in sys.modules
             self.assertEqual(error.exception.code, 2)
             run.assert_not_called()
 
-    def test_render_dispatches_explicit_paths(self):
-        with (
-            patch.object(cli, "configure_logging"),
-            patch("analysis_lister.render.render_pages") as render,
-        ):
-            cli.main(["render", "--snapshot", "input.json", "--output-dir", "custom"])
-        render.assert_called_once_with(Path("input.json"), Path("custom"))
-
-    def test_render_defaults_to_standalone_pages_directory(self):
-        with (
-            patch.object(cli, "configure_logging"),
-            patch("analysis_lister.render.render_pages") as render,
-        ):
-            cli.main(["render", "--snapshot", "input.json"])
-        render.assert_called_once_with(Path("input.json"), Path("pages"))
-
     def test_login_passes_cookie_path_and_returns_credentials(self):
         with patch.object(
             download.CookieManager,
@@ -213,41 +185,6 @@ assert "bs4" not in sys.modules
                 download.resolve_cookies(cookie_file),
                 {"test": "synthetic"},
             )
-
-    def test_executable_help_errors_and_lookup_validation(self):
-        with TemporaryDirectory() as directory:
-            cases = [
-                (["--help"], 0),
-                (["validate-lookups"], 0),
-                (["download-api", "--help"], 0),
-                (["download-api", "--from-html", "missing"], 2),
-            ]
-            for command in (
-                "download-html",
-                "build-registry",
-                "render",
-                "validate-lookups",
-                "export-obsidian",
-            ):
-                cases.append(([command, "--help"], 0))
-                flags = [command]
-                if command == "download-html":
-                    flags += ["--from-html", "missing"]
-                elif command == "validate-lookups":
-                    flags += ["--snapshot", "missing.json"]
-                cases.append((flags, 1))
-            for flags, expected_code in cases:
-                with self.subTest(flags=flags):
-                    result = subprocess.run(
-                        [sys.executable, str(SCRIPTS / "analysis_lists.py"), *flags],
-                        cwd=directory,
-                        capture_output=True,
-                        text=True,
-                    )
-                    self.assertEqual(result.returncode, expected_code, result.stderr)
-                    self.assertNotIn("Traceback", result.stderr)
-                    if expected_code:
-                        self.assertTrue(result.stderr.strip())
 
 
 if __name__ == "__main__":

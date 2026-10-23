@@ -65,7 +65,7 @@ def build_registry(
         previous = json.loads(output.read_text(encoding="utf-8"))
         validate_registry(previous)
         previous_scope = (
-            previous.get("gal_curation", previous.get("curation", {}))
+            previous.get("gal_curation", {})
             .get("html_source", {})
             .get("retrieval_scope")
         )

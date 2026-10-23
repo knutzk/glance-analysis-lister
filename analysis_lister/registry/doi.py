@@ -53,15 +53,6 @@ def _doi_date(doi: str) -> tuple[int, int]:
     return 0, 0
 
 
-def format_url_dois(url_str: str) -> list[str]:
-    """Extract DOI URLs; Paper construction resolves their citation order."""
-    # GLANCE concatenates the URLs without a separator, so splitting on the
-    # scheme is all there is to go by. Stripping guards the citation-store
-    # lookup, which a trailing space would silently turn into a miss.
-    urls = ["http" + x.strip() for x in url_str.split("http")[1:]]
-    return [u for u in urls if "doi.org/" in u]
-
-
 def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[str]:
     """Deduplicate and order DOIs, warning when dates cannot resolve the order.
 

@@ -104,7 +104,7 @@ class CuratedReaderTests(unittest.TestCase):
                 for record in old[resource]:
                     for field in ("analysisContacts", "contactEditors"):
                         record[field] = record.pop("gal_" + field)
-            with self.assertRaisesRegex(ValueError, "Rebuild"):
+            with self.assertRaisesRegex(ValueError, "supported curated"):
                 CuratedRegistry(old)
 
     def test_reader_import_does_not_import_construction_or_downloaders(self):

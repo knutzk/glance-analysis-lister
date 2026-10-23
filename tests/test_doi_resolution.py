@@ -16,6 +16,7 @@ from analysis_lister import cli
 from analysis_lister.citation_store import (
     Citations,
     cached_citations,
+    default_store_path,
     load_store,
     normalize_doi,
     save_store,
@@ -29,8 +30,6 @@ from analysis_lister.doi_resolver import (
     resolve_dois,
     snapshot_dois,
 )
-from analysis_lister.glance.paper import Paper
-from analysis_lister.lookup_validation import validate_lookups
 
 DOI = "10.9999/demo"
 JHEP = "10.1007/JHEP07(2099)999"
@@ -75,7 +74,7 @@ class CitationStoreTests(unittest.TestCase):
         self.path = self.root / "nested/citations.json"
 
     def test_curated_defaults_are_rich_and_preserve_corrections(self):
-        validate_lookups()
+        load_store(default_store_path())
         for value in Citations.values():
             self.assertIn("source", value)
             self.assertNotIn("locked", value)
@@ -129,27 +128,6 @@ class CitationStoreTests(unittest.TestCase):
             self.assertEqual(Citations[DOI]["citation"], "Cached citation")
             raise RuntimeError("synthetic")
         self.assertEqual(Citations, original)
-        from attrs import fields
-
-        data = {f.name: "" for f in fields(Paper) if f.init}
-        data.update(
-            ref_code="DEMO-2099-01",
-            status=" Phase 0 is  Finished ",
-            status_paper=" Publication Phase is  Active ",
-            date_publication="2099-01-01",
-            doi_urls=[f"https://doi.org/{DOI}"],
-            keywords=[],
-            subgroups=[],
-            supporting_docs=[],
-        )
-        with (
-            cached_citations(self.path),
-            patch.object(
-                requests.Session, "get", side_effect=AssertionError("network")
-            ),
-        ):
-            paper = Paper.from_json(data)
-        self.assertEqual(paper.journal_ref, "Cached citation")
 
 
 class ResolutionTests(unittest.TestCase):
@@ -275,21 +253,22 @@ class ResolutionTests(unittest.TestCase):
         snapshot.write_text(
             json.dumps(
                 {
-                    "entries": {
-                        "DEMO-2099-01": {
-                            "doi_urls": [
-                                f"https://www.doi.org/DOI:{JHEP}",
-                                "not-a-doi",
-                                42,
-                            ]
+                    "schema": "glance-api-registry",
+                    "papers": [
+                        {
+                            "publicationPhase": {
+                                "finalJournalPublicationUrls": [
+                                    {"url": "https://doi.org/" + JHEP},
+                                    {"url": "https://doi.org/invalid"},
+                                ]
+                            }
                         }
-                    }
+                    ],
                 }
             )
         )
-        with self.assertLogs(level="WARNING") as logs:
+        with self.assertLogs(level="WARNING"):
             self.assertEqual(snapshot_dois(snapshot), {JHEP.lower()})
-        self.assertIn("Skipped 2 malformed DOI values", logs.output[0])
 
     def test_inference_is_incremental_and_never_contacts_inspire(self):
         with patch(
@@ -373,21 +352,32 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(summary["resolved"], 1)
         self.assertEqual(summary["deferred"], 1)
 
-    def test_snapshot_reads_raw_doi_urls_and_ignores_stale_derived_values(self):
+    def test_snapshot_reads_authoritative_links_and_ignores_stale_derived_dois(self):
         snapshot = self.root / "registry.json"
         snapshot.write_text(
             json.dumps(
                 {
-                    "entries": {
-                        "DEMO-2099-01": {
-                            "doi_urls": [f"https://doi.org/{JHEP}"],
-                            "dois": [DOI],
+                    "schema": "glance-curated-registry",
+                    "papers": [
+                        {
+                            "publicationPhase": {
+                                "finalJournalPublicationUrls": [
+                                    {"url": "https://doi.org/" + JHEP}
+                                ],
+                                "gal_dois": [{"doi": DOI}],
+                            }
                         }
-                    }
+                    ],
                 }
             )
         )
         self.assertEqual(snapshot_dois(snapshot), {JHEP.lower()})
+
+    def test_legacy_snapshot_format_is_rejected(self):
+        snapshot = self.root / "legacy.json"
+        snapshot.write_text(json.dumps({"entries": {}}))
+        with self.assertRaisesRegex(ValueError, "Unsupported DOI snapshot format"):
+            snapshot_dois(snapshot)
 
     def test_cli_requires_inputs_and_prevents_snapshot_overwrite(self):
         for flags in (

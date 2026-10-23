@@ -17,8 +17,6 @@ SUPPLEMENT_CSV_DIR = Path("csv/supplemental")
 API_SNAPSHOT_PATH = Path("json/glance_api_registry.json")
 CURATED_SNAPSHOT_PATH = Path("json/glance_curated_registry.json")
 COOKIE_FILE = Path("cookies.json")
-SNAPSHOT_PATH = Path("json/glance_registry.json")
-OUTPUT_DIR = Path("pages")
 
 
 def _validate_download(command, args):
@@ -80,14 +78,6 @@ def parser():
         help="Supplemental CSV directory (default: %(default)s).",
     )
 
-    snapshot = argparse.ArgumentParser(add_help=False)
-    snapshot.add_argument(
-        "--snapshot",
-        type=Path,
-        default=SNAPSHOT_PATH,
-        help="Registry JSON path (default: %(default)s).",
-    )
-
     counts = argparse.ArgumentParser(add_help=False)
     counts.add_argument(
         "--allow-count-drop",
@@ -127,29 +117,6 @@ def parser():
     )
     download.set_defaults(validator=_validate_download)
 
-    output = argparse.ArgumentParser(add_help=False)
-    output.add_argument(
-        "--output-dir",
-        type=Path,
-        default=OUTPUT_DIR,
-        help="Markdown destination (default: %(default)s).",
-    )
-
-    obsidian_output = argparse.ArgumentParser(add_help=False)
-    obsidian_output.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("obsidian_output"),
-        help="Obsidian destination (default: %(default)s).",
-    )
-
-    review = argparse.ArgumentParser(add_help=False)
-    review.add_argument(
-        "--snapshot",
-        type=Path,
-        help="Review lookup use against this registry JSON snapshot.",
-    )
-
     command = argparse.ArgumentParser(description=__doc__, parents=[console])
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
@@ -180,24 +147,6 @@ def parser():
             "Build a curated registry from API JSON and supplemental CSVs.",
             [supplement_csv, counts],
             _run_build_registry,
-        ),
-        (
-            "render",
-            "Render an existing legacy view snapshot.",
-            [snapshot, output],
-            _run_render,
-        ),
-        (
-            "validate-lookups",
-            "Validate lookup dictionaries and optionally review a snapshot.",
-            [review],
-            _run_validate_lookups,
-        ),
-        (
-            "export-obsidian",
-            "Export an existing legacy snapshot as Obsidian notes.",
-            [snapshot, obsidian_output],
-            _run_export_obsidian,
         ),
     ):
         sub = commands.add_parser(
@@ -371,37 +320,6 @@ def _run_render_group(args):
         [("Output", args.output_dir), *counts.items()],
         color=args.color,
     )
-
-
-def _run_render(args):
-    from analysis_lister.render import render_pages
-
-    render_pages(args.snapshot, args.output_dir)
-    print_summary("Pages rendered", [("Output", args.output_dir)], color=args.color)
-
-
-def _run_export_obsidian(args):
-    from analysis_lister.obsidian import export_obsidian
-
-    export_obsidian(args.snapshot, args.output_dir)
-    print_summary(
-        "Obsidian export complete", [("Output", args.output_dir)], color=args.color
-    )
-
-
-def _run_validate_lookups(args):
-    from analysis_lister.lookup_validation import validate_lookups
-
-    validate_lookups()
-    if args.snapshot is not None:
-        from analysis_lister.glance.glance_registry import GlanceRegistry
-        from analysis_lister.lookup_review import lookup_review_notices
-
-        notices = lookup_review_notices(GlanceRegistry.from_json(args.snapshot))
-        for level, message in notices:
-            logger.log(level, "%s", message)
-        print(f"Snapshot review: {len(notices)} notice(s); no entries changed.")
-    print_summary("All analysis lookup dictionaries are valid.", color=args.color)
 
 
 def _run_resolve_dois(args):

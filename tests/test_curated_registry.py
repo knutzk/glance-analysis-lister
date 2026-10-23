@@ -333,23 +333,15 @@ class CuratedTests(unittest.TestCase):
                 ["Synthetic tool", "Other tool"],
             )
 
-    def test_version_one_output_can_be_rebuilt(self):
+    def test_old_schema_output_is_rejected_without_overwriting_it(self):
         previous = registry.curate(self.api, {})
         previous["schema_version"] = 1
-        previous["curation"] = previous.pop("gal_curation")
-        _, provenance = builder.read_supplements(self.csv_dir)
-        previous["curation"]["html_source"] = provenance
-        for resource in RESOURCES:
-            for record in previous[resource]:
-                for name in ("analysisContacts", "contactEditors"):
-                    record[name] = record.pop("gal_" + name)
         self.output.parent.mkdir(parents=True, exist_ok=True)
         self.output.write_text(json.dumps(previous))
-        builder.build_registry(self.api_path, self.csv_dir, self.output)
-        rebuilt = json.loads(self.output.read_text())
-        self.assertEqual(rebuilt["schema_version"], 2)
-        self.assertIn("gal_curation", rebuilt)
-        self.assertNotIn("curation", rebuilt)
+        before = self.output.read_bytes()
+        with self.assertRaisesRegex(ValueError, "supported curated registry"):
+            builder.build_registry(self.api_path, self.csv_dir, self.output)
+        self.assertEqual(self.output.read_bytes(), before)
 
     def test_new_workflow_runs_with_legacy_and_authentication_imports_blocked(self):
         code = """

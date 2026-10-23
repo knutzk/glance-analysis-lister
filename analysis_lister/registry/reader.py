@@ -8,7 +8,7 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
-from .schema import RESOURCES, SCHEMA_VERSION, record_key, validate_registry
+from .schema import RESOURCES, record_key, validate_registry
 
 LINK_RESOURCES = {
     "Analysis": "analyses",
@@ -27,10 +27,6 @@ class CuratedRegistry:
 
     def __init__(self, data):
         validate_registry(data)
-        if data["schema_version"] != SCHEMA_VERSION:
-            raise ValueError(
-                "Rebuild the curated registry to the current schema version"
-            )
         self._data = copy.deepcopy(data)
         self._indexes = {
             resource: {

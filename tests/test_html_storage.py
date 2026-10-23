@@ -15,8 +15,11 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister.downloaders import html as downloader, publication as html_download
 from analysis_lister.downloaders.scope import SCOPE_FILENAME, load_scope
-from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.storage import CSV_REFRESH_MARKER, require_complete_csv_batch
+from analysis_lister.storage import (
+    CSV_REFRESH_MARKER,
+    atomic_write_text,
+    require_complete_csv_batch,
+)
 
 HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>new</td></tr></table>"
 
@@ -229,24 +232,22 @@ class RegistryWriteTests(unittest.TestCase):
         self.path = Path(self.temporary.name) / "registry.json"
         self.old = '{"previous": true}\n'
         self.path.write_text(self.old)
-        self.registry = GlanceRegistry(last_modified_time="test")
+        self.candidate = '{"synthetic": true}\n'
 
     def test_complete_snapshot_is_published(self):
         self.path.chmod(0o640)
-        self.registry.store_json(self.path)
+        atomic_write_text(self.path, self.candidate)
         self.assertEqual(
             json.loads(self.path.read_text()),
-            {"entries": {}, "threshold_year": "2020", "last_modified_time": "test"},
+            {"synthetic": True},
         )
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o640)
         self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 
     def test_first_snapshot_creates_nested_parent_directories(self):
         destination = self.path.parent / "new" / "json" / "registry.json"
-        self.registry.store_json(destination)
-        restored = GlanceRegistry.from_json(destination)
-        self.assertEqual(restored.entries, {})
-        self.assertEqual(restored.last_modified_time, "test")
+        atomic_write_text(destination, self.candidate)
+        self.assertEqual(json.loads(destination.read_text()), {"synthetic": True})
         self.assertEqual(list(destination.parent.iterdir()), [destination])
 
     def test_failed_flush_or_replace_preserves_previous_snapshot(self):
@@ -256,7 +257,7 @@ class RegistryWriteTests(unittest.TestCase):
                 patch(target, side_effect=OSError("disk failure")),
             ):
                 with self.assertRaises(OSError):
-                    self.registry.store_json(self.path)
+                    atomic_write_text(self.path, self.candidate)
                 self.assertEqual(self.path.read_text(), self.old)
                 self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 

@@ -738,15 +738,3 @@ def note_supersession(record, resource):
         "superseded when the source records a replacing publication/analysis link; target resolution is not required; no inference from title or date",
         {"supersededBy": links},
     )
-
-
-def conf_note_cds_record(record):
-    return note_cds_record(record, "confnotes")
-
-
-def conf_note_expansion(record):
-    return note_expansion(record, "confnotes")
-
-
-def conf_note_supersession(record):
-    return note_supersession(record, "confnotes")

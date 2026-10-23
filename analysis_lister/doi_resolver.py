@@ -314,21 +314,6 @@ def snapshot_dois(path: Path):
             dois, invalid = paper_dois(paper)
             result.update(dois)
             malformed += invalid
-    elif isinstance(data.get("entries"), dict):
-        for entry in data["entries"].values():
-            if not isinstance(entry, dict):
-                raise ValueError("Invalid snapshot entry")
-            # The raw URLs are authoritative; serialized derived DOIs can be stale.
-            values = entry.get("doi_urls", entry.get("dois", []))
-            if not isinstance(values, list):
-                raise ValueError("Snapshot DOI fields must be lists")
-            for doi in values:
-                if not doi:
-                    continue
-                try:
-                    result.add(normalize_doi(doi))
-                except ValueError:
-                    malformed += 1
     else:
         raise ValueError("Unsupported DOI snapshot format")
     if malformed:

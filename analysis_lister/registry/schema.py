@@ -30,7 +30,7 @@ def validate_registry(data):
     if (
         not isinstance(data, dict)
         or data.get("schema") != SCHEMA
-        or data.get("schema_version") not in (1, 2)
+        or data.get("schema_version") != SCHEMA_VERSION
         or not isinstance(data.get("counts"), dict)
     ):
         raise ValueError("Destination is not a supported curated registry")
@@ -45,7 +45,7 @@ def validate_registry(data):
             if "analysisTeam" in record:
                 raise ValueError("Curated registry must not contain analysisTeam")
             for name in ("analysisContacts", "contactEditors"):
-                field = PREFIX + name if data["schema_version"] == 2 else name
+                field = PREFIX + name
                 if not isinstance(record.get(field), list) or any(
                     not isinstance(name, str) for name in record[field]
                 ):

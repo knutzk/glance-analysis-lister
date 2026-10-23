@@ -74,10 +74,6 @@ def citation_record(value):
     return result
 
 
-def citation_text(value):
-    return value if isinstance(value, str) else value["citation"]
-
-
 def _unique_pairs(pairs):
     result = {}
     for key, value in pairs:

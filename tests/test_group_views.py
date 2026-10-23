@@ -126,6 +126,15 @@ class GroupViewTests(unittest.TestCase):
     def prepare(self, data, group="DEMO", **options):
         return prepare_group(CuratedRegistry(data), GroupProfile(group, **options))
 
+    def test_distributed_curated_example_has_all_publication_types(self):
+        registry = CuratedRegistry.from_json(ROOT / "examples/synthetic_registry.json")
+        view = prepare_group(registry, GroupProfile("DEMO"))
+        self.assertEqual(len(view.ongoing), 1)
+        self.assertEqual(
+            {row.resource for row in view.archive}, {"papers", "confnotes", "pubnotes"}
+        )
+        self.assertEqual(len(view.archive), 3)
+
     def test_leading_and_additional_membership_not_subgroups_controls_unique_rows(self):
         first = analysis(1, additional=("DEMO",))
         second = analysis(2, group="OTHER", additional=("DEMO",))
@@ -1214,7 +1223,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(evidence["rule"], "conf-note-cds-record/v1")
 
     def test_missing_cds_link_is_blank_without_guessing_a_record(self):
-        from analysis_lister.views.semantics import conf_note_cds_record
+        from analysis_lister.views.semantics import note_cds_record
 
         for value in (
             None,
@@ -1224,7 +1233,7 @@ class ConfNoteTableTests(unittest.TestCase):
             "https://cds.cern.ch/not-a-record",
         ):
             self.assertIsNone(
-                conf_note_cds_record({"phase1": {"draftCdsUrl": value}}).value
+                note_cds_record({"phase1": {"draftCdsUrl": value}}, "confnotes").value
             )
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         view = prepare_group(
@@ -1299,7 +1308,7 @@ class ConfNoteExpansionTests(unittest.TestCase):
 
 class ConfNoteResponsibleNameTests(unittest.TestCase):
     def test_scalar_responsibles_and_chairs_are_names_not_characters(self):
-        from analysis_lister.views.semantics import conf_note_expansion
+        from analysis_lister.views.semantics import note_expansion
 
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         note["phase1"].update(
@@ -1313,7 +1322,7 @@ class ConfNoteResponsibleNameTests(unittest.TestCase):
                 "gal_editorialBoardChairs": "Invented Chair",
             }
         )
-        decision = conf_note_expansion(note)
+        decision = note_expansion(note, "confnotes")
         people = {
             person["label"]: person["names"] for person in decision.value["people"]
         }

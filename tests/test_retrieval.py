@@ -18,7 +18,6 @@ from analysis_lister.downloaders.scope import (
     load_scope,
     read_scope,
 )
-from analysis_lister.glance.glance_registry import GlanceRegistry
 
 HTML = "<span>Showing 1 to 1 of 1 results</span><table><tr><th>Reference Code</th></tr><tr><td>DEMO-2099-01</td></tr></table>"
 CONFIG = """name = "Synthetic group"
@@ -139,13 +138,8 @@ class RetrievalTests(unittest.TestCase):
         fetch.assert_not_called()
         self.assertEqual(original, {p.name: p.read_bytes() for p in csv_dir.iterdir()})
 
-    def test_scope_round_trips_and_legacy_snapshots_remain_readable(self):
-        snapshot = self.root / "registry.json"
-        GlanceRegistry(retrieval_scope=self.scope).store_json(snapshot)
-        self.assertEqual(GlanceRegistry.from_json(snapshot).retrieval_scope, self.scope)
-        GlanceRegistry().store_json(snapshot)
-        self.assertNotIn("retrieval_scope", json.loads(snapshot.read_text()))
-        self.assertIsNone(GlanceRegistry.from_json(snapshot).retrieval_scope)
+    def test_scope_round_trips_and_missing_scope_metadata_is_rejected(self):
+        self.assertEqual(RetrievalScope.from_dict(self.scope.metadata()), self.scope)
         for scope in (
             load_scope(),
             self.scope,

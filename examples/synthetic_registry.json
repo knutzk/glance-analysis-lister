@@ -1,161 +1,191 @@
 {
-  "_description": "Entirely invented demo data. DEMO IDs, people, titles, dates and example.test links do not describe real analyses.",
-  "entries": {
-    "DEMO-2099-01": {
-      "_entrytype": "Analysis",
-      "contact_editors": "",
-      "contacts": "Example Researcher",
-      "date_approval": "",
-      "date_eb_formed": "",
-      "date_preapproval_signoff": "",
-      "date_preapproval": "",
-      "date_start": "2099-01-01",
-      "editorial_board": "Example Reviewer",
-      "glance_url_publ": "",
-      "int_note_editors": "",
-      "keywords": [
-        "R22",
-        "synthetic"
-      ],
-      "leading_group": "TOPQ",
-      "phase_state": "Synthetic review stage",
-      "ref_code": "DEMO-2099-01",
-      "run": "Run 2",
-      "status": " Phase 0 is  Active ",
-      "subgroups": [
-        "TOPQ - Top Quarks + X",
-        "TOPQ - Cross-section",
-        "TOPQ - Top Properties and Mass"
-      ],
-      "supporting_docs": [
-        "https://example.test/synthetic/1/supporting-note"
-      ],
-      "title_full": "Invented example ongoing analysis; not an actual ATLAS result",
-      "title_short_public": "Synthetic ongoing analysis",
-      "title_short": "Synthetic ongoing analysis"
-    },
-    "DEMO-2099-02": {
-      "_entrytype": "Paper",
-      "contact_editors": "",
-      "contacts": "Example Researcher",
-      "date_approval": "",
-      "date_eb_formed": "",
-      "date_preapproval_signoff": "",
-      "date_preapproval": "",
-      "date_start": "2099-01-01",
-      "editorial_board": "Example Reviewer",
-      "int_note_editors": "",
-      "keywords": [
-        "R22",
-        "synthetic"
-      ],
-      "leading_group": "TOPQ",
-      "phase_state": "Synthetic review stage",
-      "ref_code": "DEMO-2099-02",
-      "run": "Run 2",
-      "status": " Phase 0 is  Finished ",
-      "subgroups": [
-        "TOPQ - Top Quarks + X",
-        "TOPQ - Cross-section",
-        "TOPQ - Top Properties and Mass"
-      ],
-      "supporting_docs": [
-        "https://example.test/synthetic/2/supporting-note"
-      ],
-      "title_full": "Invented example published paper; not an actual ATLAS result",
-      "title_short_public": "Synthetic published paper",
-      "title_short": "Synthetic published paper",
-      "arxiv_number": "",
-      "arxiv_url": "",
-      "date_acceptance": "",
-      "date_phase_one": "",
-      "date_publication": "2099-03-01",
-      "date_submission": "2099-02-01",
-      "doi_urls": [],
-      "figure_url": "",
-      "inspire_url": "",
-      "journal": "",
-      "status_paper": " Publication Phase is  Active ",
-      "title_final_tex": "Synthetic published paper"
-    },
-    "DEMO-2099-03": {
-      "_entrytype": "ConfNote",
-      "contact_editors": "",
-      "contacts": "Example Researcher",
-      "date_approval": "",
-      "date_eb_formed": "",
-      "date_preapproval_signoff": "",
-      "date_preapproval": "",
-      "date_start": "2099-01-01",
-      "editorial_board": "Example Reviewer",
-      "glance_url_publ": "",
-      "int_note_editors": "",
-      "keywords": [
-        "R22",
-        "synthetic"
-      ],
-      "leading_group": "TOPQ",
-      "phase_state": "Synthetic review stage",
-      "ref_code": "DEMO-2099-03",
-      "run": "Run 2",
-      "status": " Phase 0 is  Finished ",
-      "subgroups": [
-        "TOPQ - Top Quarks + X",
-        "TOPQ - Cross-section",
-        "TOPQ - Top Properties and Mass"
-      ],
-      "supporting_docs": [
-        "https://example.test/synthetic/3/supporting-note"
-      ],
-      "title_full": "Invented example CONF note; not an actual ATLAS result",
-      "title_short_public": "Synthetic CONF note",
-      "title_short": "Synthetic CONF note",
-      "date_signoff": "2099-03-01",
-      "final_ref_code": "ATLAS-CONF-2099-999",
-      "final_url": "https://example.test/synthetic/3/publication",
-      "superseded_by": "",
-      "tmp_ref_code": "DEMO-NOTE-2099-03"
-    },
-    "DEMO-2099-04": {
-      "_entrytype": "PubNote",
-      "contact_editors": "",
-      "contacts": "Example Researcher",
-      "date_approval": "",
-      "date_eb_formed": "",
-      "date_preapproval_signoff": "",
-      "date_preapproval": "",
-      "date_start": "2099-01-01",
-      "editorial_board": "Example Reviewer",
-      "glance_url_publ": "",
-      "int_note_editors": "",
-      "keywords": [
-        "R22",
-        "synthetic"
-      ],
-      "leading_group": "TOPQ",
-      "phase_state": "Synthetic review stage",
-      "ref_code": "DEMO-2099-04",
-      "run": "Run 2",
-      "status": " Phase 0 is  Finished ",
-      "subgroups": [
-        "TOPQ - Top Quarks + X",
-        "TOPQ - Cross-section",
-        "TOPQ - Top Properties and Mass"
-      ],
-      "supporting_docs": [
-        "https://example.test/synthetic/4/supporting-note"
-      ],
-      "title_full": "Invented example PUB note; not an actual ATLAS result",
-      "title_short_public": "Synthetic PUB note",
-      "title_short": "Synthetic PUB note",
-      "date_signoff": "2099-03-01",
-      "final_ref_code": "ATL-PHYS-PUB-2099-999",
-      "final_url": "https://example.test/synthetic/4/publication",
-      "status_pub": " Phase 1 is  Active ",
-      "superseded_by": "",
-      "tmp_ref_code": "DEMO-NOTE-2099-04"
-    }
+  "schema": "glance-curated-registry",
+  "schema_version": 2,
+  "fetched_at": "2099-01-01T00:00:00+00:00",
+  "source": {
+    "selection": "all-accessible",
+    "base_url": "https://example.test/api"
   },
-  "threshold_year": "2020",
-  "last_modified_time": "Synthetic example; never downloaded from GLANCE"
+  "counts": {
+    "analyses": 1,
+    "papers": 1,
+    "confnotes": 1,
+    "pubnotes": 1
+  },
+  "analyses": [
+    {
+      "referenceCode": "ANA-DEMO-2099-01",
+      "shortTitle": "Invented analyses example",
+      "metadata": {
+        "gal_keywords": [
+          "Invented keyword"
+        ]
+      },
+      "status": "Phase 0 Active",
+      "phase0": {
+        "startDate": "2099-01-01"
+      },
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "gal_groups": {
+        "leadingGroup": "DEMO",
+        "leadingSubgroup": "DEMO-Invented",
+        "otherGroups": [],
+        "subgroups": []
+      }
+    }
+  ],
+  "papers": [
+    {
+      "referenceCode": "DEMO-2099-01",
+      "shortTitle": "Invented papers example",
+      "metadata": {
+        "gal_keywords": [
+          "Invented keyword"
+        ]
+      },
+      "status": "Publication Phase Finished",
+      "publicationPhase": {
+        "publishedOnlineDate": "2099-02-01",
+        "finalJournalPublicationUrls": [
+          {
+            "url": "https://doi.org/10.9999/synthetic"
+          }
+        ],
+        "gal_dois": [
+          {
+            "doi": "10.9999/synthetic",
+            "url": "https://doi.org/10.9999/synthetic",
+            "resolved": true,
+            "citation": "Invented journal citation",
+            "source": "manual"
+          }
+        ]
+      },
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "gal_groups": {
+        "leadingGroup": "DEMO",
+        "leadingSubgroup": "DEMO-Invented",
+        "otherGroups": [],
+        "subgroups": []
+      }
+    }
+  ],
+  "confnotes": [
+    {
+      "temporaryReferenceCode": "CONF-DEMO-2099-01",
+      "shortTitle": "Invented confnotes example",
+      "metadata": {
+        "gal_keywords": [
+          "Invented keyword"
+        ]
+      },
+      "status": "Phase 1 Finished",
+      "phase1": {
+        "releaseDate": "2099-03-01",
+        "publicWebPageUrlForFiguresAndTables": "https://example.test/note"
+      },
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "gal_groups": {
+        "leadingGroup": "DEMO",
+        "leadingSubgroup": "DEMO-Invented",
+        "otherGroups": [],
+        "subgroups": []
+      },
+      "finalReferenceCode": "ATLAS-CONF-2099-001"
+    }
+  ],
+  "pubnotes": [
+    {
+      "temporaryReferenceCode": "PUB-DEMO-2099-01",
+      "shortTitle": "Invented pubnotes example",
+      "metadata": {
+        "gal_keywords": [
+          "Invented keyword"
+        ]
+      },
+      "status": "Phase 1 Finished",
+      "phase1": {
+        "releaseDate": "2099-03-01",
+        "publicWebPageUrlForFiguresAndTables": "https://example.test/note"
+      },
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "gal_groups": {
+        "leadingGroup": "DEMO",
+        "leadingSubgroup": "DEMO-Invented",
+        "otherGroups": [],
+        "subgroups": []
+      },
+      "finalReferenceCode": "ATL-PHYS-PUB-2099-001"
+    }
+  ],
+  "gal_curation": {
+    "built_at": "2026-10-23T16:33:34.521487+00:00",
+    "contacts_as_of": "2099-01-01",
+    "api_schema": "glance-api-registry",
+    "supplement_fields": {
+      "analyses": {
+        "Internal Note Editors": "gal_internalNoteEditors"
+      },
+      "papers": {
+        "Figures": "gal_figuresUrl",
+        "Current Paper Draft": "gal_currentPaperDraft"
+      },
+      "pubnotes": {
+        "Reference Code": "gal_finalReferenceCode"
+      }
+    },
+    "removed_keys": [
+      "analysisTeam",
+      "keywords",
+      "triggers",
+      "statisticalTools",
+      "repositories",
+      "groups",
+      "eoiMeetings",
+      "editorialBoardRequestMeetings",
+      "preApprovalMeetings",
+      "approvalMeetings",
+      "editorialBoard",
+      "readers",
+      "signOffResponsible",
+      "firstSignOffResponsible",
+      "secondSignOffResponsible",
+      "pubcommChairOrDeputyOrDelegated",
+      "spokespersonOrDeputyOrDelegated"
+    ],
+    "supplement_statistics": {
+      "analyses": {
+        "matched": 0,
+        "api_without_supplement": 1,
+        "supplement_without_api": 0,
+        "conflicting_fields_api_retained": 0
+      },
+      "papers": {
+        "matched": 0,
+        "api_without_supplement": 1,
+        "supplement_without_api": 0,
+        "conflicting_fields_api_retained": 0
+      },
+      "pubnotes": {
+        "matched": 0,
+        "api_without_supplement": 1,
+        "supplement_without_api": 0,
+        "conflicting_fields_api_retained": 0
+      }
+    },
+    "doi_statistics": {
+      "papers_with_dois": 1,
+      "resolved": 1,
+      "unresolved": 0,
+      "malformed_links": 0
+    },
+    "citation_store": {
+      "entries": 1,
+      "sha256": "9774a67ecb596a540bacdaac7bc40d425cdc6fb576106c05ce52f842a3f291fd"
+    }
+  }
 }

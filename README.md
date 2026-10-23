@@ -55,14 +55,15 @@ analysis-lister build-registry --api-snapshot json/glance_api_registry.json \
   --csv-dir csv/supplemental --output json/glance_curated_registry.json
 ```
 
-Markdown pages are written to `pages/` by default. Use `--output-dir` to choose
-a different destination. Obsidian export defaults to `obsidian_output/`.
+Group pages are written to `pages/group` by default. Use `--output-dir` to choose
+a different destination.
 
 The old `refresh` and `download` commands and full-CSV registry building have
 been removed. Publication matching by reference suffix and short title has
 also been removed from the registry builder: explicit API relationships are
-preserved instead. Existing legacy snapshots remain readable by the legacy
-renderers and exports; those consumers do not yet accept the curated format.
+preserved instead. The legacy `render`, `export-obsidian` and `validate-lookups`
+commands, domain models and lookup tables have been retired. Use `render-group`
+with a curated registry; legacy snapshots must be rebuilt from saved API/HTML inputs.
 
 ## Build the curated registry
 
@@ -144,8 +145,8 @@ order, trims names, skips missing values and removes duplicates. Add the source
 key separately to `REMOVED_KEYS` if its original representation should be dropped.
 Generic person fields gain `gal_<sourceKey>` names; add their source keys to
 the removal list when those originals should be dropped. A nonempty unchanged API field wins
-over HTML, and no additional `gal_` alias is created for it. Existing version 1
-outputs can be rebuilt in place while retaining scope and count-drop checks.
+over HTML, and no additional `gal_` alias is created for it. Only the current
+curated schema is accepted; use a new output path when replacing older formats.
 
 The Python implementation has two independent packages:
 
@@ -157,9 +158,8 @@ The Python implementation has two independent packages:
   and removal rules (`enrichment.py`), schema validation (`schema.py`), DOI
   processing (`doi.py`, `publication_dois.py`), and curated access (`reader.py`).
 
-Neither package imports the legacy `glance/` models. Those models remain for
-existing downstream views; `glance.doi` forwards to the new DOI implementation.
-CLI commands and saved formats are unchanged by this module reorganisation.
+The `glance/` domain models and old top-level `markdown/` renderer have been
+removed. The current `views/markdown/` renderers consume prepared curated data.
 The old top-level downloader module paths have been replaced by the paths above.
 
 Python clients can read the current curated format without importing builders,
@@ -182,7 +182,7 @@ records. Link types select the resource explicitly; dangling links are never
 repaired or inferred. Unknown link types raise `ValueError`. The reader retains
 all records and applies no clone, status, subgroup or publication-precedence
 rules. Returned records and metadata are copies. It reads schema version 2;
-version 1 curated outputs can still be rebuilt using the builder.
+older curated schema versions are rejected.
 
 ### Curated group views
 
@@ -264,9 +264,8 @@ versioned API source snapshot; unknown fields rejected by stare abort the run.
 This is validated model output, not an unmodified HTTP-response archive.
 
 The API source is input to `build-registry`, which curates it alongside HTML
-supplements. Neither the source nor curated format is yet input to the legacy
-`render` or `export-obsidian` commands. Keep these files separate from legacy
-CSV-derived snapshots. No private lookup files are needed for these new steps.
+supplements. The curated output is consumed by `render-group` and the thin
+registry reader. No private Python lookup files are needed.
 
 No file is published until all four resources pass pagination and identifier
 checks. Existing API registries reject per-resource count drops greater than
@@ -287,8 +286,8 @@ verbose mode includes them for troubleshooting.
 
 ```bash
 analysis-lister download-html --verbose --csv-dir csv/supplemental
-analysis-lister render --snapshot json/all_registry.json --quiet
-analysis-lister --color never validate-lookups
+analysis-lister render-group --group DEMO --snapshot json/glance_curated_registry.json --quiet
+analysis-lister --color never resolve-dois --doi 10.1007/JHEP07(2099)999
 ```
 
 `--color auto|always|never` controls colour independently for stdout and stderr.
@@ -370,76 +369,17 @@ publication. Pagination is detected and rejected rather than silently storing
 one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
 against the total GLANCE reports for the authenticated user and requested scope.
 
-## Legacy snapshot views
-
-The following view and citation behaviour applies only to existing legacy
-snapshots. It is not used to build the curated registry.
-
-### Ignored analyses
-
-`analysis_lister/lookup_dicts/ignored_analyses.py` lists reviewed exceptions with
-reasons. These analysis identifiers stay in snapshots but are excluded from
-output views, view counts and unmatched-record warnings. This does not alter
-GLANCE statuses or create publication links. Independent PUB records retain
-their own identifiers and are unaffected by an ignored ANA identifier.
-
-### Clone relationships
-
-Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.
-`Clones` maps each clone's analysis reference to its original analysis reference;
-multiple clones can share an origin. Add a `# Source:` or `# Reason:` comment
-immediately above every entry. Validate changes with `analysis-lister validate-lookups`.
-
-Clone exclusions are calculated in memory from this dictionary whenever a
-registry is loaded. No clone fields or exclusion flags are stored in JSON.
-Dictionary changes therefore apply to existing snapshots, without downloading
-new data.
-
-A paper supersedes CONF entries on its ancestor chain, including during paper
-review. Closed or unstarted papers do not supersede them. Distinct sibling
-publications and active analyses remain visible. Known finished clone-family
-records without an attached publication are omitted. All records and original
-GLANCE states remain in JSON. Missing descendants do not supersede CONF notes,
-and cycles are rejected. Normal publication date cuts still apply.
-
 ## Try the synthetic example
 
-From a checkout, render the included example without CERN access:
+The distributed example uses the curated schema and independently invented data:
 
 ```bash
-analysis-lister render --snapshot examples/synthetic_registry.json \
-  --output-dir pages
+analysis-lister render-group --group DEMO \
+  --snapshot examples/synthetic_registry.json --output-dir pages/demo
 ```
 
-This writes 13 Markdown pages under `pages/`. All four records, names, titles,
-dates and publication links are invented. The `DEMO` reference codes do not
-identify real analyses. See [the example notes](examples/README.md).
-
-## Obsidian export
-
-```bash
-analysis-lister export-obsidian --snapshot examples/synthetic_registry.json \
-  --output-dir obsidian_output
-```
-
-The exporter writes papers to `obs_published/` and ongoing analyses to
-`obs_ongoing/` under the chosen destination. The example produces one note in
-each directory. CONF and PUB notes are included in the site pages, but are not
-exported as separate Obsidian notes. Existing notes that this run did not write
-are reported as stale and left in place.
-
-For your own data, supply your snapshot.
-The default destination is `obsidian_output/`.
-
-## Maintained analysis relationships
-
-Titles come directly from GLANCE’s Short Title, Public Short Title and Full
-Title fields. The only maintained analysis dictionary is
-`analysis_lister/lookup_dicts/clones.py`, which covers clone and duplicate
-origins. Citation metadata lives in `json/doi_metadata.json`. No private Python
-lookup overrides are supported; select a different JSON citation store with
-`--doi-cache` when needed. Validate maintained data with
-`analysis-lister validate-lookups`.
+There are no legacy snapshot readers or Obsidian exporters. Publication curation
+is configured in TOML; citation metadata remains in `json/doi_metadata.json`.
 
 ## DOI citation resolution
 
@@ -521,9 +461,9 @@ sent to INSPIRE, only DOIs. See the
 [INSPIRE API documentation](https://github.com/inspirehep/rest-api-doc) and
 [publication metadata schema](https://github.com/inspirehep/inspire-schemas/blob/master/inspire_schemas/records/hep.yml).
 
-Subsequent legacy `render` and `export-obsidian` operations
-use the cached citations. The resolver does not rewrite registry snapshots;
-citation fields are reconstructed when a snapshot is loaded. Review and commit
+Run `build-registry` after citation resolution to embed the updated cached
+citations in the curated registry, then run `render-group`. The resolver does
+not rewrite registry snapshots. Review and commit
 citation updates as normal data changes. Only this citation JSON and the
 synthetic example JSON are permitted public JSON files; private registries,
 cookies and other generated JSON remain ignored. Run resolution and operations
@@ -566,9 +506,8 @@ page rendering, bundled certificate, and licence files. CI requires no CERN
 credentials or private analysis data.
 
 Tests use synthetic records and do not establish that live authentication works.
-Use local snapshots to test rendering changes. Preserve GLANCE's exact padded
-status strings, DOI/erratum alignment and unique subgroup anchors. Validate
-maintained lookups after changing them.
+Use saved curated snapshots to test rendering changes. Preserve recorded status
+strings, DOI/erratum alignment and stable anchors.
 
 ## Releases
 
@@ -667,3 +606,6 @@ python scripts/check_publication_filters.py --driver /path/to/chromedriver
 python scripts/check_confnote_filters.py --resource confnotes --driver /path/to/chromedriver
 python scripts/check_confnote_filters.py --resource pubnotes --driver /path/to/chromedriver
 ```
+
+Use the `analysis-lister` executable or `python -m analysis_lister`. The old
+`analysis_lists.py` launcher and legacy CLI commands have been removed.

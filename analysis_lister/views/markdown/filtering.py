@@ -15,9 +15,7 @@ def category_buttons(key, label, values):
     return out + "</div></fieldset>"
 
 
-def render_controls(
-    prefix, search_label, placeholder, categories, *, dropdowns=(), sort_options=()
-):
+def render_controls(prefix, search_label, placeholder, categories, *, sort_options=()):
     out = '<div class="gal-filters" data-gal-controls hidden>'
     out += f'<label for="{prefix}-search">{escape(search_label)}</label>'
     out += f'<input id="{prefix}-search" type="search" data-gal-search placeholder="{escape(placeholder, quote=True)}" aria-describedby="{prefix}-help">'
@@ -25,31 +23,6 @@ def render_controls(
     for key, label, values in categories:
         if key == "subgroups":
             out += category_buttons(key, label, values)
-    if dropdowns:
-        out += '<div class="gal-filter-dropdowns">'
-        for key, label, values in dropdowns:
-            field_id = f"{prefix}-{key}"
-            out += f'<div class="gal-dropdown" data-gal-filter="{escape(key, quote=True)}">'
-            if key in {"keywords", "triggers", "statistical_tools"}:
-                out += f'<span class="gal-dropdown-label" id="{field_id}-label">{escape(label)}</span>'
-            else:
-                out += f'<label for="{field_id}">{escape(label)}</label>'
-            if key in {"keywords", "triggers", "statistical_tools"}:
-                default = "All " + label.lower()
-                out += f'<details class="gal-multiselect"><summary aria-labelledby="{field_id}-label {field_id}-selection"><span id="{field_id}-selection" data-gal-selection-summary data-gal-default="{escape(default, quote=True)}">{escape(default)}</span></summary>'
-                out += f'<div class="gal-multiselect-options" role="group" aria-labelledby="{field_id}-label">'
-                if not values:
-                    out += "<p>No recorded values</p>"
-                for number, value in enumerate(values):
-                    option_id = f"{field_id}-{number}"
-                    out += f'<label for="{option_id}"><input id="{option_id}" type="checkbox" data-gal-choice value="{escape(value, quote=True)}">{escape(value)}</label>'
-                out += "</div></details></div>"
-            else:
-                out += f'<select id="{field_id}" data-gal-select><option value="">All</option>'
-                for value in values:
-                    out += f'<option value="{escape(value, quote=True)}">{escape(value)}</option>'
-                out += "</select></div>"
-        out += "</div>"
     for key, label, values in categories:
         if key != "subgroups":
             out += category_buttons(key, label, values)
@@ -66,22 +39,6 @@ def render_controls(
         out
         + '<button type="button" class="gal-reset" data-gal-reset>Reset filters</button></div></div></div>\n'
     )
-
-
-def dropdown_options(rows):
-    """Offer recorded metadata values; subgroup membership uses tag buttons."""
-    return [
-        (
-            key,
-            label,
-            sorted({value for row in rows for value in row.filter_metadata[key]}),
-        )
-        for key, label in (
-            ("keywords", "Keywords"),
-            ("triggers", "Triggers"),
-            ("statistical_tools", "Statistical tools"),
-        )
-    ]
 
 
 def active_subgroup_buttons(rows, choices):

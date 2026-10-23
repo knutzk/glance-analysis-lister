@@ -35,6 +35,18 @@ def main():
         raise RuntimeError("Check must import the installed wheel, not the checkout")
 
     package = distribution("glance-analysis-lister")
+    retired = (
+        "analysis_lister/glance/",
+        "analysis_lister/markdown/",
+        "analysis_lister/lookup_dicts/",
+        "analysis_lister/render.py",
+        "analysis_lister/obsidian.py",
+        "analysis_lister/lookup_review.py",
+        "analysis_lister/lookup_validation.py",
+    )
+    assert not any(str(path).startswith(retired) for path in package.files), (
+        "Retired modules must not ship in the wheel"
+    )
     assert package.metadata["License-Expression"] == "GPL-3.0-only"
     assert package.metadata["License-File"] == "LICENCE"
     licences = [
@@ -78,15 +90,11 @@ def main():
 
     with TemporaryDirectory() as directory:
         work = Path(directory)
-        snapshot = root / "examples/synthetic_registry.json"
-        output = work / "pages"
-        notes = work / "obsidian_output"
         commands = [
             ["--help"],
             ["download-api", "--help"],
             ["download-html", "--help"],
             ["render-group", "--help"],
-            ["validate-lookups"],
             [
                 "resolve-dois",
                 "--doi",
@@ -96,24 +104,32 @@ def main():
                 "--doi-cache",
                 str(work / "citations.json"),
             ],
-            [
-                "render",
-                "--snapshot",
-                str(snapshot),
-                "--output-dir",
-                str(output),
-            ],
-            [
-                "export-obsidian",
-                "--snapshot",
-                str(snapshot),
-                "--output-dir",
-                str(notes),
-            ],
         ]
         executable = Path(sys.executable).parent / "analysis-lister"
         for command in commands:
             subprocess.run([str(executable), *command], cwd=work, check=True)
+        for command in ("render", "export-obsidian", "validate-lookups"):
+            rejected = subprocess.run(
+                [str(executable), command], cwd=work, capture_output=True
+            )
+            assert rejected.returncode == 2, "Retired commands must be rejected"
+        example_output = work / "example-pages"
+        subprocess.run(
+            [
+                str(executable),
+                "render-group",
+                "--group",
+                "DEMO",
+                "--snapshot",
+                str(root / "examples/synthetic_registry.json"),
+                "--output-dir",
+                str(example_output),
+            ],
+            cwd=work,
+            check=True,
+        )
+        example_report = json.loads((example_output / "view-report.json").read_text())
+        assert example_report["counts"]["archive_publications"] == 3
         api_input = work / "api.json"
         supplemental = work / "supplemental"
         supplemental.mkdir()
@@ -251,9 +267,6 @@ def main():
             cwd=work,
             check=True,
         )
-        assert len(list(output.rglob("*.md"))) == 13
-        assert len(list((notes / "obs_published").glob("*.md"))) == 1
-        assert len(list((notes / "obs_ongoing").glob("*.md"))) == 1
         citation = json.loads((work / "citations.json").read_text())[
             "10.1007/jhep07(2099)999"
         ]
