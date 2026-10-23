@@ -7,6 +7,7 @@ import csv
 import html
 import json
 import unittest
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -164,14 +165,22 @@ class SupplementTests(unittest.TestCase):
             before, {p.name: p.read_bytes() for p in self.destination.iterdir()}
         )
 
+    def test_default_html_output_is_in_callers_working_directory(self):
+        with TemporaryDirectory() as workspace, chdir(workspace):
+            Path("unrelated.csv").write_text("preserve this file\n")
+            cli.main(["download-html", "--from-html", str(self.source)])
+            for task in download.download_tasks():
+                self.assertTrue(Path(task.csv_filename).is_file())
+            self.assertTrue(Path(SUPPLEMENT_MANIFEST).is_file())
+            self.assertEqual(Path("unrelated.csv").read_text(), "preserve this file\n")
+            self.assertFalse(Path("csv").exists())
+            self.assertFalse(Path("json").exists())
+            self.assertFalse(Path(".refresh-in-progress").exists())
+
     def test_html_and_registry_build_share_supplemental_default(self):
         parser = cli.parser()
-        self.assertEqual(
-            parser.parse_args(["download-html"]).csv_dir, Path("csv/supplemental")
-        )
-        self.assertEqual(
-            parser.parse_args(["build-registry"]).csv_dir, Path("csv/supplemental")
-        )
+        self.assertEqual(parser.parse_args(["download-html"]).csv_dir, Path("."))
+        self.assertEqual(parser.parse_args(["build-registry"]).csv_dir, Path("."))
 
 
 if __name__ == "__main__":

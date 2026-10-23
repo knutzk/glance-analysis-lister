@@ -9,14 +9,15 @@ from pathlib import Path
 
 import requests
 
+from .citations.store import default_store_path
 from .console import configure_logging, print_summary
 from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
 
-SUPPLEMENT_CSV_DIR = Path("csv/supplemental")
-API_SNAPSHOT_PATH = Path("json/glance_api_registry.json")
-CURATED_SNAPSHOT_PATH = Path("json/glance_curated_registry.json")
+SUPPLEMENT_CSV_DIR = Path(".")
+API_SNAPSHOT_PATH = Path("glance_api_registry.json")
+CURATED_SNAPSHOT_PATH = Path("glance_curated_registry.json")
 COOKIE_FILE = Path("cookies.json")
 
 
@@ -68,8 +69,8 @@ def parser():
     citations.add_argument(
         "--doi-cache",
         type=Path,
-        default=Path("json/doi_metadata.json"),
-        help="Persistent citation JSON dictionary (default: %(default)s); read offline if present.",
+        default=default_store_path(),
+        help="Maintained citation JSON dictionary (default: shared GAL dictionary).",
     )
     supplement_csv = argparse.ArgumentParser(add_help=False)
     supplement_csv.add_argument(

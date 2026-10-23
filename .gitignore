@@ -2,6 +2,8 @@
 csv/*.csv
 csv/.refresh-*/
 csv/.refresh-in-progress
+/.refresh-*/
+/.refresh-in-progress
 
 # Ignore any PNG and PDF files in this directory
 *.png

@@ -101,6 +101,20 @@ assert "bs4" not in sys.modules
         for command in ("download-api", "download-html"):
             self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
 
+    def test_json_defaults_are_relative_to_the_working_directory(self):
+        parser = cli.parser()
+        self.assertEqual(
+            parser.parse_args(["download-api"]).output, Path("glance_api_registry.json")
+        )
+        build = parser.parse_args(["build-registry"])
+        self.assertEqual(build.api_snapshot, Path("glance_api_registry.json"))
+        self.assertEqual(build.output, Path("glance_curated_registry.json"))
+        self.assertEqual(build.doi_cache, cli.default_store_path())
+        self.assertEqual(
+            parser.parse_args(["render-group", "--group", "DEMO"]).snapshot,
+            build.output,
+        )
+
     def test_registry_command_forwards_count_override(self):
         with (
             patch.object(cli, "configure_logging"),
@@ -114,7 +128,7 @@ assert "bs4" not in sys.modules
             cli.SUPPLEMENT_CSV_DIR,
             cli.CURATED_SNAPSHOT_PATH,
             allow_count_drop=True,
-            doi_cache=Path("json/doi_metadata.json"),
+            doi_cache=cli.default_store_path(),
         )
 
     def test_offline_cli_never_reads_credentials(self):

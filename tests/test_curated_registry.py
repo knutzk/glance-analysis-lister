@@ -6,9 +6,11 @@
 import copy
 import csv
 import json
+import shutil
 import subprocess
 import sys
 import unittest
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -55,6 +57,17 @@ class CuratedTests(unittest.TestCase):
             with (self.csv_dir / task.csv_filename).open("w", newline="") as stream:
                 writer = csv.writer(stream)
                 writer.writerows([task.columns, rows[task.name]])
+
+    def test_default_build_reads_and_writes_in_callers_working_directory(self):
+        with TemporaryDirectory() as workspace, chdir(workspace):
+            Path("glance_api_registry.json").write_bytes(self.api_path.read_bytes())
+            for source in self.csv_dir.iterdir():
+                shutil.copy2(source, Path(source.name))
+            cli.main(["build-registry"])
+            result = json.loads(Path("glance_curated_registry.json").read_text())
+            validate_registry(result)
+            self.assertFalse(Path("json").exists())
+            self.assertFalse(Path("csv").exists())
 
     def test_people_keywords_and_other_data_are_consolidated_without_mutating_input(
         self,

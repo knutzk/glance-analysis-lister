@@ -89,7 +89,10 @@ def staged_csv_files(
     debug: bool = False,
 ) -> Iterator[Path]:
     """Yield a complete CSV batch without modifying the current data."""
-    if any(csv_dir.glob("*.csv")) or (csv_dir / SUPPLEMENT_MANIFEST).exists():
+    if (
+        any((csv_dir / task.csv_filename).exists() for task in tasks)
+        or (csv_dir / SUPPLEMENT_MANIFEST).exists()
+    ):
         read_manifest(csv_dir, tasks)
         for task in tasks:
             existing = csv_dir / task.csv_filename
@@ -99,7 +102,7 @@ def staged_csv_files(
                 if set(headers) != set(task.columns):
                     raise ValueError(
                         "Destination contains a different CSV format; use a separate "
-                        "directory for API supplements (default: csv/supplemental)."
+                        "directory for API supplements (default: current working directory)."
                     )
     manifest = (
         read_manifest(debug_dir, tasks) if use_local_html else make_manifest(tasks)

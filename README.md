@@ -50,22 +50,38 @@ Group selection happens when views are prepared.
 
 | Data | Default location |
 | --- | --- |
-| Validated API source | `json/glance_api_registry.json` |
-| Supplemental CSV batch and manifest | `csv/supplemental/` |
-| Curated registry | `json/glance_curated_registry.json` |
-| Citation dictionary | `json/doi_metadata.json` |
+| Validated API source | `glance_api_registry.json` |
+| Supplemental CSV batch and manifest | current directory (`analyses.csv`, `papers.csv`, `pubnotes.csv`, `supplement_manifest.json`) |
+| Curated registry | `glance_curated_registry.json` |
+| Shared citation dictionary | GAL’s maintained `json/doi_metadata.json` |
 | HTML authentication cookies | `cookies.json` |
 
-Paths are relative to the current working directory. Explicit destinations are
-supported:
+Downloaded CSVs, the supplement manifest, API JSON and curated JSON default to
+the current working directory. The shared citation dictionary remains in GAL.
+They are local artifacts: ignore them in the consuming repository. A suitable
+`.gitignore` block is:
+
+```gitignore
+/glance_api_registry.json
+/glance_curated_registry.json
+/analyses.csv
+/papers.csv
+/pubnotes.csv
+/supplement_manifest.json
+/.refresh-*/
+/.refresh-in-progress
+/cookies.json
+```
+
+Explicit destinations remain supported:
 
 ```bash
-analysis-lister download-api --output json/glance_api_registry.json
-analysis-lister download-html --csv-dir csv/supplemental
+analysis-lister download-api --output data/api.json
+analysis-lister download-html --csv-dir data/supplements
 analysis-lister build-registry \
-  --api-snapshot json/glance_api_registry.json \
-  --csv-dir csv/supplemental \
-  --output json/glance_curated_registry.json
+  --api-snapshot data/api.json \
+  --csv-dir data/supplements \
+  --output data/curated.json
 ```
 
 API authentication uses stare's browser SSO and credential storage. HTML
@@ -155,7 +171,7 @@ stdout and falls back to the internal identifier's group token.
 
 ```bash
 analysis-lister render-group --group TOPQ \
-  --snapshot json/glance_curated_registry.json \
+  --snapshot glance_curated_registry.json \
   --output-dir docs/analyses/topq
 ```
 
@@ -241,14 +257,16 @@ collections and details remain readable. Browser filtering makes no live request
 ## Citations
 
 `json/doi_metadata.json` is the maintained citation dictionary, also bundled with
-the package. `--doi-cache PATH` selects a different store for commands that use it;
-a missing custom store starts empty.
+the package. CLI commands use this shared dictionary by default, independently
+of the current working directory. Citation resolution and formatting update the
+selected dictionary; they do not create a per-consumer copy. `--doi-cache PATH`
+selects another store; a missing custom store starts empty.
 
 Resolve DOIs from a saved API or curated registry:
 
 ```bash
-analysis-lister resolve-dois --snapshot json/glance_api_registry.json --method infer
-analysis-lister resolve-dois --snapshot json/glance_api_registry.json --method inspire
+analysis-lister resolve-dois --snapshot glance_api_registry.json --method infer
+analysis-lister resolve-dois --snapshot glance_api_registry.json --method inspire
 ```
 
 `infer` is offline and recognises fully specified JHEP citations. `inspire` queries
