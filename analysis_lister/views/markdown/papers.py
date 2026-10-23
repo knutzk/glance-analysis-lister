@@ -85,12 +85,12 @@ def paper_table(view):
         ],
     )
     out += f'<p class="gal-result-count" data-gal-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} papers</p>'
-    out += '<div class="gal-table-scroll" role="region" aria-label="Publication archive table" tabindex="0"><table class="gal-papers"><thead><tr>'
+    out += '<div class="gal-table-scroll" role="region" aria-label="Publication archive table" tabindex="0"><table class="gal-papers">\n<thead>\n<tr>'
     out += "".join(
         f'<th scope="col">{label}</th>'
         for label in ("Identifier", "Title", "Publication record", "Publication date")
     )
-    out += "</tr></thead><tbody>"
+    out += "</tr>\n</thead>\n<tbody>\n"
     for row in rows:
         identifier = anchor(
             view.profile.group, row.reference, kind="publication-papers"
@@ -107,9 +107,9 @@ def paper_table(view):
         out += "</div></td><td>"
         if row.date:
             out += f'<time datetime="{row.date}">{row.date}</time>'
-        out += f'</td></tr><tr class="gal-paper-detail-row" id="{identifier}-details" data-gal-paper-details><td colspan="4"><div class="gal-publication-details__body">'
+        out += f'</td></tr>\n<tr class="gal-paper-detail-row" id="{identifier}-details" data-gal-paper-details><td colspan="4"><div class="gal-publication-details__body">'
         out += paper_details(row)
-        out += f'<div class="gal-paper-collapse-row"><button type="button" data-gal-paper-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>'
-    out += "</tbody></table></div>"
+        out += f'<div class="gal-paper-collapse-row"><button type="button" data-gal-paper-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
+    out += "</tbody>\n</table></div>"
     out += '<p class="gal-no-results" data-gal-empty hidden>No papers match these filters. Reset the filters to see the full paper archive.</p>'
     return out + "</section>\n\n"

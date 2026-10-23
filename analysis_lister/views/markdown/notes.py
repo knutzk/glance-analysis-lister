@@ -106,10 +106,10 @@ def note_table(view, resource):
     out += '<div class="gal-filter-actions">' + expansion_control()
     out += '<button type="button" data-gal-note-reset>Reset filters</button></div></div></div></div>'
     out += f'<p class="gal-result-count" data-gal-note-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} of {len(rows)} notes</p>'
-    out += f'<div class="gal-table-scroll" role="region" aria-label="{kind} notes table" tabindex="0"><table class="gal-notes"><thead><tr>'
+    out += f'<div class="gal-table-scroll" role="region" aria-label="{kind} notes table" tabindex="0"><table class="gal-notes">\n<thead>\n<tr>'
     for label in ("Identifier", "Title", "Release date"):
         out += f'<th scope="col">{label}</th>'
-    out += "</tr></thead><tbody>"
+    out += "</tr>\n</thead>\n<tbody>\n"
     for row in rows:
         if not re.fullmatch(re.escape(public_prefix) + r"-\d{4}-\d+", row.label):
             raise ValueError(
@@ -137,9 +137,9 @@ def note_table(view, resource):
         out += f'</div></th><td><span data-gal-note-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td>'
         if row.date:
             out += f'<time datetime="{row.date}">{row.date}</time>'
-        out += "</td></tr>"
+        out += "</td></tr>\n"
         out += f'<tr class="gal-note-detail-row" id="{identifier}-details" data-gal-note-details><td colspan="3"><div class="gal-note-details">'
         out += note_details(row)
-        out += f'<div class="gal-note-collapse-row"><button type="button" data-gal-note-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>'
-    out += f"</tbody></table></div><p data-gal-notes-empty hidden>No {kind} notes match the selected filters.</p>"
+        out += f'<div class="gal-note-collapse-row"><button type="button" data-gal-note-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
+    out += f"</tbody>\n</table></div><p data-gal-notes-empty hidden>No {kind} notes match the selected filters.</p>"
     return out + "</section>\n\n"
