@@ -28,9 +28,10 @@ def reconcile_relationships(analyses, publications):
             key = resource, relation.get("referenceCode")
             target = publications.get(key)
             if target is None:
-                issues[reference].append(
-                    {"link": relation, "reason": "unresolved publication link"}
-                )
+                if record.get("status") != "Closed":
+                    issues[reference].append(
+                        {"link": relation, "reason": "unresolved publication link"}
+                    )
                 linked[reference][key] = {
                     "resource": resource,
                     "reference": key[1],

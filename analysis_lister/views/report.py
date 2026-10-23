@@ -116,7 +116,7 @@ def build_report(view, snapshot, raw):
         "policy": {
             "group": "ongoing analyses always use main-group affiliation; all archive publication types use the separately recorded archive-curation rule",
             "publication_affiliation": "direct; linked-analysis fallback only when main-group assignment is absent",
-            "relationships": "publication-owned links take precedence over contradictory analysis-owned links; one-way links are reported",
+            "relationships": "publication-owned links take precedence over contradictory analysis-owned links; one-way links are reported; unresolved outbound publication links on Closed analyses are retained as evidence without diagnostics",
             "ongoing": "one row per native analysis identifier; a recognised active review state is required",
             "history": "no year cutoff; completed superseded notes retained",
             "archive_curation": archive_curation_statement(profile),
