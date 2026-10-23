@@ -154,7 +154,7 @@ def publication_state(record, resource):
         pattern = (
             r"ATLAS-CONF-\d{4}-\d+"
             if resource == "confnotes"
-            else r"ATL-PHYS-PUB-\d{4}-\d+"
+            else r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
         )
         released = bool(
             re.fullmatch(pattern, number or "")

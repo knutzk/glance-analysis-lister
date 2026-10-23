@@ -92,7 +92,14 @@ def note_table(view, resource):
     if resource not in {"confnotes", "pubnotes"}:
         raise ValueError("Note tables support CONF notes and PUB notes")
     kind = "CONF" if resource == "confnotes" else "PUB"
-    public_prefix = "ATLAS-CONF" if resource == "confnotes" else "ATL-PHYS-PUB"
+    public_prefix = (
+        "ATLAS-CONF" if resource == "confnotes" else "ATL-PHYS-PUB or ATL-SOFT-PUB"
+    )
+    public_pattern = (
+        r"ATLAS-CONF-\d{4}-\d+"
+        if resource == "confnotes"
+        else r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
+    )
     rows = tuple(row for row in view.archive if row.resource == resource)
     out = f'<section class="gal-collection gal-archive gal-note-collection" data-gal-resource="{resource}" data-gal-notes aria-label="{kind} notes">'
     out += '<div class="gal-filters gal-note-filters" data-gal-note-controls hidden><div class="gal-note-filter-groups">'
@@ -111,7 +118,7 @@ def note_table(view, resource):
         out += f'<th scope="col">{label}</th>'
     out += "</tr>\n</thead>\n<tbody>\n"
     for row in rows:
-        if not re.fullmatch(re.escape(public_prefix) + r"-\d{4}-\d+", row.label):
+        if not re.fullmatch(public_pattern, row.label):
             raise ValueError(
                 f"Released {kind} note must have a {public_prefix} identifier"
             )
