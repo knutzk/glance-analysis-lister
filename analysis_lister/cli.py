@@ -222,6 +222,32 @@ def parser():
                 default=CURATED_SNAPSHOT_PATH,
                 help="Curated JSON output (default: %(default)s).",
             )
+    group = commands.add_parser(
+        "render-group",
+        parents=[console],
+        help="Render group-wide ongoing analyses from a curated registry.",
+    )
+    group.add_argument(
+        "--snapshot",
+        type=Path,
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated registry JSON (default: %(default)s).",
+    )
+    group.add_argument(
+        "--group",
+        required=True,
+        help="Exact leading/additional main-group name, e.g. TOPQ.",
+    )
+    group.add_argument(
+        "--group-title", default="", help="Display title (default: group name)."
+    )
+    group.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pages/group"),
+        help="Destination for the ongoing page, assets and report (default: %(default)s).",
+    )
+    group.set_defaults(handler=_run_render_group)
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
@@ -318,6 +344,22 @@ def _run_build_registry(args):
     )
     print_summary(
         "Registry ready", [("Registry", args.output), *result.items()], color=args.color
+    )
+
+
+def _run_render_group(args):
+    from analysis_lister.views.build import render_group
+    from analysis_lister.views.profiles import GroupProfile
+
+    counts = render_group(
+        args.snapshot,
+        args.output_dir,
+        GroupProfile(args.group, args.group_title),
+    )
+    print_summary(
+        "Group views rendered",
+        [("Output", args.output_dir), *counts.items()],
+        color=args.color,
     )
 
 
