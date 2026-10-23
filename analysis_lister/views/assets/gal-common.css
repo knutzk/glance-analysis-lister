@@ -52,3 +52,12 @@
 .gal-archive .gal-publication-filter-row fieldset { margin: 0; flex: 0 1 auto; }
 .gal-archive .gal-publication-filter-row .gal-reset { margin-left: 0; }
 .gal-archive .gal-publication-filter-row .gal-filter-actions { justify-content: flex-start; flex-wrap: nowrap; gap: .4rem; margin: 0; margin-left: auto; }
+
+.gal-archive-scope { margin: 1rem 0 1.25rem; padding: .85rem 1rem; border: 1px solid var(--md-default-fg-color--lightest, #d6dce2); border-radius: .4rem; background: var(--md-code-bg-color, #f2f4f6); color: var(--md-default-fg-color, #26323d); font-size: .72rem; line-height: 1.6; }
+.gal-archive-scope p { margin: 0 0 .6rem; }
+.gal-archive-scope p:last-child { margin-bottom: 0; }
+.gal-archive-scope dl { margin: .6rem 0 0; }
+.gal-archive-scope dl > div { display: flex; flex-wrap: wrap; gap: .2rem .7rem; margin-top: .3rem; }
+.gal-archive-scope dt { min-width: 5rem; font-weight: 600; }
+.gal-archive-scope dd { flex: 1 1 12rem; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.gal-archive-scope code { font-size: .95em; }

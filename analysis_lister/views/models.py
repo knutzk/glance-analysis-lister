@@ -163,7 +163,6 @@ class GroupView:
     ongoing: tuple[AnalysisRow, ...]
     needs_review: tuple[AnalysisRow, ...]
     publications: tuple[PublicationRow, ...]
-    recent: tuple[PublicationRow, ...]
     decisions: tuple
     source_metadata: dict
     publication_filters: dict

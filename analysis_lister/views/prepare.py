@@ -34,15 +34,6 @@ def prepare_group(registry, profile):
         raise ValueError(
             f"No leading or additional affiliation found for group {profile.group!r}"
         )
-    recent = sorted(
-        (
-            row
-            for row in selected
-            if row.state in {"published", "released"} and row.date
-        ),
-        key=lambda row: (row.date, row.resource, row.reference),
-        reverse=True,
-    )[: profile.recent_limit]
     subgroup_buttons = subgroup_button_choices(
         profile.group,
         [
@@ -56,7 +47,6 @@ def prepare_group(registry, profile):
         tuple(sorted(ongoing, key=lambda row: row.reference)),
         tuple(sorted(review, key=lambda row: row.reference)),
         selected,
-        tuple(recent),
         tuple(traces),
         registry.metadata,
         {

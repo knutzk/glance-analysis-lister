@@ -26,7 +26,7 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
 | `download-html` | Download the supplemental fields needed by the registry builder. |
 | `build-registry` | Merge saved API and HTML data into a curated registry. |
-| `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages for a group. |
+| `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
 | `resolve-dois` | Infer citations or retrieve public citation metadata from INSPIRE. |
 | `format-citations` | Normalise cached non-manual citations offline. |
 
@@ -163,7 +163,8 @@ The default destination is `pages/group`. Output consists of `ongoing.md`,
 `papers.md`, `confnotes.md`, `pubnotes.md`, `view-report.json`, and reusable assets.
 `--group-title` changes the ongoing-page display title.
 
-The report records the input hash, source timestamps, policy, rule versions and
+The render command prints the `view-report.json` path to stdout; pages do not link
+to this report. The report records the input hash, source timestamps, policy, rule versions and
 source evidence. It includes the selected records and their explicit one-hop
 relationship context. Treat it as private data alongside the generated pages.
 

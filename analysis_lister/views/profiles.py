@@ -32,7 +32,6 @@ class PublicationPolicy:
 class GroupProfile:
     group: str
     title: str = ""
-    recent_limit: int = 10
     publication_policy: PublicationPolicy | None = None
 
     def __attrs_post_init__(self):
@@ -40,8 +39,6 @@ class GroupProfile:
             raise ValueError("Group must be a nonempty name")
         if not isinstance(self.title, str):
             raise ValueError("Group title must be a string")
-        if type(self.recent_limit) is not int or self.recent_limit < 1:
-            raise ValueError("Recent publication limit must be positive")
         if self.publication_policy is not None and not isinstance(
             self.publication_policy, PublicationPolicy
         ):

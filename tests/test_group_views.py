@@ -199,7 +199,7 @@ class GroupViewTests(unittest.TestCase):
         note["gal_finalReferenceCode"] = note.pop("finalReferenceCode")
         self.assertEqual(publication_state(note, "pubnotes").value, "released")
         view = self.prepare(snapshot(analysis(1), pubnotes=(note,)))
-        self.assertEqual(view.recent[0].date, "1999-01-01")
+        self.assertEqual(view.archive[0].date, "1999-01-01")
         note["gal_finalReferenceCode"] = "PUB-DEMO-2099-01 TEMP"
         self.assertNotEqual(publication_state(note, "pubnotes").value, "released")
 
@@ -619,7 +619,7 @@ class GroupViewTests(unittest.TestCase):
                 render_group(collision, root, GroupProfile("DEMO"))
             self.assertEqual(collision.read_bytes(), before)
             with self.assertRaises(ValueError):
-                GroupProfile("", recent_limit=0)
+                GroupProfile("")
 
     def test_new_views_do_not_import_legacy_or_network_clients(self):
         with TemporaryDirectory() as directory:
@@ -779,7 +779,7 @@ class PageFooterTests(unittest.TestCase):
         self.assertGreater(
             markup.index("API snapshot:"), markup.index("## Needs review")
         )
-        self.assertGreater(markup.index("[view report]"), markup.index("</section>"))
+        self.assertNotIn("view-report.json", markup)
         self.assertIn("- [ANA-DEMO-2099-02]", markup)
         self.assertNotIn("| Analysis | Title |", markup)
 
@@ -1489,8 +1489,8 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             )
             self.assertEqual(trace["inputs"]["matching_subgroups"], ["OTHER-Merged"])
             for page in (papers_page(view), confnotes_page(view), pubnotes_page(view)):
-                self.assertIn("Groups: `LEGACY`", page)
-                self.assertIn("Subgroups: `OTHER-Merged`", page)
+                self.assertIn("<dt>Groups</dt><dd><code>LEGACY</code>", page)
+                self.assertIn("<dt>Subgroups</dt><dd><code>OTHER-Merged</code>", page)
 
     def test_configured_affiliations_trace_explicit_analysis_fallback(self):
         own = analysis(1, group="LEGACY")
@@ -1624,7 +1624,9 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             self.assertEqual(
                 report["profile"]["publication_policy"]["keywords"], ["Invented topic"]
             )
-            self.assertIn("`Invented topic`", (output / "papers.md").read_text())
+            self.assertIn(
+                "<code>Invented topic</code>", (output / "papers.md").read_text()
+            )
             self.assertIn(
                 "# Invented archive papers", (output / "papers.md").read_text()
             )

@@ -308,7 +308,11 @@ def _run_render_group(args):
     )
     print_summary(
         "Group views rendered",
-        [("Output", args.output_dir), *counts.items()],
+        [
+            ("Output", args.output_dir),
+            ("Report", args.output_dir / "view-report.json"),
+            *counts.items(),
+        ],
         color=args.color,
     )
 

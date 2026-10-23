@@ -252,6 +252,8 @@ def main():
             cwd=work,
             check=True,
         )
+        assert not (group_output / "index.md").exists()
+        assert not (group_output / "publications.md").exists()
         assert (group_output / "ongoing.md").is_file()
         assert "gal-papers" in (group_output / "papers.md").read_text()
         assert (group_output / "confnotes.md").is_file()
