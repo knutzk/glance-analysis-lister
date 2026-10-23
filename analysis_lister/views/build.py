@@ -32,7 +32,6 @@ def render_group(snapshot, output_dir, profile):
     view = prepare_group(registry, profile)
     report = build_report(view, snapshot, raw)
     counts = report["counts"]
-    issues = counts["records_with_diagnostics"]
     documents = {
         "ongoing.md": ongoing_page(view),
         "papers.md": papers_page(view),
@@ -42,9 +41,22 @@ def render_group(snapshot, output_dir, profile):
     }
     documents.update(asset_documents())
     write_documents(output_dir, documents, snapshot=snapshot)
-    if issues:
+    review_keys = {
+        (entry["resource"], entry["reference"])
+        for entry in report["analyses_needing_review"]
+    }
+    for entry in report["records_with_diagnostics"]:
+        needs_review = (entry["resource"], entry["reference"]) in review_keys
+        label = (
+            "Needs review (also counted in diagnostics; excluded from ongoing)"
+            if needs_review
+            else "Diagnostics"
+        )
         logger.warning(
-            "%d affiliated records have state or relationship diagnostics; inspect view-report.json",
-            issues,
+            "%s: %s/%s: %s",
+            label,
+            entry["resource"],
+            entry["reference"],
+            "; ".join(entry["reasons"]),
         )
     return counts

@@ -13,6 +13,51 @@ from ..registry.reader import LINK_RESOURCES
 from .curation import archive_curation_statement
 
 
+def diagnostic_entry(trace):
+    """Summarize one record's actionable issues without its full derivation trace."""
+    issues = []
+    if trace["state"]["value"] == "unknown":
+        issues.append(
+            {
+                "kind": "state",
+                "reason": trace["state"]["reason"],
+                "inputs": trace["state"]["inputs"],
+            }
+        )
+    for issue in trace.get("relationship_issues", []):
+        issues.append({"kind": "relationship", **issue})
+    if trace.get("relationship_issue"):
+        issues.append(
+            {
+                "kind": "relationship",
+                "reason": trace["relationship_issue"],
+                "link": trace.get("relatedAnalysis"),
+            }
+        )
+    if not issues:
+        return None
+    reasons = []
+    for issue in issues:
+        reason = issue["reason"]
+        status = issue.get("inputs", {}).get("status")
+        if status is not None:
+            reason += f" (source status: {status!r})"
+        link = issue.get("link") or {}
+        if link:
+            reason += f" ({link.get('type', 'unknown type')}: {link.get('referenceCode', 'missing identifier')})"
+        related = issue.get("relatedAnalysis") or {}
+        if related:
+            reason += f"; publication's related analysis: {related.get('referenceCode', 'missing identifier')}"
+        reasons.append(reason)
+    return {
+        "resource": trace["resource"],
+        "reference": trace["reference"],
+        "state": trace["state"]["value"],
+        "reasons": reasons,
+        "issues": issues,
+    }
+
+
 def build_report(view, snapshot, raw):
     profile = view.profile
     policy = profile.publication_policy
@@ -21,18 +66,17 @@ def build_report(view, snapshot, raw):
         for trace in view.decisions
         if (trace.get("curation") or trace["membership"])["value"]
     ]
-    issues = sum(
-        bool(
-            trace.get("relationship_issues")
-            or trace.get("relationship_issue")
-            or trace["state"]["value"] == "unknown"
-        )
-        for trace in relevant
-    )
+    diagnostics = [entry for trace in relevant if (entry := diagnostic_entry(trace))]
+    review_keys = {("analyses", row.reference) for row in view.needs_review}
+    needing_review = [
+        entry
+        for entry in diagnostics
+        if (entry["resource"], entry["reference"]) in review_keys
+    ]
     counts = {
         "ongoing_analyses": len(view.ongoing),
         "analyses_needing_review": len(view.needs_review),
-        "records_with_diagnostics": issues,
+        "records_with_diagnostics": len(diagnostics),
         "publication_records": len(view.publications),
         "archive_publications": len(view.archive),
     }
@@ -79,6 +123,8 @@ def build_report(view, snapshot, raw):
             "clones": "no legacy lookup or title-based clone exclusions applied",
         },
         "counts": counts,
+        "analyses_needing_review": needing_review,
+        "records_with_diagnostics": diagnostics,
         "publication_filters": view.publication_filters,
         "subgroup_buttons": view.subgroup_button_provenance,
         "publication_states": {
