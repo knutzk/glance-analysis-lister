@@ -90,7 +90,15 @@ Omit `--login` to reuse stored credentials. Keep downloaded records, cookies,
 generated pages and view reports out of the public package repository.
 
 The API download stores validated stare model output, including explicit
-relationships between independent records. HTML supplements contain internal-note
+relationships between independent records. `download-api --page-size 250` changes
+how many records are requested per page; the default remains 100. Any positive
+integer can be requested, subject to server support. No documented server maximum
+has been established. Larger pages reduce calculated request counts, but faster
+downloads require live measurements; no speed improvement is assumed. The selected
+page size is recorded in the source metadata. Retrieval remains sequential, through
+one shared stare client, with response caching disabled.
+
+HTML supplements contain internal-note
 editors for analyses, figures/current-draft fields for papers, and public PUB-note
 identifiers. CONF notes need no HTML supplement.
 

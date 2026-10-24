@@ -11,6 +11,7 @@ import requests
 
 from .citations.store import default_store_path
 from .console import configure_logging, print_summary
+from .downloaders.api import DEFAULT_PAGE_SIZE
 from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,12 @@ def parser():
     api.add_argument(
         "--login", action="store_true", help="Open CERN SSO in your browser."
     )
+    api.add_argument(
+        "--page-size",
+        type=_positive_int,
+        default=DEFAULT_PAGE_SIZE,
+        help="Records requested per API page (default: %(default)s); larger sizes require server support and may not be faster.",
+    )
     api.set_defaults(handler=_run_download_api)
     for name, description, parents, handler in (
         (
@@ -242,7 +249,10 @@ def _run_download_api(args):
     from analysis_lister.downloaders.api import download_registry
 
     counts = download_registry(
-        args.output, login=args.login, allow_count_drop=args.allow_count_drop
+        args.output,
+        login=args.login,
+        allow_count_drop=args.allow_count_drop,
+        page_size=args.page_size,
     )
     print_summary(
         "API registry downloaded",

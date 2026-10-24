@@ -94,12 +94,28 @@ assert "bs4" not in sys.modules
         ):
             cli.main(["download-api"])
         operation.assert_called_once_with(
-            cli.API_SNAPSHOT_PATH, login=False, allow_count_drop=False
+            cli.API_SNAPSHOT_PATH, login=False, allow_count_drop=False, page_size=100
         )
         citations.assert_not_called()
         parser = cli.parser()
         for command in ("download-api", "download-html"):
             self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
+
+    def test_api_page_size_is_forwarded_and_invalid_values_fail_before_auth(self):
+        with patch(
+            "analysis_lister.downloaders.api.download_registry", return_value={}
+        ) as operation:
+            cli.main(["download-api", "--page-size", "500"])
+        self.assertEqual(operation.call_args.kwargs["page_size"], 500)
+        for value in ("0", "-1", "1.5", "not-an-integer"):
+            with (
+                self.subTest(value=value),
+                patch("stare.auth.TokenManager") as manager,
+                patch("sys.stderr"),
+                self.assertRaises(SystemExit),
+            ):
+                cli.main(["download-api", "--page-size", value])
+            manager.assert_not_called()
 
     def test_json_defaults_are_relative_to_the_working_directory(self):
         parser = cli.parser()

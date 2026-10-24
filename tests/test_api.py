@@ -90,6 +90,25 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result["analyses"][0]["metadata"], {"nested": ["invented"]})
         self.assertEqual(client.analyses.search.call_count, 2)
 
+    def test_larger_page_sizes_are_requested_and_recorded(self):
+        for size in (250, 500):
+            with self.subTest(page_size=size):
+                client = client_for()
+                result = collect_registry(client, page_size=size)
+                self.assertEqual(result["source"]["page_size"], size)
+                for resource in RESOURCES:
+                    getattr(client, resource).search.assert_called_once_with(
+                        offset=0, limit=size
+                    )
+        with patch("stare.Glance") as glance:
+            for invalid in (0, -1, True, 1.5, "250"):
+                with (
+                    self.subTest(invalid=invalid),
+                    self.assertRaisesRegex(ValueError, "positive integer"),
+                ):
+                    download_registry("unused.json", page_size=invalid)
+            glance.assert_not_called()
+
     def test_rejects_duplicate_page(self):
         client = client_for()
         page = client.analyses.search(offset=0, limit=2)
