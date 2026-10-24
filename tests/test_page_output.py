@@ -66,6 +66,14 @@ class PageOutputTests(unittest.TestCase):
                     self.assertIn("/commit/" + revision.removesuffix("-dirty"), content)
                 self.assertNotIn("view-report.json", page.read_text())
                 self.assertNotIn("[Group overview]", page.read_text())
+                box = BeautifulSoup(content, "html.parser").select_one(
+                    ".gal-archive-scope"
+                )
+                self.assertEqual(box.h2.get_text(), "How this list is curated")
+                self.assertNotIn("use Collapse at the bottom", content)
+                if page.name == "ongoing.md":
+                    self.assertIn("GLANCE ID buttons", content)
+                    self.assertEqual(len(box.select("li")), 3)
                 if page.name != "ongoing.md":
                     scope = BeautifulSoup(page.read_text(), "html.parser").select_one(
                         ".gal-archive-scope"

@@ -13,9 +13,15 @@ from .ongoing import ongoing_cards
 from .papers import paper_table
 
 
+def curation_box(body):
+    return (
+        '<aside class="gal-archive-scope" aria-label="How this list is curated">\n'
+        "<h2>How this list is curated</h2>\n" + body + "</aside>\n\n"
+    )
+
+
 def archive_curation_intro(view):
-    out = '<aside class="gal-archive-scope" aria-label="Archive scope">\n'
-    out += (
+    out = (
         f"<p>This archive is not limited to publications spearheaded by <strong>{text(view.profile.group)}</strong>. "
         "It also includes work led by other groups that matches the criteria below.</p>\n"
     )
@@ -35,7 +41,7 @@ def archive_curation_intro(view):
             )
     if criteria:
         out += "<dl>" + "\n".join(criteria) + "</dl>\n"
-    return out + "</aside>\n\n"
+    return curation_box(out)
 
 
 def provenance(view, revision=None):
@@ -58,9 +64,18 @@ def provenance(view, revision=None):
 def ongoing_page(view, *, revision=None):
     out = "---\nhide:\n  - toc\n---\n\n"
     out += f"# {text(view.profile.title)} ongoing analyses\n\n"
-    out += "Includes analyses with leading or additional group participation that are in active phase 0, have an explicitly linked publication under review, or have finished phase 0 and are awaiting review of a linked publication marked Created. "
-    out += "Completed and closed analyses are excluded; uncertain entries are listed at the bottom. "
-    out += "Each analysis appears once.\n\nClick a collapsed card for more information and links; use Collapse at the bottom to close it. The GLANCE buttons open the analysis or publication entry directly.\n\n"
+    out += curation_box(
+        f"<p>Includes analyses with <strong>{text(view.profile.group)}</strong> as a leading or additional main group. "
+        "Each analysis appears once, independently of the publication archive criteria.</p>\n"
+        "<p>An analysis is ongoing if it meets one of these conditions:</p>\n"
+        "<ul>\n"
+        "<li>It is in active phase 0.</li>\n"
+        "<li>An explicitly linked publication is under review.</li>\n"
+        "<li>Phase 0 has finished and a linked publication is marked Created, awaiting publication review.</li>\n"
+        "</ul>\n"
+        "<p>Completed and closed analyses are excluded. Entries with uncertain states are listed at the bottom and excluded from the ongoing count.</p>\n"
+    )
+    out += "Click a collapsed card for more information and links. The GLANCE ID buttons open the analysis or publication entry directly.\n\n"
     if view.ongoing:
         out += ongoing_cards(view)
     else:
