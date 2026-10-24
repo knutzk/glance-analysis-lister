@@ -119,6 +119,14 @@ class StareIntegrationTests(unittest.TestCase):
             )
             resource = ENDPOINTS[endpoint]
             requests.append((resource, dict(request.url.params)))
+            expected_sort = (
+                "temporaryReferenceCode"
+                if resource in {"confnotes", "pubnotes"}
+                else "referenceCode"
+            )
+            self.assertEqual(request.url.params["sortBy"], expected_sort)
+            self.assertEqual(request.url.params["sortDesc"], "false")
+            self.assertNotIn("queryString", request.url.params)
             offset, limit = (
                 int(request.url.params[key]) for key in ("offset", "limit")
             )
@@ -227,3 +235,49 @@ class StareIntegrationTests(unittest.TestCase):
             )
             self.assertNotIn("invented-sensitive", str(caught.exception))
             self.assertIn("no registry published", str(caught.exception))
+
+    def test_large_requested_pages_handle_a_server_returning_smaller_batches(self):
+        records = response_records()
+        requests = []
+
+        def respond(request):
+            resource = next(
+                resource
+                for path, resource in ENDPOINTS.items()
+                if request.url.path.endswith(path)
+            )
+            offset = int(request.url.params["offset"])
+            requests.append((resource, offset, int(request.url.params["limit"])))
+            return httpx.Response(
+                200,
+                json={
+                    "numberOfResults": 3,
+                    "results": records[resource][offset : offset + 2],
+                },
+            )
+
+        for size in (250, 500):
+            with self.subTest(page_size=size):
+                requests.clear()
+                with (
+                    patch(
+                        "stare.client.httpx.HTTPTransport",
+                        return_value=httpx.MockTransport(respond),
+                    ),
+                    Glance(
+                        settings=StareSettings(
+                            base_url="https://example.test/api", cache_enabled=False
+                        ),
+                        token="invented-offline-token",
+                    ) as client,
+                ):
+                    candidate = collect_registry(client, page_size=size)
+                self.assertEqual(
+                    requests,
+                    [
+                        (resource, offset, size)
+                        for resource in records
+                        for offset in (0, 2)
+                    ],
+                )
+                self.assertEqual(candidate["counts"], dict.fromkeys(records, 3))

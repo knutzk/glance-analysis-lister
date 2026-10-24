@@ -9,10 +9,11 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from analysis_lister.downloaders.api import (
     RESOURCES,
+    SORT_FIELDS,
     collect_registry,
     download_registry,
     publish_registry,
@@ -36,7 +37,7 @@ def client_for(count=3):
             }
             models.append(model)
 
-        def search(*, offset, limit, records=models):
+        def search(*, offset, limit, sort_by=None, sort_desc=False, records=models):
             return SimpleNamespace(
                 number_of_results=len(records), results=records[offset : offset + limit]
             )
@@ -89,6 +90,26 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result["counts"], dict.fromkeys(RESOURCES, 3))
         self.assertEqual(result["analyses"][0]["metadata"], {"nested": ["invented"]})
         self.assertEqual(client.analyses.search.call_count, 2)
+        self.assertEqual(result["source"]["sort_fields"], SORT_FIELDS)
+        self.assertFalse(result["source"]["sort_descending"])
+        for resource in RESOURCES:
+            self.assertEqual(
+                getattr(client, resource).search.call_args_list,
+                [
+                    call(
+                        offset=0,
+                        limit=2,
+                        sort_by=SORT_FIELDS[resource],
+                        sort_desc=False,
+                    ),
+                    call(
+                        offset=2,
+                        limit=2,
+                        sort_by=SORT_FIELDS[resource],
+                        sort_desc=False,
+                    ),
+                ],
+            )
 
     def test_larger_page_sizes_are_requested_and_recorded(self):
         for size in (250, 500):
@@ -98,7 +119,10 @@ class ApiTests(unittest.TestCase):
                 self.assertEqual(result["source"]["page_size"], size)
                 for resource in RESOURCES:
                     getattr(client, resource).search.assert_called_once_with(
-                        offset=0, limit=size
+                        offset=0,
+                        limit=size,
+                        sort_by=SORT_FIELDS[resource],
+                        sort_desc=False,
                     )
         with patch("stare.Glance") as glance:
             for invalid in (0, -1, True, 1.5, "250"):

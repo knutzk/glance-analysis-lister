@@ -24,6 +24,14 @@ from ..storage import atomic_write_text
 logger = logging.getLogger(__name__)
 
 DEFAULT_PAGE_SIZE = 100
+# stare documents sort_by as a camelCase API field; these are the model aliases
+# identifying records on the four detailed resource endpoints.
+SORT_FIELDS = {
+    "analyses": "referenceCode",
+    "papers": "referenceCode",
+    "confnotes": "temporaryReferenceCode",
+    "pubnotes": "temporaryReferenceCode",
+}
 
 
 def _validate_page_size(page_size):
@@ -45,7 +53,12 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
         total = None
         offset = 0
         while total is None or offset < total:
-            result = getattr(client, name).search(offset=offset, limit=page_size)
+            result = getattr(client, name).search(
+                offset=offset,
+                limit=page_size,
+                sort_by=SORT_FIELDS[name],
+                sort_desc=False,
+            )
             count = result.number_of_results
             if type(count) is not int or count < 1:
                 raise ValueError(f"{name}: empty or invalid result count")
@@ -75,6 +88,8 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
             "selection": "all-accessible",
             "representation": "validated-models",
             "page_size": page_size,
+            "sort_fields": dict(SORT_FIELDS),
+            "sort_descending": False,
         },
         "counts": counts,
         **data,

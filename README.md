@@ -98,6 +98,15 @@ downloads require live measurements; no speed improvement is assumed. The select
 page size is recorded in the source metadata. Retrieval remains sequential, through
 one shared stare client, with response caching disabled.
 
+Pages explicitly request ascending identifier sorting: `referenceCode` for
+analyses/papers and `temporaryReferenceCode` for CONF/PUB notes. These aliases
+are present on stare's detailed models, and its [sorting documentation](https://github.com/kratsg/stare/blob/d47df314e4e4bb00e34d00b1f8cbe3ce85bdf22c/docs/examples.md)
+accepts camelCase API fields. Sorting is recorded in the snapshot metadata.
+It does not create a transactional snapshot: records may still change between
+requests. Duplicate detection, consistent totals, count-drop protection and atomic
+publication remain mandatory. Offline tests exercise the actual stare client and
+serializers, but cannot establish server limits, live sorting behavior or speed.
+
 HTML supplements contain internal-note
 editors for analyses, figures/current-draft fields for papers, and public PUB-note
 identifiers. CONF notes need no HTML supplement.
