@@ -778,7 +778,7 @@ class PageFooterTests(unittest.TestCase):
         markup = ongoing_page(view)
         self.assertGreater(markup.index("## Needs review"), markup.index("</section>"))
         self.assertGreater(
-            markup.index("API snapshot:"), markup.index("## Needs review")
+            markup.index("GLANCE data extracted:"), markup.index("## Needs review")
         )
         self.assertNotIn("view-report.json", markup)
         self.assertIn("- [ANA-DEMO-2099-02]", markup)

@@ -4,8 +4,10 @@
 """Page introductions and offline report output."""
 
 import io
+import json
 import unittest
 from contextlib import redirect_stdout
+from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -43,7 +45,25 @@ class PageOutputTests(unittest.TestCase):
             self.assertFalse((output / "publications.md").exists())
             self.assertEqual(len(list(output.glob("*.md"))), 4)
             self.assertIn(str(output / "view-report.json"), stdout.getvalue())
+            report = json.loads((output / "view-report.json").read_text())
             for page in output.glob("*.md"):
+                content = page.read_text()
+                self.assertTrue(content.startswith("---\nhide:\n  - toc\n---\n\n<!--"))
+                self.assertIn(
+                    "Generator Git commit: " + report["generator"]["git_commit"],
+                    content,
+                )
+                self.assertIn("Registry snapshot: synthetic_registry.json", content)
+                self.assertIn(
+                    "Registry SHA-256: " + sha256(snapshot.read_bytes()).hexdigest(),
+                    content,
+                )
+                self.assertNotIn("Curated registry built:", content)
+                self.assertIn("GLANCE data extracted:", content)
+                self.assertIn("Generated with [glance-analysis-lister]", content)
+                revision = report["generator"]["git_commit"]
+                if revision != "unknown":
+                    self.assertIn("/commit/" + revision.removesuffix("-dirty"), content)
                 self.assertNotIn("view-report.json", page.read_text())
                 self.assertNotIn("[Group overview]", page.read_text())
                 if page.name != "ongoing.md":

@@ -5,14 +5,19 @@
 
 from importlib.resources import files
 
+from ..provenance import asset_provenance, generator_revision
+
 ASSET_NAMES = tuple(
     f"gal-{name}.css" for name in ("common", "ongoing", "papers", "notes")
 ) + tuple(f"gal-{name}.js" for name in ("common", "ongoing", "papers", "notes"))
 
 
-def asset_documents():
+def asset_documents(revision=None):
+    revision = revision if revision is not None else generator_revision()
     root = files("analysis_lister.views").joinpath("assets")
     return {
-        "assets/" + name: root.joinpath(name).read_text(encoding="utf-8")
+        "assets/" + name: asset_provenance(
+            root.joinpath(name).read_text(encoding="utf-8"), revision=revision
+        )
         for name in ASSET_NAMES
     }

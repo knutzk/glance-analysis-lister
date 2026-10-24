@@ -70,7 +70,7 @@ def parser():
         "--doi-cache",
         type=Path,
         default=default_store_path(),
-        help="Maintained citation JSON dictionary (default: shared GAL dictionary).",
+        help="Maintained citation JSON dictionary (default: shared glance-analysis-lister dictionary).",
     )
     supplement_csv = argparse.ArgumentParser(add_help=False)
     supplement_csv.add_argument(

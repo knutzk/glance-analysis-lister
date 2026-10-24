@@ -21,6 +21,7 @@ from analysis_lister.citations.store import default_store_path, load_store
 from analysis_lister.downloaders.html import download_tasks
 from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.downloaders.manifest import make_manifest
+from analysis_lister.provenance import asset_provenance, generator_revision
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.storage import SUPPLEMENT_MANIFEST
 from analysis_lister.views.curation import (
@@ -70,6 +71,8 @@ def main():
     assert len(licences) == 1, "Wheel must contain LICENCE"
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
+    revision = generator_revision()
+    assert revision != "unknown", "Installed wheel must retain its source Git commit"
     citation_path = default_store_path()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
@@ -269,11 +272,18 @@ def main():
             "gal-notes.js",
             "gal-notes.css",
         ):
-            assert (group_output / "assets" / name).read_bytes() == (
-                root / "analysis_lister/views/assets" / name
-            ).read_bytes()
+            assert (group_output / "assets" / name).read_text() == asset_provenance(
+                (root / "analysis_lister/views/assets" / name).read_text(),
+                revision=revision,
+            )
         report = json.loads((group_output / "view-report.json").read_text())
         assert report["counts"]["ongoing_analyses"] == 1
+        assert report["generator"]["git_commit"] == revision
+        for page in group_output.glob("*.md"):
+            assert "Generator Git commit: " + revision in page.read_text()
+            assert (
+                "Registry SHA-256: " + report["snapshot"]["sha256"] in page.read_text()
+            )
         subprocess.run(
             [sys.executable, "-I", "-m", "analysis_lister", "--help"],
             cwd=work,

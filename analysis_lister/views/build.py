@@ -7,6 +7,7 @@ import json
 import logging
 from pathlib import Path
 
+from ..provenance import generator_revision, markdown_provenance
 from ..registry import CuratedRegistry
 from .assets import asset_documents
 from .markdown.pages import (
@@ -31,15 +32,25 @@ def render_group(snapshot, output_dir, profile):
     registry = CuratedRegistry(json.loads(raw))
     view = prepare_group(registry, profile)
     report = build_report(view, snapshot, raw)
+    revision = generator_revision()
+    report["generator"] = {"name": "glance-analysis-lister", "git_commit": revision}
     counts = report["counts"]
     documents = {
-        "ongoing.md": ongoing_page(view),
-        "papers.md": papers_page(view),
-        "confnotes.md": confnotes_page(view),
-        "pubnotes.md": pubnotes_page(view),
+        "ongoing.md": ongoing_page(view, revision=revision),
+        "papers.md": papers_page(view, revision=revision),
+        "confnotes.md": confnotes_page(view, revision=revision),
+        "pubnotes.md": pubnotes_page(view, revision=revision),
         "view-report.json": json.dumps(report, ensure_ascii=False, indent=2) + "\n",
     }
-    documents.update(asset_documents())
+    for name in tuple(documents):
+        if name.endswith(".md"):
+            documents[name] = markdown_provenance(
+                documents[name],
+                revision=revision,
+                snapshot=snapshot,
+                sha256=report["snapshot"]["sha256"],
+            )
+    documents.update(asset_documents(revision))
     write_documents(output_dir, documents, snapshot=snapshot)
     review_keys = {
         (entry["resource"], entry["reference"])

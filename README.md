@@ -53,11 +53,11 @@ Group selection happens when views are prepared.
 | Validated API source | `glance_api_registry.json` |
 | Supplemental CSV batch and manifest | current directory (`analyses.csv`, `papers.csv`, `pubnotes.csv`, `supplement_manifest.json`) |
 | Curated registry | `glance_curated_registry.json` |
-| Shared citation dictionary | GAL’s maintained `json/doi_metadata.json` |
+| Shared citation dictionary | glance-analysis-lister’s maintained `json/doi_metadata.json` |
 | HTML authentication cookies | `cookies.json` |
 
 Downloaded CSVs, the supplement manifest, API JSON and curated JSON default to
-the current working directory. The shared citation dictionary remains in GAL.
+the current working directory. The shared citation dictionary remains in glance-analysis-lister.
 They are local artifacts: ignore them in the consuming repository. A suitable
 `.gitignore` block is:
 
@@ -178,6 +178,15 @@ analysis-lister render-group --group TOPQ \
 The default destination is `pages/group`. Output consists of `ongoing.md`,
 `papers.md`, `confnotes.md`, `pubnotes.md`, `view-report.json`, and reusable assets.
 `--group-title` changes the ongoing-page display title.
+
+Generated Markdown comments identify the generator Git commit and the input
+registry filename and SHA-256. YAML front matter remains first. Copied CSS and
+JavaScript identify the source commit and preserve their SPDX notices; assets
+are independent of the registry. A modified checkout is marked `-dirty`. Source
+archives and wheels retain the revision recorded at build time. If revision
+information is unavailable, the header explicitly says `unknown`. No generation
+timestamp is added. These notices do not apply the package licence to registry
+content.
 
 The render command prints the `view-report.json` path to stdout; pages do not link
 to this report. Records requiring attention are also reported individually as warnings,
