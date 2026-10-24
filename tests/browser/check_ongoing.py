@@ -227,16 +227,16 @@ def run_checks(work_dir):
         count(2)
         assert (
             driver.execute_script(
-                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).stage"
+                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).reference"
             )
-            == "preapproved"
+            == "ANA-DEMO-2099-03"
         )
         sorter.select_by_value("stage-asc")
         assert (
             driver.execute_script(
-                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).stage"
+                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).reference"
             )
-            == "phase0"
+            == "ANA-DEMO-2099-01"
         )
         search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
         search.send_keys("no-match")

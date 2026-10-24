@@ -3,10 +3,10 @@
 
 """A progressively enhanced table of independent, prepared publications."""
 
-import json
 from html import escape
 
 from .fragments import affiliation_tags, fields
+from .layout import metadata_json, readable_html
 from .links import anchor, glance_url, html_link
 from .publication_controls import render_controls
 
@@ -42,7 +42,7 @@ def paper_details(row):
         out += (
             '<div class="gal-publication-tags">'
             + "".join(
-                f'<span class="gal-badge">{escape(value)}</span>'
+                f'<span class="gal-badge">{escape(value)}</span>\n'
                 for value in row.filter_metadata[key]
             )
             + "</div>"
@@ -71,7 +71,7 @@ def record_button(label, url):
 def paper_table(view):
     resource = "papers"
     rows = tuple(row for row in view.archive if row.resource == resource)
-    out = '<section class="gal-collection gal-archive" data-gal-resource="papers" data-gal-archive data-gal-collection data-gal-noun="papers" aria-label="Papers archive">'
+    out = '<section class="gal-collection gal-archive" data-gal-archive data-gal-collection data-gal-noun="papers" aria-label="Papers archive">'
     out += render_controls(
         anchor(view.profile.group, "papers-filters"),
         "Search papers",
@@ -95,8 +95,8 @@ def paper_table(view):
         identifier = anchor(
             view.profile.group, row.reference, kind="publication-papers"
         )
-        metadata = escape(
-            json.dumps(row.filter_metadata, ensure_ascii=False), quote=True
+        metadata = metadata_json(
+            {key: row.filter_metadata[key] for key in ("text", "publication_status")}
         )
         out += f'<tr id="{identifier}" data-gal-item data-gal-date="{row.date or ""}" data-gal-metadata="{metadata}"><th scope="row">{record_button(row.label, glance_url("papers", row.reference))}</th>'
         out += f'<td><span data-gal-paper-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td><div class="gal-publication-records">'
@@ -112,4 +112,4 @@ def paper_table(view):
         out += f'<div class="gal-paper-collapse-row"><button type="button" data-gal-paper-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
     out += "</tbody>\n</table></div>"
     out += '<p class="gal-no-results" data-gal-empty hidden>No papers match these filters. Reset the filters to see the full paper archive.</p>'
-    return out + "</section>\n\n"
+    return readable_html(out + "</section>") + "\n"

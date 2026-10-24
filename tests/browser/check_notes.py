@@ -223,7 +223,7 @@ def run_checks(work_dir):
         row = next(
             row
             for row in visible()
-            if "OTHER-Outside" in row.get_attribute("data-gal-subgroups")
+            if "OTHER-Outside" in row.get_attribute("data-gal-search-text")
         )
         toggle = row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]")
         panel_id = toggle.get_attribute("aria-controls")
@@ -277,7 +277,7 @@ def run_checks(work_dir):
         row = next(
             row
             for row in visible()
-            if "OTHER-Outside" in row.get_attribute("data-gal-subgroups")
+            if "OTHER-Outside" in row.get_attribute("data-gal-search-text")
         )
         before = row.value_of_css_property("background-color")
         ActionChains(driver).move_to_element(row).perform()

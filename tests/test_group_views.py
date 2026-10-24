@@ -225,7 +225,9 @@ class GroupViewTests(unittest.TestCase):
         self.assertTrue(all(not card.has_attr("hidden") for card in cards))
         metadata = json.loads(cards[0]["data-gal-metadata"])
         self.assertEqual(metadata["subgroups"], ["Example subgroup, with comma"])
-        self.assertEqual(metadata["participation"], "leading")
+        self.assertEqual(
+            set(metadata), {"text", "subgroups", "stage_order", "reference"}
+        )
         for button in soup.select("[data-gal-value]"):
             self.assertEqual(button["type"], "button")
             self.assertEqual(button["aria-pressed"], "false")
@@ -486,9 +488,8 @@ class GroupViewTests(unittest.TestCase):
 
         self.assertIn("Via linked analysis", detail.get_text())
         metadata = json.loads(rows[0]["data-gal-metadata"])
-        self.assertEqual(metadata["subgroups"], ["Example subgroup, with comma"])
-        self.assertEqual(metadata["publication_type"], "papers")
-        self.assertEqual(metadata["leading_subgroup"], "Example subgroup, with comma")
+        self.assertEqual(set(metadata), {"text", "publication_status"})
+        self.assertIn("Example subgroup, with comma", metadata["text"])
         self.assertIn(
             "inherited", view.archive[0].provenance["leading_subgroup"]["reason"]
         )
@@ -1059,8 +1060,8 @@ class SeparatePublicationPageTests(unittest.TestCase):
                 self.assertIn("ATL-PHYS-PUB-2099-003", rows[0].get_text())
             else:
                 self.assertEqual(
-                    json.loads(rows[0]["data-gal-metadata"])["publication_type"],
-                    resource,
+                    set(json.loads(rows[0]["data-gal-metadata"])),
+                    {"text", "publication_status"},
                 )
             self.assertEqual(
                 bool(soup.select("[data-gal-archive]")), resource == "papers"

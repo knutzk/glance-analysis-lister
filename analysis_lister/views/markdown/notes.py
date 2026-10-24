@@ -3,7 +3,6 @@
 
 """Shared compact CONF/PUB-note tables, details and subgroup-involvement controls."""
 
-import json
 import re
 from html import escape
 
@@ -11,6 +10,7 @@ from ...registry.reader import LINK_RESOURCES
 from ..models import TagGroup
 from .controls import date_controls, expansion_control, search_control
 from .fragments import affiliation_tags, fields
+from .layout import readable_html
 from .links import anchor, glance_url, html_link
 
 
@@ -61,7 +61,7 @@ def note_details(row):
             out += (
                 '<div class="gal-note-tags">'
                 + "".join(
-                    f'<span class="gal-badge">{escape(value)}</span>'
+                    f'<span class="gal-badge">{escape(value)}</span>\n'
                     for value in category.values
                 )
                 + "</div>"
@@ -101,7 +101,7 @@ def note_table(view, resource):
         else r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
     )
     rows = tuple(row for row in view.archive if row.resource == resource)
-    out = f'<section class="gal-collection gal-archive gal-note-collection" data-gal-resource="{resource}" data-gal-notes aria-label="{kind} notes">'
+    out = f'<section class="gal-collection gal-archive gal-note-collection" data-gal-notes aria-label="{kind} notes">'
     out += '<div class="gal-filters gal-note-filters" data-gal-note-controls hidden><div class="gal-note-filter-groups">'
     out += search_control(
         anchor(view.profile.group, resource + "-filters"),
@@ -127,14 +127,11 @@ def note_table(view, resource):
             row.reference,
             kind="confnote" if resource == "confnotes" else "pubnote",
         )
-        subgroups = escape(
-            json.dumps(row.filter_metadata["subgroups"], ensure_ascii=False), quote=True
-        )
         extra = (
             row.details.conf_note if resource == "confnotes" else row.details.pub_note
         )
         superseded = "true" if extra.superseded else "false"
-        out += f'<tr id="{identifier}" data-gal-note data-gal-search-text="{escape(row.filter_metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-subgroups="{subgroups}" data-gal-superseded="{superseded}">'
+        out += f'<tr id="{identifier}" data-gal-note data-gal-search-text="{escape(row.filter_metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-superseded="{superseded}">'
         out += f'<th scope="row"><div class="gal-note-links"><a class="gal-note-link" href="{escape(glance_url(resource, row.reference), quote=True)}" aria-label="GLANCE entry for {escape(row.label, quote=True)}">{escape(row.label)}</a>'
         cds_url = row.details.cds_url
         if cds_url:
@@ -149,4 +146,4 @@ def note_table(view, resource):
         out += note_details(row)
         out += f'<div class="gal-note-collapse-row"><button type="button" data-gal-note-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
     out += f"</tbody>\n</table></div><p data-gal-notes-empty hidden>No {kind} notes match the selected filters.</p>"
-    return out + "</section>\n\n"
+    return readable_html(out + "</section>") + "\n"

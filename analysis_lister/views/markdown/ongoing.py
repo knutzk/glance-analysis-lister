@@ -3,20 +3,23 @@
 
 """Accessible HTML cards and progressive filter controls for prepared analyses."""
 
-import json
 from html import escape
 
 from .fragments import affiliation_tags, fields
+from .layout import metadata_json, readable_html
 from .links import anchor, glance_url, html_link
 from .ongoing_controls import active_subgroup_buttons, render_controls
 
 
 def analysis_card(row, group):
     metadata = {
-        **row.filter_metadata,
+        **{
+            key: row.filter_metadata[key]
+            for key in ("text", "subgroups", "stage_order")
+        },
         "reference": row.reference,
     }
-    encoded = escape(json.dumps(metadata, ensure_ascii=False), quote=True)
+    encoded = metadata_json(metadata)
     identifier = anchor(group, row.reference)
     heading = identifier + "-title"
     out = f'<article class="gal-card" id="{identifier}" aria-labelledby="{heading}" data-gal-item data-gal-metadata="{encoded}">\n'
@@ -103,14 +106,14 @@ def analysis_card(row, group):
             out += f"<li>{prefix}{html_link(url, url)}</li>"
         out += "</ul>"
     for label, values in (
-        ("Statistical tools", metadata["statistical_tools"]),
-        ("Triggers", metadata["triggers"]),
+        ("Statistical tools", row.filter_metadata["statistical_tools"]),
+        ("Triggers", row.filter_metadata["triggers"]),
         ("Keywords", row.keywords),
     ):
         if values:
             out += f'<p class="gal-card__label">{label}</p><div class="gal-card__keyword-tags">'
             out += "".join(
-                f'<span class="gal-badge">{escape(value)}</span>' for value in values
+                f'<span class="gal-badge">{escape(value)}</span>\n' for value in values
             )
             out += "</div>"
     return (
@@ -144,4 +147,4 @@ def ongoing_cards(view):
         + "</div>\n"
     )
     out += '<p class="gal-no-results" data-gal-empty hidden>No analyses match these filters. Reset the filters to see all analyses.</p>\n'
-    return out + "</section>\n\n"
+    return readable_html(out + "</section>") + "\n"
