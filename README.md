@@ -468,7 +468,8 @@ Tests use invented data and do not establish that live CERN authentication works
 Within `views/`, `analysis_states.py` and `publication_states.py` contain the
 traceable lifecycle and milestone rules. Collection preparation uses these rules
 without importing renderers. Markdown rendering consumes prepared records and
-page controls; `report.py` records the corresponding decisions and evidence.
+page controls; `people.py` shares plain-text board/chair formatting across views.
+`report.py` records the corresponding decisions and evidence.
 
 ## Licence
 

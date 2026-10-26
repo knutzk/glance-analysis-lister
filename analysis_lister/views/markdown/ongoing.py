@@ -5,6 +5,7 @@
 
 from html import escape
 
+from ..people import board_names
 from .fragments import affiliation_tags, fields
 from .layout import metadata_json, readable_html
 from .links import anchor, glance_url, html_link
@@ -80,10 +81,7 @@ def analysis_card(row, group):
             ("Contact editors", ", ".join(row.editors)),
             (
                 "Editorial board",
-                ", ".join(
-                    name + (" (chair)" if name in row.board_chairs else "")
-                    for name in dict.fromkeys([*row.board, *row.board_chairs])
-                ),
+                ", ".join(board_names(row.board, row.board_chairs)),
             ),
         ]
     )

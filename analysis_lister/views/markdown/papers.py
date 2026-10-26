@@ -5,6 +5,7 @@
 
 from html import escape
 
+from ..people import board_names
 from .fragments import affiliation_tags, fields
 from .layout import metadata_json, readable_html
 from .links import anchor, glance_url, html_link
@@ -31,12 +32,7 @@ def paper_details(row):
             ("Contact editors", ", ".join(row.details.editors)),
             (
                 "Editorial board",
-                ", ".join(
-                    name + (" (chair)" if name in row.details.board_chairs else "")
-                    for name in dict.fromkeys(
-                        [*row.details.board, *row.details.board_chairs]
-                    )
-                ),
+                ", ".join(board_names(row.details.board, row.details.board_chairs)),
             ),
         ]
     )

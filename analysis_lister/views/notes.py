@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from attrs import asdict
 
 from .models import Decision
+from .people import board_names
 
 
 def note_cds_record(record, resource):
@@ -99,10 +100,7 @@ def note_expansion(record, resource):
         if label == "Editorial-board chairs":
             continue  # Chairs are marked in the combined board list.
         if label == "Editorial board":
-            names = [
-                name + (" (chair)" if name in chairs else "")
-                for name in dict.fromkeys([*names, *chairs])
-            ]
+            names = board_names(names, chairs)
         people.append({"label": label, "names": list(names)})
     tools = [
         item.get("name") if isinstance(item, dict) else item
