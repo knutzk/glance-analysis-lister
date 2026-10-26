@@ -123,7 +123,7 @@ class ConsoleTests(unittest.TestCase):
         ):
             with (
                 patch.object(cli, "configure_logging") as setup,
-                patch.object(cli, "run"),
+                patch.object(cli, "_run_format_citations"),
             ):
                 cli.main(flags)
                 setup.assert_called_once_with(verbose=True, quiet=False, color="always")

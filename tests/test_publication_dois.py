@@ -103,7 +103,6 @@ class PublicationDoiTests(unittest.TestCase):
                 "citation": "Original citation",
                 "source": "manual",
                 "material": "publication",
-                "locked": True,
             },
             CORRECTION: {
                 "citation": "Correction citation",
@@ -124,7 +123,7 @@ class PublicationDoiTests(unittest.TestCase):
         self.assertEqual(entries[1]["material"], "erratum")
         self.assertEqual(entries[1]["source_url"], "https://example.test/correction")
         self.assertNotIn("locked", entries[0])
-        self.assertTrue(citations[ORIGINAL]["locked"])
+        self.assertNotIn("doi", citations[ORIGINAL])
         self.assertEqual(
             record["publicationPhase"]["finalJournalPublicationUrls"], links
         )

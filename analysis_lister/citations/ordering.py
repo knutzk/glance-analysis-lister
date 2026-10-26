@@ -12,7 +12,6 @@ import re
 
 from ..citations.store import normalize_doi
 from ..diagnostics import lookup_notice
-from . import store as citation_store
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,8 @@ def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[st
     Missing months cover the entire year, so they overlap any dated DOI in
     that year. A unique cached publication with only known corrections is placed
     first; corrections retain input order if their dates are ambiguous. Otherwise
-    unknown or overlapping dates retain input order with a warning.
+    unknown or overlapping dates retain input order with a warning. Citation
+    metadata is supplied by the caller; omission uses date inference alone.
     """
 
     # The same DOI may be listed several times, and under both the doi.org and
@@ -80,7 +80,7 @@ def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[st
 
     # Explicit cached material labels distinguish an original from a correction
     # without guessing publication dates. Dates only refine the relative order of known corrections.
-    store = citation_store.Citations if citations is None else citations
+    store = {} if citations is None else citations
     materials = []
     for doi in by_doi:
         entry = store.get(normalize_doi(doi), {})

@@ -33,6 +33,24 @@ assert "bs4" not in sys.modules
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_importing_cli_does_not_read_citation_data(self):
+        code = """
+from pathlib import Path
+from unittest.mock import patch
+original = Path.read_text
+def read_text(path, *args, **kwargs):
+    if path.suffix == ".json":
+        raise AssertionError("JSON read during import")
+    return original(path, *args, **kwargs)
+with patch.object(Path, "read_text", read_text):
+    import analysis_lister.cli
+    import analysis_lister.citations.ordering
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code], cwd=SCRIPTS, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_removed_commands_fail_before_authentication(self):
         for command in (
             "download",
@@ -55,7 +73,7 @@ assert "bs4" not in sys.modules
             patch(
                 "analysis_lister.downloaders.api.download_registry", return_value={}
             ) as operation,
-            patch("analysis_lister.citations.store.cached_citations") as citations,
+            patch("analysis_lister.citations.store.load_store") as citations,
         ):
             cli.main(["download-api"])
         operation.assert_called_once_with(
@@ -121,13 +139,13 @@ assert "bs4" not in sys.modules
         ):
             with (
                 self.subTest(flags=flags),
-                patch.object(cli, "run") as run,
+                patch.object(cli, "configure_logging") as setup,
                 patch("sys.stderr"),
                 self.assertRaises(SystemExit) as error,
             ):
                 cli.main(flags)
             self.assertEqual(error.exception.code, 2)
-            run.assert_not_called()
+            setup.assert_not_called()
 
 
 if __name__ == "__main__":

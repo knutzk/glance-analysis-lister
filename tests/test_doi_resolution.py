@@ -21,8 +21,6 @@ from analysis_lister.citations.resolver import (
     snapshot_dois,
 )
 from analysis_lister.citations.store import (
-    Citations,
-    cached_citations,
     default_store_path,
     load_store,
     normalize_doi,
@@ -72,13 +70,13 @@ class CitationStoreTests(unittest.TestCase):
         self.path = self.root / "nested/citations.json"
 
     def test_curated_defaults_are_rich_and_preserve_corrections(self):
-        load_store(default_store_path())
-        for value in Citations.values():
+        citations = load_store(default_store_path())
+        for value in citations.values():
             self.assertIn("source", value)
             self.assertNotIn("locked", value)
             self.assertTrue(value["citation"])
         self.assertEqual(
-            Citations["10.1140/epjc/s10052-020-08541-3"]["citation"],
+            citations["10.1140/epjc/s10052-020-08541-3"]["citation"],
             "Erratum: Eur. Phys. J. C 80 (2020) 1092",
         )
 
@@ -90,10 +88,10 @@ class CitationStoreTests(unittest.TestCase):
         self.assertEqual(set(loaded), {DOI})
         self.assertEqual(load_store(self.root / "missing.json"), {})
 
-    def test_one_line_per_doi_and_redundant_legacy_fields_are_removed(self):
+    def test_one_line_per_doi_and_unknown_material_is_omitted(self):
         values = {
-            DOI: record('Citation with "quotes" and Unicode γ', locked=False),
-            "10.9999/other": record(source="inspire", locked=True, material="unknown"),
+            DOI: record('Citation with "quotes" and Unicode γ'),
+            "10.9999/other": record(source="inspire", material="unknown"),
         }
         save_store(self.path, values)
         text = self.path.read_text()
@@ -110,22 +108,13 @@ class CitationStoreTests(unittest.TestCase):
             f'{{"{DOI}": {{}}, "{DOI}": {{}}}}',
             json.dumps({DOI: record(), DOI.upper(): record()}),
             json.dumps({DOI: record(locked="true")}),
+            json.dumps({DOI: record(locked=True)}),
+            json.dumps({DOI: record(locked=False)}),
             '{"10.9999/demo": {"citation": "Demo", "source": "manual", "source": "inspire"}}',
         ):
             self.path.write_text(text)
             with self.subTest(text=text), self.assertRaises(ValueError):
                 load_store(self.path)
-
-    def test_cached_citations_restore_after_failure_and_feed_json_loading_offline(self):
-        save_store(self.path, {DOI: record("Cached citation")})
-        original = Citations.copy()
-        with (
-            self.assertRaisesRegex(RuntimeError, "synthetic"),
-            cached_citations(self.path),
-        ):
-            self.assertEqual(Citations[DOI]["citation"], "Cached citation")
-            raise RuntimeError("synthetic")
-        self.assertEqual(Citations, original)
 
 
 class ResolutionTests(unittest.TestCase):
@@ -280,7 +269,7 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(second["existing"], 1)
         self.assertEqual(self.path.read_bytes(), before)
 
-    def test_locked_entries_are_protected_even_on_explicit_refresh(self):
+    def test_manual_entries_are_protected_even_on_explicit_refresh(self):
         save_store(self.path, {DOI: record()})
         with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
@@ -288,20 +277,7 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(summary["locked"], 1)
         self.assertEqual(load_store(self.path)[DOI], record())
 
-    def test_source_alone_controls_protection_for_legacy_entries(self):
-        self.path.write_text(json.dumps({DOI: record(source="manual", locked=False)}))
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
-            summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
-        client.assert_not_called()
-        self.assertEqual(summary["locked"], 1)
-        self.path.write_text(json.dumps({DOI: record(source="inspire", locked=True)}))
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
-            client.return_value.fetch.return_value = payload()
-            summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
-        self.assertEqual(summary["resolved"], 1)
-        self.assertNotIn("locked", load_store(self.path)[DOI])
-
-    def test_inspire_refreshes_unlocked_entries_and_inference_cannot_erase_material(
+    def test_inspire_refreshes_non_manual_entries_and_inference_cannot_erase_material(
         self,
     ):
         save_store(self.path, {DOI: record("Old", source="inspire")})

@@ -5,7 +5,6 @@
 
 import json
 import re
-from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -45,19 +44,17 @@ def citation_problem(entry):
     if not isinstance(entry, dict):
         return "expected a nonempty string or citation record"
     required = {"citation", "source"}
-    optional = {"material", "resolved_at", "source_url", "inspire_id", "locked"}
+    optional = {"material", "resolved_at", "source_url", "inspire_id"}
     if not required <= entry.keys() or entry.keys() - required - optional:
         return "citation record requires citation and source; unknown fields are not allowed"
     for key in ("citation", "source"):
         if not isinstance(entry[key], str) or not entry[key].strip():
             return f"citation record {key} must be a nonempty string"
-    if "locked" in entry and type(entry["locked"]) is not bool:
-        return "citation record locked must be a boolean"
     if "material" in entry and (
         not isinstance(entry["material"], str) or entry["material"] not in MATERIALS
     ):
         return "citation record has invalid material"
-    for key in optional - {"material", "locked"}:
+    for key in optional - {"material"}:
         if key in entry and (not isinstance(entry[key], str) or not entry[key].strip()):
             return f"citation record {key} must be a nonempty string"
     return None
@@ -69,9 +66,7 @@ def citation_record(value):
         raise ValueError(problem)
     if isinstance(value, str):
         return {"citation": value, "source": "manual"}
-    result = value.copy()
-    result.pop("locked", None)
-    return result
+    return value.copy()
 
 
 def _unique_pairs(pairs):
@@ -138,21 +133,3 @@ def save_store(path: Path, records):
         for doi, entry in sorted(normalized.items())
     ]
     atomic_write_text(path, "{\n" + ",\n".join(lines) + ("\n" if lines else "") + "}\n")
-
-
-# The citation store is the sole source for model and renderer consumers.
-Citations = load_store(DEFAULT_CACHE)
-
-
-@contextmanager
-def cached_citations(path: Path):
-    """Use one selected citation store for an offline operation."""
-    original = Citations.copy()
-    entries = load_store(path)
-    try:
-        Citations.clear()
-        Citations.update(entries)
-        yield
-    finally:
-        Citations.clear()
-        Citations.update(original)

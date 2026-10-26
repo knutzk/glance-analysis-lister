@@ -268,7 +268,7 @@ def parser():
     resolve.add_argument(
         "--limit",
         type=_positive_int,
-        help="Maximum number of missing/unlocked entries to attempt.",
+        help="Maximum number of missing/non-manual entries to attempt.",
     )
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     formatting = commands.add_parser(
@@ -471,17 +471,6 @@ def _run_format_citations(args):
     print_summary(f"Updated formatting in {changed} citation(s).", color=args.color)
 
 
-def run(args):
-    """Invoke the registered handler; optional dependencies remain lazy imports."""
-    if args.command in {"build-registry", "refresh"} or not hasattr(args, "doi_cache"):
-        args.handler(args)
-        return
-    from analysis_lister.citations.store import cached_citations
-
-    with cached_citations(args.doi_cache):
-        args.handler(args)
-
-
 def main(argv=None):
     command = parser()
     args = command.parse_args(
@@ -493,7 +482,7 @@ def main(argv=None):
         args.validator(command, args)
     with configure_logging(verbose=args.verbose, quiet=args.quiet, color=args.color):
         try:
-            run(args)
+            args.handler(args)
         except (ValueError, OSError, requests.RequestException) as error:
             logger.error("%s", error)
             logger.debug("Command failed", exc_info=True)
