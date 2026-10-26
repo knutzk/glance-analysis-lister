@@ -104,18 +104,6 @@ def note_expansion(record, resource):
                 for name in dict.fromkeys([*names, *chairs])
             ]
         people.append({"label": label, "names": list(names)})
-    if "gal_internalNoteEditors" in record:
-        paths["Internal-note editors"] = (
-            "gal_internalNoteEditors",
-            record["gal_internalNoteEditors"] or [],
-        )
-        people.insert(
-            1,
-            {
-                "label": "Internal-note editors",
-                "names": name_list(paths["Internal-note editors"][1]),
-            },
-        )
     tools = [
         item.get("name") if isinstance(item, dict) else item
         for item in metadata.get("mvaMlTools") or []

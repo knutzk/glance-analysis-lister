@@ -419,7 +419,6 @@ def prepare_publications(registry, profile, analyses):
             people_sources = {
                 "gal_analysisContacts": record.get("gal_analysisContacts"),
                 "gal_contactEditors": record.get("gal_contactEditors"),
-                "gal_internalNoteEditors": record.get("gal_internalNoteEditors"),
                 **{
                     "phase1." + key: (record.get("phase1") or {}).get(key)
                     for key in (

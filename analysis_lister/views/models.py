@@ -126,7 +126,6 @@ class AnalysisRow:
     stage: str
     contacts: tuple
     editors: tuple
-    internal_editors: tuple
     board: tuple
     groups: dict
     keywords: tuple
