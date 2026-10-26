@@ -45,8 +45,21 @@ def table_to_rows(
     headers = [th.text.strip() for th in rows[0].find_all("th")]
     selected = [h for h in headers if not column_filter or h in column_filter]
     duplicates = [h for h, n in Counter(selected).items() if n > 1]
-    if not headers or any(not h for h in selected) or duplicates:
-        raise ValueError(f"Invalid table headers for {source}: duplicates={duplicates}")
+    ambiguous = [
+        name
+        for name in duplicates
+        if column_filter or name in {"Reference Code", "Temporary Reference Code"}
+    ]
+    if not headers:
+        raise ValueError(f"Invalid table headers for {source}: no header cells")
+    if ambiguous:
+        raise ValueError(
+            f"Invalid table headers for {source}: ambiguous columns={ambiguous}"
+        )
+    if column_filter and any(not h for h in selected):
+        raise ValueError(
+            f"Invalid table headers for {source}: selected column has no label"
+        )
 
     # Filter headers based on the column_filter, otherwise include all.
     if column_filter:
@@ -70,7 +83,31 @@ def table_to_rows(
     else:
         header_indices = dict(enumerate(headers))
 
-    csv_data = [[header_indices[idx] for idx in header_indices]]
+    # Full exports may contain distinct columns with identical display labels.
+    # Keep their positions and values, reserving all native names so a generated
+    # suffix cannot collide with another source column.
+    reserved, used = set(header_indices.values()), set()
+    for index, header in header_indices.items():
+        base = header or f"Unnamed column {index + 1}"
+        name = base
+        if name in used or (not header and name in reserved):
+            suffix = 2
+            name = f"{base} ({suffix})"
+            while name in reserved or name in used:
+                suffix += 1
+                name = f"{base} ({suffix})"
+        used.add(name)
+        if name != header:
+            logger.warning(
+                "%s: %s HTML header %r at column %d exported as %r; all columns retained",
+                source,
+                "duplicate" if header else "unnamed",
+                header,
+                index + 1,
+                name,
+            )
+            header_indices[index] = name
+    csv_data = [list(header_indices.values())]
 
     for row_number, row in enumerate(rows[1:], start=2):
         cells = row.find_all("td")

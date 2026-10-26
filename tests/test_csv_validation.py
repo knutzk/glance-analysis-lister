@@ -90,7 +90,7 @@ class CsvValidationTests(unittest.TestCase):
         for html in (
             "<table><tr><th>ID</th><th>Status</th></tr><tr><td>ID</td></tr></table>",
             "<table><tr><th>ID</th></tr><tr><td>ID</td><td>extra</td></tr></table>",
-            "<table><tr><th>ID</th><th>ID</th></tr><tr><td>a</td><td>b</td></tr></table>",
+            "<table><tr><td>a</td><td>b</td></tr></table>",
         ):
             with self.subTest(html=html):
                 self.path.write_text("previous")
@@ -108,6 +108,83 @@ class CsvValidationTests(unittest.TestCase):
             )
         self.assertEqual(self.path.read_text(), "previous CSV")
         self.assertEqual(diagnostic.read_text(), html + "\n")
+
+    def test_duplicate_html_labels_preserve_both_columns_in_csv(self):
+        html = (
+            "<span>Showing 1 to 1 of 1 results</span>"
+            "<table><tr><th>Reference Code</th>"
+            "<th>Related Papers ref codes</th><th>Related Papers ref codes</th>"
+            "<th>Related Papers ref codes (2)</th><th>Related Papers ref codes</th></tr>"
+            "<tr><td>ANA-DEMO-2099-01</td><td> first </td><td>second</td>"
+            "<td>third</td><td>fourth</td></tr></table>"
+        )
+        with self.assertLogs(
+            "analysis_lister.downloaders.tables", level="WARNING"
+        ) as logs:
+            HTMLParser.parse_to_csv(html, self.path)
+        rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "Reference Code": "ANA-DEMO-2099-01",
+                    "Related Papers ref codes": " first ",
+                    "Related Papers ref codes (3)": "second",
+                    "Related Papers ref codes (2)": "third",
+                    "Related Papers ref codes (4)": "fourth",
+                }
+            ],
+        )
+        self.assertEqual(len(logs.output), 2)
+        self.assertIn("all columns retained", logs.output[0])
+        self.assertNotIn("ANA-DEMO-2099-01", "\n".join(logs.output))
+
+    def test_unnamed_and_duplicate_headers_are_preserved_together(self):
+        html = (
+            "<span>Showing 1 to 1 of 1 results</span>"
+            "<table><tr><th></th><th>Reference Code</th>"
+            "<th>Related Papers ref codes</th><th>Related Papers ref codes</th>"
+            "<th>Unnamed column 1</th><th> </th></tr>"
+            "<tr><td>action</td><td>ANA-DEMO-2099-01</td><td>first</td>"
+            "<td>second</td><td>third</td><td>fourth</td></tr></table>"
+        )
+        with self.assertLogs(
+            "analysis_lister.downloaders.tables", level="WARNING"
+        ) as logs:
+            HTMLParser.parse_to_csv(html, self.path)
+        rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "Unnamed column 1 (2)": "action",
+                    "Reference Code": "ANA-DEMO-2099-01",
+                    "Related Papers ref codes": "first",
+                    "Related Papers ref codes (2)": "second",
+                    "Unnamed column 1": "third",
+                    "Unnamed column 6": "fourth",
+                }
+            ],
+        )
+        self.assertEqual(len(logs.output), 3)
+        self.assertIn("unnamed HTML header", logs.output[0])
+
+    def test_duplicate_identifier_or_explicitly_selected_headers_still_fail(self):
+        for header, selection in (
+            ("Reference Code", None),
+            ("Temporary Reference Code", None),
+            ("Selected", ["Selected"]),
+        ):
+            table = parse_html_table(
+                f"<table><tr><th>{header}</th><th>{header}</th></tr>"
+                "<tr><td>one</td><td>two</td></tr></table>",
+                source="synthetic",
+            )
+            with (
+                self.subTest(header=header),
+                self.assertRaisesRegex(ValueError, "Invalid table headers"),
+            ):
+                table_to_rows(table, source="synthetic", column_filter=selection)
 
     def test_duplicate_unused_html_headers_are_allowed(self):
         HTMLParser.parse_to_csv(
