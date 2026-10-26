@@ -91,7 +91,7 @@ def publication_filter_values(record, related, field):
 
 
 def publication_details(record, resource, related=None):
-    """Prepare publication-owned people and links without legacy models or requests."""
+    """Prepare publication-owned people and links from curated records."""
     phase = record.get("phase1") or {}
     publication = (record.get("publicationPhase") or {}) if resource == "papers" else {}
     sources = {

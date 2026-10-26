@@ -26,7 +26,7 @@ def record_key(record, resource):
 
 
 def validate_registry(data):
-    """Validate the curated container independently of legacy view models."""
+    """Validate the curated container without importing view models."""
     if (
         not isinstance(data, dict)
         or data.get("schema") != SCHEMA

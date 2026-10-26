@@ -96,13 +96,16 @@ Group selection happens when views are prepared.
 | Public PUB-note identifiers | Shared `json/pubnote_identifiers.json` |
 
 API JSON and curated JSON default to the current working directory. Keep these
-local artifacts out of version control in the consuming repository. The shared
+local artifacts out of version control in the consuming repository. Ignore
+generated diagnostic reports too, while
+keeping any Markdown and browser assets you intend to deploy. The shared
 citation dictionary is maintained with the package. A suitable
 `.gitignore` block is:
 
 ```gitignore
 /glance_api_registry.json
 /glance_curated_registry.json
+**/view-report.json
 ```
 
 Set explicit destinations with:
@@ -195,7 +198,11 @@ Complete-table counters and identifiers are checked before batch publication;
 failed writes roll back, retaining backups and an interruption marker if rollback
 fails. Do not consume a batch while `.html-download-in-progress` exists. A
 successful rerun repairs an interrupted batch. Keep cookies and exported data
-private. `download-html --help` also describes saving and replaying HTML offline.
+private. Ignore `cookies.json`, the four exported CSVs, `html_manifest.json`,
+`.html-download-in-progress`, `.refresh-*/`, and any directory selected with
+`--save-html` in the consuming repository. Duplicate or unnamed non-identifier
+headers receive unique names; every column and its original position is retained.
+`download-html --help` also describes saving and replaying HTML offline.
 
 ### Curated data and provenance
 
@@ -207,9 +214,8 @@ provenance. DOI/citation pairs, including corrections, stay aligned.
 
 Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
 controls named-object conversions. After enrichment, `registry/fields.py` selects
-only record fields
-consumed by the views (including search, curation and diagnostics), down to nested
-links, metadata and DOI/citation entries. New API fields are excluded by default.
+only record fields consumed by the views (including search, curation and
+diagnostics), down to nested links, metadata and DOI/citation entries. New API fields are excluded by default.
 Add fields to this selection when a view starts consuming them. The full API
 snapshot remains the source for rebuilding; the curated file is not a lossless
 API archive. Snapshot and build metadata are retained for provenance and safe
@@ -406,7 +412,8 @@ collections and details remain readable. Browser filtering makes no live request
 `json/doi_metadata.json` is the maintained citation dictionary, also bundled with
 the package. CLI commands use this shared dictionary by default, independently
 of the current working directory. Citation resolution and formatting update the
-selected dictionary; they do not create a per-consumer copy. `--doi-cache PATH`
+selected dictionary; they do not create a per-consumer copy. Stores are loaded
+explicitly for each operation, not when importing the package. `--doi-cache PATH`
 selects another store; a missing custom store starts empty.
 
 Resolve DOIs from a saved API or curated registry:
@@ -420,7 +427,9 @@ analysis-lister resolve-dois --snapshot glance_api_registry.json --method inspir
 public INSPIRE metadata. `auto` tries inference first. Repeated `--doi` arguments
 can be used instead of a snapshot. `--limit 10` limits attempts;
 `--refresh-existing` revisits non-manual entries. Entries whose source is `manual`
-are protected from automatic replacement.
+are protected from automatic replacement. Citation records use `citation` and
+`source`, with optional `material`, `resolved_at`, `source_url` and `inspire_id`.
+Protection depends on `source = "manual"`; there is no separate lock setting.
 
 Publication DOIs are extracted from URL fields in the API's final journal
 publication links. DOI resolver URLs and publisher URLs containing a DOI are
@@ -544,6 +553,10 @@ Tests use invented data and do not establish that live CERN authentication works
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
 | `tests/browser/` | Manual synthetic browser checks. |
 | `scripts/` | Installed-distribution validation used by CI. |
+
+Paths for `downloaders/`, `registry/`, `citations/` and `views/` are relative to
+`analysis_lister/`. Its `cli.py` defines commands; `refresh.py` coordinates
+preflight checks and the sequential download/build/render workflow.
 
 Within `views/`, `analysis_states.py` and `publication_states.py` contain the
 traceable lifecycle and milestone rules. Collection preparation uses these rules

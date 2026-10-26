@@ -89,7 +89,7 @@ def build_report(view, snapshot, raw):
             "ongoing": "one row per native analysis identifier; a recognised active review state is required",
             "history": "no year cutoff; completed superseded notes retained",
             "archive_curation": archive_curation_statement(profile),
-            "clones": "no legacy lookup or title-based clone exclusions applied",
+            "clones": "native publication records are retained independently; matching titles do not imply clones",
         },
         "counts": counts,
         "analyses_needing_review": needing_review,
