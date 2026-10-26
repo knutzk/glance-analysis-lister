@@ -242,12 +242,26 @@ timestamp is added. These notices do not apply the package licence to registry
 content.
 
 The render command prints the `view-report.json` path to stdout; pages do not link
-to this report. Records requiring attention are also reported individually as warnings,
-with identifiers and reasons. The report provides dedicated top-level
-`analyses_needing_review` and `records_with_diagnostics` lists, matching the
-summary counts; these categories can overlap. The report records the input hash, source timestamps, policy, rule identifiers and
-source evidence. It includes the selected records and their explicit one-hop
-relationship context. Treat it as private data alongside the generated pages.
+to this report. Diagnostics are grouped by cause: uncertain states, missing or
+conflicting relationships, and missing public note identifiers. Each entry names
+the record, states whether it is included on the page, and explains the issue's
+effect on classification, progress, affiliations or identifiers. These effects
+are separate from actual inclusion: a missing analysis link need not exclude an
+otherwise published paper.
+
+One-way publication links are informational because the outbound link is used
+successfully. Other diagnostic causes remain warnings. Missing optional display
+fields are not warnings. `--quiet` suppresses informational log messages; the JSON
+report still retains them.
+
+The report provides `diagnostic_groups` with issue counts, distinct-record counts
+and affected entries. `warning_issues` and `informational_issues` count issues,
+whereas `records_with_diagnostics` counts records once, including informational
+cases. The existing `analyses_needing_review` and `records_with_diagnostics` lists
+remain available and may overlap. The report also records the input hash, source
+timestamps, policy, rule identifiers and detailed derivation evidence. It includes
+selected records and their explicit one-hop relationship context; treat it as
+private data alongside the generated pages.
 
 ### Ongoing analyses
 
@@ -469,7 +483,8 @@ Within `views/`, `analysis_states.py` and `publication_states.py` contain the
 traceable lifecycle and milestone rules. Collection preparation uses these rules
 without importing renderers. Markdown rendering consumes prepared records and
 page controls; `people.py` shares plain-text board/chair formatting across views.
-`report.py` records the corresponding decisions and evidence.
+`diagnostics.py` classifies diagnostic causes and effects; `report.py` records
+the corresponding decisions and evidence.
 
 ## Licence
 
