@@ -1,4 +1,8 @@
 {
+  "1099735": {
+    "identifier": "ATL-LARG-PUB-2008-002",
+    "source_url": "https://cds.cern.ch/record/1099735"
+  },
   "1161128": {
     "identifier": "ATL-PHYS-PUB-2009-001",
     "source_url": "https://cds.cern.ch/record/1161128"
@@ -239,6 +243,14 @@
     "identifier": "ATL-PHYS-PUB-2013-008",
     "source_url": "https://cds.cern.ch/record/1568552"
   },
+  "1604492": {
+    "identifier": "ATL-UPGRADE-PUB-2013-014",
+    "source_url": "https://cds.cern.ch/record/1604492"
+  },
+  "1754509": {
+    "identifier": "ATL-INDET-PUB-2014-006",
+    "source_url": "https://cds.cern.ch/record/1754509"
+  },
   "1955923": {
     "identifier": "ATL-SOFT-PUB-2014-004",
     "source_url": "https://cds.cern.ch/record/1955923"
@@ -247,21 +259,69 @@
     "identifier": "ATL-PHYS-PUB-2015-011",
     "source_url": "https://cds.cern.ch/record/2020602"
   },
+  "2034846": {
+    "identifier": "ATL-LARG-PUB-2015-001",
+    "source_url": "https://cds.cern.ch/record/2034846"
+  },
   "2037613": {
     "identifier": "ATL-PHYS-PUB-2015-015",
     "source_url": "https://cds.cern.ch/record/2037613"
+  },
+  "2052206": {
+    "identifier": "ATL-MUON-PUB-2015-001",
+    "source_url": "https://cds.cern.ch/record/2052206"
+  },
+  "2054955": {
+    "identifier": "ATL-MUON-PUB-2015-002",
+    "source_url": "https://cds.cern.ch/record/2054955"
+  },
+  "2057226": {
+    "identifier": "ATL-OREACH-PUB-2015-001",
+    "source_url": "https://cds.cern.ch/record/2057226"
   },
   "2065974": {
     "identifier": "ATL-PHYS-PUB-2015-046",
     "source_url": "https://cds.cern.ch/record/2065974"
   },
+  "2110639": {
+    "identifier": "ATL-INDET-PUB-2015-003",
+    "source_url": "https://cds.cern.ch/record/2110639"
+  },
   "2120826": {
     "identifier": "ATL-PHYS-PUB-2016-005",
     "source_url": "https://cds.cern.ch/record/2120826"
   },
+  "2202392": {
+    "identifier": "ATL-GEN-PUB-2016-001",
+    "source_url": "https://cds.cern.ch/record/2202392"
+  },
+  "2203649": {
+    "identifier": "ATL-OREACH-PUB-2016-001",
+    "source_url": "https://cds.cern.ch/record/2203649"
+  },
+  "2203893": {
+    "identifier": "ATL-INDET-PUB-2016-001",
+    "source_url": "https://cds.cern.ch/record/2203893"
+  },
   "2222304": {
     "identifier": "ATL-PHYS-PUB-2016-025",
     "source_url": "https://cds.cern.ch/record/2222304"
+  },
+  "2286836": {
+    "identifier": "ATL-DAPR-PUB-2017-001",
+    "source_url": "https://cds.cern.ch/record/2286836"
+  },
+  "2291800": {
+    "identifier": "ATL-INDET-PUB-2017-001",
+    "source_url": "https://cds.cern.ch/record/2291800"
+  },
+  "2629889": {
+    "identifier": "ATL-INDET-PUB-2018-001",
+    "source_url": "https://cds.cern.ch/record/2629889"
+  },
+  "2717459": {
+    "identifier": "ATL-FWD-PUB-2020-001",
+    "source_url": "https://cds.cern.ch/record/2717459"
   },
   "2767187": {
     "identifier": "ATL-SOFT-PUB-2021-001",
@@ -278,6 +338,10 @@
   "2790872": {
     "identifier": "ATL-SOFT-PUB-2021-004",
     "source_url": "https://cds.cern.ch/record/2790872"
+  },
+  "2800852": {
+    "identifier": "ATL-ITK-PUB-2022-001",
+    "source_url": "https://cds.cern.ch/record/2800852"
   },
   "2869272": {
     "identifier": "ATL-SOFT-PUB-2023-001",

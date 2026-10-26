@@ -7,7 +7,7 @@ import re
 
 from attrs import asdict
 
-from ..registry.public_identifiers import final_identifier
+from ..registry.public_identifiers import PUB_PATTERN, final_identifier
 from ..registry.schema import record_key
 from .common import group_membership, iso_date
 from .curation import archive_curation
@@ -152,11 +152,7 @@ def publication_state(record, resource):
                 "active publication phase without submission date",
             )
     else:
-        pattern = (
-            r"ATLAS-CONF-\d{4}-\d+"
-            if resource == "confnotes"
-            else r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
-        )
+        pattern = r"ATLAS-CONF-\d{4}-\d+" if resource == "confnotes" else PUB_PATTERN
         released = bool(
             re.fullmatch(pattern, number or "")
             and (status == "Phase 1 Finished" or iso_date(phase.get("releaseDate")))

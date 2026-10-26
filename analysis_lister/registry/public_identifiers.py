@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-PUB_PATTERN = r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
+PUB_PATTERN = r"ATL-[A-Z]+-PUB-\d{4}-\d+"
 
 
 def default_identifiers_path():

@@ -142,7 +142,8 @@ point to CDS use the shared `json/pubnote_identifiers.json` dictionary: public C
 record number → public PUB identifier and canonical CDS source URL. Its initial
 associations were retained from the existing GLANCE export; no CDS requests are
 made at runtime. No private analysis identifiers, titles or people are stored in
-this dictionary. Maintain it in the package when new exceptions appear.
+this dictionary. It supplies static associations for historical detector and
+technical PUB-note series, without a runtime updater.
 
 Notes with release evidence but no identifier produce explicit diagnostics rather than
 a guessed number. Each derivation is recorded in `gal_publicationProvenance`, and

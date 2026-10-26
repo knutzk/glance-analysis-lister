@@ -8,12 +8,18 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from view_fixtures import analysis, publication, snapshot
+
+from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.public_identifiers import (
     cds_record_id,
     default_identifiers_path,
     enrich_public_identifiers,
     load_identifiers,
 )
+from analysis_lister.views.markdown.pages import pubnotes_page
+from analysis_lister.views.prepare import prepare_group
+from analysis_lister.views.profiles import GroupProfile
 
 MAPPING = {
     "9999999": {
@@ -123,3 +129,35 @@ class PublicIdentifierTests(unittest.TestCase):
         for status in ("Created", "Closed"):
             record = {"status": status, "phase1": {"releaseDate": "2099-01-01"}}
             self.assertIsNone(enrich_public_identifiers(record, "pubnotes", {}))
+
+    def test_all_public_series_can_be_classified_and_rendered(self):
+        for series in (
+            "DAQ",
+            "INDET",
+            "DAPR",
+            "OREACH",
+            "FWD",
+            "GEN",
+            "HGTD",
+            "ITK",
+            "LARG",
+            "MUON",
+            "UPGRADE",
+        ):
+            with self.subTest(series=series):
+                record = analysis(1, status="Phase 0 Finished")
+                note = publication(
+                    1,
+                    resource="pubnotes",
+                    related=record["referenceCode"],
+                    status="Phase 1 Finished",
+                )
+                note["finalReferenceCode"] = f"ATL-{series}-PUB-2099-001"
+                view = prepare_group(
+                    CuratedRegistry(snapshot(record, pubnotes=(note,))),
+                    GroupProfile("DEMO"),
+                )
+                self.assertEqual(view.archive[0].state, "released")
+                self.assertEqual(view.ongoing, ())
+                self.assertEqual(view.needs_review, ())
+                self.assertIn(note["finalReferenceCode"], pubnotes_page(view))

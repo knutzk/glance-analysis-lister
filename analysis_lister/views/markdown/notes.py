@@ -6,6 +6,7 @@
 import re
 from html import escape
 
+from ...registry.public_identifiers import PUB_PATTERN
 from ...registry.reader import LINK_RESOURCES
 from ..models import TagGroup
 from .controls import date_controls, expansion_control, search_control
@@ -92,14 +93,8 @@ def note_table(view, resource):
     if resource not in {"confnotes", "pubnotes"}:
         raise ValueError("Note tables support CONF notes and PUB notes")
     kind = "CONF" if resource == "confnotes" else "PUB"
-    public_prefix = (
-        "ATLAS-CONF" if resource == "confnotes" else "ATL-PHYS-PUB or ATL-SOFT-PUB"
-    )
-    public_pattern = (
-        r"ATLAS-CONF-\d{4}-\d+"
-        if resource == "confnotes"
-        else r"ATL-(?:PHYS|SOFT)-PUB-\d{4}-\d+"
-    )
+    public_prefix = "ATLAS-CONF" if resource == "confnotes" else "ATL-<series>-PUB"
+    public_pattern = r"ATLAS-CONF-\d{4}-\d+" if resource == "confnotes" else PUB_PATTERN
     rows = tuple(row for row in view.archive if row.resource == resource)
     out = f'<section class="gal-collection gal-archive gal-note-collection" data-gal-notes aria-label="{kind} notes">'
     out += '<div class="gal-filters gal-note-filters" data-gal-note-controls hidden><div class="gal-note-filter-groups">'
