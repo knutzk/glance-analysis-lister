@@ -368,6 +368,10 @@ Python 3.13 and validates the built wheel in a clean environment using
 `scripts/check_distribution.py`. This checks the installed CLI, synthetic
 rendering, packaged assets, shared dictionaries, publication policies and licences.
 
+View tests are separated by preparation, ongoing rendering, paper rendering,
+note rendering, shared publication controls, publication curation and output
+building. Synthetic fixtures are shared through `tests/view_fixtures.py`.
+
 Browser checks are separate developer tools. They require installed Chrome and
 ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,
 screenshots and driver logs:
@@ -398,6 +402,11 @@ Tests use invented data and do not establish that live CERN authentication works
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
 | `tests/browser/` | Manual synthetic browser checks. |
 | `scripts/` | Installed-distribution validation used by CI. |
+
+Within `views/`, `analysis_states.py` and `publication_states.py` contain the
+traceable lifecycle and milestone rules. Collection preparation uses these rules
+without importing renderers. Markdown rendering consumes prepared records and
+page controls; `report.py` records the corresponding decisions and evidence.
 
 ## Licence
 
