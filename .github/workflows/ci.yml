@@ -54,7 +54,8 @@ jobs:
           ruff format --check .
       - name: Run offline regression tests
         run: python -m unittest discover -s tests -v
-      - name: Build wheel and source distribution
+      # With no --wheel/--sdist flags, build creates the wheel from the sdist.
+      - name: Build source distribution and rebuild wheel from it
         run: python -m build
       - name: Verify installed wheel in a clean environment
         shell: bash
@@ -74,9 +75,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements-dev.txt
+            tests/browser/requirements.txt
+      - name: Install browser and site test dependencies
+        run: python -m pip install -r requirements-dev.txt -r tests/browser/requirements.txt
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
+          install-chromedriver: true
+          install-dependencies: true
+      - name: Check standalone views and Zensical integration
+        env:
+          CHROME_BINARY: ${{ steps.chrome.outputs.chrome-path }}
+          CHROMEDRIVER: ${{ steps.chrome.outputs.chromedriver-path }}
+        run: |
+          python tests/browser/check_ongoing.py --driver "$CHROMEDRIVER"
+          python tests/browser/check_papers.py --driver "$CHROMEDRIVER"
+          python tests/browser/check_notes.py --resource confnotes --driver "$CHROMEDRIVER"
+          python tests/browser/check_notes.py --resource pubnotes --driver "$CHROMEDRIVER"
+          python tests/browser/check_zensical.py --driver "$CHROMEDRIVER"
+
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: checks
+    needs: [checks, browser]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

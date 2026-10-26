@@ -8,6 +8,7 @@ Run from an editable development checkout:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -91,6 +92,8 @@ def run_checks(work_dir):
     output = work_dir / "fixture.html"
     output.write_text(html)
     options = Options()
+    if chrome := os.environ.get("CHROME_BINARY"):
+        options.binary_location = chrome
     for value in (
         "--headless=new",
         "--no-first-run",

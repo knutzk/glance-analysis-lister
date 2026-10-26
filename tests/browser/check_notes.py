@@ -4,6 +4,7 @@
 """Exercise CONF/PUB-note search, dates, supersession and expansion with synthetic records."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -77,6 +78,8 @@ def run_checks(work_dir):
         f'<!doctype html><html><head><meta charset="utf-8">{css}</head><body>{markup}{js}</body></html>'
     )
     options = Options()
+    if chrome := os.environ.get("CHROME_BINARY"):
+        options.binary_location = chrome
     for flag in (
         "--headless=new",
         "--no-first-run",

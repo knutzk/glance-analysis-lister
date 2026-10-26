@@ -523,7 +523,8 @@ python -m build
 
 The development requirements install the package in editable mode. Reinstall
 after changing dependencies or package metadata. CI runs the offline checks on
-Python 3.13 and validates the built wheel in a clean environment using
+Python 3.13. `python -m build` builds the wheel from the source distribution,
+then CI validates that wheel in a clean environment using
 `scripts/check_distribution.py`. This checks the installed CLI, synthetic
 rendering, packaged assets, shared dictionaries, publication policies and licences.
 
@@ -537,15 +538,32 @@ exercise populated and sparse records; add scenarios when introducing new
 conditional view behavior. Output comparisons additionally check that trimming
 records preserves rendering and search metadata.
 
-Browser checks are separate developer tools. They require installed Chrome and
-ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,
-screenshots and driver logs:
+A separate CI job installs a matching Chrome/ChromeDriver pair and runs all four
+standalone browser checks plus a synthetic Zensical integration test. Both jobs
+must pass before a tagged release can be created. The site test builds strictly,
+serves only on loopback, and verifies real instant navigation, repeat visits,
+search URL persistence on all pages, ongoing sort persistence, reset, expansion
+and loaded stylesheets. It uses the
+built-in Zensical theme; consumer-specific theme overrides are not covered.
+No CERN credentials or live GLANCE data are used.
+
+The same checks can be run locally with installed Chrome and ChromeDriver.
+`CHROME_BINARY` optionally selects the Chrome executable; drivers are supplied
+explicitly. Tests clean up temporary sites, HTML, screenshots and driver logs.
+Zensical is a test-only dependency pinned separately from the package:
+
+```bash
+python -m pip install -r tests/browser/requirements.txt
+```
+
+Run the browser checks:
 
 ```bash
 python tests/browser/check_ongoing.py --driver /path/to/chromedriver
 python tests/browser/check_papers.py --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource confnotes --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource pubnotes --driver /path/to/chromedriver
+python tests/browser/check_zensical.py --driver /path/to/chromedriver
 ```
 
 Run the public synthetic example without credentials:
@@ -565,7 +583,7 @@ Tests use invented data and do not establish that live CERN authentication works
 | `registry/` | Offline enrichment, schema validation, DOI extraction, snapshot comparison and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
-| `tests/browser/` | Manual synthetic browser checks. |
+| `tests/browser/` | Synthetic standalone and Zensical browser checks, run locally and in CI. |
 | `scripts/` | Installed-distribution validation used by CI. |
 
 Paths for `downloaders/`, `registry/`, `citations/` and `views/` are relative to
