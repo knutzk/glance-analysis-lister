@@ -107,6 +107,19 @@ Inputs cannot be overwritten by registry output, and successful candidates are
 published atomically. Run downloading and building sequentially against a given
 set of files.
 
+Both download commands finish with the same summary: output location and files,
+record counts per resource, total records, elapsed time (including authentication
+and publication), and the validation checks that passed. API count-drop overrides
+are stated explicitly. HTML replay from saved files uses the same summary without
+authentication or network access.
+
+On failure, the command checks output bytes against their pre-download state
+before reporting preservation. If it cannot verify the files, or they changed,
+it says so. An HTML interruption marker takes precedence: the batch is reported
+as incomplete, with retained staging/recovery paths listed. Saved debug HTML may
+be partial. A preservation message does not establish that pre-existing data was
+valid or complete. Failed commands do not print a completion summary.
+
 ### Compare saved snapshots
 
 Keep the previous snapshot under a separate filename before downloading or
