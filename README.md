@@ -23,6 +23,7 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 | --- | --- |
 | `download-html` | Optional fallback: export all four HTML tables as independent CSVs. |
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
+| `compare-snapshots` | Compare two saved API snapshots or two curated registries offline. |
 | `build-registry` | Curate saved API JSON using bundled public identifiers and citation metadata. |
 | `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
 | `resolve-dois` | Infer citations or retrieve public citation metadata from INSPIRE. |
@@ -105,6 +106,32 @@ API downloads and registry builds reject per-resource count drops greater than
 Inputs cannot be overwritten by registry output, and successful candidates are
 published atomically. Run downloading and building sequentially against a given
 set of files.
+
+### Compare saved snapshots
+
+Keep the previous snapshot under a separate filename before downloading or
+building its replacement, then compare records offline:
+
+```bash
+analysis-lister compare-snapshots previous.json glance_curated_registry.json --details \
+  --output snapshot-comparison.json
+```
+
+Compare two API files or two curated files from the same endpoint. Records are
+matched by native identifier, independently of their order in the file. The
+summary counts added, removed, changed and unchanged records for each resource.
+`--details` lists affected identifiers and field paths; the optional JSON report
+includes before/after values and input file hashes. Changes to statuses,
+affiliations, DOIs, relationships and missing fields are all included. Reports
+contain snapshot data and should remain private alongside the source files.
+
+Container timestamps and build metadata are excluded from change detection.
+Dictionary order is ignored, but list order is significant, including DOI and
+correction order. Missing fields and explicit `null` values are distinct. A
+change in the curation implementation or shared dictionaries can change a curated
+record without a GLANCE edit; compare API snapshots to isolate upstream changes.
+Neither input is modified. A successful comparison exits with status zero even
+when differences are found; invalid snapshots or incompatible formats fail.
 
 ### Optional HTML fallback
 
@@ -426,7 +453,7 @@ Tests use invented data and do not establish that live CERN authentication works
 | Directory | Responsibility |
 | --- | --- |
 | `downloaders/` | Independent API retrieval and optional HTML-to-CSV downloads, authentication, validation and safe publication. |
-| `registry/` | Offline enrichment, schema validation, DOI extraction and thin registry access. |
+| `registry/` | Offline enrichment, schema validation, DOI extraction, snapshot comparison and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
 | `tests/browser/` | Manual synthetic browser checks. |

@@ -142,6 +142,14 @@ def main():
             ["--help"],
             ["download-api", "--help"],
             ["download-html", "--help"],
+            ["compare-snapshots", "--help"],
+            [
+                "compare-snapshots",
+                str(root / "examples/synthetic_registry.json"),
+                str(root / "examples/synthetic_registry.json"),
+                "--output",
+                str(work / "comparison.json"),
+            ],
             ["render-group", "--help"],
             [
                 "resolve-dois",
@@ -156,6 +164,8 @@ def main():
         executable = Path(sys.executable).parent / "analysis-lister"
         for command in commands:
             subprocess.run([str(executable), *command], cwd=work, check=True)
+        comparison = json.loads((work / "comparison.json").read_text())
+        assert all(not item["changed"] for item in comparison["resources"].values())
         for command in ("render", "export-obsidian", "validate-lookups"):
             rejected = subprocess.run(
                 [str(executable), command], cwd=work, capture_output=True

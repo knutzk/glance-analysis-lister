@@ -162,6 +162,25 @@ def parser():
         default=CURATED_SNAPSHOT_PATH,
         help="Curated JSON output (default: %(default)s).",
     )
+    compare = commands.add_parser(
+        "compare-snapshots",
+        parents=[console],
+        help="Compare two saved API or two curated snapshots offline.",
+        description="Compare records by native identifier. Container timestamps and build metadata are ignored; list order is significant. No live requests.",
+    )
+    compare.add_argument("before", type=Path, help="Previous snapshot.")
+    compare.add_argument("after", type=Path, help="New snapshot in the same format.")
+    compare.add_argument(
+        "--details",
+        action="store_true",
+        help="List added/removed identifiers and changed field paths, without record values.",
+    )
+    compare.add_argument(
+        "--output",
+        type=Path,
+        help="Write a detailed JSON report including before/after field values.",
+    )
+    compare.set_defaults(handler=_run_compare_snapshots)
     group = commands.add_parser(
         "render-group",
         parents=[console],
@@ -292,6 +311,36 @@ def _run_build_registry(args):
     print_summary(
         "Registry ready", [("Registry", args.output), *result.items()], color=args.color
     )
+
+
+def _run_compare_snapshots(args):
+    from .registry.comparison import compare_files
+
+    report = compare_files(args.before, args.after, output=args.output)
+    details = []
+    for resource, changes in report["resources"].items():
+        counts = changes["counts"]
+        details.append(
+            (
+                resource,
+                ", ".join(
+                    f"{counts[key]} {key}"
+                    for key in ("added", "removed", "changed", "unchanged")
+                ),
+            )
+        )
+    if args.output:
+        details.append(("Report", args.output))
+    print_summary("Snapshot comparison (records only)", details, color=args.color)
+    if args.details:
+        for resource, changes in report["resources"].items():
+            for kind in ("added", "removed"):
+                for reference in changes[kind]:
+                    print(f"  {kind}: {resource}/{reference}")
+            for record in changes["changed"]:
+                print(f"  changed: {resource}/{record['reference']}")
+                for field in record["fields"]:
+                    print(f"    {field['kind']}: {field['path']}")
 
 
 def _run_render_group(args):
