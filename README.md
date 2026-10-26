@@ -32,7 +32,8 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 
 Use `COMMAND --help` for the complete argument list. Common options include
 `--verbose`, `--quiet`, and `--color auto|always|never`. Diagnostics go to stderr;
-results and output paths go to stdout. Missing publication-policy warnings also
+results and output paths go to stdout. Summaries are flushed immediately so
+combined redirected logs retain execution order. Missing publication-policy warnings also
 go to stdout.
 
 Downloads and builds log their configuration, input/output paths and processing

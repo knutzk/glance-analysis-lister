@@ -116,6 +116,40 @@ class ConsoleTests(unittest.TestCase):
         self.assertIn("WARN  needs attention", stream.getvalue())
         self.assertEqual(output.getvalue(), "Completed\n  Records  12\n")
 
+    def test_redirected_summaries_precede_subsequent_diagnostics(self):
+        code = """
+import logging
+from analysis_lister.console import configure_logging, print_summary
+with configure_logging(color="never"):
+    log = logging.getLogger("analysis_lister.demo")
+    log.info("first stage")
+    print_summary("First complete", [("Records", 3)], color="never")
+    log.info("second stage")
+    print_summary("Second complete", color="never")
+    log.info("finished")
+"""
+        environment = os.environ.copy()
+        environment.pop("PYTHONUNBUFFERED", None)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=ROOT,
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        expected = [
+            "first stage",
+            "First complete",
+            "Records",
+            "second stage",
+            "Second complete",
+            "finished",
+        ]
+        positions = [result.stdout.index(text) for text in expected]
+        self.assertEqual(positions, sorted(positions), result.stdout)
+
     def test_logging_options_work_before_or_after_subcommand(self):
         for flags in (
             ["--verbose", "format-citations", "--color", "always"],
