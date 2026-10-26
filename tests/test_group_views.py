@@ -17,7 +17,7 @@ from view_fixtures import analysis, publication, snapshot
 
 from analysis_lister import cli
 from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.analyses import analysis_state, last_milestone
+from analysis_lister.views.analysis_states import analysis_state, last_milestone
 from analysis_lister.views.build import render_group
 from analysis_lister.views.markdown.links import external
 from analysis_lister.views.markdown.pages import (
@@ -28,7 +28,7 @@ from analysis_lister.views.markdown.pages import (
 )
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
-from analysis_lister.views.publications import publication_state
+from analysis_lister.views.publication_states import publication_state
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -656,7 +656,7 @@ if __name__ == "__main__":
 
 class ApprovalProgressTests(unittest.TestCase):
     def test_milestones_require_independent_evidence(self):
-        from analysis_lister.views.analyses import approval_progress
+        from analysis_lister.views.analysis_states import approval_progress
 
         record = analysis(1)
         record["phase0"] = {"gal_approvalMeetingDates": ["2099-01-04"]}
@@ -750,7 +750,7 @@ class AssociatedPaperStatusTests(unittest.TestCase):
         )
 
     def test_missing_or_active_phase_zero_does_not_invent_paper_status(self):
-        from analysis_lister.views.analyses import associated_paper_statuses
+        from analysis_lister.views.analysis_states import associated_paper_statuses
 
         self.assertEqual(
             associated_paper_statuses(
@@ -897,7 +897,7 @@ class FoldedMilestoneTests(unittest.TestCase):
         )
 
     def test_missing_dates_do_not_use_paper_status(self):
-        from analysis_lister.views.publications import last_paper_milestone
+        from analysis_lister.views.publication_states import last_paper_milestone
 
         self.assertIsNone(
             last_paper_milestone(
@@ -911,7 +911,7 @@ class FoldedMilestoneTests(unittest.TestCase):
 
 class PaperMilestonePhaseTests(unittest.TestCase):
     def test_milestone_labels_identify_source_phase(self):
-        from analysis_lister.views.publications import last_paper_milestone
+        from analysis_lister.views.publication_states import last_paper_milestone
 
         for section, field, expected in (
             ("phase1", "draftReleasedDate", "Phase 1 · ATLAS circulation 1"),
@@ -980,7 +980,7 @@ class PaperReviewOrderTests(unittest.TestCase):
         )
 
     def test_later_tick_outweighs_all_earlier_ticks(self):
-        from analysis_lister.views.analyses import analysis_review_order
+        from analysis_lister.views.analysis_states import analysis_review_order
         from analysis_lister.views.models import Decision
 
         def rank(ticks):

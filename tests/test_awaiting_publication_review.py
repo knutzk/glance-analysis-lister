@@ -9,7 +9,7 @@ import unittest
 from view_fixtures import analysis, publication, snapshot
 
 from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.analyses import analysis_state
+from analysis_lister.views.analysis_states import analysis_state
 from analysis_lister.views.markdown.pages import ongoing_page
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
