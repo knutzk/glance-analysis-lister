@@ -12,6 +12,8 @@ import logging
 from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
+from time import perf_counter
+from urllib.parse import urlsplit, urlunsplit
 
 from ..registry.schema import (
     API_SCHEMA as SCHEMA,
@@ -39,6 +41,19 @@ def _validate_page_size(page_size):
         raise ValueError("page_size must be a positive integer")
 
 
+def _endpoint_label(url):
+    """Show the service endpoint without URL credentials, query or fragment."""
+    try:
+        parts = urlsplit(str(url))
+        if not parts.scheme or not parts.netloc:
+            return "configured endpoint"
+        return urlunsplit(
+            (parts.scheme, parts.netloc.rsplit("@", 1)[-1], parts.path, "", "")
+        )
+    except ValueError:
+        return "configured endpoint"
+
+
 def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None):
     """Collect all four resources; reject incomplete or inconsistent pagination.
 
@@ -48,11 +63,29 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
     _validate_page_size(page_size)
     data = {}
     counts = {}
-    for name in RESOURCES:
+    for resource_number, name in enumerate(RESOURCES, 1):
+        logger.info(
+            "Fetching %s (%d/%d); sort=%s ascending",
+            name,
+            resource_number,
+            len(RESOURCES),
+            SORT_FIELDS[name],
+        )
+        resource_started = perf_counter()
+        page_number = 0
         records = {}
         total = None
         offset = 0
         while total is None or offset < total:
+            page_number += 1
+            logger.debug(
+                "Requesting %s page %d: offset=%d, limit=%d",
+                name,
+                page_number,
+                offset,
+                page_size,
+            )
+            page_started = perf_counter()
             result = getattr(client, name).search(
                 offset=offset,
                 limit=page_size,
@@ -75,9 +108,23 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
                     raise ValueError(f"{name}: duplicate record across pages")
                 records[key] = record
             offset += len(batch)
-            logger.info("API %s: %d/%d", name, offset, total)
+            logger.info(
+                "API %s: %d/%d records (page %d, %.2fs)",
+                name,
+                offset,
+                total,
+                page_number,
+                perf_counter() - page_started,
+            )
         data[name] = [records[key] for key in sorted(records)]
         counts[name] = total
+        logger.info(
+            "Finished %s: %d records, %d pages, %.2fs",
+            name,
+            total,
+            page_number,
+            perf_counter() - resource_started,
+        )
     return {
         "schema": SCHEMA,
         "schema_version": 1,
@@ -98,22 +145,34 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
 
 def publish_registry(candidate, destination, *, allow_count_drop=False):
     """Validate a whole candidate and atomically publish it last."""
+    logger.info("Validating complete API snapshot before publication")
     validate_registry(candidate)
     destination = Path(destination)
     if destination.exists():
+        logger.info("Checking existing API snapshot and count changes: %s", destination)
         previous = json.loads(destination.read_text(encoding="utf-8"))
         validate_registry(previous)
         if candidate["source"].get("base_url") != previous["source"].get("base_url"):
             raise ValueError("API endpoint differs; use a separate destination")
         for name in RESOURCES:
+            logger.info(
+                "Count check %s: previous=%d, downloaded=%d",
+                name,
+                previous["counts"][name],
+                candidate["counts"][name],
+            )
             if (
                 not allow_count_drop
                 and candidate["counts"][name] < previous["counts"][name] * 0.8
             ):
                 raise ValueError(f"{name}: count dropped by more than 20%")
+    else:
+        logger.info("No existing API snapshot; this is the first publication")
+    logger.info("Publishing API snapshot atomically: %s", destination)
     atomic_write_text(
         destination, json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
     )
+    logger.info("Published API snapshot: %s", destination)
 
 
 def download_registry(
@@ -132,13 +191,35 @@ def download_registry(
 
     try:
         settings = StareSettings(cache_enabled=False)
+        client_version = version("stare")
+        logger.info(
+            "Starting API download with stare %s; output=%s",
+            client_version,
+            destination,
+        )
+        logger.info("API endpoint: %s", _endpoint_label(settings.base_url))
+        logger.info(
+            "Configuration: page_size=%d; all accessible records; sequential retrieval; response cache disabled",
+            page_size,
+        )
+        logger.info(
+            "Count-drop protection: %s",
+            "override enabled (schema and endpoint checks remain active)"
+            if allow_count_drop
+            else "reject drops greater than 20%",
+        )
+        logger.info(
+            "Authentication: %s; credentials and token refresh managed by stare",
+            "browser SSO requested" if login else "using stored credentials",
+        )
         manager = TokenManager(settings)
         if login:
             logger.info("Complete CERN SSO in your browser.")
             manager.login()
+        logger.info("Opening one shared GLANCE client with TLS verification enabled")
         with Glance(settings=settings, token_manager=manager) as client:
             candidate = collect_registry(
-                client, page_size=page_size, client_version=version("stare")
+                client, page_size=page_size, client_version=client_version
             )
     except Exception as exc:
         # Model-validation errors can include private records. The command

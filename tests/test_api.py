@@ -71,6 +71,68 @@ class ApiTests(unittest.TestCase):
                         "https://example.test/api",
                     )
 
+    def test_download_logs_configuration_and_progress_without_credentials_or_records(
+        self,
+    ):
+        client = client_for(1)
+        model = client.analyses.search(offset=0, limit=1).results[0]
+        model.model_dump.return_value["privateTitle"] = "invented-sensitive-title"
+        with TemporaryDirectory() as directory:
+            destination = Path(directory) / "api.json"
+            with (
+                patch("stare.Glance") as glance,
+                patch("stare.auth.TokenManager"),
+                patch("stare.settings.StareSettings") as settings,
+                self.assertLogs("analysis_lister", level="DEBUG") as captured,
+            ):
+                settings.return_value.base_url = "https://invented-user:invented-password@example.test/api?token=invented-token#invented-fragment"
+                glance.return_value.__enter__.return_value = client
+                download_registry(destination, page_size=250, allow_count_drop=True)
+        messages = "\n".join(captured.output)
+        for expected in (
+            "Starting API download with stare",
+            "https://example.test/api",
+            "page_size=250",
+            "response cache disabled",
+            "credentials and token refresh managed by stare",
+            "override enabled",
+            "sort=referenceCode ascending",
+            "sort=temporaryReferenceCode ascending",
+            "offset=0, limit=250",
+            "Validating complete API snapshot",
+            "Published API snapshot",
+        ):
+            self.assertIn(expected, messages)
+        for private in (
+            "invented-user",
+            "invented-password",
+            "invented-token",
+            "invented-fragment",
+            "invented-sensitive-title",
+        ):
+            self.assertNotIn(private, messages)
+
+    def test_failed_publication_is_not_logged_as_success(self):
+        candidate = collect_registry(client_for(1))
+        with TemporaryDirectory() as directory:
+            destination = Path(directory) / "api.json"
+            publish_registry(candidate, destination)
+            before = destination.read_bytes()
+            with (
+                patch(
+                    "analysis_lister.downloaders.api.atomic_write_text",
+                    side_effect=OSError("invented failure"),
+                ),
+                self.assertLogs("analysis_lister", level="INFO") as captured,
+                self.assertRaises(OSError),
+            ):
+                publish_registry(candidate, destination)
+            self.assertEqual(before, destination.read_bytes())
+            self.assertTrue(any("Count check" in line for line in captured.output))
+            self.assertFalse(
+                any("Published API snapshot:" in line for line in captured.output)
+            )
+
     def test_download_failure_preserves_file_and_hides_response_details(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"

@@ -86,3 +86,57 @@ class ApiOnlyRegistryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "overwrite an input"):
                 build_registry(source, mapping, pubnote_identifiers=mapping)
             self.assertEqual(output.read_bytes(), before)
+
+    def test_build_logging_explains_offline_inputs_and_does_not_claim_failed_publication(
+        self,
+    ):
+        api = api_fixture()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output, mapping, citations = (
+                root / "api.json",
+                root / "curated.json",
+                root / "identifiers.json",
+                root / "citations.json",
+            )
+            source.write_text(json.dumps(api))
+            mapping.write_text(json.dumps(MAPPING))
+            citations.write_text("{}")
+            with self.assertLogs("analysis_lister", level="INFO") as captured:
+                build_registry(
+                    source, output, pubnote_identifiers=mapping, doi_cache=citations
+                )
+            messages = "\n".join(captured.output)
+            for expected in (
+                "API-only registry build",
+                "offline; no HTML or external requests",
+                str(source),
+                str(output),
+                str(mapping),
+                str(citations),
+                "Loaded 0 DOI entries and 1 CDS-to-PUB",
+                "Curating analyses: 1 API records",
+                "Curated papers: 1 records",
+                "Validating complete curated registry",
+                "DOI summary",
+                "Published curated registry",
+            ):
+                self.assertIn(expected, messages)
+            self.assertNotIn("Current Example", messages)
+            before = output.read_bytes()
+            with (
+                patch(
+                    "analysis_lister.registry.builder.atomic_write_text",
+                    side_effect=OSError("invented failure"),
+                ),
+                self.assertLogs("analysis_lister", level="INFO") as captured,
+                self.assertRaises(OSError),
+            ):
+                build_registry(
+                    source, output, pubnote_identifiers=mapping, doi_cache=citations
+                )
+            self.assertEqual(before, output.read_bytes())
+            self.assertTrue(any("Count check" in line for line in captured.output))
+            self.assertFalse(
+                any("Published curated registry:" in line for line in captured.output)
+            )

@@ -6,6 +6,7 @@
 import json
 import logging
 from pathlib import Path
+from time import perf_counter
 
 from ..citations.store import DEFAULT_CACHE, default_store_path, load_store
 from ..storage import atomic_write_text
@@ -25,7 +26,18 @@ def build_registry(
     pubnote_identifiers=None,
 ):
     """Build offline and atomically publish without overwriting source inputs."""
+    started = perf_counter()
     api_path, output = Path(api_path), Path(output)
+    logger.info(
+        "Starting API-only registry build (offline; no HTML or external requests)"
+    )
+    logger.info("Files: API input=%s; curated output=%s", api_path, output)
+    logger.info(
+        "Count-drop protection: %s",
+        "override enabled (schema and endpoint checks remain active)"
+        if allow_count_drop
+        else "reject drops greater than 20%",
+    )
     identifier_path = (
         Path(pubnote_identifiers)
         if pubnote_identifiers is not None
@@ -37,14 +49,25 @@ def build_registry(
     inputs = [api_path, citation_path, identifier_path]
     if any(output.resolve() == path.resolve() for path in inputs):
         raise ValueError("Registry output must not overwrite an input")
+    logger.info("Loading saved API snapshot: %s", api_path)
     api = json.loads(api_path.read_text(encoding="utf-8"))
-    candidate = curate(
-        api,
-        citations=load_store(citation_path),
-        pubnote_identifiers=load_identifiers(identifier_path),
+    logger.info("Loading shared DOI dictionary: %s", citation_path)
+    citations = load_store(citation_path)
+    logger.info("Loading shared PUB-note identifier dictionary: %s", identifier_path)
+    identifiers = load_identifiers(identifier_path)
+    logger.info(
+        "Loaded %d DOI entries and %d CDS-to-PUB identifier associations",
+        len(citations),
+        len(identifiers),
     )
+    logger.info(
+        "Curating API records: people roles, compact lists, public identifiers and cached DOI metadata"
+    )
+    candidate = curate(api, citations=citations, pubnote_identifiers=identifiers)
+    logger.info("Validating complete curated registry")
     validate_registry(candidate)
     if output.exists():
+        logger.info("Checking existing curated registry and count changes: %s", output)
         previous = json.loads(output.read_text(encoding="utf-8"))
         validate_registry(previous)
         if previous.get("source", {}).get("base_url") != candidate["source"].get(
@@ -52,16 +75,40 @@ def build_registry(
         ):
             raise ValueError("API endpoint differs; choose a new output")
         for resource in RESOURCES:
+            logger.info(
+                "Count check %s: previous=%d, candidate=%d",
+                resource,
+                previous["counts"][resource],
+                candidate["counts"][resource],
+            )
             if (
                 not allow_count_drop
                 and candidate["counts"][resource] < previous["counts"][resource] * 0.8
             ):
                 raise ValueError(f"{resource}: count dropped by more than 20%")
+    else:
+        logger.info("No existing curated registry; this is the first build")
+    logger.info("Publishing curated registry atomically: %s", output)
     atomic_write_text(
         output, json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
     )
     for resource, counts in candidate["gal_curation"][
         "public_identifier_statistics"
     ].items():
-        logger.info("Public identifiers %s: %s", resource, counts)
+        logger.info(
+            "Public identifier sources for %s: %s",
+            resource,
+            ", ".join(f"{source}={count}" for source, count in sorted(counts.items())),
+        )
+    doi = candidate["gal_curation"]["doi_statistics"]
+    logger.info(
+        "DOI summary: %d papers with DOIs; %d resolved citations; %d unresolved; %d malformed links",
+        doi["papers_with_dois"],
+        doi["resolved"],
+        doi["unresolved"],
+        doi["malformed_links"],
+    )
+    logger.info(
+        "Published curated registry: %s (%.2fs)", output, perf_counter() - started
+    )
     return candidate["counts"]

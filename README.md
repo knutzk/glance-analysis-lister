@@ -35,6 +35,13 @@ Use `COMMAND --help` for the complete argument list. Common options include
 results and output paths go to stdout. Missing publication-policy warnings also
 go to stdout.
 
+Downloads and builds log their configuration, input/output paths and processing
+stages to stderr. API progress includes sorting, page counts and page timings;
+build progress includes resource counts and identifier/DOI summaries. `--verbose`
+adds each request's offset and limit; `--quiet` retains warnings and final results.
+Credentials, authentication URL parameters and raw record payloads are not logged;
+warnings may identify records needing attention.
+
 ## Download and build a registry
 
 Run these commands **sequentially** from the directory that will hold your data:

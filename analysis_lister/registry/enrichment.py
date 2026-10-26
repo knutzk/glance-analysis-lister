@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import UTC, date, datetime
 from hashlib import sha256
+from time import perf_counter
 
 from .public_identifiers import enrich_public_identifiers, load_identifiers
 from .publication_dois import enrich_paper
@@ -253,6 +254,8 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
         "malformed_links": 0,
     }
     for resource in RESOURCES:
+        resource_started = perf_counter()
+        logger.info("Curating %s: %d API records", resource, len(result[resource]))
         records = []
         for record in result[resource]:
             team = record.get("analysisTeam", []) or []
@@ -296,6 +299,12 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
             records.append(remove_keys(enriched, REMOVED_KEYS))
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
+        )
+        logger.info(
+            "Curated %s: %d records (%.2fs)",
+            resource,
+            len(records),
+            perf_counter() - resource_started,
         )
     result["gal_curation"] = {
         "built_at": datetime.now(UTC).isoformat(),
