@@ -50,7 +50,9 @@ def publication_state(record, resource):
     elif resource == "papers":
         if status not in {
             "Phase 1 Active",
+            "Phase 1 Finished",
             "Phase 2 Active",
+            "Phase 2 Finished",
             "Publication Phase Active",
             "Publication Phase Finished",
         }:
@@ -68,7 +70,7 @@ def publication_state(record, resource):
         else:
             state, reason = (
                 "under_review",
-                "active publication phase without submission date",
+                "paper review or submission preparation without submission date",
             )
     else:
         pattern = r"ATLAS-CONF-\d{4}-\d+" if resource == "confnotes" else PUB_PATTERN

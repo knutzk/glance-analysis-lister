@@ -340,7 +340,9 @@ private data alongside the generated pages.
 Ongoing selection uses leading or additional main-group affiliation, independently
 of publication-curation policy. Each native analysis appears once. Analyses with finished phase 0 and a linked
 publication marked Created remain ongoing as “Awaiting publication review”;
-unresolved linked publication states still require review. Closed and
+papers that have finished phase 1 or phase 2 remain in publication review until
+submission or publication is established. Unresolved linked publication states
+still require review. Closed and
 completed analyses are excluded; uncertain records are listed separately.
 
 Cards show GLANCE links, affiliations and review milestones. Expand a card for
