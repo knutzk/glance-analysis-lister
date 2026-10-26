@@ -107,6 +107,35 @@ def parser():
         help="Records requested per API page (default: %(default)s); larger sizes require server support and may not be faster.",
     )
     api.set_defaults(handler=_run_download_api)
+    refresh = commands.add_parser(
+        "refresh",
+        parents=[console, counts, citations],
+        help="Download once, build a registry and render selected groups sequentially.",
+    )
+    refresh.add_argument(
+        "--groups", nargs="+", required=True, help="Group tokens, e.g. TOPQ HIGP."
+    )
+    refresh.add_argument("--api-snapshot", type=Path, default=API_SNAPSHOT_PATH)
+    refresh.add_argument(
+        "--snapshot",
+        type=Path,
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated registry destination.",
+    )
+    refresh.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pages"),
+        help="One group: write directly here. Multiple groups: lowercase group subdirectories (default: %(default)s).",
+    )
+    refresh.add_argument(
+        "--curation-config", type=Path, default=default_curation_path()
+    )
+    refresh.add_argument(
+        "--login", action="store_true", help="Open CERN SSO in your browser."
+    )
+    refresh.add_argument("--page-size", type=_positive_int, default=DEFAULT_PAGE_SIZE)
+    refresh.set_defaults(handler=_run_refresh)
     html = commands.add_parser(
         "download-html",
         help="Fallback: download GLANCE HTML tables as standalone CSVs.",
@@ -277,6 +306,12 @@ def _run_download_api(args):
     )
 
 
+def _run_refresh(args):
+    from .refresh import refresh
+
+    refresh(args, download=_run_download_api, build=_run_build_registry)
+
+
 def _run_download_html(args):
     from .downloaders.auth import resolve_cookies
     from .downloaders.csv_batch import download_html_csvs
@@ -438,7 +473,7 @@ def _run_format_citations(args):
 
 def run(args):
     """Invoke the registered handler; optional dependencies remain lazy imports."""
-    if args.command == "build-registry" or not hasattr(args, "doi_cache"):
+    if args.command in {"build-registry", "refresh"} or not hasattr(args, "doi_cache"):
         args.handler(args)
         return
     from analysis_lister.citations.store import cached_citations

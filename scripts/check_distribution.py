@@ -147,6 +147,7 @@ def main():
         commands = [
             ["--help"],
             ["download-api", "--help"],
+            ["refresh", "--help"],
             ["download-html", "--help"],
             ["compare-snapshots", "--help"],
             [

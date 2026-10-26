@@ -35,7 +35,6 @@ assert "bs4" not in sys.modules
 
     def test_removed_commands_fail_before_authentication(self):
         for command in (
-            "refresh",
             "download",
             "render",
             "export-obsidian",
