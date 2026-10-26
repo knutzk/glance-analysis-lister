@@ -18,6 +18,7 @@ from view_fixtures import api_fixture, person
 from analysis_lister import cli
 from analysis_lister.download import RESOURCES
 from analysis_lister.registry import builder, enrichment as registry
+from analysis_lister.registry.fields import RECORD_FIELDS, select_fields
 from analysis_lister.registry.schema import validate_registry
 
 
@@ -57,39 +58,30 @@ class CuratedTests(unittest.TestCase):
                 phase["gal_editorialBoard"], ["Chair Example", "Observer Example"]
             )
             self.assertEqual(phase["gal_editorialBoardChairs"], ["Chair Example"])
-            self.assertEqual(phase["gal_editorialBoardExOfficio"], ["Observer Example"])
-            self.assertEqual(phase["gal_signOffResponsible"], "Official Example")
+            if resource != "analyses":
+                self.assertEqual(
+                    phase["gal_editorialBoardExOfficio"], ["Observer Example"]
+                )
+            self.assertNotIn("gal_signOffResponsible", phase)
             self.assertEqual(record["metadata"]["gal_keywords"], ["Keyword", "Other"])
-            self.assertEqual(
-                record["relatedPublications"],
-                self.api[resource][0]["relatedPublications"],
-            )
+            if resource == "analyses":
+                self.assertEqual(
+                    record["relatedPublications"],
+                    self.api[resource][0]["relatedPublications"],
+                )
+            else:
+                self.assertNotIn("relatedPublications", record)
             self.assertNotIn("repositories", record["documentation"])
         self.assertNotIn("cernCcid", json.dumps(result))
         self.assertNotIn("@example.test", json.dumps(result))
         self.assertEqual(before, self.api)
 
-    def test_reserved_namespace_and_removed_keys_are_explicit(self):
-        result = registry.curate(self.api)
-        self.assertEqual(result["schema_version"], 2)
-        self.assertEqual(result["gal_curation"]["removed_keys"], registry.REMOVED_KEYS)
-
-        def check_keys(value):
-            if isinstance(value, dict):
-                for key, item in value.items():
-                    self.assertNotIn(key, registry.REMOVED_KEYS)
-                    check_keys(item)
-            elif isinstance(value, list):
-                for item in value:
-                    check_keys(item)
-
-        for resource in RESOURCES:
-            check_keys(result[resource])
+    def test_reserved_namespace_collisions_are_rejected(self):
         self.api["papers"][0]["metadata"]["gal_future"] = "collision"
         with self.assertRaisesRegex(ValueError, "reserved gal_"):
             registry.curate(self.api)
 
-    def test_enrichment_retains_sources_and_removal_is_independent(self):
+    def test_enrichment_retains_sources_without_mutating_input(self):
         source = {
             "keywords": [{"name": "Synthetic keyword"}],
             "analysisTeam": [person("Team")],
@@ -102,14 +94,7 @@ class CuratedTests(unittest.TestCase):
             self.assertEqual(enriched[key], value)
         self.assertEqual(enriched["gal_keywords"], ["Synthetic keyword"])
         self.assertEqual(enriched["gal_signOffResponsible"], "Official Example")
-        pruned = registry.remove_keys(enriched, ["keywords", "dropMe"])
-        self.assertNotIn("keywords", pruned)
-        self.assertNotIn("dropMe", pruned["unused"])
-        self.assertEqual(pruned["gal_keywords"], enriched["gal_keywords"])
-        self.assertEqual(pruned["analysisTeam"], source["analysisTeam"])
         self.assertEqual(source, before)
-        self.assertIn("keywords", enriched)
-        self.assertEqual(registry.remove_keys(enriched, []), enriched)
 
     def test_string_collections_share_conversion_without_removing_sources(self):
         values = [{"name": " First "}, "Second", {"name": "First"}, {}, None, ""]
@@ -200,7 +185,7 @@ class CuratedTests(unittest.TestCase):
                 source = {"phase0": {source_key: copy.deepcopy(meetings)}}
                 enriched = registry.compact(source)
                 self.assertEqual(enriched["phase0"][source_key], meetings)
-                result = registry.remove_keys(enriched, registry.REMOVED_KEYS)
+                result = select_fields(enriched, RECORD_FIELDS["analyses"])
                 self.assertNotIn(source_key, result["phase0"])
                 self.assertEqual(
                     result["phase0"][output_key],
@@ -340,21 +325,20 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         result = json.loads(self.output.read_text())
         entry = result["papers"][0]["publicationPhase"]["gal_dois"][0]
         self.assertEqual(entry["citation"], "Synthetic citation")
-        self.assertEqual(entry["source"], "manual")
-        self.assertTrue(entry["resolved"])
+        self.assertEqual(set(entry), {"doi", "url", "citation"})
         self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
         self.assertEqual(cache.read_bytes(), before)
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
             builder.build_registry(self.api_path, cache, doi_cache=cache)
 
-    def test_api_title_and_creation_values_are_preserved(self):
+    def test_unused_api_title_and_creation_values_are_dropped(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
         self.api["analyses"][0]["creationDate"] = "2098-12-01"
         result = registry.curate(self.api)
         self.assertNotIn("fullTitle", result["analyses"][0])
         self.assertNotIn("creationDate", result["pubnotes"][0])
-        self.assertEqual(result["papers"][0]["fullTitle"], "An API paper title")
-        self.assertEqual(result["analyses"][0]["creationDate"], "2098-12-01")
+        self.assertNotIn("fullTitle", result["papers"][0])
+        self.assertNotIn("creationDate", result["analyses"][0])
 
     def test_failed_inputs_and_overwriting_source_are_rejected(self):
         before = self.api_path.read_bytes()

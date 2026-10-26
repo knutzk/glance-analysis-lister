@@ -110,12 +110,18 @@ set of files.
 The curated registry retains independent API records and explicit relationships.
 Selected nested collections become names or string lists. Added or reshaped
 fields use the `gal_` prefix; source keys are removed only after enrichment.
-The registry records removal rules, identifier-source evidence, dictionary hashes
-and DOI provenance. DOI/citation pairs, including corrections, stay aligned.
+The registry records identifier-source evidence, dictionary hashes and build
+provenance. DOI/citation pairs, including corrections, stay aligned.
 
 Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
-controls named-object conversions; `REMOVED_KEYS` independently controls source
-key removal. The curated schema is version 2.
+controls named-object conversions. After enrichment, `registry/fields.py` selects
+only record fields
+consumed by the views (including search, curation and diagnostics), down to nested
+links, metadata and DOI/citation entries. New API fields are excluded by default.
+Add fields to this selection when a view starts consuming them. The full API
+snapshot remains the source for rebuilding; the curated file is not a lossless
+API archive. Snapshot and build metadata are retained for provenance and safe
+replacement. The curated schema is version 2.
 
 ### Public links and note identifiers
 

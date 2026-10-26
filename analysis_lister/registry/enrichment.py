@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Curate saved API records, retaining sources until the final removal pass."""
+"""Curate saved API records, retaining sources until the final field selection."""
 
 import copy
 import json
@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from time import perf_counter
 
+from .fields import RECORD_FIELDS, select_fields
 from .public_identifiers import enrich_public_identifiers, load_identifiers
 from .publication_dois import enrich_paper
 from .schema import (
@@ -22,26 +23,6 @@ from .schema import (
 )
 
 logger = logging.getLogger(__name__)
-# Removed recursively only after all enrichments have been computed.
-REMOVED_KEYS = [
-    "analysisTeam",
-    "keywords",
-    "triggers",
-    "statisticalTools",
-    "repositories",
-    "groups",
-    "eoiMeetings",
-    "editorialBoardRequestMeetings",
-    "preApprovalMeetings",
-    "approvalMeetings",
-    "editorialBoard",
-    "readers",
-    "signOffResponsible",
-    "firstSignOffResponsible",
-    "secondSignOffResponsible",
-    "pubcommChairOrDeputyOrDelegated",
-    "spokespersonOrDeputyOrDelegated",
-]
 # Source collection -> dictionary field to extract into gal_<collection>.
 STRING_LIST_FIELDS = {
     "keywords": "name",
@@ -221,19 +202,6 @@ def compact(value, *, reference="Unknown record"):
     return result
 
 
-def remove_keys(value, keys):
-    """Remove configured source keys without depending on enrichment rules."""
-    if isinstance(value, list):
-        return [remove_keys(item, keys) for item in value]
-    if isinstance(value, dict):
-        return {
-            key: remove_keys(item, keys)
-            for key, item in value.items()
-            if key not in keys
-        }
-    return value
-
-
 def curate(api, *, citations=None, pubnote_identifiers=None):
     """Curate independent API records using offline identifier/citation data."""
     validate_api(api)
@@ -296,7 +264,7 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
                 )
                 doi_stats["malformed_links"] += malformed
             enriched = compact(record, reference=record_key(record, resource))
-            records.append(remove_keys(enriched, REMOVED_KEYS))
+            records.append(select_fields(enriched, RECORD_FIELDS[resource]))
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
         )
@@ -317,7 +285,6 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
         },
         "contacts_as_of": as_of.isoformat(),
         "api_schema": api["schema"],
-        "removed_keys": list(REMOVED_KEYS),
         "doi_statistics": doi_stats,
         "citation_store": {
             "entries": len(citations),

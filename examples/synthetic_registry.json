@@ -47,18 +47,11 @@
       "status": "Publication Phase Finished",
       "publicationPhase": {
         "publishedOnlineDate": "2099-02-01",
-        "finalJournalPublicationUrls": [
-          {
-            "url": "https://doi.org/10.9999/synthetic"
-          }
-        ],
         "gal_dois": [
           {
             "doi": "10.9999/synthetic",
             "url": "https://doi.org/10.9999/synthetic",
-            "resolved": true,
-            "citation": "Invented journal citation",
-            "source": "manual"
+            "citation": "Invented journal citation"
           }
         ]
       },
@@ -126,57 +119,6 @@
     "built_at": "2026-10-23T16:33:34.521487+00:00",
     "contacts_as_of": "2099-01-01",
     "api_schema": "glance-api-registry",
-    "supplement_fields": {
-      "analyses": {
-        "Internal Note Editors": "gal_internalNoteEditors"
-      },
-      "papers": {
-        "Figures": "gal_figuresUrl",
-        "Current Paper Draft": "gal_currentPaperDraft"
-      },
-      "pubnotes": {
-        "Reference Code": "gal_finalReferenceCode"
-      }
-    },
-    "removed_keys": [
-      "analysisTeam",
-      "keywords",
-      "triggers",
-      "statisticalTools",
-      "repositories",
-      "groups",
-      "eoiMeetings",
-      "editorialBoardRequestMeetings",
-      "preApprovalMeetings",
-      "approvalMeetings",
-      "editorialBoard",
-      "readers",
-      "signOffResponsible",
-      "firstSignOffResponsible",
-      "secondSignOffResponsible",
-      "pubcommChairOrDeputyOrDelegated",
-      "spokespersonOrDeputyOrDelegated"
-    ],
-    "supplement_statistics": {
-      "analyses": {
-        "matched": 0,
-        "api_without_supplement": 1,
-        "supplement_without_api": 0,
-        "conflicting_fields_api_retained": 0
-      },
-      "papers": {
-        "matched": 0,
-        "api_without_supplement": 1,
-        "supplement_without_api": 0,
-        "conflicting_fields_api_retained": 0
-      },
-      "pubnotes": {
-        "matched": 0,
-        "api_without_supplement": 1,
-        "supplement_without_api": 0,
-        "conflicting_fields_api_retained": 0
-      }
-    },
     "doi_statistics": {
       "papers_with_dois": 1,
       "resolved": 1,
