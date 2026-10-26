@@ -2,6 +2,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 # Install the API-based download/build/render workflow.
-# Standalone HTML download support is optional: install .[download].
 # Dependencies are maintained in pyproject.toml.
 .

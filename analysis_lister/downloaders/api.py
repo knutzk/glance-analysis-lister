@@ -178,7 +178,7 @@ def publish_registry(candidate, destination, *, allow_count_drop=False):
 def download_registry(
     destination, *, login=False, allow_count_drop=False, page_size=DEFAULT_PAGE_SIZE
 ):
-    """Use browser SSO and fetch live data without Selenium or response caching."""
+    """Use browser SSO and fetch live data without response caching."""
     _validate_page_size(page_size)
     try:
         from stare import Glance

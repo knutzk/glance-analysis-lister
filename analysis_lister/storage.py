@@ -1,24 +1,12 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""File publication safeguards for local analysis-list refreshes."""
+"""Atomic file publication safeguards for registries and citation data."""
 
 import os
 import stat
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-
-CSV_REFRESH_MARKER = ".refresh-in-progress"
-SUPPLEMENT_MANIFEST = "supplement_manifest.json"
-
-
-def require_complete_csv_batch(directory: Path):
-    """Reject a CSV directory whose previous promotion was interrupted."""
-    if (directory / CSV_REFRESH_MARKER).exists():
-        raise ValueError(
-            f"Incomplete CSV refresh in {directory}. "
-            "Re-run analysis-lister download-html before building the registry."
-        )
 
 
 def atomic_write_text(path: Path, content: str):

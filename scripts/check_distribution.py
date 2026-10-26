@@ -17,7 +17,6 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
-from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
 from analysis_lister.provenance import asset_provenance, generator_revision
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.public_identifiers import (
@@ -38,6 +37,14 @@ def main():
 
     package = distribution("glance-analysis-lister")
     retired = (
+        "analysis_lister/downloaders/auth.py",
+        "analysis_lister/downloaders/html.py",
+        "analysis_lister/downloaders/http.py",
+        "analysis_lister/downloaders/tables.py",
+        "analysis_lister/downloaders/csv_batch.py",
+        "analysis_lister/downloaders/csv_io.py",
+        "analysis_lister/downloaders/manifest.py",
+        "analysis_lister/certs/",
         "analysis_lister/configs/",
         "analysis_lister/downloaders/scope.py",
         "analysis_lister/glance/",
@@ -61,6 +68,7 @@ def main():
     assert not any(str(path).startswith(retired) for path in package.files), (
         "Retired modules must not ship in the wheel"
     )
+    assert "download" not in package.metadata.get_all("Provides-Extra", [])
     assert package.metadata["License-Expression"] == "GPL-3.0-only"
     assert package.metadata["License-File"] == "LICENCE"
     licences = [
@@ -90,8 +98,6 @@ def main():
     )
     assert policy_path.read_bytes() == (root / "publication-curation.toml").read_bytes()
     assert load_publication_policy(policy_path, "TOPQ") is not None
-    with trusted_ca_bundle() as bundle:
-        assert INTERMEDIATE_CA.read_bytes() in Path(bundle).read_bytes()
 
     archives = list((root / "dist").glob("*.tar.gz"))
     assert len(archives) == 1, "Expected one source distribution"
@@ -100,6 +106,9 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
+        assert not any(
+            name.removeprefix(prefix).startswith(retired) for name in archive.getnames()
+        ), "Retired modules must not ship in the source distribution"
         assert (
             archive.extractfile(prefix + "publication-curation.toml").read()
             == (root / "publication-curation.toml").read_bytes()
@@ -122,7 +131,6 @@ def main():
         commands = [
             ["--help"],
             ["download-api", "--help"],
-            ["download-html", "--help"],
             ["render-group", "--help"],
             [
                 "resolve-dois",
@@ -289,7 +297,7 @@ def main():
         assert citation["source"] == "doi-pattern:jhep"
         assert "locked" not in citation
 
-    print("Installed CLI, synthetic rendering, TLS bundle and licences verified.")
+    print("Installed CLI, synthetic rendering and licences verified.")
 
 
 if __name__ == "__main__":

@@ -7,12 +7,10 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis_lister import cli
-from analysis_lister.downloaders import auth, html as download
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 
@@ -25,7 +23,7 @@ import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
     import analysis_lister.cli
-    import analysis_lister.downloaders.csv_batch
+    import analysis_lister.downloaders.api
     import analysis_lister.views.build
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
@@ -35,40 +33,9 @@ assert "bs4" not in sys.modules
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_download_flags_and_paths_reach_workflows(self):
-        with (
-            patch.object(cli, "configure_logging"),
-            patch.object(auth, "resolve_cookies", return_value={}) as credentials,
-            patch(
-                "analysis_lister.downloaders.csv_batch.download_html_csvs"
-            ) as workflow,
-        ):
-            cli.main(
-                [
-                    "download-html",
-                    "--save-html",
-                    "html",
-                    "--login",
-                    "--cookies",
-                    "session.json",
-                    "--csv-dir",
-                    "csv",
-                ]
-            )
-        credentials.assert_called_once_with(
-            Path("session.json"), generate_new_cookies=True
-        )
-        workflow.assert_called_once_with(
-            download.download_tasks(),
-            Path("csv"),
-            Path("html"),
-            cookies={},
-            use_local_html=False,
-            debug=True,
-        )
-
     def test_removed_commands_fail_before_authentication(self):
         for command in (
+            "download-html",
             "refresh",
             "download",
             "render",
@@ -77,7 +44,7 @@ assert "bs4" not in sys.modules
         ):
             with (
                 self.subTest(command=command),
-                patch.object(auth, "resolve_cookies") as credentials,
+                patch("stare.auth.TokenManager") as credentials,
                 patch("sys.stderr"),
                 self.assertRaises(SystemExit) as error,
             ):
@@ -98,8 +65,7 @@ assert "bs4" not in sys.modules
         )
         citations.assert_not_called()
         parser = cli.parser()
-        for command in ("download-api", "download-html"):
-            self.assertFalse(hasattr(parser.parse_args([command]), "doi_cache"))
+        self.assertFalse(hasattr(parser.parse_args(["download-api"]), "doi_cache"))
 
     def test_api_page_size_is_forwarded_and_invalid_values_fail_before_auth(self):
         with patch(
@@ -146,38 +112,11 @@ assert "bs4" not in sys.modules
             doi_cache=cli.default_store_path(),
         )
 
-    def test_offline_cli_never_reads_credentials(self):
-        with (
-            patch.object(cli, "configure_logging"),
-            patch.object(
-                auth.CookieManager,
-                "load_cookies",
-                side_effect=AssertionError("credentials read"),
-            ),
-            patch(
-                "analysis_lister.downloaders.csv_batch.download_html_csvs"
-            ) as workflow,
-        ):
-            cli.main(["download-html", "--from-html", "saved"])
-        workflow.assert_called_once_with(
-            download.download_tasks(),
-            cli.SUPPLEMENT_CSV_DIR,
-            Path("saved"),
-            use_local_html=True,
-            cookies=None,
-            debug=False,
-        )
-
     def test_invalid_combinations_fail_before_work_starts(self):
         for flags in (
             [],
-            ["download-html", "--from-html", "saved", "--login"],
-            ["download-html", "--from-html", "saved", "--save-html", "saved"],
             ["render", "--login"],
-            ["download-html", "--allow-count-drop"],
             ["build-registry", "--force"],
-            ["download-html", "--debug"],
-            ["download-html", "--snapshot", "snapshot.json"],
             ["build-registry", "--output-dir", "pages"],
             ["render", "--allow-count-drop"],
             ["validate-lookups", "--csv-dir", "csv"],
@@ -191,31 +130,6 @@ assert "bs4" not in sys.modules
                 cli.main(flags)
             self.assertEqual(error.exception.code, 2)
             run.assert_not_called()
-
-    def test_login_passes_cookie_path_and_returns_credentials(self):
-        with patch.object(
-            auth.CookieManager,
-            "generate_cookies",
-            return_value=[{"name": "session", "value": "synthetic"}],
-        ) as generate:
-            cookies = auth.resolve_cookies(
-                Path("session.json"), generate_new_cookies=True
-            )
-        generate.assert_called_once_with(Path("session.json"))
-        self.assertEqual(cookies, {"session": "synthetic"})
-
-    def test_cookie_path_is_supplied_by_caller(self):
-        with TemporaryDirectory() as directory:
-            cookie_file = Path(directory) / "session.json"
-            with self.assertRaisesRegex(ValueError, "No cookies found"):
-                auth.resolve_cookies(cookie_file)
-            auth.CookieManager.save_cookies(
-                [{"name": "test", "value": "synthetic"}], cookie_file
-            )
-            self.assertEqual(
-                auth.resolve_cookies(cookie_file),
-                {"test": "synthetic"},
-            )
 
 
 if __name__ == "__main__":

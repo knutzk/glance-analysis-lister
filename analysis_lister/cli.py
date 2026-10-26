@@ -16,15 +16,8 @@ from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
 
-SUPPLEMENT_CSV_DIR = Path(".")
 API_SNAPSHOT_PATH = Path("glance_api_registry.json")
 CURATED_SNAPSHOT_PATH = Path("glance_curated_registry.json")
-COOKIE_FILE = Path("cookies.json")
-
-
-def _validate_download(command, args):
-    if args.from_html is not None and args.save_html is not None:
-        command.error("--from-html cannot be combined with --save-html")
 
 
 def _positive_int(value):
@@ -73,14 +66,6 @@ def parser():
         default=default_store_path(),
         help="Maintained citation JSON dictionary (default: shared glance-analysis-lister dictionary).",
     )
-    supplement_csv = argparse.ArgumentParser(add_help=False)
-    supplement_csv.add_argument(
-        "--csv-dir",
-        type=Path,
-        default=SUPPLEMENT_CSV_DIR,
-        help="Supplemental CSV directory (default: %(default)s).",
-    )
-
     counts = argparse.ArgumentParser(add_help=False)
     counts.add_argument(
         "--allow-count-drop",
@@ -88,39 +73,12 @@ def parser():
         help="Allow an understood drop in registry counts; other checks still apply.",
     )
 
-    download = argparse.ArgumentParser(add_help=False)
-    source = download.add_mutually_exclusive_group()
-    source.add_argument(
-        "--login",
-        action="store_true",
-        help="Log in using Chrome and save fresh cookies.",
-    )
-    source.add_argument(
-        "--from-html",
-        type=Path,
-        metavar="DIR",
-        help="Read saved HTML tables from DIR without network access.",
-    )
-    download.add_argument(
-        "--save-html",
-        type=Path,
-        metavar="DIR",
-        help="Save downloaded HTML tables to DIR.",
-    )
-    download.add_argument(
-        "--cookies",
-        type=Path,
-        default=COOKIE_FILE,
-        help="Session cookie file (default: %(default)s).",
-    )
-    download.set_defaults(validator=_validate_download)
-
     command = argparse.ArgumentParser(description=__doc__, parents=[console])
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
     api = commands.add_parser(
         "download-api",
-        help="Download a separate, rich API source registry using browser SSO.",
+        help="Download the API source registry using browser SSO.",
         parents=[console, counts],
     )
     api.add_argument(
@@ -139,42 +97,24 @@ def parser():
         help="Records requested per API page (default: %(default)s); larger sizes require server support and may not be faster.",
     )
     api.set_defaults(handler=_run_download_api)
-    for name, description, parents, handler in (
-        (
-            "download-html",
-            "Download supplemental CSVs using Selenium SSO.",
-            [supplement_csv, download],
-            _run_download,
-        ),
-        (
-            "build-registry",
-            "Build a curated registry from API JSON and shared identifier/citation data.",
-            [counts],
-            _run_build_registry,
-        ),
-    ):
-        sub = commands.add_parser(
-            name,
-            help=description,
-            description=description,
-            parents=[*parents, console]
-            if name == "download-html"
-            else [*parents, citations, console],
-        )
-        sub.set_defaults(handler=handler)
-        if name == "build-registry":
-            sub.add_argument(
-                "--api-snapshot",
-                type=Path,
-                default=API_SNAPSHOT_PATH,
-                help="API JSON input (default: %(default)s).",
-            )
-            sub.add_argument(
-                "--output",
-                type=Path,
-                default=CURATED_SNAPSHOT_PATH,
-                help="Curated JSON output (default: %(default)s).",
-            )
+    build = commands.add_parser(
+        "build-registry",
+        help="Build a curated registry from API JSON and shared identifier/citation data.",
+        parents=[counts, citations, console],
+    )
+    build.set_defaults(handler=_run_build_registry)
+    build.add_argument(
+        "--api-snapshot",
+        type=Path,
+        default=API_SNAPSHOT_PATH,
+        help="API JSON input (default: %(default)s).",
+    )
+    build.add_argument(
+        "--output",
+        type=Path,
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated JSON output (default: %(default)s).",
+    )
     group = commands.add_parser(
         "render-group",
         parents=[console],
@@ -258,31 +198,6 @@ def _run_download_api(args):
         "API registry downloaded",
         [("Registry", args.output), *counts.items()],
         color=args.color,
-    )
-
-
-def _download_cookies(args):
-    from analysis_lister.downloaders.auth import resolve_cookies
-
-    if args.from_html is not None:
-        return None
-    return resolve_cookies(args.cookies, generate_new_cookies=args.login)
-
-
-def _run_download(args):
-    from analysis_lister.downloaders.csv_batch import download_html_csvs
-    from analysis_lister.downloaders.html import download_tasks
-
-    download_html_csvs(
-        download_tasks(),
-        args.csv_dir,
-        args.from_html or args.save_html or Path("debug"),
-        cookies=_download_cookies(args),
-        use_local_html=args.from_html is not None,
-        debug=args.save_html is not None,
-    )
-    print_summary(
-        "Download complete", [("CSV directory", args.csv_dir)], color=args.color
     )
 
 
