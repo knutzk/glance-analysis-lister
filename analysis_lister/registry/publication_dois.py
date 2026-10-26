@@ -3,6 +3,7 @@
 
 """Extract API paper DOIs and embed cached citations without network access."""
 
+import re
 from urllib.parse import unquote, urlsplit
 
 from ..citations.ordering import order_doi_urls
@@ -10,7 +11,7 @@ from ..citations.store import citation_record, normalize_doi
 
 
 def paper_dois(paper):
-    """Read authoritative publication links; ignore other publication websites."""
+    """Extract DOIs from URL fields only; labels never supply DOI values."""
     phase = paper.get("publicationPhase") or {}
     if not isinstance(phase, dict):
         raise ValueError("Paper publication phase must be an object")
@@ -21,35 +22,29 @@ def paper_dois(paper):
     malformed = 0
     for link in links:
         value = link.get("url") if isinstance(link, dict) else link
-        candidates = []
-        if isinstance(link, dict):
-            label = link.get("label")
-            if isinstance(label, str) and label.strip().lower().startswith("doi:"):
-                candidates.append(label)
-        if value:
-            if isinstance(value, str) and value.strip().lower().startswith(
-                ("https://", "http://")
-            ):
-                parsed = urlsplit(value.strip())
-                if (parsed.hostname or "").lower() in {
-                    "doi.org",
-                    "www.doi.org",
-                    "dx.doi.org",
-                    "www.dx.doi.org",
-                }:
-                    candidates.append(value)
-                elif "/doi/" in parsed.path:
-                    candidates.append(unquote(parsed.path.split("/doi/", 1)[1]))
-            else:
-                candidates.append(value)
-        for candidate in candidates:
+        candidate = value
+        if isinstance(value, str) and value.strip().lower().startswith(
+            ("https://", "http://")
+        ):
+            parsed = urlsplit(value.strip())
+            if (parsed.hostname or "").lower() not in {
+                "doi.org",
+                "www.doi.org",
+                "dx.doi.org",
+                "www.dx.doi.org",
+            }:
+                # Publisher URLs may use /doi/full/10..., /article/10..., etc.
+                match = re.search(r"/(10\.\d{4,9}/.+)$", unquote(parsed.path))
+                candidate = match.group(1) if match else None
+        doi = None
+        if candidate:
             try:
                 doi = normalize_doi(candidate)
             except ValueError:
                 malformed += 1
-                continue
-            if doi not in result:
-                result.append(doi)
+            else:
+                if doi not in result:
+                    result.append(doi)
     return result, malformed
 
 

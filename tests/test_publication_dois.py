@@ -25,6 +25,37 @@ def paper(*urls):
 
 
 class PublicationDoiTests(unittest.TestCase):
+    def test_conflicting_label_is_ignored_without_changing_source(self):
+        record = paper("https://doi.org/" + CORRECTION)
+        link = record["publicationPhase"]["finalJournalPublicationUrls"][0]
+        link["label"] = "DOI:" + ORIGINAL
+        original_link = link.copy()
+        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+            self.assertEqual(paper_dois(record), ([CORRECTION], 0))
+        self.assertEqual(link, original_link)
+
+    def test_equivalent_label_and_url_do_not_warn(self):
+        record = paper("http://dx.doi.org/" + ORIGINAL)
+        record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
+            "DOI:" + ORIGINAL.upper()
+        )
+        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+            self.assertEqual(paper_dois(record), ([ORIGINAL], 0))
+
+    def test_link_conflict_does_not_suppress_ambiguous_order_warning(self):
+        record = paper(
+            "https://doi.org/10.1234/example-b", "https://doi.org/10.1234/example-c"
+        )
+        record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
+            "DOI:10.1234/example-a"
+        )
+        with self.assertLogs("analysis_lister", level="WARNING") as logs:
+            entries, malformed = enrich_paper(record, {})
+        self.assertEqual(malformed, 0)
+        self.assertEqual(len(entries), 2)
+        self.assertFalse(any("label" in m for m in logs.output))
+        self.assertTrue(any("ambiguous DOI order" in m for m in logs.output))
+
     def test_normalizes_and_deduplicates_doi_links_without_treating_inspire_as_doi(
         self,
     ):
@@ -36,7 +67,7 @@ class PublicationDoiTests(unittest.TestCase):
         )
         self.assertEqual(paper_dois(record), ([ORIGINAL], 1))
 
-    def test_explicit_doi_labels_and_publisher_paths_are_supported(self):
+    def test_publisher_paths_supply_dois_independently_of_labels(self):
         record = paper()
         record["publicationPhase"]["finalJournalPublicationUrls"] = [
             {"label": "DOI:" + ORIGINAL, "url": "https://example.test/literature/123"},
@@ -47,6 +78,22 @@ class PublicationDoiTests(unittest.TestCase):
         entries, _ = enrich_paper(record, {ORIGINAL: "Invented citation"})
         self.assertEqual(entries[0]["citation"], "Invented citation")
         self.assertEqual(entries[1]["doi"], CORRECTION)
+
+    def test_label_only_doi_is_not_a_fallback(self):
+        record = paper("https://example.test/science/article/pii/INVENTED")
+        record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
+            "Errratum: DOI:" + ORIGINAL
+        )
+        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+            self.assertEqual(paper_dois(record), ([], 0))
+
+    def test_publisher_paths_with_embedded_dois(self):
+        record = paper(
+            "https://example.test/article/" + ORIGINAL + "?tracking=ignored",
+            "https://example.test/doi/full/" + CORRECTION,
+            "https://example.test/science/article/pii/INVENTED",
+        )
+        self.assertEqual(paper_dois(record), ([ORIGINAL, CORRECTION], 0))
 
     def test_each_correction_keeps_its_citation_and_provenance(self):
         record = paper("https://doi.org/" + CORRECTION, "https://doi.org/" + ORIGINAL)
