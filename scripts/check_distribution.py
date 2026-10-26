@@ -60,7 +60,25 @@ def main():
     assert not any(str(path).startswith(retired) for path in package.files), (
         "Retired modules must not ship in the wheel"
     )
-    assert "download" not in package.metadata.get_all("Provides-Extra", [])
+    assert "html" in package.metadata.get_all("Provides-Extra", [])
+    browser_requirements = [
+        item
+        for item in package.requires or []
+        if item.startswith(("selenium", "beautifulsoup4"))
+    ]
+    assert browser_requirements and all(
+        "extra ==" in item for item in browser_requirements
+    )
+    from analysis_lister.downloaders.http import INTERMEDIATE_CA
+
+    assert INTERMEDIATE_CA.is_file()
+    assert (
+        INTERMEDIATE_CA.read_bytes()
+        == (
+            root / "analysis_lister/downloaders/certs" / INTERMEDIATE_CA.name
+        ).read_bytes()
+    )
+    assert INTERMEDIATE_CA.with_name("README.md").is_file()
     assert package.metadata["License-Expression"] == "GPL-3.0-only"
     assert package.metadata["License-File"] == "LICENCE"
     licences = [
@@ -123,6 +141,7 @@ def main():
         commands = [
             ["--help"],
             ["download-api", "--help"],
+            ["download-html", "--help"],
             ["render-group", "--help"],
             [
                 "resolve-dois",

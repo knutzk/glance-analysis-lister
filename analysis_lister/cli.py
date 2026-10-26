@@ -20,6 +20,16 @@ API_SNAPSHOT_PATH = Path("glance_api_registry.json")
 CURATED_SNAPSHOT_PATH = Path("glance_curated_registry.json")
 
 
+def _validate_html_download(command, args):
+    if args.from_html is not None and args.save_html is not None:
+        command.error("--from-html cannot be combined with --save-html")
+    if (
+        args.save_html is not None
+        and args.save_html.resolve() == args.csv_dir.resolve()
+    ):
+        command.error("--save-html and --csv-dir must use separate directories")
+
+
 def _positive_int(value):
     number = int(value)
     if number < 1:
@@ -97,6 +107,43 @@ def parser():
         help="Records requested per API page (default: %(default)s); larger sizes require server support and may not be faster.",
     )
     api.set_defaults(handler=_run_download_api)
+    html = commands.add_parser(
+        "download-html",
+        help="Fallback: download GLANCE HTML tables as standalone CSVs.",
+        description="Download all four GLANCE HTML tables as CSVs. These are independent exports, not inputs to build-registry. Requires the html extra; Chrome is required for --login.",
+        parents=[console],
+    )
+    html.add_argument(
+        "--csv-dir",
+        type=Path,
+        default=Path("."),
+        help="CSV output directory (default: current working directory).",
+    )
+    source = html.add_mutually_exclusive_group()
+    source.add_argument(
+        "--login",
+        action="store_true",
+        help="Log in manually using Chrome and save fresh cookies.",
+    )
+    source.add_argument(
+        "--from-html",
+        type=Path,
+        metavar="DIR",
+        help="Replay saved HTML and its manifest from DIR without network access.",
+    )
+    html.add_argument(
+        "--save-html",
+        type=Path,
+        metavar="DIR",
+        help="Save downloaded HTML and its manifest to DIR for offline replay.",
+    )
+    html.add_argument(
+        "--cookies",
+        type=Path,
+        default=Path("cookies.json"),
+        help="Session cookie file (default: %(default)s).",
+    )
+    html.set_defaults(handler=_run_download_html, validator=_validate_html_download)
     build = commands.add_parser(
         "build-registry",
         help="Build a curated registry from API JSON and shared identifier/citation data.",
@@ -198,6 +245,38 @@ def _run_download_api(args):
         "API registry downloaded",
         [("Registry", args.output), *counts.items()],
         color=args.color,
+    )
+
+
+def _run_download_html(args):
+    try:
+        import bs4  # noqa: F401
+
+        if args.login:
+            import selenium  # noqa: F401
+    except ImportError:
+        raise ValueError(
+            "HTML downloading requires optional dependencies: pip install 'glance-analysis-lister[html]'"
+        ) from None
+    from .downloaders.auth import resolve_cookies
+    from .downloaders.csv_batch import download_html_csvs
+    from .downloaders.html import download_tasks
+
+    cookies = (
+        None
+        if args.from_html is not None
+        else resolve_cookies(args.cookies, generate_new_cookies=args.login)
+    )
+    download_html_csvs(
+        download_tasks(),
+        args.csv_dir,
+        args.from_html or args.save_html or Path("debug"),
+        cookies=cookies,
+        use_local_html=args.from_html is not None,
+        debug=args.save_html is not None,
+    )
+    print_summary(
+        "HTML tables downloaded", [("CSV directory", args.csv_dir)], color=args.color
     )
 
 

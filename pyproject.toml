@@ -17,6 +17,7 @@ dependencies = ["attrs>=26.1", "requests>=2.34", "stare==0.6.1"]
 Repository = "https://github.com/knutzk/glance-analysis-lister.git"
 
 [project.optional-dependencies]
+html = ["beautifulsoup4>=4.15", "selenium>=4.46"]
 dev = ["beautifulsoup4>=4.15", "selenium>=4.46", "ruff==0.16.0", "build>=1.2"]
 
 [project.scripts]
@@ -26,7 +27,7 @@ analysis-lister = "analysis_lister.cli:main"
 include = ["analysis_lister*"]
 
 [tool.setuptools.package-data]
-analysis_lister = ["_source_revision.txt", "views/assets/*.js", "views/assets/*.css"]
+analysis_lister = ["_source_revision.txt", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
 
 [tool.setuptools.data-files]
 "share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml"]

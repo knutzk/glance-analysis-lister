@@ -21,6 +21,7 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 
 | Command | Purpose |
 | --- | --- |
+| `download-html` | Optional fallback: export all four HTML tables as independent CSVs. |
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
 | `build-registry` | Curate saved API JSON using bundled public identifiers and citation metadata. |
 | `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
@@ -104,6 +105,22 @@ API downloads and registry builds reject per-resource count drops greater than
 Inputs cannot be overwritten by registry output, and successful candidates are
 published atomically. Run downloading and building sequentially against a given
 set of files.
+
+### Optional HTML fallback
+
+Install the optional dependencies with `python -m pip install '.[html]'` from a
+checkout, then run `analysis-lister download-html --login`. Chrome opens for
+manual CERN SSO; later runs reuse `cookies.json`. This exports all available
+columns from analyses, papers, CONF notes and PUB notes to the current directory.
+Use `--csv-dir DIR` to choose another destination. These CSVs are standalone
+exports, not inputs to `build-registry`.
+
+TLS verification stays enabled, including support for `REQUESTS_CA_BUNDLE`.
+Complete-table counters and identifiers are checked before batch publication;
+failed writes roll back, retaining backups and an interruption marker if rollback
+fails. Do not consume a batch while `.html-download-in-progress` exists. A
+successful rerun repairs an interrupted batch. Keep cookies and exported data
+private. `download-html --help` also describes saving and replaying HTML offline.
 
 ### Curated data and provenance
 
@@ -408,7 +425,7 @@ Tests use invented data and do not establish that live CERN authentication works
 
 | Directory | Responsibility |
 | --- | --- |
-| `downloaders/api.py` | API retrieval through stare, validation and atomic snapshot publication. |
+| `downloaders/` | Independent API retrieval and optional HTML-to-CSV downloads, authentication, validation and safe publication. |
 | `registry/` | Offline enrichment, schema validation, DOI extraction and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
