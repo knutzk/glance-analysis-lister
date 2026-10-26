@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
-from analysis_lister.download import (
+from analysis_lister.downloaders.api import (
     RESOURCES,
     SORT_FIELDS,
     collect_registry,
@@ -120,7 +120,7 @@ class ApiTests(unittest.TestCase):
             before = destination.read_bytes()
             with (
                 patch(
-                    "analysis_lister.download.atomic_write_text",
+                    "analysis_lister.downloaders.api.atomic_write_text",
                     side_effect=OSError("invented failure"),
                 ),
                 self.assertLogs("analysis_lister", level="INFO") as captured,

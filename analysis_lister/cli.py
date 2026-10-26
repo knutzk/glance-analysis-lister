@@ -11,7 +11,7 @@ import requests
 
 from .citations.store import default_store_path
 from .console import configure_logging, print_summary
-from .download import DEFAULT_PAGE_SIZE
+from .downloaders.api import DEFAULT_PAGE_SIZE
 from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ def parser():
 
 
 def _run_download_api(args):
-    from analysis_lister.download import download_registry
+    from analysis_lister.downloaders.api import download_registry
 
     counts = download_registry(
         args.output,

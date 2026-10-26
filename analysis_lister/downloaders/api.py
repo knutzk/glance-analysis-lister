@@ -15,13 +15,13 @@ from pathlib import Path
 from time import perf_counter
 from urllib.parse import urlsplit, urlunsplit
 
-from .registry.schema import (
+from ..registry.schema import (
     API_SCHEMA as SCHEMA,
     RESOURCES,
     record_key,
     validate_api_registry as validate_registry,
 )
-from .storage import atomic_write_text
+from ..storage import atomic_write_text
 
 logger = logging.getLogger(__name__)
 

@@ -16,7 +16,7 @@ from unittest.mock import patch
 from view_fixtures import api_fixture, person
 
 from analysis_lister import cli
-from analysis_lister.download import RESOURCES
+from analysis_lister.downloaders.api import RESOURCES
 from analysis_lister.registry import builder, enrichment as registry
 from analysis_lister.registry.fields import RECORD_FIELDS, select_fields
 from analysis_lister.registry.schema import validate_registry
@@ -244,7 +244,7 @@ class BlockLegacyAndAuthentication(importlib.abc.MetaPathFinder):
                for name in ("analysis_lister.glance", "stare", "selenium")):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, BlockLegacyAndAuthentication())
-from analysis_lister import download
+from analysis_lister.downloaders import api as download
 from analysis_lister.cli import main
 from analysis_lister.registry import CuratedRegistry
 main(["build-registry", "--api-snapshot", sys.argv[1],

@@ -17,7 +17,7 @@ import httpx
 from stare import Glance
 from stare.settings import StareSettings
 
-from analysis_lister.download import (
+from analysis_lister.downloaders.api import (
     collect_registry,
     download_registry,
     publish_registry,

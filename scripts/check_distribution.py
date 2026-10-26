@@ -37,7 +37,7 @@ def main():
 
     package = distribution("glance-analysis-lister")
     retired = (
-        "analysis_lister/downloaders/",
+        "analysis_lister/download.py",
         "analysis_lister/certs/",
         "analysis_lister/configs/",
         "analysis_lister/glance/",

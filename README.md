@@ -408,7 +408,7 @@ Tests use invented data and do not establish that live CERN authentication works
 
 | Directory | Responsibility |
 | --- | --- |
-| `download.py` | API retrieval through stare, validation and atomic snapshot publication. |
+| `downloaders/api.py` | API retrieval through stare, validation and atomic snapshot publication. |
 | `registry/` | Offline enrichment, schema validation, DOI extraction and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
