@@ -21,6 +21,7 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 
 | Command | Purpose |
 | --- | --- |
+| `refresh` | Download once, build the registry and render selected groups sequentially. |
 | `download-html` | Optional fallback: export all four HTML tables as independent CSVs. |
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
 | `compare-snapshots` | Compare two saved API snapshots or two curated registries offline. |
@@ -40,6 +41,40 @@ build progress includes resource counts and identifier/DOI summaries. `--verbose
 adds each request's offset and limit; `--quiet` retains warnings and final results.
 Credentials, authentication URL parameters and raw record payloads are not logged;
 warnings may identify records needing attention.
+
+## Refresh group pages in one command
+
+From the consuming repository, run:
+
+```bash
+analysis-lister refresh --groups TOPQ --output-dir docs/analyses --login
+```
+
+This downloads one shared API snapshot, builds the curated registry offline, then
+renders the four group pages, assets and JSON diagnostic report. Authentication
+and token refresh are managed by stare; omit `--login` to use stored credentials.
+HTML downloading is independent and is not part of this workflow. No citation
+metadata service is queried.
+
+For several groups:
+
+```bash
+analysis-lister refresh --groups TOPQ HIGP --output-dir pages
+```
+
+A single group writes directly into the output directory. Multiple groups write
+into lowercase subdirectories (`pages/topq/`, `pages/higp/`). Group tokens must be
+uppercase and unique. `--curation-config` selects publication policies and titles.
+`--api-snapshot` and `--snapshot` select the source and curated destinations;
+their defaults remain in the current working directory. `--page-size` defaults to
+500. `--allow-count-drop` applies to both download and build count guards.
+
+Configuration and destination collisions are checked before authentication.
+Steps run sequentially and stop at the first failure. Completed outputs remain;
+there is no rollback across the entire workflow or all rendered pages. Use
+`build-registry` or `render-group` to resume from the saved snapshots without
+another download. The final summary lists both snapshots, each group's output
+and diagnostic report, counts and total elapsed time.
 
 ## Download and build a registry
 
