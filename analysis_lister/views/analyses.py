@@ -80,10 +80,14 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
                     **link,
                     "draftReleasedDate": (publication.get("phase1") or {}).get(
                         "draftReleasedDate"
-                    ),
+                    )
+                    if link["resource"] == "papers"
+                    else None,
                     "draft2ReleasedDate": (publication.get("phase2") or {}).get(
                         "draft2ReleasedDate"
-                    ),
+                    )
+                    if link["resource"] == "papers"
+                    else None,
                     "pgcApprovalDate": (publication.get("phase1") or {}).get(
                         "pgcApprovalDate"
                     ),

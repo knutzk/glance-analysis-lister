@@ -427,6 +427,12 @@ rendering, packaged assets, shared dictionaries, publication policies and licenc
 View tests are separated by preparation, ongoing rendering, paper rendering,
 note rendering, shared publication controls, publication curation and output
 building. Synthetic fixtures are shared through `tests/view_fixtures.py`.
+`tests/test_retained_field_contract.py` guards source-record reads during
+preparation and rendering: a lookup outside `registry/fields.py` fails with its
+resource and nested path, even when the field is absent from the fixture. Tests
+exercise populated and sparse records; add scenarios when introducing new
+conditional view behavior. Output comparisons additionally check that trimming
+records preserves rendering and search metadata.
 
 Browser checks are separate developer tools. They require installed Chrome and
 ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,

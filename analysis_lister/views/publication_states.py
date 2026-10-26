@@ -17,7 +17,7 @@ def publication_state(record, resource):
         if resource == "papers"
         else record.get("phase1") or {}
     )
-    number = final_identifier(record, resource)
+    number = final_identifier(record, resource) if resource != "papers" else None
     inputs = {"status": status}
     if resource == "papers":
         inputs.update(

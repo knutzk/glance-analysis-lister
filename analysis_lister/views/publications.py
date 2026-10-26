@@ -93,14 +93,16 @@ def publication_filter_values(record, related, field):
 def publication_details(record, resource, related=None):
     """Prepare publication-owned people and links without legacy models or requests."""
     phase = record.get("phase1") or {}
-    publication = record.get("publicationPhase") or {}
+    publication = (record.get("publicationPhase") or {}) if resource == "papers" else {}
     sources = {
         "gal_analysisContacts": record.get("gal_analysisContacts") or [],
         "gal_contactEditors": record.get("gal_contactEditors") or [],
         "phase1.gal_editorialBoard": phase.get("gal_editorialBoard") or [],
         "phase1.gal_editorialBoardChairs": phase.get("gal_editorialBoardChairs") or [],
         "gal_groups": record.get("gal_groups") or {},
-        "gal_figuresUrl": record.get("gal_figuresUrl"),
+        "gal_figuresUrl": record.get("gal_figuresUrl")
+        if resource == "papers"
+        else None,
         "phase1.publicWebPageUrlForFiguresAndTables": phase.get(
             "publicWebPageUrlForFiguresAndTables"
         ),
@@ -140,11 +142,13 @@ def publication_details(record, resource, related=None):
             if isinstance(item, dict):
                 links.append(
                     {
-                        "label": item.get("label") or label,
+                        "label": label
+                        if source == "publicationPhase.gal_dois"
+                        else item.get("label") or label,
                         "url": item.get("url")
                         or (
                             "https://doi.org/" + item["doi"]
-                            if item.get("doi")
+                            if source == "publicationPhase.gal_dois" and item.get("doi")
                             else None
                         ),
                     }
@@ -263,7 +267,11 @@ def prepare_publications(registry, profile, analyses):
                 subgroup_decision,
             )
             keywords = metadata_decisions["keywords"].value
-            dois = (record.get("publicationPhase") or {}).get("gal_dois") or []
+            dois = (
+                ((record.get("publicationPhase") or {}).get("gal_dois") or [])
+                if resource == "papers"
+                else []
+            )
             citations = tuple(
                 entry.get("citation") or entry.get("doi", "") for entry in dois
             )
