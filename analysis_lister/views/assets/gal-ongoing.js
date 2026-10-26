@@ -29,18 +29,25 @@
       const sorter = controls.querySelector("[data-gal-sort]");
       const cardContainer = root.querySelector(".gal-cards");
       const subgroupButtons = Array.from(controls.querySelectorAll('[data-gal-filter="subgroups"] button'));
-      function readSubgroupURL() {
-        const values = new URLSearchParams(window.location.search).getAll("subgroup");
+      function readURL() {
+        const params = common.readURLFields({q: search});
+        if (sorter) {
+          const value = params.get("sort");
+          sorter.value = Array.from(sorter.options).some(option => option.value === value)
+            ? value : sorter.options[0].value;
+        }
+        const values = params.getAll("subgroup");
         subgroupButtons.forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.galValue))));
       }
-      function writeSubgroupURL() {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("subgroup");
-        subgroupButtons.filter(button => button.getAttribute("aria-pressed") === "true")
-          .forEach(button => url.searchParams.append("subgroup", button.dataset.galValue));
-        common.replaceURL(url);
+      function writeURL() {
+        common.writeURLParams({
+          q: search.value.trim(),
+          subgroup: subgroupButtons.filter(button => button.getAttribute("aria-pressed") === "true")
+            .map(button => button.dataset.galValue),
+          sort: sorter && sorter.value !== sorter.options[0].value ? sorter.value : "",
+        });
       }
-      readSubgroupURL();
+      readURL();
       const cardControllers = [];
       const expandAll = controls.querySelector("[data-gal-expand-all]");
       function updateExpandAll() {
@@ -77,7 +84,7 @@
         items.forEach(item => { item.element.hidden = !shown.has(item); });
         counter.textContent = `${count} of ${items.length} ${root.dataset.galNoun || "results"}`;
         empty.hidden = count !== 0;
-        writeSubgroupURL();
+        writeURL();
         updateExpandAll();
       }
       controls.addEventListener("click", (event) => {
@@ -149,7 +156,7 @@
       window.addEventListener("hashchange", openAnchoredCard);
       window.addEventListener("popstate", () => {
         if (!root.isConnected) return;
-        readSubgroupURL();
+        readURL();
         update();
       });
       initialized.add(root);

@@ -61,11 +61,8 @@
         });
       });
       function readURL() {
-        const params = new URLSearchParams(location.search);
-        if (after) after.value = params.get("after") || "";
-        if (before) before.value = params.get("before") || "";
-        if (search) search.value = params.get("q") || "";
-        const status = new URLSearchParams(location.search).get("supersession");
+        const params = common.readURLFields({q: search, after, before});
+        const status = params.get("supersession");
         statusButtons.forEach(button => button.setAttribute("aria-pressed", String(status === "all" || button.dataset.galNoteSupersession === (status === "superseded" ? "superseded" : "non-superseded"))));
       }
       function update() {
@@ -84,16 +81,12 @@
         syncExpandAll();
         empty.hidden = visible.length > 0;
         if (counter) counter.textContent = `${visible.length} of ${rows.length} notes`;
-        const url = new URL(location.href);
-        for (const [key, value] of [["after", after?.value], ["before", before?.value], ["q", search?.value.trim()]]) {
-          url.searchParams.delete(key);
-          if (value) url.searchParams.set(key, value);
-        }
-        url.searchParams.delete("subgroup");
-        url.searchParams.delete("supersession");
-        if (statuses.length === 1 && statuses[0] === "superseded") url.searchParams.set("supersession", "superseded");
-        else if (statusButtons.length && statuses.length !== 1) url.searchParams.set("supersession", "all");
-        common.replaceURL(url);
+        common.writeURLParams({
+          q: search?.value.trim(), after: after?.value, before: before?.value,
+          subgroup: [],
+          supersession: statuses.length === 1 && statuses[0] === "superseded"
+            ? "superseded" : statusButtons.length && statuses.length !== 1 ? "all" : "",
+        });
       }
       controls?.addEventListener("click", event => {
         const button = event.target.closest("button");

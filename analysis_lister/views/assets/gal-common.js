@@ -16,6 +16,23 @@
     try { history.replaceState(history.state, "", url); }
     catch (_) { /* Filtering remains usable without history access. */ }
   }
+  function readURLFields(fields) {
+    const params = new URLSearchParams(location.search);
+    for (const [key, input] of Object.entries(fields)) {
+      if (input) input.value = params.get(key) || "";
+    }
+    return params;
+  }
+  function writeURLParams(values) {
+    const url = new URL(location.href);
+    for (const [key, value] of Object.entries(values)) {
+      url.searchParams.delete(key);
+      for (const item of Array.isArray(value) ? value : [value]) {
+        if (item) url.searchParams.append(key, item);
+      }
+    }
+    replaceURL(url);
+  }
   function monthMatches(date, after, before) {
     const month = (date || "").slice(0, 7);
     return (!after || !month || month >= after) && (!before || (month && month <= before));
@@ -26,5 +43,5 @@
     button.textContent = expanded ? "Collapse all" : "Expand all";
     button.setAttribute("aria-pressed", String(expanded));
   }
-  window.GALCommon = {observeCollections, replaceURL, monthMatches, updateExpandButton};
+  window.GALCommon = {observeCollections, readURLFields, writeURLParams, monthMatches, updateExpandButton};
 })();

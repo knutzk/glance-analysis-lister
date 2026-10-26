@@ -360,6 +360,17 @@ parameters preselect buttons with OR logic:
 ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second
 ```
 
+All views use `q` for free-text search. Ongoing pages additionally persist their
+sort selection as `sort=reference`, `sort=stage-desc` or `sort=stage-asc`; the
+default sort is omitted. Search and sort are restored when opening or reloading
+a link and when navigating browser history. Reset clears the page's filters and
+restores its default sort. Shared URL helpers preserve unrelated parameters and
+card anchors.
+
+```text
+ongoing/?q=example&subgroup=DEMO-First&sort=stage-desc
+```
+
 Each card also has a permalink that reveals and opens it.
 
 ### Publication tables

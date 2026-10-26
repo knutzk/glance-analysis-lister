@@ -121,6 +121,51 @@ def run_checks(work_dir):
             driver.find_element(By.CSS_SELECTOR, "[data-gal-reset]").click()
             count(4)
 
+        driver.get(output.as_uri() + "?q=Signal&sort=reference&unrelated=keep")
+        count(2)
+        assert (
+            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                "value"
+            )
+            == "Signal"
+        )
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "reference"
+        )
+        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search.clear()
+        search.send_keys("Invented trigger")
+        count(1)
+        assert "q=Invented+trigger" in driver.current_url
+        driver.refresh()
+        count(1)
+        assert "sort=reference" in driver.current_url
+        reset()
+        assert "q=" not in driver.current_url and "sort=" not in driver.current_url
+        assert "unrelated=keep" in driver.current_url
+        driver.execute_script(
+            "history.pushState(null, '', '?q=Signal&sort=stage-asc'); window.dispatchEvent(new PopStateEvent('popstate'))"
+        )
+        count(2)
+        assert (
+            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                "value"
+            )
+            == "Signal"
+        )
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "stage-asc"
+        )
+        driver.get(output.as_uri() + "?sort=invalid")
+        count(4)
+        assert "sort=" not in driver.current_url
+
         driver.get(output.as_uri() + "?subgroup=DEMO-Alpha%2C+with+comma")
         count(2)
         assert button("DEMO-Alpha, with comma").get_attribute("aria-pressed") == "true"
