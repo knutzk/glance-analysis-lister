@@ -121,7 +121,9 @@ def run_checks(work_dir):
             driver.find_element(By.CSS_SELECTOR, "[data-gal-reset]").click()
             count(4)
 
-        driver.get(output.as_uri() + "?q=Signal&sort=reference&unrelated=keep")
+        driver.get(
+            output.as_uri() + "?q=Signal&sort=reference&unrelated=keep#synthetic-anchor"
+        )
         count(2)
         assert (
             driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
@@ -140,12 +142,14 @@ def run_checks(work_dir):
         search.send_keys("Invented trigger")
         count(1)
         assert "q=Invented+trigger" in driver.current_url
+        assert driver.current_url.endswith("#synthetic-anchor")
         driver.refresh()
         count(1)
         assert "sort=reference" in driver.current_url
         reset()
         assert "q=" not in driver.current_url and "sort=" not in driver.current_url
         assert "unrelated=keep" in driver.current_url
+        assert driver.current_url.endswith("#synthetic-anchor")
         driver.execute_script(
             "history.pushState(null, '', '?q=Signal&sort=stage-asc'); window.dispatchEvent(new PopStateEvent('popstate'))"
         )
@@ -161,6 +165,43 @@ def run_checks(work_dir):
                 driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
             ).first_selected_option.get_attribute("value")
             == "stage-asc"
+        )
+        # Exercise actual back/forward traversal, not just a dispatched popstate.
+        driver.execute_script(
+            "history.pushState(null, '', '?q=Background&sort=reference'); window.dispatchEvent(new PopStateEvent('popstate'))"
+        )
+        count(2)
+        driver.back()
+        wait.until(
+            lambda d: (
+                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                    "value"
+                )
+                == "Signal"
+            )
+        )
+        count(2)
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "stage-asc"
+        )
+        driver.forward()
+        wait.until(
+            lambda d: (
+                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                    "value"
+                )
+                == "Background"
+            )
+        )
+        count(2)
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "reference"
         )
         driver.get(output.as_uri() + "?sort=invalid")
         count(4)
