@@ -17,6 +17,7 @@ cookies.json
 debug/
 json/*
 !/json/doi_metadata.json
+!/json/pubnote_identifiers.json
 docs/analyses/
 pages/
 obsidian_output/
