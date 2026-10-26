@@ -11,53 +11,7 @@ from attrs import asdict
 
 from ..registry.reader import LINK_RESOURCES
 from .curation import archive_curation_statement
-
-
-def diagnostic_entry(trace):
-    """Summarize one record's actionable issues without its full derivation trace."""
-    issues = []
-    if trace["state"]["value"] == "unknown":
-        issues.append(
-            {
-                "kind": "state",
-                "reason": trace["state"]["reason"],
-                "inputs": trace["state"]["inputs"],
-            }
-        )
-    for issue in trace.get("relationship_issues", []):
-        issues.append({"kind": "relationship", **issue})
-    if trace.get("relationship_issue"):
-        issues.append(
-            {
-                "kind": "relationship",
-                "reason": trace["relationship_issue"],
-                "link": trace.get("relatedAnalysis"),
-            }
-        )
-    if trace.get("public_identifier_issue"):
-        issues.append({"kind": "public_identifier", **trace["public_identifier_issue"]})
-    if not issues:
-        return None
-    reasons = []
-    for issue in issues:
-        reason = issue["reason"]
-        status = issue.get("inputs", {}).get("status")
-        if status is not None:
-            reason += f" (source status: {status!r})"
-        link = issue.get("link") or {}
-        if link:
-            reason += f" ({link.get('type', 'unknown type')}: {link.get('referenceCode', 'missing identifier')})"
-        related = issue.get("relatedAnalysis") or {}
-        if related:
-            reason += f"; publication's related analysis: {related.get('referenceCode', 'missing identifier')}"
-        reasons.append(reason)
-    return {
-        "resource": trace["resource"],
-        "reference": trace["reference"],
-        "state": trace["state"]["value"],
-        "reasons": reasons,
-        "issues": issues,
-    }
+from .diagnostics import diagnostic_entry, group_diagnostics
 
 
 def build_report(view, snapshot, raw):
@@ -69,6 +23,7 @@ def build_report(view, snapshot, raw):
         if (trace.get("curation") or trace["membership"])["value"]
     ]
     diagnostics = [entry for trace in relevant if (entry := diagnostic_entry(trace))]
+    diagnostic_groups = group_diagnostics(diagnostics)
     review_keys = {("analyses", row.reference) for row in view.needs_review}
     needing_review = [
         entry
@@ -79,6 +34,16 @@ def build_report(view, snapshot, raw):
         "ongoing_analyses": len(view.ongoing),
         "analyses_needing_review": len(view.needs_review),
         "records_with_diagnostics": len(diagnostics),
+        "warning_issues": sum(
+            group["issue_count"]
+            for group in diagnostic_groups
+            if group["level"] == "warning"
+        ),
+        "informational_issues": sum(
+            group["issue_count"]
+            for group in diagnostic_groups
+            if group["level"] == "info"
+        ),
         "publication_records": len(view.publications),
         "archive_publications": len(view.archive),
     }
@@ -127,6 +92,7 @@ def build_report(view, snapshot, raw):
         "counts": counts,
         "analyses_needing_review": needing_review,
         "records_with_diagnostics": diagnostics,
+        "diagnostic_groups": diagnostic_groups,
         "controls": view.controls,
         "subgroup_buttons": view.subgroup_button_provenance,
         "publication_states": {

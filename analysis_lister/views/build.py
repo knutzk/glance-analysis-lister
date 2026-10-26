@@ -52,22 +52,21 @@ def render_group(snapshot, output_dir, profile):
             )
     documents.update(asset_documents(revision))
     write_documents(output_dir, documents, snapshot=snapshot)
-    review_keys = {
-        (entry["resource"], entry["reference"])
-        for entry in report["analyses_needing_review"]
-    }
-    for entry in report["records_with_diagnostics"]:
-        needs_review = (entry["resource"], entry["reference"]) in review_keys
-        label = (
-            "Needs review (also counted in diagnostics; excluded from ongoing)"
-            if needs_review
-            else "Diagnostics"
+    for group in report["diagnostic_groups"]:
+        log = logger.warning if group["level"] == "warning" else logger.info
+        log(
+            "%s: %d issue(s) across %d record(s)",
+            group["title"],
+            group["issue_count"],
+            group["record_count"],
         )
-        logger.warning(
-            "%s: %s/%s: %s",
-            label,
-            entry["resource"],
-            entry["reference"],
-            "; ".join(entry["reasons"]),
-        )
+        for entry in group["entries"]:
+            log(
+                "%s/%s — %s: %s Effect: %s",
+                entry["resource"],
+                entry["reference"],
+                entry["placement"],
+                entry["message"],
+                entry["effect"],
+            )
     return counts
