@@ -33,7 +33,7 @@ class HTMLParser:
         output_csv: Path,
         debug_path: Path | None = None,
         column_filter: Sequence[str] | None = None,
-    ) -> None:
+    ) -> int:
         """Save diagnostic HTML, then validate and write a complete CSV table."""
         source = str(output_csv)
         logger.debug("Parsing HTML content to extract table data for %s", source)
@@ -55,6 +55,7 @@ class HTMLParser:
             writer.writerows(csv_data)
         logger.debug("CSV file successfully generated: %s", output_csv)
         logger.info("%s: %s rows; complete", output_csv.stem, f"{len(csv_data) - 1:,}")
+        return len(csv_data) - 1
 
 
 @frozen
@@ -86,7 +87,7 @@ def staged_csv_files(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
-) -> Iterator[Path]:
+) -> Iterator[tuple[Path, dict[str, int]]]:
     """Yield a complete CSV batch without modifying the current data."""
     if debug and not use_local_html and debug_dir.resolve() == csv_dir.resolve():
         raise ValueError("Saved HTML and CSV output must use separate directories")
@@ -112,6 +113,7 @@ def staged_csv_files(
     # Stage on the same filesystem so individual replacements are atomic.
     temporary = TemporaryDirectory(prefix=".refresh-", dir=csv_dir, delete=False)
     staging = Path(temporary.name)
+    counts = {}
     try:
         if debug and not use_local_html:
             (debug_dir / HTML_MANIFEST).unlink(missing_ok=True)
@@ -131,7 +133,7 @@ def staged_csv_files(
                     http.COMMON_PARAMS | {"s[0][name]": task.sort_by},
                     cookies,
                 )
-            HTMLParser.parse_to_csv(
+            counts[task.name] = HTMLParser.parse_to_csv(
                 html,
                 staging / task.csv_filename,
                 debug_dir / task.html_filename
@@ -150,7 +152,7 @@ def staged_csv_files(
         (staging / HTML_MANIFEST).write_text(metadata, encoding="utf-8")
         if debug and not use_local_html:
             (debug_dir / HTML_MANIFEST).write_text(metadata, encoding="utf-8")
-        yield staging
+        yield staging, counts
     finally:
         if (csv_dir / CSV_REFRESH_MARKER).exists():
             logger.warning("Incomplete refresh; retaining staging files at %s", staging)

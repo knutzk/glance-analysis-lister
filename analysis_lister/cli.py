@@ -252,50 +252,90 @@ def parser():
 
 
 def _run_download_api(args):
-    from analysis_lister.downloaders.api import download_registry
+    from .downloaders.api import download_registry
+    from .downloaders.reporting import run_download
 
-    counts = download_registry(
-        args.output,
-        login=args.login,
-        allow_count_drop=args.allow_count_drop,
-        page_size=args.page_size,
-    )
-    print_summary(
-        "API registry downloaded",
-        [("Registry", args.output), *counts.items()],
+    run_download(
+        lambda: download_registry(
+            args.output,
+            login=args.login,
+            allow_count_drop=args.allow_count_drop,
+            page_size=args.page_size,
+        ),
+        kind="API",
+        destination=args.output,
+        files=[args.output],
         color=args.color,
+        validation="Passed: model/schema validation, pagination totals and unique identifiers; "
+        + (
+            "count-drop guard explicitly overridden"
+            if args.allow_count_drop
+            else "count-drop guard enabled"
+        ),
+        recovery_dir=args.output.parent,
+        recovery_pattern=f".{args.output.name}.*.tmp",
     )
 
 
 def _run_download_html(args):
-    try:
-        import bs4  # noqa: F401
-
-        if args.login:
-            import selenium  # noqa: F401
-    except ImportError:
-        raise ValueError(
-            "HTML downloading requires optional dependencies: pip install 'glance-analysis-lister[html]'"
-        ) from None
     from .downloaders.auth import resolve_cookies
     from .downloaders.csv_batch import download_html_csvs
     from .downloaders.html import download_tasks
+    from .downloaders.manifest import CSV_REFRESH_MARKER, HTML_MANIFEST
+    from .downloaders.reporting import run_download
 
-    cookies = (
-        None
-        if args.from_html is not None
-        else resolve_cookies(args.cookies, generate_new_cookies=args.login)
-    )
-    download_html_csvs(
-        download_tasks(),
-        args.csv_dir,
-        args.from_html or args.save_html or Path("debug"),
-        cookies=cookies,
-        use_local_html=args.from_html is not None,
-        debug=args.save_html is not None,
-    )
-    print_summary(
-        "HTML tables downloaded", [("CSV directory", args.csv_dir)], color=args.color
+    tasks = download_tasks()
+
+    def download():
+        try:
+            import bs4  # noqa: F401
+
+            if args.login:
+                import selenium  # noqa: F401
+        except ImportError:
+            raise ValueError(
+                "HTML downloading requires optional dependencies: pip install 'glance-analysis-lister[html]'"
+            ) from None
+        logger.info(
+            "HTML configuration: all accessible records and columns; sequential retrieval; source=%s",
+            args.from_html
+            if args.from_html is not None
+            else "live GLANCE tables (verified TLS)",
+        )
+        logger.info(
+            "Authentication: %s",
+            "none (offline HTML replay)"
+            if args.from_html is not None
+            else "Chrome SSO requested"
+            if args.login
+            else "using saved cookies",
+        )
+        cookies = (
+            None
+            if args.from_html is not None
+            else resolve_cookies(args.cookies, generate_new_cookies=args.login)
+        )
+        return download_html_csvs(
+            tasks,
+            args.csv_dir,
+            args.from_html or args.save_html or Path("debug"),
+            cookies=cookies,
+            use_local_html=args.from_html is not None,
+            debug=args.save_html is not None,
+        )
+
+    run_download(
+        download,
+        kind="HTML",
+        destination=args.csv_dir,
+        files=[args.csv_dir / task.csv_filename for task in tasks]
+        + [args.csv_dir / HTML_MANIFEST],
+        validation="Passed: table completeness, headers, row widths and unique identifiers; batch published",
+        color=args.color,
+        marker=args.csv_dir / CSV_REFRESH_MARKER,
+        recovery_dir=args.csv_dir,
+        recovery_pattern=".refresh-*",
+        saved_html=args.save_html,
     )
 
 

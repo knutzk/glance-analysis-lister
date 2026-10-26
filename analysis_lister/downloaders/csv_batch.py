@@ -62,7 +62,7 @@ def download_html_csvs(
     cookies: dict[str, str] | None = None,
     use_local_html: bool = False,
     debug: bool = False,
-) -> None:
+) -> dict[str, int]:
     """Fetch and publish CSVs only, for the standalone download command."""
     with staged_csv_files(
         tasks,
@@ -71,10 +71,11 @@ def download_html_csvs(
         cookies=cookies,
         use_local_html=use_local_html,
         debug=debug,
-    ) as staging:
+    ) as (staging, counts):
         publish_csv_batch(
             staging,
             csv_dir,
             [t.csv_filename for t in tasks] + [HTML_MANIFEST],
         )
-    logger.debug("Published complete CSV batch.")
+    logger.info("Published complete HTML CSV batch: %s", csv_dir)
+    return counts
