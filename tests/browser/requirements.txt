@@ -1,0 +1,2 @@
+# Site integration only; not a runtime dependency of the package.
+zensical==0.0.58
