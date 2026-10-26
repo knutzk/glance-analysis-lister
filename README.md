@@ -123,6 +123,12 @@ snapshot remains the source for rebuilding; the curated file is not a lossless
 API archive. Snapshot and build metadata are retained for provenance and safe
 replacement. The curated schema is version 2.
 
+`build-registry` logs retained/discarded field counts for each resource and the
+input/output file sizes with their percentage change. Field counts refer to
+nested object-key occurrences after enrichment, including original and derived
+fields; they are not a measure of lost information. All records are retained.
+Byte sizes include JSON formatting and build metadata.
+
 ### Public links and note identifiers
 
 Paper public-page URLs are constructed from their native reference codes for

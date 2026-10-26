@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from time import perf_counter
 
-from .fields import RECORD_FIELDS, select_fields
+from .fields import RECORD_FIELDS, count_fields, select_fields
 from .public_identifiers import enrich_public_identifiers, load_identifiers
 from .publication_dois import enrich_paper
 from .schema import (
@@ -225,6 +225,7 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
         resource_started = perf_counter()
         logger.info("Curating %s: %d API records", resource, len(result[resource]))
         records = []
+        enriched_fields = 0
         for record in result[resource]:
             team = record.get("analysisTeam", []) or []
             if not isinstance(team, list):
@@ -264,7 +265,21 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
                 )
                 doi_stats["malformed_links"] += malformed
             enriched = compact(record, reference=record_key(record, resource))
+            enriched_fields += count_fields(enriched)
             records.append(select_fields(enriched, RECORD_FIELDS[resource]))
+        retained_fields = count_fields(records)
+        logger.info(
+            "Field selection %s: retained %d of %d field occurrences; discarded %d (%.1f%%). "
+            "Counts include nested object keys after enrichment, not unique field names; all %d records retained",
+            resource,
+            retained_fields,
+            enriched_fields,
+            enriched_fields - retained_fields,
+            100 * (enriched_fields - retained_fields) / enriched_fields
+            if enriched_fields
+            else 0,
+            len(records),
+        )
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
         )

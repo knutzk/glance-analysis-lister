@@ -145,3 +145,16 @@ def select_fields(value, fields):
             if key in fields
         }
     return value
+
+
+def count_fields(value):
+    """Count object-key occurrences, including nested objects and list items.
+
+    Repeated keys count once per occurrence; containers and null-valued keys
+    count too. Scalar list items are values, not additional fields.
+    """
+    if isinstance(value, dict):
+        return len(value) + sum(count_fields(item) for item in value.values())
+    if isinstance(value, list):
+        return sum(count_fields(item) for item in value)
+    return 0

@@ -50,7 +50,10 @@ def build_registry(
     if any(output.resolve() == path.resolve() for path in inputs):
         raise ValueError("Registry output must not overwrite an input")
     logger.info("Loading saved API snapshot: %s", api_path)
-    api = json.loads(api_path.read_text(encoding="utf-8"))
+    api_bytes = api_path.read_bytes()
+    input_size = len(api_bytes)
+    api = json.loads(api_bytes.decode("utf-8"))
+    del api_bytes
     logger.info("Loading shared DOI dictionary: %s", citation_path)
     citations = load_store(citation_path)
     logger.info("Loading shared PUB-note identifier dictionary: %s", identifier_path)
@@ -89,8 +92,19 @@ def build_registry(
     else:
         logger.info("No existing curated registry; this is the first build")
     logger.info("Publishing curated registry atomically: %s", output)
-    atomic_write_text(
-        output, json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
+    serialized = json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
+    output_size = len(serialized.encode("utf-8"))
+    atomic_write_text(output, serialized)
+    logger.info(
+        "Registry file sizes: API input %d bytes (%.2f MiB); curated output %d bytes (%.2f MiB); "
+        "%d bytes %s (%.1f%%). Sizes include JSON formatting and build metadata",
+        input_size,
+        input_size / 1024**2,
+        output_size,
+        output_size / 1024**2,
+        abs(input_size - output_size),
+        "smaller" if output_size <= input_size else "larger",
+        100 * abs(input_size - output_size) / input_size,
     )
     for resource, counts in candidate["gal_curation"][
         "public_identifier_statistics"

@@ -13,7 +13,7 @@ from view_fixtures import api_fixture
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.enrichment import curate
-from analysis_lister.registry.fields import RECORD_FIELDS, select_fields
+from analysis_lister.registry.fields import RECORD_FIELDS, count_fields, select_fields
 from analysis_lister.views.markdown.pages import (
     confnotes_page,
     ongoing_page,
@@ -26,6 +26,21 @@ from analysis_lister.views.publication_states import PAPER_MILESTONES
 
 
 class RegistryFieldTests(unittest.TestCase):
+    def test_field_counts_include_nested_keys_but_not_scalar_list_items(self):
+        self.assertEqual(
+            count_fields(
+                {
+                    "empty": None,
+                    "nested": {"name": "μ"},
+                    "items": [{"name": "First"}, {"name": "Second"}],
+                    "strings": ["one", "two"],
+                }
+            ),
+            7,
+        )
+        self.assertEqual(count_fields([]), 0)
+        self.assertEqual(count_fields({}), 0)
+
     def test_future_and_nested_unused_fields_are_not_persisted(self):
         api = api_fixture()
         for resource in RECORD_FIELDS:

@@ -14,6 +14,7 @@ from view_fixtures import api_fixture
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.builder import build_registry
+from analysis_lister.registry.fields import count_fields
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 from analysis_lister.views.report import build_report
@@ -91,6 +92,7 @@ class ApiOnlyRegistryTests(unittest.TestCase):
         self,
     ):
         api = api_fixture()
+        api["analyses"][0]["shortTitle"] = "Invented μ title"
         with TemporaryDirectory() as directory:
             root = Path(directory)
             source, output, mapping, citations = (
@@ -99,7 +101,7 @@ class ApiOnlyRegistryTests(unittest.TestCase):
                 root / "identifiers.json",
                 root / "citations.json",
             )
-            source.write_text(json.dumps(api))
+            source.write_text(json.dumps(api, ensure_ascii=False))
             mapping.write_text(json.dumps(MAPPING))
             citations.write_text("{}")
             with self.assertLogs("analysis_lister", level="INFO") as captured:
@@ -122,7 +124,21 @@ class ApiOnlyRegistryTests(unittest.TestCase):
                 "Published curated registry",
             ):
                 self.assertIn(expected, messages)
+            result = json.loads(output.read_text())
+            for resource in ("analyses", "papers", "confnotes", "pubnotes"):
+                self.assertIn(
+                    f"Field selection {resource}: retained {count_fields(result[resource])} of ",
+                    messages,
+                )
+            input_size, output_size = len(source.read_bytes()), len(output.read_bytes())
+            self.assertIn(f"API input {input_size} bytes", messages)
+            self.assertIn(f"curated output {output_size} bytes", messages)
+            self.assertIn(f"{abs(input_size - output_size)} bytes ", messages)
+            self.assertIn(
+                "Counts include nested object keys after enrichment", messages
+            )
             self.assertNotIn("Current Example", messages)
+            self.assertNotIn("Invented μ title", messages)
             before = output.read_bytes()
             with (
                 patch(
@@ -136,6 +152,9 @@ class ApiOnlyRegistryTests(unittest.TestCase):
                     source, output, pubnote_identifiers=mapping, doi_cache=citations
                 )
             self.assertEqual(before, output.read_bytes())
+            self.assertFalse(
+                any("Registry file sizes:" in line for line in captured.output)
+            )
             self.assertTrue(any("Count check" in line for line in captured.output))
             self.assertFalse(
                 any("Published curated registry:" in line for line in captured.output)
