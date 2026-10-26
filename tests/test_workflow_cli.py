@@ -23,7 +23,7 @@ import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
     import analysis_lister.cli
-    import analysis_lister.downloaders.api
+    import analysis_lister.download
     import analysis_lister.views.build
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
@@ -55,7 +55,7 @@ assert "bs4" not in sys.modules
     def test_api_default_and_downloads_do_not_load_citations(self):
         with (
             patch(
-                "analysis_lister.downloaders.api.download_registry", return_value={}
+                "analysis_lister.download.download_registry", return_value={}
             ) as operation,
             patch("analysis_lister.citations.store.cached_citations") as citations,
         ):
@@ -69,7 +69,7 @@ assert "bs4" not in sys.modules
 
     def test_api_page_size_is_forwarded_and_invalid_values_fail_before_auth(self):
         with patch(
-            "analysis_lister.downloaders.api.download_registry", return_value={}
+            "analysis_lister.download.download_registry", return_value={}
         ) as operation:
             cli.main(["download-api", "--page-size", "250"])
         self.assertEqual(operation.call_args.kwargs["page_size"], 250)

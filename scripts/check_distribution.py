@@ -37,16 +37,9 @@ def main():
 
     package = distribution("glance-analysis-lister")
     retired = (
-        "analysis_lister/downloaders/auth.py",
-        "analysis_lister/downloaders/html.py",
-        "analysis_lister/downloaders/http.py",
-        "analysis_lister/downloaders/tables.py",
-        "analysis_lister/downloaders/csv_batch.py",
-        "analysis_lister/downloaders/csv_io.py",
-        "analysis_lister/downloaders/manifest.py",
+        "analysis_lister/downloaders/",
         "analysis_lister/certs/",
         "analysis_lister/configs/",
-        "analysis_lister/downloaders/scope.py",
         "analysis_lister/glance/",
         "analysis_lister/markdown/",
         "analysis_lister/lookup_dicts/",
@@ -57,7 +50,6 @@ def main():
         "analysis_lister/citation_store.py",
         "analysis_lister/doi_resolver.py",
         "analysis_lister/registry/doi.py",
-        "analysis_lister/downloaders/publication.py",
         "analysis_lister/views/selection.py",
         "analysis_lister/views/semantics.py",
         "analysis_lister/views/markdown/cards.py",

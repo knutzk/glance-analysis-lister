@@ -633,7 +633,7 @@ class Block(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if any(fullname == name or fullname.startswith(name + ".")
                for name in ("analysis_lister.glance", "analysis_lister.markdown",
-                            "analysis_lister.downloaders", "stare", "selenium")):
+                            "analysis_lister.download", "stare", "selenium")):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, Block())
 from analysis_lister.views.build import render_group

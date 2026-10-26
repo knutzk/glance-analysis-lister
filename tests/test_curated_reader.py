@@ -111,7 +111,7 @@ class CuratedReaderTests(unittest.TestCase):
         code = """
 import sys
 from analysis_lister.registry import CuratedRegistry
-assert not any(name.startswith(("analysis_lister.glance", "analysis_lister.downloaders"))
+assert not any(name.startswith(("analysis_lister.glance", "analysis_lister.download"))
                for name in sys.modules)
 assert "analysis_lister.registry.builder" not in sys.modules
 assert "analysis_lister.registry.enrichment" not in sys.modules
