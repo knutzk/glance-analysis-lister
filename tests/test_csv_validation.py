@@ -101,11 +101,11 @@ class CsvValidationTests(unittest.TestCase):
     def test_invalid_table_is_saved_for_diagnostics_without_replacing_csv(self):
         self.path.write_text("previous CSV")
         diagnostic = self.path.parent / "debug" / "analyses.html"
-        html = "<table><tr><th>Renamed</th></tr><tr><td>entry</td></tr></table>"
-        with self.assertRaisesRegex(ValueError, "Missing columns"):
-            HTMLParser.parse_to_csv(
-                html, self.path, diagnostic, column_filter=["Reference Code"]
-            )
+        html = (
+            "<table><tr><th>ID</th><th>Status</th></tr><tr><td>entry</td></tr></table>"
+        )
+        with self.assertRaisesRegex(ValueError, "expected 2 cells"):
+            HTMLParser.parse_to_csv(html, self.path, diagnostic)
         self.assertEqual(self.path.read_text(), "previous CSV")
         self.assertEqual(diagnostic.read_text(), html + "\n")
 
@@ -169,12 +169,8 @@ class CsvValidationTests(unittest.TestCase):
         self.assertEqual(len(logs.output), 3)
         self.assertIn("unnamed HTML header", logs.output[0])
 
-    def test_duplicate_identifier_or_explicitly_selected_headers_still_fail(self):
-        for header, selection in (
-            ("Reference Code", None),
-            ("Temporary Reference Code", None),
-            ("Selected", ["Selected"]),
-        ):
+    def test_duplicate_identifier_headers_still_fail(self):
+        for header in ("Reference Code", "Temporary Reference Code"):
             table = parse_html_table(
                 f"<table><tr><th>{header}</th><th>{header}</th></tr>"
                 "<tr><td>one</td><td>two</td></tr></table>",
@@ -184,17 +180,7 @@ class CsvValidationTests(unittest.TestCase):
                 self.subTest(header=header),
                 self.assertRaisesRegex(ValueError, "Invalid table headers"),
             ):
-                table_to_rows(table, source="synthetic", column_filter=selection)
-
-    def test_duplicate_unused_html_headers_are_allowed(self):
-        HTMLParser.parse_to_csv(
-            "<span>Showing 1 to 1 of 1 results</span>"
-            "<table><tr><th>ID</th><th>Unused</th><th>Unused</th></tr>"
-            "<tr><td>one</td><td>a</td><td>b</td></tr></table>",
-            self.path,
-            column_filter=["ID"],
-        )
-        self.assertEqual(self.path.read_text(), '"ID"\n"one"\n')
+                table_to_rows(table, source="synthetic")
 
 
 class HtmlTableParsingTests(unittest.TestCase):
@@ -243,10 +229,8 @@ class HtmlTableParsingTests(unittest.TestCase):
             source="synthetic table",
         )
         self.assertEqual(
-            table_to_rows(
-                table, source="synthetic table", column_filter=["ID", "Status"]
-            ),
-            [["Status", "ID"], [" Phase 0 is  Active ", "first"]],
+            table_to_rows(table, source="synthetic table"),
+            [["Status", "ID", "Unused"], [" Phase 0 is  Active ", "first", "ignored"]],
         )
 
     def test_parser_diagnostics_identify_source_and_bad_row(self):

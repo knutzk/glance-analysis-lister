@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from attrs import field, frozen
+from attrs import frozen
 
 from analysis_lister.downloaders.csv_io import read_csv_rows
 from analysis_lister.downloaders.tables import (
@@ -32,7 +32,6 @@ class HTMLParser:
         html: str,
         output_csv: Path,
         debug_path: Path | None = None,
-        column_filter: Sequence[str] | None = None,
     ) -> int:
         """Save diagnostic HTML, then validate and write a complete CSV table."""
         source = str(output_csv)
@@ -48,7 +47,7 @@ class HTMLParser:
                 "Full response including result counters saved to %s", debug_path
             )
 
-        csv_data = table_to_rows(table, source=source, column_filter=column_filter)
+        csv_data = table_to_rows(table, source=source)
         validate_table_completeness(table, len(csv_data) - 1, source=source)
         with output_csv.open("w", newline="", encoding="utf-8") as stream:
             writer = csv.writer(stream, quoting=csv.QUOTE_ALL)
@@ -64,7 +63,6 @@ class DownloadTable:
 
     name: str
     url: str
-    columns: tuple[str, ...] = field(converter=tuple)
     sort_by: str
     key: str | None = None
     prefix: str = ""
@@ -96,16 +94,6 @@ def staged_csv_files(
         or (csv_dir / HTML_MANIFEST).exists()
     ):
         read_manifest(csv_dir, tasks)
-        for task in tasks:
-            existing = csv_dir / task.csv_filename
-            if task.columns and task.key and existing.exists():
-                with existing.open(encoding="utf-8", newline="") as stream:
-                    headers = next(csv.reader(stream), [])
-                if set(headers) != set(task.columns):
-                    raise ValueError(
-                        "Destination contains a different CSV format; use a separate "
-                        "directory for HTML downloads (default: current working directory)."
-                    )
     manifest = (
         read_manifest(debug_dir, tasks) if use_local_html else make_manifest(tasks)
     )
@@ -139,12 +127,11 @@ def staged_csv_files(
                 debug_dir / task.html_filename
                 if debug and not use_local_html
                 else None,
-                task.columns,
             )
             if task.key:
                 read_csv_rows(
                     staging / task.csv_filename,
-                    (*task.columns, task.key),
+                    (task.key,),
                     key=task.key,
                     prefix=task.prefix,
                 )
@@ -166,7 +153,6 @@ def download_tasks() -> tuple[DownloadTable, ...]:
         DownloadTable(
             name,
             http.URLS[name],
-            (),  # An empty selection retains all columns returned by GLANCE.
             "final_ref_code" if name in {"confnotes", "pubnotes"} else "reference_code",
             key="Temporary Reference Code"
             if name in {"confnotes", "pubnotes"}

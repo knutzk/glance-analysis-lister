@@ -8,7 +8,6 @@ from __future__ import annotations
 import logging
 import re
 from collections import Counter
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -30,25 +29,21 @@ def parse_html_table(html: str, *, source: str) -> Tag:
     return table
 
 
-def table_to_rows(
-    table: Tag, *, source: str, column_filter: Sequence[str] | None = None
-) -> list[list[str]]:
-    """Validate a table and return selected CSV rows, including the header.
+def table_to_rows(table: Tag, *, source: str) -> list[list[str]]:
+    """Validate and return every CSV column in source order, including headers.
 
-    Keep data cells unchanged and columns in source order. The source label is
-    used in diagnostics only; this function never opens it as a path.
+    Keep data cells unchanged. The source label is used in diagnostics only;
+    this function never opens it as a path.
     """
     rows = table.find_all("tr")
     if not rows:
         raise ValueError(f"No rows in table for {source}")
 
     headers = [th.text.strip() for th in rows[0].find_all("th")]
-    selected = [h for h in headers if not column_filter or h in column_filter]
-    duplicates = [h for h, n in Counter(selected).items() if n > 1]
     ambiguous = [
         name
-        for name in duplicates
-        if column_filter or name in {"Reference Code", "Temporary Reference Code"}
+        for name, count in Counter(headers).items()
+        if count > 1 and name in {"Reference Code", "Temporary Reference Code"}
     ]
     if not headers:
         raise ValueError(f"Invalid table headers for {source}: no header cells")
@@ -56,32 +51,7 @@ def table_to_rows(
         raise ValueError(
             f"Invalid table headers for {source}: ambiguous columns={ambiguous}"
         )
-    if column_filter and any(not h for h in selected):
-        raise ValueError(
-            f"Invalid table headers for {source}: selected column has no label"
-        )
-
-    # Filter headers based on the column_filter, otherwise include all.
-    if column_filter:
-        # A column that GLANCE has renamed would silently turn into an
-        # empty field for every single entry, so stop right here.
-        missing = sorted({col for col in column_filter if col not in headers})
-        if missing:
-            logger.error(
-                f"Columns missing from the table for {source}: {missing}. "
-                "GLANCE has probably renamed them; check the HTML "
-                "column definitions in analysis_lister/downloaders/html.py."
-            )
-            raise ValueError(f"Missing columns for {source}: {missing}")
-
-        header_indices = {
-            index: header
-            for index, header in enumerate(headers)
-            if header in column_filter
-        }
-        logger.debug(f"Filtering columns: {list(header_indices.values())}")
-    else:
-        header_indices = dict(enumerate(headers))
+    header_indices = dict(enumerate(headers))
 
     # Full exports may contain distinct columns with identical display labels.
     # Keep their positions and values, reserving all native names so a generated

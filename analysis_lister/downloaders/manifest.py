@@ -17,7 +17,7 @@ def make_manifest(tasks):
         "schema_version": 1,
         "selection": "all-accessible",
         "fetched_at": datetime.now(UTC).isoformat(),
-        "tables": {task.name: list(task.columns) for task in tasks},
+        "tables": {task.name: [] for task in tasks},
     }
 
 
@@ -27,7 +27,7 @@ def validate_manifest(manifest, tasks):
         or manifest.get("schema") != "glance-html-csv"
         or manifest.get("schema_version") != 1
         or manifest.get("selection") != "all-accessible"
-        or manifest.get("tables") != {task.name: list(task.columns) for task in tasks}
+        or manifest.get("tables") != {task.name: [] for task in tasks}
     ):
         raise ValueError(
             "Unsupported HTML CSV manifest; expected a complete all-accessible batch"

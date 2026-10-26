@@ -31,7 +31,6 @@ class RetrievalTests(unittest.TestCase):
             html.DownloadTable(
                 name,
                 f"https://example.test/{name}",
-                ("Reference Code",),
                 "reference_code",
             )
             for name in ("analyses", "papers", "pubnotes")

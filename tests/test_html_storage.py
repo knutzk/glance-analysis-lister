@@ -41,7 +41,6 @@ class CsvBatchTests(unittest.TestCase):
                 downloader.DownloadTable(
                     name=name,
                     url=f"https://example.test/{name}",
-                    columns=("Reference Code",),
                     sort_by="reference_code",
                 )
             )
@@ -85,7 +84,7 @@ class CsvBatchTests(unittest.TestCase):
 
     def test_table_metadata_controls_live_requests(self):
         table = downloader.DownloadTable(
-            "notes", "https://example.test/notes", ("Reference Code",), "final_ref_code"
+            "notes", "https://example.test/notes", "final_ref_code"
         )
         with patch.object(
             downloader.http.DataFetcher, "fetch_html", return_value=HTML
@@ -125,16 +124,11 @@ class CsvBatchTests(unittest.TestCase):
             with self.subTest(html=html):
                 (self.debug_dir / "confnotes.html").write_text(html)
                 with (
-                    self.assertLogs(level="INFO") as logs,
+                    self.assertLogs(level="INFO"),
                     self.assertRaises(ValueError),
                 ):
                     html_download.download_html_csvs(
                         self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
-                    )
-                if "Renamed" in html:
-                    self.assertTrue(
-                        any("Columns missing" in line for line in logs.output),
-                        logs.output,
                     )
                 self.assert_original()
 
