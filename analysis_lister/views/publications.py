@@ -7,6 +7,7 @@ import re
 
 from attrs import asdict
 
+from ..registry.public_identifiers import final_identifier
 from ..registry.schema import record_key
 from .common import group_membership, iso_date
 from .curation import archive_curation
@@ -97,7 +98,7 @@ def publication_state(record, resource):
         if resource == "papers"
         else record.get("phase1") or {}
     )
-    number = record.get("finalReferenceCode") or record.get("gal_finalReferenceCode")
+    number = final_identifier(record, resource)
     inputs = {"status": status}
     if resource == "papers":
         inputs.update(
@@ -158,13 +159,12 @@ def publication_state(record, resource):
         )
         released = bool(
             re.fullmatch(pattern, number or "")
-            and phase.get("publicWebPageUrlForFiguresAndTables")
             and (status == "Phase 1 Finished" or iso_date(phase.get("releaseDate")))
         )
         if released:
             state, reason = (
                 "released",
-                "final note number and public URL with release evidence",
+                "final note number with release evidence",
             )
         elif record.get("supersededBy"):
             state, reason = "superseded", "source records a superseding publication"
@@ -210,6 +210,10 @@ def publication_details(record, resource, related=None):
         sources["gal_figuresUrl"]
         or sources["phase1.publicWebPageUrlForFiguresAndTables"]
     )
+    if public_url and not public_url.startswith(("https://", "http://")):
+        public_url = None
+    if not public_url:
+        public_url = (record.get("gal_publicationProvenance") or {}).get("source_url")
     if public_url:
         links.append({"label": "Public page", "url": public_url})
     for source, label in (
@@ -449,10 +453,8 @@ def prepare_publications(registry, profile, analyses):
                 people_sources,
             )
             label = (
-                record.get("finalReferenceCode")
-                or record.get("gal_finalReferenceCode")
-                or reference
-            )
+                final_identifier(record, resource) if resource != "papers" else None
+            ) or reference
             title = record.get("shortTitle") or reference
             filters = {
                 "publication_type": resource,
@@ -544,6 +546,13 @@ def prepare_publications(registry, profile, analyses):
                         )
                     ),
                     "relatedAnalysis": relation,
+                    "public_identifier_issue": record.get("gal_publicationProvenance")
+                    if (record.get("gal_publicationProvenance") or {}).get("source")
+                    == "unresolved"
+                    else None,
+                    "public_identifier_provenance": record.get(
+                        "gal_publicationProvenance"
+                    ),
                     "relationship_issue": "unresolved relatedAnalysis"
                     if relation and related is None
                     else None,

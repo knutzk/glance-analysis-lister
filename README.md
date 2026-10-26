@@ -7,25 +7,25 @@ and requires no database, authentication, or live requests.
 ## Install
 
 Use Python 3.13 or newer. From a checkout, create an environment and install the
-package with HTML download support:
+package:
 
 ```bash
 python3.13 -m venv .venv
 source .venv/bin/activate
-python -m pip install '.[download]'
+python -m pip install .
 ```
 
-For API downloads, registry construction and rendering without the HTML downloader,
-install with `python -m pip install .`. The HTML downloader additionally needs
-Chrome and Selenium. Live downloads require an authorised CERN account.
+API downloads, registry construction and rendering need no Selenium. To use the
+retained HTML downloader, install `python -m pip install '.[download]'`; that optional command additionally needs Chrome and Selenium.
+Live GLANCE downloads require an authorised CERN account.
 
 The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 
 | Command | Purpose |
 | --- | --- |
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
-| `download-html` | Download the supplemental fields needed by the registry builder. |
-| `build-registry` | Merge saved API and HTML data into a curated registry. |
+| `download-html` | Export supplemental CSVs through the retained standalone HTML downloader. |
+| `build-registry` | Curate saved API JSON using bundled public identifiers and citation metadata. |
 | `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
 | `resolve-dois` | Infer citations or retrieve public citation metadata from INSPIRE. |
 | `format-citations` | Normalise cached non-manual citations offline. |
@@ -41,23 +41,20 @@ Run these commands **sequentially** from the directory that will hold your data:
 
 ```bash
 analysis-lister download-api --login
-analysis-lister download-html --login
 analysis-lister build-registry
 ```
 
-Both downloads retrieve all accessible records without group or subgroup filters.
+The API download retrieves all accessible records without group or subgroup filters.
 Group selection happens when views are prepared.
 
 | Data | Default location |
 | --- | --- |
 | Validated API source | `glance_api_registry.json` |
-| Supplemental CSV batch and manifest | current directory (`analyses.csv`, `papers.csv`, `pubnotes.csv`, `supplement_manifest.json`) |
 | Curated registry | `glance_curated_registry.json` |
 | Shared citation dictionary | glance-analysis-lister’s maintained `json/doi_metadata.json` |
-| HTML authentication cookies | `cookies.json` |
+| Public PUB-note identifiers | Shared `json/pubnote_identifiers.json` |
 
-Downloaded CSVs, the supplement manifest, API JSON and curated JSON default to
-the current working directory. The shared citation dictionary remains in glance-analysis-lister.
+API JSON and curated JSON default to the current working directory. The shared citation dictionary remains in glance-analysis-lister.
 They are local artifacts: ignore them in the consuming repository. A suitable
 `.gitignore` block is:
 
@@ -77,17 +74,15 @@ Explicit destinations remain supported:
 
 ```bash
 analysis-lister download-api --output data/api.json
-analysis-lister download-html --csv-dir data/supplements
 analysis-lister build-registry \
   --api-snapshot data/api.json \
-  --csv-dir data/supplements \
   --output data/curated.json
 ```
 
-API authentication uses stare's browser SSO and credential storage. HTML
-authentication uses a separate Selenium browser login and saved cookies.
-Omit `--login` to reuse stored credentials. Keep downloaded records, cookies,
-generated pages and view reports out of the public package repository.
+Authentication uses stare's browser SSO and credential storage. Omit `--login`
+to reuse stored credentials. Registry construction is offline: it needs only the
+API JSON and bundled identifier/citation dictionaries, with no HTML or CDS API
+calls. Keep downloaded records and view reports out of the public package repository.
 
 The API download stores validated stare model output, including explicit
 relationships between independent records. `download-api --page-size 250` changes
@@ -108,54 +103,53 @@ requests. Duplicate detection, consistent totals, count-drop protection and atom
 publication remain mandatory. Offline tests exercise the actual stare client and
 serializers, but cannot establish server limits, live sorting behavior or speed.
 
-HTML supplements contain internal-note
-editors for analyses, figures/current-draft fields for papers, and public PUB-note
-identifiers. CONF notes need no HTML supplement.
-
-Each HTML batch includes `supplement_manifest.json`, declaring its table columns,
-retrieval timestamp and `all-accessible` selection. Result counters, headers,
-identifiers and row counts are checked before publication. CSV replacement uses
-rollback protection; an interrupted batch cannot be used to build a registry.
-Existing batches must have a matching complete-batch manifest.
-
 API downloads and registry builds reject per-resource count drops greater than
-20%. Use `--allow-count-drop` only for an understood change; it does not bypass
-schema or completeness validation. Downloads and registry builds must not run
-concurrently against the same files.
-
-### Save and replay HTML
-
-Save full responses and their batch manifest during a live download:
-
-```bash
-analysis-lister download-html --save-html saved-html
-```
-
-Replay them without authentication or network access:
-
-```bash
-analysis-lister download-html --from-html saved-html --csv-dir csv/replayed
-```
-
-Replay requires the complete all-accessible manifest and validates the same result
-counters and table contents as a live download. `--from-html` cannot be combined
-with `--login` or `--save-html`.
+20%. `--allow-count-drop` overrides only that guard, never schema validation.
+Inputs cannot be overwritten by registry output, and successful candidates are
+published atomically. Run downloading and building sequentially against a given
+set of files.
 
 ### Curated data and provenance
 
-The curated registry retains the API's independent records and relationships.
-Selected nested collections become compact names or string lists. Fields added
-or reshaped by this package use the `gal_` prefix. Source keys are removed only
-after enrichment.
+The curated registry retains independent API records and explicit relationships.
+Selected nested collections become names or string lists. Added or reshaped
+fields use the `gal_` prefix; source keys are removed only after enrichment.
+The registry records removal rules, identifier-source evidence, dictionary hashes
+and DOI provenance. DOI/citation pairs, including corrections, stay aligned.
 
-The registry records input provenance, removal rules, supplement coverage and
-conflicts. API values take precedence when a supplemental field is already
-populated. Paper DOI entries keep each citation paired with its own DOI, including
-corrections. Registry construction is entirely offline.
+Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
+controls named-object conversions; `REMOVED_KEYS` independently controls source
+key removal. The curated schema remains version 2. Existing curated outputs can
+be replaced after validation without requiring their old HTML input files.
 
-Transformation rules live in `registry/enrichment.py`. `STRING_LIST_FIELDS`
-controls conversions of named objects to strings, while `REMOVED_KEYS` independently
-controls which source keys are dropped. The current curated schema is version 2.
+### Public links and note identifiers
+
+Paper public-page URLs are constructed from their native reference codes for
+published or arXiv-submitted records. The canonical URL is recorded as derived;
+page availability is not checked. Internal-note editors and current-paper-draft
+fields are not added by the standard registry build.
+
+A valid API final identifier takes precedence. Otherwise, CONF/PUB public numbers
+are extracted unambiguously from API public-page URLs. PUB notes whose API links
+point to CDS use the shared `json/pubnote_identifiers.json` dictionary: public CDS
+record number → public PUB identifier and canonical CDS source URL. Its initial
+associations were retained from the existing GLANCE export; no CDS requests are
+made at runtime. No private analysis identifiers, titles or people are stored in
+this dictionary. Maintain it in the package when new exceptions appear.
+
+Notes with release evidence but no identifier produce explicit diagnostics rather than
+a guessed number. Each derivation is recorded in `gal_publicationProvenance`, and
+the curated metadata records the dictionary hash and source counts.
+
+### Standalone HTML downloader
+
+`download-html` remains available for manual CSV exports and saved-HTML replay,
+but its output is not used by `build-registry`. It uses Selenium authentication
+and supports `--csv-dir`, `--save-html` and `--from-html`. This command's safety,
+TLS and complete-batch validation remain in place. Exports retain their
+`supplement_manifest.json`, counter checks and rollback protection; these concern
+only the standalone downloader. `--from-html` replays a saved complete batch
+offline and cannot be combined with `--login` or `--save-html`.
 
 ## Configure and render group pages
 
@@ -190,7 +184,7 @@ stdout and falls back to the internal identifier's group token.
 ```bash
 analysis-lister render-group --group TOPQ \
   --snapshot glance_curated_registry.json \
-  --output-dir docs/analyses/topq
+  --output-dir docs/analyses
 ```
 
 The default destination is `pages/group`. Output consists of `ongoing.md`,
@@ -266,7 +260,7 @@ papers/?q=example&after=2022-01&before=2024-06&status=published
 
 ### Enable browser assets
 
-For output under `docs/analyses/topq`, append these entries to the site's
+For output under `docs/analyses`, append these entries to the site's
 configuration. Load the common files before the view-specific files:
 
 ```yaml

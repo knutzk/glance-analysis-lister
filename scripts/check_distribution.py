@@ -7,7 +7,6 @@ Run after building and installing the wheel in a clean environment:
     python -I scripts/check_distribution.py
 """
 
-import csv
 import json
 import subprocess
 import sys
@@ -18,12 +17,13 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
-from analysis_lister.downloaders.html import download_tasks
 from analysis_lister.downloaders.http import INTERMEDIATE_CA, trusted_ca_bundle
-from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.provenance import asset_provenance, generator_revision
 from analysis_lister.registry import CuratedRegistry
-from analysis_lister.storage import SUPPLEMENT_MANIFEST
+from analysis_lister.registry.public_identifiers import (
+    default_identifiers_path,
+    load_identifiers,
+)
 from analysis_lister.views.curation import (
     default_curation_path,
     load_publication_policy,
@@ -77,6 +77,13 @@ def main():
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
     assert load_store(citation_path), "Installed citation dictionary must not be empty"
+    identifiers_path = default_identifiers_path()
+    assert not identifiers_path.is_relative_to(root)
+    assert (
+        identifiers_path.read_bytes()
+        == (root / "json/pubnote_identifiers.json").read_bytes()
+    )
+    assert load_identifiers(identifiers_path)
     policy_path = default_curation_path()
     assert not policy_path.is_relative_to(root), (
         "Must load installed publication policy"
@@ -96,6 +103,10 @@ def main():
         assert (
             archive.extractfile(prefix + "publication-curation.toml").read()
             == (root / "publication-curation.toml").read_bytes()
+        )
+        assert (
+            archive.extractfile(prefix + "json/pubnote_identifiers.json").read()
+            == (root / "json/pubnote_identifiers.json").read_bytes()
         )
         sample = "examples/synthetic_registry.json"
         assert (
@@ -149,12 +160,6 @@ def main():
         example_report = json.loads((example_output / "view-report.json").read_text())
         assert example_report["counts"]["archive_publications"] == 3
         api_input = work / "api.json"
-        supplemental = work / "supplemental"
-        supplemental.mkdir()
-        tasks = download_tasks()
-        (supplemental / SUPPLEMENT_MANIFEST).write_text(
-            json.dumps(make_manifest(tasks))
-        )
         resources = ("analyses", "papers", "confnotes", "pubnotes")
         raw = {
             "schema": "glance-api-registry",
@@ -187,16 +192,6 @@ def main():
                     "metadata": {"keywords": [{"name": "Synthetic"}]},
                 }
             ]
-        for task in tasks:
-            row = dict.fromkeys(task.columns, "")
-            key = (
-                "temporaryReferenceCode" if task.name == "pubnotes" else "referenceCode"
-            )
-            row[task.key] = raw[task.name][0][key]
-            with (supplemental / task.csv_filename).open("w", newline="") as stream:
-                writer = csv.DictWriter(stream, fieldnames=task.columns)
-                writer.writeheader()
-                writer.writerow(row)
         raw["papers"][0]["publicationPhase"] = {
             "finalJournalPublicationUrls": [
                 {"url": "https://doi.org/10.1007/JHEP07(2099)999"}
@@ -218,8 +213,6 @@ def main():
                 "build-registry",
                 "--api-snapshot",
                 str(api_input),
-                "--csv-dir",
-                str(supplemental),
                 "--output",
                 str(curated_path),
                 "--doi-cache",

@@ -148,8 +148,8 @@ def parser():
         ),
         (
             "build-registry",
-            "Build a curated registry from API JSON and supplemental CSVs.",
-            [supplement_csv, counts],
+            "Build a curated registry from API JSON and shared identifier/citation data.",
+            [counts],
             _run_build_registry,
         ),
     ):
@@ -291,7 +291,6 @@ def _run_build_registry(args):
 
     result = build_registry(
         args.api_snapshot,
-        args.csv_dir,
         args.output,
         allow_count_drop=args.allow_count_drop,
         doi_cache=args.doi_cache,

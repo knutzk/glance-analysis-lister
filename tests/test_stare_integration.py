@@ -182,7 +182,7 @@ class StareIntegrationTests(unittest.TestCase):
             result["pubnotes"][0]["temporaryReferenceCode"], "PUB-DEMO-2099-01"
         )
         validate_api_registry(result)
-        curated = curate(result, {})
+        curated = curate(result)
         validate_registry(curated)
         self.assertEqual(
             curated["analyses"][0]["gal_contactEditors"], ["Invented Editor"]

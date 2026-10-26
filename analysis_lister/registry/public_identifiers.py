@@ -137,7 +137,9 @@ def enrich_public_identifiers(record, resource, identifiers):
                     "cds_record": cds_id,
                     "source_url": entry["source_url"],
                 }
-    if record.get("status") == "Phase 1 Finished" or phase.get("releaseDate"):
+    if record.get("status") not in {"Created", "Closed"} and (
+        record.get("status") == "Phase 1 Finished" or phase.get("releaseDate")
+    ):
         return {
             "field": "gal_finalReferenceCode",
             "source": "unresolved",

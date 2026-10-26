@@ -80,7 +80,11 @@ def analysis_card(row, group):
                 for paper in row.paper_milestones
             ],
             ("Analysis contacts", ", ".join(row.contacts)),
-            ("Internal-note editors", ", ".join(row.internal_editors)),
+            *(
+                [("Internal-note editors", ", ".join(row.internal_editors))]
+                if row.internal_editors
+                else []
+            ),
             ("Contact editors", ", ".join(row.editors)),
             (
                 "Editorial board",

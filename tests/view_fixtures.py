@@ -147,7 +147,7 @@ def publication(
 
 
 def snapshot(*analyses, papers=(), confnotes=(), pubnotes=()):
-    data = curate(api_fixture(), {})
+    data = curate(api_fixture())
     data["analyses"] = list(analyses) or [analysis(99, group="OTHER", status="Closed")]
     for resource, records in (
         ("papers", papers),

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def snapshot():
-    data = curate(api_fixture(), {})
+    data = curate(api_fixture())
     analysis = data["analyses"][0]
     analysis["relatedPublications"] = []
     for resource, kind in (

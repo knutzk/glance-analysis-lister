@@ -4,9 +4,7 @@
 """Synthetic API-to-curated mapping and offline publication regressions."""
 
 import copy
-import csv
 import json
-import shutil
 import subprocess
 import sys
 import unittest
@@ -19,11 +17,8 @@ from view_fixtures import api_fixture, person
 
 from analysis_lister import cli
 from analysis_lister.downloaders.api import RESOURCES
-from analysis_lister.downloaders.html import download_tasks
-from analysis_lister.downloaders.manifest import make_manifest
 from analysis_lister.registry import builder, enrichment as registry
 from analysis_lister.registry.schema import validate_registry
-from analysis_lister.storage import CSV_REFRESH_MARKER, SUPPLEMENT_MANIFEST
 
 
 class CuratedTests(unittest.TestCase):
@@ -32,37 +27,13 @@ class CuratedTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.api_path = self.root / "api.json"
-        self.csv_dir = self.root / "csv"
-        self.csv_dir.mkdir()
         self.output = self.root / "nested" / "curated.json"
         self.api = api_fixture()
         self.api_path.write_text(json.dumps(self.api))
-        tasks = download_tasks()
-        (self.csv_dir / SUPPLEMENT_MANIFEST).write_text(
-            json.dumps(make_manifest(tasks))
-        )
-        rows = {
-            "analyses": [
-                "ANA-DEMO-2099-01",
-                "First Editor, Second Editor",
-            ],
-            "papers": [
-                "DEMO-2099-01",
-                "https://example.test/figures",
-                "Invented draft",
-            ],
-            "pubnotes": ["PUB-DEMO-2099-01", "ATL-PHYS-PUB-2099-001"],
-        }
-        for task in tasks:
-            with (self.csv_dir / task.csv_filename).open("w", newline="") as stream:
-                writer = csv.writer(stream)
-                writer.writerows([task.columns, rows[task.name]])
 
     def test_default_build_reads_and_writes_in_callers_working_directory(self):
         with TemporaryDirectory() as workspace, chdir(workspace):
             Path("glance_api_registry.json").write_bytes(self.api_path.read_bytes())
-            for source in self.csv_dir.iterdir():
-                shutil.copy2(source, Path(source.name))
             cli.main(["build-registry"])
             result = json.loads(Path("glance_curated_registry.json").read_text())
             validate_registry(result)
@@ -73,7 +44,7 @@ class CuratedTests(unittest.TestCase):
         self,
     ):
         before = copy.deepcopy(self.api)
-        result = registry.curate(self.api, {})
+        result = registry.curate(self.api)
         for resource in RESOURCES:
             record = result[resource][0]
             self.assertNotIn("analysisTeam", record)
@@ -99,7 +70,7 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(before, self.api)
 
     def test_reserved_namespace_and_removed_keys_are_explicit(self):
-        result = registry.curate(self.api, {})
+        result = registry.curate(self.api)
         self.assertEqual(result["schema_version"], 2)
         self.assertEqual(result["gal_curation"]["removed_keys"], registry.REMOVED_KEYS)
 
@@ -116,7 +87,7 @@ class CuratedTests(unittest.TestCase):
             check_keys(result[resource])
         self.api["papers"][0]["metadata"]["gal_future"] = "collision"
         with self.assertRaisesRegex(ValueError, "reserved gal_"):
-            registry.curate(self.api, {})
+            registry.curate(self.api)
 
     def test_enrichment_retains_sources_and_removal_is_independent(self):
         source = {
@@ -173,7 +144,7 @@ class CuratedTests(unittest.TestCase):
         for resource in RESOURCES:
             self.api[resource][0]["groups"] = copy.deepcopy(groups)
         with self.assertNoLogs(registry.logger, level="WARNING"):
-            result = registry.curate(self.api, {})
+            result = registry.curate(self.api)
         for resource in RESOURCES:
             record = result[resource][0]
             self.assertNotIn("groups", record)
@@ -197,7 +168,7 @@ class CuratedTests(unittest.TestCase):
             "otherGroups": [],
         }
         with self.assertLogs(registry.logger, level="WARNING") as messages:
-            result = registry.curate(self.api, {})
+            result = registry.curate(self.api)
         self.assertEqual(len(messages.output), 1)
         for message in messages.output:
             self.assertIn("ANA-DEMO-2099-01", message)
@@ -257,7 +228,7 @@ class CuratedTests(unittest.TestCase):
                 {"url": "https://example.test/code"}
             ]
             self.api[resource][0]["metadata"]["repositories"] = []
-        result = registry.curate(self.api, {})
+        result = registry.curate(self.api)
         for resource in RESOURCES:
             record = result[resource][0]
             self.assertNotIn("repositories", record)
@@ -269,13 +240,13 @@ class CuratedTests(unittest.TestCase):
             )
 
     def test_old_schema_output_is_rejected_without_overwriting_it(self):
-        previous = registry.curate(self.api, {})
+        previous = registry.curate(self.api)
         previous["schema_version"] = 1
         self.output.parent.mkdir(parents=True, exist_ok=True)
         self.output.write_text(json.dumps(previous))
         before = self.output.read_bytes()
         with self.assertRaisesRegex(ValueError, "supported curated registry"):
-            builder.build_registry(self.api_path, self.csv_dir, self.output)
+            builder.build_registry(self.api_path, self.output)
         self.assertEqual(self.output.read_bytes(), before)
 
     def test_new_workflow_runs_with_legacy_and_authentication_imports_blocked(self):
@@ -292,8 +263,8 @@ from analysis_lister.downloaders import api, html, csv_batch, tables
 from analysis_lister.cli import main
 from analysis_lister.registry import CuratedRegistry
 main(["build-registry", "--api-snapshot", sys.argv[1],
-      "--csv-dir", sys.argv[2], "--output", sys.argv[3]])
-registry = CuratedRegistry.from_json(sys.argv[3])
+      "--output", sys.argv[2]])
+registry = CuratedRegistry.from_json(sys.argv[2])
 assert registry.get("analyses", "ANA-DEMO-2099-01") is not None
 assert not any(name.startswith("analysis_lister.glance") for name in sys.modules)
 """
@@ -303,7 +274,6 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
                 "-c",
                 code,
                 str(self.api_path),
-                str(self.csv_dir),
                 str(self.output),
             ],
             cwd=Path(__file__).resolve().parents[1],
@@ -312,7 +282,12 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
             text=True,
         )
 
-    def test_complete_offline_cli_build_merges_supplements(self):
+    def test_complete_offline_cli_build_needs_no_supplements(self):
+        self.api["papers"][0]["status"] = "Publication Phase Finished"
+        self.api["pubnotes"][0]["phase1"]["publicWebPageUrlForFiguresAndTables"] = (
+            "https://example.test/ATL-PHYS-PUB-2099-001/"
+        )
+        self.api_path.write_text(json.dumps(self.api))
         with patch(
             "stare.auth.TokenManager", side_effect=AssertionError("No authentication")
         ):
@@ -321,8 +296,6 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
                     "build-registry",
                     "--api-snapshot",
                     str(self.api_path),
-                    "--csv-dir",
-                    str(self.csv_dir),
                     "--output",
                     str(self.output),
                 ]
@@ -330,12 +303,11 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         result = json.loads(self.output.read_text())
         validate_registry(result)
         self.assertNotIn("fullTitle", result["analyses"][0])
+        self.assertNotIn("gal_internalNoteEditors", result["analyses"][0])
+        self.assertNotIn("html_source", result["gal_curation"])
         self.assertEqual(
-            result["analyses"][0]["gal_internalNoteEditors"],
-            ["First Editor", "Second Editor"],
-        )
-        self.assertEqual(
-            result["papers"][0]["gal_figuresUrl"], "https://example.test/figures"
+            result["papers"][0]["gal_figuresUrl"],
+            "https://atlas.web.cern.ch/Atlas/GROUPS/PHYSICS/PAPERS/DEMO-2099-01/",
         )
         self.assertNotIn("creationDate", result["pubnotes"][0])
         self.assertEqual(
@@ -343,29 +315,6 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         )
         self.assertEqual(result["counts"], self.api["counts"])
         self.assertEqual(json.loads(self.api_path.read_text()), self.api)
-
-    def test_api_wins_conflicts_and_unmatched_rows_never_create_records(self):
-        self.api["pubnotes"][0]["finalReferenceCode"] = "ATL-PHYS-PUB-2099-003"
-        result = registry.curate(
-            self.api,
-            {
-                "pubnotes": {
-                    "PUB-DEMO-2099-01": {
-                        "Reference Code": "ATL-PHYS-PUB-2099-001",
-                    },
-                    "PUB-DEMO-2099-02": {
-                        "Reference Code": "ATL-PHYS-PUB-2099-002",
-                    },
-                }
-            },
-        )
-        self.assertEqual(
-            result["pubnotes"][0]["finalReferenceCode"], "ATL-PHYS-PUB-2099-003"
-        )
-        stats = result["gal_curation"]["supplement_statistics"]["pubnotes"]
-        self.assertEqual(stats["conflicting_fields_api_retained"], 1)
-        self.assertEqual(stats["supplement_without_api"], 1)
-        self.assertEqual(len(result["analyses"]), 1)
 
     def test_readers_and_repeated_name_parts_are_preserved(self):
         self.assertEqual(registry.person_name(person("Lee", "Lee")), "Lee Lee")
@@ -387,9 +336,7 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         )
         before = cache.read_bytes()
         with patch("requests.get", side_effect=AssertionError("network not allowed")):
-            builder.build_registry(
-                self.api_path, self.csv_dir, self.output, doi_cache=cache
-            )
+            builder.build_registry(self.api_path, self.output, doi_cache=cache)
         result = json.loads(self.output.read_text())
         entry = result["papers"][0]["publicationPhase"]["gal_dois"][0]
         self.assertEqual(entry["citation"], "Synthetic citation")
@@ -398,28 +345,12 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
         self.assertEqual(cache.read_bytes(), before)
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
-            builder.build_registry(self.api_path, self.csv_dir, cache, doi_cache=cache)
+            builder.build_registry(self.api_path, cache, doi_cache=cache)
 
-    def test_retired_html_fields_are_ignored_but_api_values_are_preserved(self):
+    def test_api_title_and_creation_values_are_preserved(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
         self.api["analyses"][0]["creationDate"] = "2098-12-01"
-        result = registry.curate(
-            self.api,
-            {
-                "analyses": {
-                    "ANA-DEMO-2099-01": {
-                        "Full Title": "An obsolete HTML title",
-                        "Internal Note Editors": "",
-                    }
-                },
-                "pubnotes": {
-                    "PUB-DEMO-2099-01": {
-                        "Reference Code": "",
-                        "Creation Date": "2098-11-01",
-                    }
-                },
-            },
-        )
+        result = registry.curate(self.api)
         self.assertNotIn("fullTitle", result["analyses"][0])
         self.assertNotIn("creationDate", result["pubnotes"][0])
         self.assertEqual(result["papers"][0]["fullTitle"], "An API paper title")
@@ -428,27 +359,25 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
     def test_failed_inputs_and_overwriting_source_are_rejected(self):
         before = self.api_path.read_bytes()
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
-            builder.build_registry(self.api_path, self.csv_dir, self.api_path)
+            builder.build_registry(self.api_path, self.api_path)
         self.assertEqual(before, self.api_path.read_bytes())
-        (self.csv_dir / CSV_REFRESH_MARKER).touch()
-        with self.assertRaisesRegex(ValueError, "Incomplete CSV"):
-            builder.build_registry(self.api_path, self.csv_dir, self.output)
+        self.api["counts"]["papers"] = 99
+        self.api_path.write_text(json.dumps(self.api))
+        with self.assertRaises(ValueError):
+            builder.build_registry(self.api_path, self.output)
         self.assertFalse(self.output.exists())
 
-    def test_filtered_batch_is_rejected_even_with_count_override(self):
-        builder.build_registry(self.api_path, self.csv_dir, self.output)
+    def test_invalid_api_is_rejected_even_with_count_override(self):
+        builder.build_registry(self.api_path, self.output)
         before = self.output.read_bytes()
-        manifest = make_manifest(download_tasks())
-        manifest["selection"] = "filtered"
-        (self.csv_dir / SUPPLEMENT_MANIFEST).write_text(json.dumps(manifest))
-        with self.assertRaisesRegex(ValueError, "all-accessible"):
-            builder.build_registry(
-                self.api_path, self.csv_dir, self.output, allow_count_drop=True
-            )
+        self.api["source"]["selection"] = "filtered"
+        self.api_path.write_text(json.dumps(self.api))
+        with self.assertRaises(ValueError):
+            builder.build_registry(self.api_path, self.output, allow_count_drop=True)
         self.assertEqual(before, self.output.read_bytes())
 
     def test_count_guard_and_failed_publication_preserve_previous_output(self):
-        builder.build_registry(self.api_path, self.csv_dir, self.output)
+        builder.build_registry(self.api_path, self.output)
         previous = json.loads(self.output.read_text())
         for resource in RESOURCES:
             second = copy.deepcopy(previous[resource][0])
@@ -463,7 +392,7 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         self.output.write_text(json.dumps(previous))
         before = self.output.read_bytes()
         with self.assertRaisesRegex(ValueError, "20%"):
-            builder.build_registry(self.api_path, self.csv_dir, self.output)
+            builder.build_registry(self.api_path, self.output)
         self.assertEqual(before, self.output.read_bytes())
         with (
             patch.object(
@@ -471,13 +400,9 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
             ),
             self.assertRaises(OSError),
         ):
-            builder.build_registry(
-                self.api_path, self.csv_dir, self.output, allow_count_drop=True
-            )
+            builder.build_registry(self.api_path, self.output, allow_count_drop=True)
         self.assertEqual(before, self.output.read_bytes())
-        builder.build_registry(
-            self.api_path, self.csv_dir, self.output, allow_count_drop=True
-        )
+        builder.build_registry(self.api_path, self.output, allow_count_drop=True)
         self.assertEqual(
             json.loads(self.output.read_text())["counts"], self.api["counts"]
         )

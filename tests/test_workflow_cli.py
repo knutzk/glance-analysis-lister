@@ -141,7 +141,6 @@ assert "bs4" not in sys.modules
             cli.main(["build-registry", "--allow-count-drop"])
         workflow.assert_called_once_with(
             cli.API_SNAPSHOT_PATH,
-            cli.SUPPLEMENT_CSV_DIR,
             cli.CURATED_SNAPSHOT_PATH,
             allow_count_drop=True,
             doi_cache=cli.default_store_path(),

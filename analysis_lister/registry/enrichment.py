@@ -9,6 +9,7 @@ import logging
 from datetime import UTC, date, datetime
 from hashlib import sha256
 
+from .public_identifiers import enrich_public_identifiers, load_identifiers
 from .publication_dois import enrich_paper
 from .schema import (
     PREFIX,
@@ -51,15 +52,6 @@ MEETING_DATE_FIELDS = {
     "editorialBoardRequestMeetings": "gal_editorialBoardRequestMeetingDates",
     "preApprovalMeetings": "gal_preApprovalMeetingDates",
     "approvalMeetings": "gal_approvalMeetingDates",
-}
-SUPPLEMENTS = {
-    "analyses": {
-        "Internal Note Editors": "internalNoteEditors",
-    },
-    "papers": {"Figures": "figuresUrl", "Current Paper Draft": "currentPaperDraft"},
-    "pubnotes": {
-        "Reference Code": "finalReferenceCode",
-    },
 }
 
 
@@ -241,15 +233,18 @@ def remove_keys(value, keys):
     return value
 
 
-def curate(api, supplements, *, citations=None):
-    """Preserve independent API identities; merge by native identifier only."""
+def curate(api, *, citations=None, pubnote_identifiers=None):
+    """Curate independent API records using offline identifier/citation data."""
     validate_api(api)
+    identifiers = (
+        load_identifiers() if pubnote_identifiers is None else pubnote_identifiers
+    )
+    identifier_statistics = {}
     reject_reserved_keys(api)
     as_of = datetime.fromisoformat(api["fetched_at"]).date()
     result = copy.deepcopy(api)
     result["schema"] = SCHEMA
     result["schema_version"] = SCHEMA_VERSION
-    statistics = {}
     citations = citations if citations is not None else {}
     doi_stats = {
         "papers_with_dois": 0,
@@ -258,8 +253,6 @@ def curate(api, supplements, *, citations=None):
         "malformed_links": 0,
     }
     for resource in RESOURCES:
-        rows = supplements.get(resource, {})
-        matched = conflicts = 0
         records = []
         for record in result[resource]:
             team = record.get("analysisTeam", []) or []
@@ -279,20 +272,18 @@ def curate(api, supplements, *, citations=None):
                     if person.get("isContactEditor")
                 ]
             )
-            row = rows.get(record_key(record, resource))
-            if row is not None:
-                matched += 1
-                for column, field in SUPPLEMENTS.get(resource, {}).items():
-                    value = row[column].strip()
-                    if not value:
-                        continue
-                    if field == "internalNoteEditors":
-                        value = unique_names(value.split(","))
-                    if record.get(field) not in (None, "", []):
-                        if record[field] != value:
-                            conflicts += 1
-                        continue
-                    record[PREFIX + field] = value
+            evidence = enrich_public_identifiers(record, resource, identifiers)
+            if evidence:
+                record["gal_publicationProvenance"] = evidence
+                source = evidence["source"]
+                stats = identifier_statistics.setdefault(resource, {})
+                stats[source] = stats.get(source, 0) + 1
+                if source == "unresolved":
+                    logger.warning(
+                        "Public identifier unresolved for %s: %s",
+                        record_key(record, resource),
+                        evidence["reason"],
+                    )
             if resource == "papers":
                 entries, malformed = enrich_paper(record, citations)
                 doi_stats["papers_with_dois"] += bool(entries)
@@ -306,23 +297,18 @@ def curate(api, supplements, *, citations=None):
         result[resource] = sorted(
             records, key=lambda record: record_key(record, resource)
         )
-        if resource in SUPPLEMENTS:
-            statistics[resource] = {
-                "matched": matched,
-                "api_without_supplement": len(records) - matched,
-                "supplement_without_api": len(rows) - matched,
-                "conflicting_fields_api_retained": conflicts,
-            }
     result["gal_curation"] = {
         "built_at": datetime.now(UTC).isoformat(),
+        "public_identifier_statistics": identifier_statistics,
+        "pubnote_identifier_store": {
+            "entries": len(identifiers),
+            "sha256": sha256(
+                json.dumps(identifiers, sort_keys=True).encode()
+            ).hexdigest(),
+        },
         "contacts_as_of": as_of.isoformat(),
         "api_schema": api["schema"],
-        "supplement_fields": {
-            resource: {column: PREFIX + field for column, field in fields.items()}
-            for resource, fields in SUPPLEMENTS.items()
-        },
         "removed_keys": list(REMOVED_KEYS),
-        "supplement_statistics": statistics,
         "doi_statistics": doi_stats,
         "citation_store": {
             "entries": len(citations),

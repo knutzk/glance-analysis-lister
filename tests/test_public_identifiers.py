@@ -118,3 +118,8 @@ class PublicIdentifierTests(unittest.TestCase):
                 path.write_text(data)
                 with self.assertRaises(ValueError):
                     load_identifiers(path)
+
+    def test_created_or_closed_notes_do_not_need_a_public_identifier(self):
+        for status in ("Created", "Closed"):
+            record = {"status": status, "phase1": {"releaseDate": "2099-01-01"}}
+            self.assertIsNone(enrich_public_identifiers(record, "pubnotes", {}))

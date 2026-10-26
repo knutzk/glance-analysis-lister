@@ -694,7 +694,7 @@ class ApprovalProgressTests(unittest.TestCase):
         )
         markup = BeautifulSoup(ongoing_page(view), "html.parser")
         self.assertEqual(len(markup.select(".gal-progress__step")), 5)
-        self.assertIn("Internal-note editors", markup.get_text())
+        self.assertNotIn("Internal-note editors", markup.get_text())
         trace = next(item for item in view.decisions if item["resource"] == "analyses")
         self.assertIn("approval_progress", trace)
         self.assertIn("email_lists", trace)
@@ -885,7 +885,7 @@ class FoldedMilestoneTests(unittest.TestCase):
         self.assertIn("Phase 2 · ATLAS circulation 2 · 2099-03-01", folded.get_text())
         labels = [label.text for label in folded.select("dt")]
         self.assertEqual(
-            labels[labels.index("Analysis contacts") + 1], "Internal-note editors"
+            labels[labels.index("Analysis contacts") + 1], "Contact editors"
         )
         self.assertEqual(labels[0], "Last phase-0 milestone")
         self.assertFalse(

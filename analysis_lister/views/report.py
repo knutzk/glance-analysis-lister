@@ -34,6 +34,8 @@ def diagnostic_entry(trace):
                 "link": trace.get("relatedAnalysis"),
             }
         )
+    if trace.get("public_identifier_issue"):
+        issues.append({"kind": "public_identifier", **trace["public_identifier_issue"]})
     if not issues:
         return None
     reasons = []

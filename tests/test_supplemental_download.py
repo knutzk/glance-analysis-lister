@@ -177,10 +177,10 @@ class SupplementTests(unittest.TestCase):
             self.assertFalse(Path("json").exists())
             self.assertFalse(Path(".refresh-in-progress").exists())
 
-    def test_html_and_registry_build_share_supplemental_default(self):
+    def test_only_html_download_uses_csv_directory(self):
         parser = cli.parser()
         self.assertEqual(parser.parse_args(["download-html"]).csv_dir, Path("."))
-        self.assertEqual(parser.parse_args(["build-registry"]).csv_dir, Path("."))
+        self.assertFalse(hasattr(parser.parse_args(["build-registry"]), "csv_dir"))
 
 
 if __name__ == "__main__":
