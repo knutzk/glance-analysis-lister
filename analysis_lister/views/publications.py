@@ -98,6 +98,7 @@ def publication_details(record, resource, related=None):
         "gal_analysisContacts": record.get("gal_analysisContacts") or [],
         "gal_contactEditors": record.get("gal_contactEditors") or [],
         "phase1.gal_editorialBoard": phase.get("gal_editorialBoard") or [],
+        "phase1.gal_editorialBoardChairs": phase.get("gal_editorialBoardChairs") or [],
         "gal_groups": record.get("gal_groups") or {},
         "gal_figuresUrl": record.get("gal_figuresUrl"),
         "phase1.publicWebPageUrlForFiguresAndTables": phase.get(
@@ -183,6 +184,7 @@ def publication_details(record, resource, related=None):
             "contacts": sources["gal_analysisContacts"],
             "editors": sources["gal_contactEditors"],
             "board": sources["phase1.gal_editorialBoard"],
+            "board_chairs": sources["phase1.gal_editorialBoardChairs"],
             "groups": groups,
             "links": links,
             "cds_url": cds_record.value if cds_record else None,

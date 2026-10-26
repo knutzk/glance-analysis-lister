@@ -25,6 +25,37 @@ class PaperRenderingTests(unittest.TestCase):
     def prepare(self, data, group="DEMO", **options):
         return prepare_group(CuratedRegistry(data), GroupProfile(group, **options))
 
+    def test_paper_board_marks_recorded_chairs_without_duplicates(self):
+        for chairs in ([], ["Invented Chair", "Separate Chair", "Invented Chair"]):
+            with self.subTest(chairs=chairs):
+                paper = publication(1)
+                paper["phase1"] = {
+                    "gal_editorialBoard": [
+                        "Invented Member",
+                        "Invented Chair",
+                        "Invented Member",
+                    ],
+                    "gal_editorialBoardChairs": chairs,
+                }
+                view = self.prepare(snapshot(analysis(1), papers=(paper,)))
+                row = next(row for row in view.archive if row.resource == "papers")
+                self.assertEqual(row.details.board_chairs, tuple(chairs))
+                self.assertEqual(
+                    row.provenance["details"]["inputs"][
+                        "phase1.gal_editorialBoardChairs"
+                    ],
+                    chairs,
+                )
+                page = BeautifulSoup(papers_page(view), "html.parser").get_text(
+                    " ", strip=True
+                )
+                expected = "Invented Member, Invented Chair"
+                if chairs:
+                    expected += " (chair), Separate Chair (chair)"
+                self.assertIn(expected, page)
+                self.assertEqual(page.count("Invented Chair (chair)"), bool(chairs))
+                self.assertNotIn("Invented Member (chair)", page)
+
     def test_archive_selects_outputs_across_all_years_and_uses_publication_dates(self):
         old = publication(1, date="1999-01-01")
         submitted = publication(2, status="Publication Phase Active", date=None)

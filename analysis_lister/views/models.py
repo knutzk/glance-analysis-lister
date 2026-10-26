@@ -94,6 +94,7 @@ class PublicationDetails:
     contacts: tuple[str, ...]
     editors: tuple[str, ...]
     board: tuple[str, ...]
+    board_chairs: tuple[str, ...]
     groups: dict
     links: tuple[PublicationLink, ...]
     cds_url: str | None
@@ -111,6 +112,7 @@ class PublicationDetails:
             tuple(value["contacts"]),
             tuple(value["editors"]),
             tuple(value["board"]),
+            tuple(value["board_chairs"]),
             value["groups"],
             tuple(
                 PublicationLink(link["label"], link["url"]) for link in value["links"]

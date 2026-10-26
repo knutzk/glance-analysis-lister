@@ -29,7 +29,15 @@ def paper_details(row):
             ("Paper status", status),
             ("Analysis contacts", ", ".join(row.details.contacts)),
             ("Contact editors", ", ".join(row.details.editors)),
-            ("Editorial board", ", ".join(row.details.board)),
+            (
+                "Editorial board",
+                ", ".join(
+                    name + (" (chair)" if name in row.details.board_chairs else "")
+                    for name in dict.fromkeys(
+                        [*row.details.board, *row.details.board_chairs]
+                    )
+                ),
+            ),
         ]
     )
     out += "</div><div>"
