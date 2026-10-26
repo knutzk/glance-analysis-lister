@@ -15,8 +15,6 @@ source .venv/bin/activate
 python -m pip install .
 ```
 
-API downloads, registry construction and rendering need no Selenium. To use the
-retained HTML downloader, install `python -m pip install '.[download]'`; that optional command additionally needs Chrome and Selenium.
 Live GLANCE downloads require an authorised CERN account.
 
 The CLI is available as `analysis-lister` or `python -m analysis_lister`.
@@ -24,7 +22,6 @@ The CLI is available as `analysis-lister` or `python -m analysis_lister`.
 | Command | Purpose |
 | --- | --- |
 | `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
-| `download-html` | Export supplemental CSVs through the retained standalone HTML downloader. |
 | `build-registry` | Curate saved API JSON using bundled public identifiers and citation metadata. |
 | `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
 | `resolve-dois` | Infer citations or retrieve public citation metadata from INSPIRE. |
@@ -61,23 +58,17 @@ Group selection happens when views are prepared.
 | Shared citation dictionary | glance-analysis-lister’s maintained `json/doi_metadata.json` |
 | Public PUB-note identifiers | Shared `json/pubnote_identifiers.json` |
 
-API JSON and curated JSON default to the current working directory. The shared citation dictionary remains in glance-analysis-lister.
-They are local artifacts: ignore them in the consuming repository. A suitable
+API JSON and curated JSON default to the current working directory. Keep these
+local artifacts out of version control in the consuming repository. The shared
+citation dictionary is maintained with the package. A suitable
 `.gitignore` block is:
 
 ```gitignore
 /glance_api_registry.json
 /glance_curated_registry.json
-/analyses.csv
-/papers.csv
-/pubnotes.csv
-/supplement_manifest.json
-/.refresh-*/
-/.refresh-in-progress
-/cookies.json
 ```
 
-Explicit destinations remain supported:
+Set explicit destinations with:
 
 ```bash
 analysis-lister download-api --output data/api.json
@@ -88,15 +79,13 @@ analysis-lister build-registry \
 
 Authentication uses stare's browser SSO and credential storage. Omit `--login`
 to reuse stored credentials. Registry construction is offline: it needs only the
-API JSON and bundled identifier/citation dictionaries, with no HTML or CDS API
-calls. Keep downloaded records and view reports out of the public package repository.
+API JSON and bundled identifier/citation dictionaries. Keep downloaded records
+and view reports out of the public package repository.
 
 The API download stores validated stare model output, including explicit
 relationships between independent records. `download-api --page-size 250` changes
-how many records are requested per page; the default is 500. In two user-run
-comparisons with reversed execution order, 500 returned identical records and was
-about 3.3 times faster than 100 (mean elapsed times: 35.91 versus 118.21 seconds).
-Performance depends on server and network conditions. Any positive integer can be
+how many records are requested per page; the default is 500. Performance depends
+on server and network conditions. Any positive integer can be
 requested, subject to server support; 500 is not a documented server maximum.
 The selected page size is recorded in the source metadata. Retrieval remains sequential, through
 one shared stare client, with response caching disabled.
@@ -107,7 +96,7 @@ are present on stare's detailed models, and its [sorting documentation](https://
 accepts camelCase API fields. Sorting is recorded in the snapshot metadata.
 It does not create a transactional snapshot: records may still change between
 requests. Duplicate detection, consistent totals, count-drop protection and atomic
-publication remain mandatory. Offline tests exercise the actual stare client and
+publication protect the downloaded data. Offline tests exercise the actual stare client and
 serializers, but cannot establish server limits, live sorting behavior or speed.
 
 API downloads and registry builds reject per-resource count drops greater than
@@ -126,15 +115,13 @@ and DOI provenance. DOI/citation pairs, including corrections, stay aligned.
 
 Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
 controls named-object conversions; `REMOVED_KEYS` independently controls source
-key removal. The curated schema remains version 2. Existing curated outputs can
-be replaced after validation without requiring their old HTML input files.
+key removal. The curated schema is version 2.
 
 ### Public links and note identifiers
 
 Paper public-page URLs are constructed from their native reference codes for
 published or arXiv-submitted records. The canonical URL is recorded as derived;
-page availability is not checked. Internal-note editors and current-paper-draft
-fields are not added by the standard registry build.
+page availability is not checked.
 
 A valid API final identifier takes precedence. Otherwise, CONF/PUB public numbers
 are extracted unambiguously from API public-page URLs. PUB notes whose API links
@@ -148,16 +135,6 @@ technical PUB-note series, without a runtime updater.
 Notes with release evidence but no identifier produce explicit diagnostics rather than
 a guessed number. Each derivation is recorded in `gal_publicationProvenance`, and
 the curated metadata records the dictionary hash and source counts.
-
-### Standalone HTML downloader
-
-`download-html` remains available for manual CSV exports and saved-HTML replay,
-but its output is not used by `build-registry`. It uses Selenium authentication
-and supports `--csv-dir`, `--save-html` and `--from-html`. This command's safety,
-TLS and complete-batch validation remain in place. Exports retain their
-`supplement_manifest.json`, counter checks and rollback protection; these concern
-only the standalone downloader. `--from-html` replays a saved complete batch
-offline and cannot be combined with `--login` or `--save-html`.
 
 ## Configure and render group pages
 
@@ -273,15 +250,15 @@ configuration. Load the common files before the view-specific files:
 
 ```yaml
 extra_css:
-  - analyses/topq/assets/gal-common.css
-  - analyses/topq/assets/gal-ongoing.css
-  - analyses/topq/assets/gal-papers.css
-  - analyses/topq/assets/gal-notes.css
+  - analyses/assets/gal-common.css
+  - analyses/assets/gal-ongoing.css
+  - analyses/assets/gal-papers.css
+  - analyses/assets/gal-notes.css
 extra_javascript:
-  - analyses/topq/assets/gal-common.js
-  - analyses/topq/assets/gal-ongoing.js
-  - analyses/topq/assets/gal-papers.js
-  - analyses/topq/assets/gal-notes.js
+  - analyses/assets/gal-common.js
+  - analyses/assets/gal-ongoing.js
+  - analyses/assets/gal-papers.js
+  - analyses/assets/gal-notes.js
 ```
 
 One copy serves all groups. The assets support Zensical instant navigation,
@@ -309,8 +286,17 @@ can be used instead of a snapshot. `--limit 10` limits attempts;
 `--refresh-existing` revisits non-manual entries. Entries whose source is `manual`
 are protected from automatic replacement.
 
+Publication DOIs are extracted from URL fields in the API's final journal
+publication links. DOI resolver URLs and publisher URLs containing a DOI are
+supported. Link labels are ignored; a DOI appearing only in a label is not used.
+Publisher identifiers such as ScienceDirect PIIs are not converted into DOIs.
+
 Resolved entries include citation text and provenance, with material labels when
-known. Ambiguous associations remain unresolved and retryable. Requests use a
+known. A uniquely identified original publication is listed before its known
+errata, addenda and editorial notes. Corrections are ordered by DOI-encoded dates
+when those establish an order; otherwise their relative input order is retained.
+Ambiguous ordering that cannot identify an original publication through material
+labels or dates produces a warning. Ambiguous associations remain unresolved and retryable. Requests use a
 separate session without GLANCE credentials, verified TLS, bounded retries and
 rate limiting. Successful results are saved atomically after each entry.
 
@@ -373,7 +359,7 @@ The development requirements install the package in editable mode. Reinstall
 after changing dependencies or package metadata. CI runs the offline checks on
 Python 3.13 and validates the built wheel in a clean environment using
 `scripts/check_distribution.py`. This checks the installed CLI, synthetic
-rendering, packaged assets, citation data, certificate and licences.
+rendering, packaged assets, shared dictionaries, publication policies and licences.
 
 Browser checks are separate developer tools. They require installed Chrome and
 ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,
@@ -399,21 +385,16 @@ Tests use invented data and do not establish that live CERN authentication works
 
 | Directory | Responsibility |
 | --- | --- |
-| `downloaders/` | API retrieval, HTML authentication and verified HTTP transport, parsing, complete-batch manifests and transactional CSV publication. |
+| `downloaders/` | API retrieval through stare, validation and atomic snapshot publication. |
 | `registry/` | Offline enrichment, schema validation, DOI extraction and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
 | `tests/browser/` | Manual synthetic browser checks. |
 | `scripts/` | Installed-distribution validation used by CI. |
 
-HTML downloads verify certificates and hostnames. The package includes the public
-Sectigo intermediate documented in [certs/README.md](analysis_lister/certs/README.md).
-`REQUESTS_CA_BUNDLE`, then `CURL_CA_BUNDLE`, can override the HTML trust bundle.
-
 ## Licence
 
 Copyright © 2024–2026 Knut Zoch. Licensed under
-[GNU GPL version 3](LICENCE), `GPL-3.0-only`. The bundled certificate has its own
-[provenance](analysis_lister/certs/README.md).
+[GNU GPL version 3](LICENCE), `GPL-3.0-only`.
 
 Maintainer: [Knut Zoch](https://github.com/knutzk).
