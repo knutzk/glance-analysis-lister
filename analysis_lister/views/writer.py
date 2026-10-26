@@ -13,5 +13,12 @@ def write_documents(output_dir, documents, *, snapshot):
     paths = [output_dir / name for name in documents]
     if any(path.resolve() == snapshot for path in paths):
         raise ValueError("View output must not overwrite the registry snapshot")
+    counts = {"written": 0, "unchanged": 0}
     for name, content in documents.items():
-        atomic_write_text(output_dir / name, content)
+        path = output_dir / name
+        if path.is_file() and path.read_bytes() == content.encode("utf-8"):
+            counts["unchanged"] += 1
+            continue
+        atomic_write_text(path, content)
+        counts["written"] += 1
+    return counts

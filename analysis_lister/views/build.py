@@ -51,7 +51,12 @@ def render_group(snapshot, output_dir, profile):
                 sha256=report["snapshot"]["sha256"],
             )
     documents.update(asset_documents(revision))
-    write_documents(output_dir, documents, snapshot=snapshot)
+    publication = write_documents(output_dir, documents, snapshot=snapshot)
+    logger.info(
+        "Rendered outputs: %d written, %d unchanged",
+        publication["written"],
+        publication["unchanged"],
+    )
     for group in report["diagnostic_groups"]:
         log = logger.warning if group["level"] == "warning" else logger.info
         log(

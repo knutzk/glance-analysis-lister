@@ -241,6 +241,11 @@ information is unavailable, the header explicitly says `unknown`. No generation
 timestamp is added. These notices do not apply the package licence to registry
 content.
 
+Unchanged files are not rewritten, preserving their timestamps and inodes;
+missing or modified generated files are replaced. Unrelated files remain
+untouched. The log reports written/unchanged counts, which are not stored in the
+report because they depend on the existing output directory.
+
 The render command prints the `view-report.json` path to stdout; pages do not link
 to this report. Diagnostics are grouped by cause: uncertain states, missing or
 conflicting relationships, and missing public note identifiers. Each entry names
