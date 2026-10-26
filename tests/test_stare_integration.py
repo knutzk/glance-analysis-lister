@@ -111,6 +111,26 @@ def response_records(count=3):
 class StareIntegrationTests(unittest.TestCase):
     def test_real_detailed_models_round_trip_into_api_and_curated_storage(self):
         records = response_records()
+        # Distinct labels and URLs expose any independent sorting or re-pairing
+        # during HTTP parsing, model validation, or JSON serialization.
+        publication_links = [
+            {"label": "Inspire", "url": "https://example.test/literature/123"},
+            {
+                "label": "DOI:10.1234/original",
+                "url": "https://dx.doi.org/10.1234/original",
+            },
+            {
+                "label": "Erratum",
+                "url": "https://example.test/article/10.1234/correction",
+            },
+            {
+                "label": "Errratum: DOI:10.1234/correction",
+                "url": "https://doi.org/10.1234/correction",
+            },
+        ]
+        records["papers"][0]["publicationPhase"]["finalJournalPublicationUrls"] = (
+            publication_links
+        )
         requests = []
 
         def respond(request):
@@ -158,6 +178,10 @@ class StareIntegrationTests(unittest.TestCase):
             ["analyses"] * 2 + ["papers"] * 2 + ["confnotes"] * 2 + ["pubnotes"] * 2,
         )
         self.assertEqual(result["counts"], dict.fromkeys(records, 3))
+        self.assertEqual(
+            result["papers"][0]["publicationPhase"]["finalJournalPublicationUrls"],
+            publication_links,
+        )
         analysis = result["analyses"][0]
         self.assertEqual(analysis["creationDate"], "2099-01-01")
         self.assertEqual(analysis["extraMetadata"], {"invented": "preserved"})
