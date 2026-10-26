@@ -8,15 +8,12 @@ from html import escape
 from .fragments import affiliation_tags, fields
 from .layout import metadata_json, readable_html
 from .links import anchor, glance_url, html_link
-from .ongoing_controls import active_subgroup_buttons, render_controls
+from .ongoing_controls import render_controls
 
 
 def analysis_card(row, group):
     metadata = {
-        **{
-            key: row.filter_metadata[key]
-            for key in ("text", "subgroups", "stage_order")
-        },
+        **{key: row.metadata[key] for key in ("text", "subgroups", "stage_order")},
         "reference": row.reference,
     }
     encoded = metadata_json(metadata)
@@ -105,8 +102,8 @@ def analysis_card(row, group):
             out += f"<li>{prefix}{html_link(url, url)}</li>"
         out += "</ul>"
     for label, values in (
-        ("Statistical tools", row.filter_metadata["statistical_tools"]),
-        ("Triggers", row.filter_metadata["triggers"]),
+        ("Statistical tools", row.metadata["statistical_tools"]),
+        ("Triggers", row.metadata["triggers"]),
         ("Keywords", row.keywords),
     ):
         if values:
@@ -121,24 +118,20 @@ def analysis_card(row, group):
     )
 
 
-def filter_controls(rows, group, subgroup_buttons):
+def filter_controls(group, controls):
     prefix = anchor(group, "filters")
     return render_controls(
         prefix,
         "Search analyses",
         "Identifier, title, people, keywords or triggers",
-        [("subgroups", "Subgroups", active_subgroup_buttons(rows, subgroup_buttons))],
-        sort_options=[
-            ("stage-desc", "Review stage: most advanced first"),
-            ("stage-asc", "Review stage: earliest first"),
-            ("reference", "Analysis identifier"),
-        ],
+        [("subgroups", "Subgroups", controls["subgroups"])],
+        sort_options=controls["sort"],
     )
 
 
 def ongoing_cards(view):
     out = '<section class="gal-collection gal-ongoing" data-gal-collection data-gal-noun="analyses" aria-label="Ongoing analyses">\n'
-    out += filter_controls(view.ongoing, view.profile.group, view.subgroup_buttons)
+    out += filter_controls(view.profile.group, view.controls["ongoing"])
     out += f'<p class="gal-result-count" data-gal-count role="status" aria-live="polite" aria-atomic="true">{len(view.ongoing)} analyses</p>\n'
     out += (
         '<div class="gal-cards">\n'

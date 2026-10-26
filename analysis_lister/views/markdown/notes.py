@@ -17,7 +17,7 @@ from .links import anchor, glance_url, html_link
 
 def note_details(row):
     groups = dict(row.details.groups)
-    groups["leadingSubgroup"] = row.filter_metadata["leading_subgroup"]
+    groups["leadingSubgroup"] = row.metadata["leading_subgroup"]
     groups["subgroups"] = list(row.subgroups)
     extra = (
         row.details.conf_note if row.resource == "confnotes" else row.details.pub_note
@@ -49,7 +49,7 @@ def note_details(row):
     out += fields([(person.label, ", ".join(person.names)) for person in extra.people])
     out += "</div><div>"
     tags = [
-        TagGroup(label, tuple(row.filter_metadata[key]))
+        TagGroup(label, tuple(row.metadata[key]))
         for label, key in (
             ("Keywords", "keywords"),
             ("Triggers", "triggers"),
@@ -104,7 +104,11 @@ def note_table(view, resource):
         "Identifier, subgroup, title, citation, CDS URL, keyword or person",
     )
     out += date_controls(anchor(view.profile.group, resource + "-dates"), release=True)
-    out += '<div class="gal-publication-filter-row"><fieldset data-gal-note-status><legend>Supersession</legend><div class="gal-filter-buttons"><button type="button" data-gal-note-supersession="non-superseded" aria-pressed="true">Non-superseded</button><button type="button" data-gal-note-supersession="superseded" aria-pressed="false">Superseded</button></div></fieldset>'
+    out += '<div class="gal-publication-filter-row"><fieldset data-gal-note-status><legend>Supersession</legend><div class="gal-filter-buttons">'
+    for value, label in view.controls[resource]["supersession"]:
+        pressed = "true" if value == "non-superseded" else "false"
+        out += f'<button type="button" data-gal-note-supersession="{escape(value, quote=True)}" aria-pressed="{pressed}">{escape(label)}</button>'
+    out += "</div></fieldset>"
     out += '<div class="gal-filter-actions">' + expansion_control()
     out += '<button type="button" data-gal-note-reset>Reset filters</button></div></div></div></div>'
     out += f'<p class="gal-result-count" data-gal-note-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} of {len(rows)} notes</p>'
@@ -126,7 +130,7 @@ def note_table(view, resource):
             row.details.conf_note if resource == "confnotes" else row.details.pub_note
         )
         superseded = "true" if extra.superseded else "false"
-        out += f'<tr id="{identifier}" data-gal-note data-gal-search-text="{escape(row.filter_metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-superseded="{superseded}">'
+        out += f'<tr id="{identifier}" data-gal-note data-gal-search-text="{escape(row.metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-superseded="{superseded}">'
         out += f'<th scope="row"><div class="gal-note-links"><a class="gal-note-link" href="{escape(glance_url(resource, row.reference), quote=True)}" aria-label="GLANCE entry for {escape(row.label, quote=True)}">{escape(row.label)}</a>'
         cds_url = row.details.cds_url
         if cds_url:

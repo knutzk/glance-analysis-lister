@@ -13,7 +13,7 @@ from .publication_controls import render_controls
 
 def paper_details(row):
     groups = dict(row.details.groups)
-    groups["leadingSubgroup"] = row.filter_metadata["leading_subgroup"]
+    groups["leadingSubgroup"] = row.metadata["leading_subgroup"]
     groups["subgroups"] = list(row.subgroups)
     out = affiliation_tags(groups)
     if any(
@@ -43,10 +43,10 @@ def paper_details(row):
             '<div class="gal-publication-tags">'
             + "".join(
                 f'<span class="gal-badge">{escape(value)}</span>\n'
-                for value in row.filter_metadata[key]
+                for value in row.metadata[key]
             )
             + "</div>"
-            if row.filter_metadata[key]
+            if row.metadata[key]
             else "<p>Not recorded</p>"
         )
     links = [
@@ -80,7 +80,7 @@ def paper_table(view):
             (
                 "publication_status",
                 "Publication status",
-                [("published", "Published"), ("under-review", "Under review")],
+                view.controls[resource]["publication_status"],
             )
         ],
     )
@@ -96,7 +96,7 @@ def paper_table(view):
             view.profile.group, row.reference, kind="publication-papers"
         )
         metadata = metadata_json(
-            {key: row.filter_metadata[key] for key in ("text", "publication_status")}
+            {key: row.metadata[key] for key in ("text", "publication_status")}
         )
         out += f'<tr id="{identifier}" data-gal-item data-gal-date="{row.date or ""}" data-gal-metadata="{metadata}"><th scope="row">{record_button(row.label, glance_url("papers", row.reference))}</th>'
         out += f'<td><span data-gal-paper-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td><div class="gal-publication-records">'

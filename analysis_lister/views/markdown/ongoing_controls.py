@@ -32,9 +32,3 @@ def render_controls(prefix, search_label, placeholder, categories, *, sort_optio
         out
         + '<button type="button" class="gal-reset" data-gal-reset>Reset filters</button></div></div></div>\n'
     )
-
-
-def active_subgroup_buttons(rows, choices):
-    """Offer only choices with matches in this page's unfiltered collection."""
-    available = {name for row in rows for name in row.filter_metadata["subgroups"]}
-    return [(value, label) for value, label in choices if value in available]

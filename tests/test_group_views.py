@@ -164,16 +164,14 @@ class GroupViewTests(unittest.TestCase):
             if row.reference == inherited["referenceCode"]
         )
         self.assertEqual(row.subgroups, ("Example subgroup, with comma",))
+        self.assertEqual(row.metadata["subgroups"], ["Example subgroup, with comma"])
+        self.assertEqual(row.metadata["publication_type"], "papers")
+        self.assertEqual(view.controls["within_categories"], "or")
+        self.assertEqual(view.controls["between_categories"], "and")
         self.assertEqual(
-            row.filter_metadata["subgroups"], ["Example subgroup, with comma"]
+            "current snapshot" in row.provenance["subgroups"]["reason"], True
         )
-        self.assertEqual(row.filter_metadata["publication_type"], "papers")
-        self.assertEqual(view.publication_filters["within_categories"], "or")
-        self.assertEqual(view.publication_filters["between_categories"], "and")
-        self.assertEqual(
-            view.publication_filters["subgroup_assignment"], "current snapshot"
-        )
-        self.assertIn("Synthetic citation", row.filter_metadata["text"])
+        self.assertIn("Synthetic citation", row.metadata["text"])
         self.assertEqual(
             row.provenance["citation"]["rule"], "publication-citation-text"
         )
@@ -366,16 +364,16 @@ class GroupViewTests(unittest.TestCase):
                 "DEMO-Searchable",
                 "Invented keyword",
             ):
-                self.assertIn(value, row.filter_metadata["text"])
+                self.assertIn(value, row.metadata["text"])
             if resource == "papers":
-                self.assertIn("10.9999/synthetic", row.filter_metadata["text"])
-                self.assertIn("Synthetic citation", row.filter_metadata["text"])
+                self.assertIn("10.9999/synthetic", row.metadata["text"])
+                self.assertIn("Synthetic citation", row.metadata["text"])
             else:
                 self.assertIn(
                     "https://cds.cern.ch/record/209900000001",
-                    row.filter_metadata["text"],
+                    row.metadata["text"],
                 )
-                self.assertIn("Invented Reader", row.filter_metadata["text"])
+                self.assertIn("Invented Reader", row.metadata["text"])
                 soup = BeautifulSoup(
                     (confnotes_page if resource == "confnotes" else pubnotes_page)(
                         view
@@ -520,7 +518,7 @@ class GroupViewTests(unittest.TestCase):
         self.assertIn("Synthetic keyword", soup.select_one("tbody").text)
         self.assertIn("Additional assignment", soup.select_one("tbody").get_text())
         self.assertEqual(
-            view.archive[0].filter_metadata["leading_subgroup"], "Leading assignment"
+            view.archive[0].metadata["leading_subgroup"], "Leading assignment"
         )
 
     def test_trigger_and_tool_filters_inherit_only_through_explicit_links(self):
@@ -541,16 +539,14 @@ class GroupViewTests(unittest.TestCase):
         view = self.prepare(snapshot(value, papers=(inherited, direct, unlinked)))
         rows = {row.reference: row for row in view.archive}
         self.assertEqual(
-            rows[inherited["referenceCode"]].filter_metadata["triggers"],
+            rows[inherited["referenceCode"]].metadata["triggers"],
             ["Synthetic trigger"],
         )
         self.assertEqual(
-            rows[direct["referenceCode"]].filter_metadata["statistical_tools"],
+            rows[direct["referenceCode"]].metadata["statistical_tools"],
             ["Own tool"],
         )
-        self.assertEqual(
-            rows[unlinked["referenceCode"]].filter_metadata["triggers"], []
-        )
+        self.assertEqual(rows[unlinked["referenceCode"]].metadata["triggers"], [])
         trace = rows[inherited["referenceCode"]].provenance["filter_metadata"][
             "triggers"
         ]
@@ -792,9 +788,11 @@ class SubgroupButtonTests(unittest.TestCase):
             {"leadingSubgroup": "OTHER-Alpha", "subgroups": ["DEMO-Beta"]}
         )
         view = prepare_group(CuratedRegistry(snapshot(value)), GroupProfile("DEMO"))
-        self.assertEqual(view.subgroup_buttons, (("DEMO-Beta", "DEMO-Beta"),))
         self.assertEqual(
-            view.ongoing[0].filter_metadata["subgroups"], ["OTHER-Alpha", "DEMO-Beta"]
+            view.controls["ongoing"]["subgroups"], (("DEMO-Beta", "DEMO-Beta"),)
+        )
+        self.assertEqual(
+            view.ongoing[0].metadata["subgroups"], ["OTHER-Alpha", "DEMO-Beta"]
         )
         for page in (ongoing_page(view),):
             soup = BeautifulSoup(page, "html.parser")
@@ -961,7 +959,7 @@ class PaperReviewOrderTests(unittest.TestCase):
             CuratedRegistry(snapshot(*values, papers=tuple(papers))),
             GroupProfile("DEMO"),
         )
-        orders = [row.filter_metadata["stage_order"] for row in view.ongoing]
+        orders = [row.metadata["stage_order"] for row in view.ongoing]
         self.assertEqual(orders, [8, 24, 0])
         self.assertGreater(orders[1], orders[0])
         cards = BeautifulSoup(ongoing_page(view), "html.parser").select(".gal-card")

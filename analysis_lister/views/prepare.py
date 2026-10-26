@@ -36,12 +36,38 @@ def prepare_group(registry, profile):
         )
     subgroup_buttons = subgroup_button_choices(
         profile.group,
-        [
-            name
-            for row in [*ongoing, *selected]
-            for name in row.filter_metadata["subgroups"]
-        ],
+        [name for row in ongoing for name in row.metadata["subgroups"]],
     )
+    controls = {
+        "within_categories": "or",
+        "between_categories": "and",
+        "ongoing": {
+            "subgroups": tuple(subgroup_buttons.value),
+            "sort": (
+                ("stage-desc", "Review stage: most advanced first"),
+                ("stage-asc", "Review stage: earliest first"),
+                ("reference", "Analysis identifier"),
+            ),
+        },
+        "papers": {
+            "publication_status": (
+                ("published", "Published"),
+                ("under-review", "Under review"),
+            ),
+        },
+        "confnotes": {
+            "supersession": (
+                ("non-superseded", "Non-superseded"),
+                ("superseded", "Superseded"),
+            ),
+        },
+        "pubnotes": {
+            "supersession": (
+                ("non-superseded", "Non-superseded"),
+                ("superseded", "Superseded"),
+            ),
+        },
+    }
     return GroupView(
         profile,
         tuple(sorted(ongoing, key=lambda row: row.reference)),
@@ -49,37 +75,6 @@ def prepare_group(registry, profile):
         selected,
         tuple(traces),
         registry.metadata,
-        {
-            "between_categories": "and",
-            "within_categories": "or",
-            "subgroups": sorted({name for row in selected for name in row.subgroups}),
-            "publication_type": [
-                resource
-                for resource in ("papers", "confnotes", "pubnotes")
-                if any(row.resource == resource for row in selected)
-            ],
-            "subgroup_assignment": "current snapshot",
-            "triggers": sorted(
-                {value for row in selected for value in row.filter_metadata["triggers"]}
-            ),
-            "statistical_tools": sorted(
-                {
-                    value
-                    for row in selected
-                    for value in row.filter_metadata["statistical_tools"]
-                }
-            ),
-            "leading_subgroup": sorted(
-                {
-                    row.filter_metadata["leading_subgroup"]
-                    for row in selected
-                    if row.filter_metadata["leading_subgroup"]
-                }
-            ),
-            "keywords": sorted(
-                {value for row in selected for value in row.filter_metadata["keywords"]}
-            ),
-        },
-        tuple(subgroup_buttons.value),
+        controls,
         asdict(subgroup_buttons),
     )

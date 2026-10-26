@@ -42,7 +42,7 @@ class AwaitingPublicationReviewTests(unittest.TestCase):
         self.assertEqual(row.stage, "awaiting_publication_review")
         self.assertIn("Awaiting publication review", ongoing_page(view))
         self.assertEqual(
-            row.filter_metadata["stage_order"],
+            row.metadata["stage_order"],
             sum(
                 1 << index for index, step in enumerate(row.progress) if step["reached"]
             ),

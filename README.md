@@ -338,6 +338,13 @@ for publication in view.archive:
         print(publication.label, link.label, link.url)
 ```
 
+Prepared rows expose `metadata` containing search text and record attributes
+such as keywords, triggers and subgroup assignments. `view.controls` separately
+describes the available choices on each page: ongoing subgroup buttons and
+sorting, paper publication status, and note supersession. Record metadata does
+not imply that a corresponding filter control is displayed. The report records
+these controls alongside the derivation evidence.
+
 `load_publication_policy(path, group)` in `views.curation` loads the same TOML used
 by the CLI. `None` denotes missing configuration; `PublicationPolicy()` is an
 explicitly empty policy. Reports use schema version 2.

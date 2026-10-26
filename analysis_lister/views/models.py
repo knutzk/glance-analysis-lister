@@ -25,7 +25,9 @@ class RuleEvidence(TypedDict):
     inputs: dict
 
 
-class SearchMetadata(TypedDict, total=False):
+class RecordMetadata(TypedDict, total=False):
+    """Search text and record attributes, independent of available UI controls."""
+
     text: str
     subgroups: list[str]
     leading_subgroup: str | None
@@ -132,7 +134,7 @@ class AnalysisRow:
     milestone: tuple | None
     documents: tuple
     publications: tuple
-    filter_metadata: SearchMetadata
+    metadata: RecordMetadata
     progress: tuple
     status: str
     email_lists: tuple
@@ -151,7 +153,7 @@ class PublicationRow:
     date: str | None
     subgroups: tuple
     citations: tuple
-    filter_metadata: SearchMetadata
+    metadata: RecordMetadata
     provenance: dict[str, RuleEvidence | dict]
     details: PublicationDetails
 
@@ -164,8 +166,7 @@ class GroupView:
     publications: tuple[PublicationRow, ...]
     decisions: tuple
     source_metadata: dict
-    publication_filters: dict
-    subgroup_buttons: tuple
+    controls: dict
     subgroup_button_provenance: dict
 
     @property

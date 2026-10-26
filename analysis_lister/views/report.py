@@ -127,7 +127,7 @@ def build_report(view, snapshot, raw):
         "counts": counts,
         "analyses_needing_review": needing_review,
         "records_with_diagnostics": diagnostics,
-        "publication_filters": view.publication_filters,
+        "controls": view.controls,
         "subgroup_buttons": view.subgroup_button_provenance,
         "publication_states": {
             resource: dict(
