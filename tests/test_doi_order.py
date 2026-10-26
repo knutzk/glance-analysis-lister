@@ -36,6 +36,52 @@ class DoiOrderTests(unittest.TestCase):
     def urls(self, *dois):
         return [f"https://doi.org/{doi}" for doi in dois]
 
+    def test_multiple_known_corrections_keep_ambiguous_relative_order(self):
+        second = "10.9999/invented-correction"
+        citations = {
+            ORIGINAL: {"material": "publication"},
+            CORRECTION: {"material": "erratum"},
+            second: {"material": "erratum"},
+        }
+        with self.assertNoLogs(level="WARNING"):
+            self.assertEqual(
+                order_doi_urls(
+                    self.urls(second, ORIGINAL, CORRECTION), "TEST", citations=citations
+                ),
+                self.urls(ORIGINAL, second, CORRECTION),
+            )
+
+    def test_known_corrections_sort_by_distinct_dates(self):
+        early = "10.1007/jhep01(2099)001"
+        late = "10.1007/jhep03(2099)002"
+        for material in ("erratum", "addendum", "editorial note"):
+            citations = {
+                ORIGINAL: {"material": "publication"},
+                early: {"material": material},
+                late: {"material": "erratum"},
+            }
+            with self.subTest(material=material), self.assertNoLogs(level="WARNING"):
+                self.assertEqual(
+                    order_doi_urls(
+                        self.urls(late, early, ORIGINAL), "TEST", citations=citations
+                    ),
+                    self.urls(ORIGINAL, early, late),
+                )
+
+    def test_unknown_or_multiple_publications_still_warn(self):
+        third = "10.9999/invented"
+        for material in (None, "unknown", "publication"):
+            citations = {
+                ORIGINAL: {"material": "publication"},
+                CORRECTION: {"material": "erratum"},
+                third: {"material": material},
+            }
+            urls = self.urls(CORRECTION, third, ORIGINAL)
+            with self.subTest(material=material), self.assertLogs(level="WARNING"):
+                self.assertEqual(
+                    order_doi_urls(urls, "TEST", citations=citations), urls
+                )
+
     def test_distinct_dates_sort_and_host_aliases_deduplicate(self):
         original = "10.1007/JHEP07(2023)203"
         correction = "10.1007/JHEP05(2025)159"

@@ -53,13 +53,23 @@ def _doi_date(doi: str) -> tuple[int, int]:
     return 0, 0
 
 
+def _ambiguous_dates(dois):
+    """Return whether DOI-encoded dates fail to establish a total order."""
+    dates = [_doi_date(doi) for doi in dois]
+    return any(date == (0, 0) for date in dates) or any(
+        year == other_year and (not month or not other_month or month == other_month)
+        for i, (year, month) in enumerate(dates)
+        for other_year, other_month in dates[i + 1 :]
+    )
+
+
 def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[str]:
     """Deduplicate and order DOIs, warning when dates cannot resolve the order.
 
     Missing months cover the entire year, so they overlap any dated DOI in
-    that year. Cached publication/correction labels can resolve a pair;
-    otherwise unknown or overlapping dates retain input order. Used for CSV
-    and JSON loads.
+    that year. A unique cached publication with only known corrections is placed
+    first; corrections retain input order if their dates are ambiguous. Otherwise
+    unknown or overlapping dates retain input order with a warning.
     """
 
     # The same DOI may be listed several times, and under both the doi.org and
@@ -69,31 +79,32 @@ def order_doi_urls(urls: list[str], ref_code: str, *, citations=None) -> list[st
         by_doi.setdefault(doi_from_url(url), url)
 
     # Explicit cached material labels distinguish an original from a correction
-    # without guessing publication dates. Multiple corrections still need dates.
+    # without guessing publication dates. Dates only refine the relative order of known corrections.
     store = citation_store.Citations if citations is None else citations
     materials = []
     for doi in by_doi:
         entry = store.get(normalize_doi(doi), {})
         materials.append(entry.get("material") if isinstance(entry, dict) else None)
-    if (
-        len(by_doi) == 2
-        and materials.count("publication") == 1
-        and any(m in {"erratum", "addendum", "editorial note"} for m in materials)
+    if materials.count("publication") == 1 and all(
+        material in {"publication", "erratum", "addendum", "editorial note"}
+        for material in materials
     ):
-        pairs = zip(materials, by_doi.values(), strict=True)
-        return [
-            url
-            for material, url in sorted(
-                pairs, key=lambda pair: pair[0] != "publication"
+        original = []
+        corrections = {}
+        for material, (doi, url) in zip(materials, by_doi.items(), strict=True):
+            if material == "publication":
+                original.append(url)
+            else:
+                corrections[doi] = url
+        # The original is known. Uncertain chronology among known corrections
+        # does not make its identification ambiguous; preserve their input order.
+        if not _ambiguous_dates(corrections):
+            corrections = dict(
+                sorted(corrections.items(), key=lambda pair: _doi_date(pair[0]))
             )
-        ]
+        return original + list(corrections.values())
 
-    dates = [_doi_date(doi) for doi in by_doi]
-    ambiguous = any(date == (0, 0) for date in dates) or any(
-        year == other_year and (not month or not other_month or month == other_month)
-        for i, (year, month) in enumerate(dates)
-        for other_year, other_month in dates[i + 1 :]
-    )
+    ambiguous = _ambiguous_dates(by_doi)
     if len(by_doi) > 1 and ambiguous:
         lookup_notice(
             logger,
