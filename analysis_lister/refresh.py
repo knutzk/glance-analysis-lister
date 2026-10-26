@@ -1,224 +1,111 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Registry validation and transactional publication workflows.
+"""Sequential refresh orchestration; completed stages remain available on failure."""
 
-Paths are supplied by callers. Run refreshes and registry builds sequentially.
-"""
-
+import argparse
 import logging
-import shutil
-from collections.abc import Sequence
-from pathlib import Path
+import re
+from time import perf_counter
 
-from analysis_lister.diagnostics import discard_baseline_notices, lookup_report
-from analysis_lister.download import DownloadTable, download_tasks, staged_csv_files
-from analysis_lister.glance.glance_registry import GlanceRegistry
-from analysis_lister.retrieval import (
-    SCOPE_FILENAME,
-    RetrievalScope,
-    check_scope,
-    load_scope,
-)
-from analysis_lister.storage import CSV_REFRESH_MARKER, atomic_write_text
+from .citations.store import load_store
+from .console import print_summary
+from .registry.public_identifiers import default_identifiers_path, load_identifiers
+from .views.assets import ASSET_NAMES
+from .views.build import render_group
+from .views.curation import load_publication_policy
+from .views.profiles import GroupProfile
 
 logger = logging.getLogger(__name__)
-THRESHOLD_YEAR = "2020"
-# Reject category drops greater than 20%, unless explicitly overridden.
-MAX_DROP = 0.2
 
 
-def counts(registry: GlanceRegistry) -> dict[str, int]:
-    """Return the number of entries a registry lists, per category."""
-    return {
-        "entries": len(registry.entries),
-        "ongoing analyses": len(registry.analyses),
-        "papers": len(registry.papers),
-        "CONF notes": len(registry.confnotes),
-        "PUB notes": len(registry.pubnotes),
-    }
-
-
-def compare_to_snapshot(registry: GlanceRegistry, path: Path) -> list[str]:
-    """Compare the counts of a new registry against the committed snapshot.
-
-    Args:
-        registry: The newly built registry.
-        path: Path of the snapshot to compare against.
-
-    Returns:
-        One message per category that lost more than MAX_DROP of its entries,
-        empty if the new registry is plausible or there is nothing to compare
-        it against.
-
-    """
-    if not path.exists():
-        logger.debug("No snapshot at %s yet, nothing to compare against.", path)
-        return []
-
-    with discard_baseline_notices():
-        old_registry = GlanceRegistry.from_json(path)
-        old = counts(old_registry)
-    check_scope(registry.retrieval_scope, old_registry.retrieval_scope)
-    new = counts(registry)
-
-    logger.info(
-        "Registry counts (previous -> current):\n%s",
-        "\n".join(
-            f"  {label:<18} {old[label]:>6,} -> {new[label]:>6,}" for label in old
-        ),
-    )
-    drops = []
-    for label, old_count in old.items():
-        new_count = new[label]
-        if new_count < old_count * (1 - MAX_DROP):
-            drops.append(f"{label} dropped from {old_count} to {new_count}")
-
-    return drops
-
-
-@lookup_report()
-def build_registry(csv_dir: Path, output_path: Path, *, force: bool = False):
-    """Build and validate a candidate registry without publishing it."""
-    registry = GlanceRegistry.from_csv(
-        analysis_csv="analyses.csv",
-        paper_csv="papers.csv",
-        confnote_csv="confnotes.csv",
-        pubnote_csv="pubnotes.csv",
-        csv_dir=csv_dir,
-        threshold_year=THRESHOLD_YEAR,
-    )
-
-    drops = compare_to_snapshot(registry, output_path)
-    if drops and not force:
-        raise ValueError(
-            "Refusing to overwrite the registry, because "
-            + ", and ".join(drops)
-            + ". Expired cookies and renamed GLANCE columns both look like "
-            "this — inspect the source data before trusting the numbers. Pass --allow-count-drop if "
-            "the drop is genuine."
+def prepare_refresh(args):
+    """Validate configuration and destinations before requesting authentication."""
+    groups = args.groups
+    if any(not re.fullmatch(r"[A-Z][A-Z0-9_-]*", group) for group in groups):
+        raise ValueError("Groups must be uppercase tokens, e.g. TOPQ or HIGP")
+    if len(set(groups)) != len(groups):
+        raise ValueError("Each group must be requested only once")
+    plans = [
+        (
+            args.output_dir if len(groups) == 1 else args.output_dir / group.lower(),
+            GroupProfile(
+                group,
+                publication_policy=load_publication_policy(args.curation_config, group),
+            ),
         )
-    if drops:
-        logger.warning("Writing the registry despite: %s", "; ".join(drops))
+        for group in groups
+    ]
+    protected = [args.curation_config, args.doi_cache, default_identifiers_path()]
+    outputs = [args.api_snapshot, args.snapshot]
+    names = [
+        "ongoing.md",
+        "papers.md",
+        "confnotes.md",
+        "pubnotes.md",
+        "view-report.json",
+    ]
+    names += ["assets/" + name for name in ASSET_NAMES]
+    outputs += [directory / name for directory, _ in plans for name in names]
+    resolved = [path.resolve() for path in outputs]
+    inputs = {path.resolve() for path in protected}
+    if len(set(resolved)) != len(resolved) or inputs.intersection(resolved):
+        raise ValueError(
+            "Refresh destinations must be distinct and must not overwrite configuration or dictionaries"
+        )
+    for path in resolved:
+        if path.is_dir() or any(
+            parent in resolved or parent.is_file() for parent in path.parents
+        ):
+            raise ValueError(
+                f"Refresh output conflicts with a directory or parent file: {path}"
+            )
+    load_store(args.doi_cache)
+    load_identifiers(default_identifiers_path())
+    return plans
 
-    return registry
 
-
-def publish_csv_batch(
-    staging: Path,
-    output_dir: Path,
-    filenames: list[str],
-    *,
-    snapshot_path: Path | None = None,
-):
-    """Publish a validated batch, restoring the old files on a write failure.
-
-    The marker makes an interrupted promotion detectable by the registry loader.
-    Backups remain in the staging directory if the process is killed outright.
-    A fresh successful download repairs such an interrupted promotion.
-    An optional staged JSON snapshot is published last using an atomic write.
-    If that write fails, the CSV replacements are rolled back too.
-    Run downloading and registry building sequentially.
-    """
-    backup = staging / "previous"
-    backup.mkdir()
-    for name in filenames:
-        old = output_dir / name
-        if old.exists():
-            shutil.copy2(old, backup / name)
-
-    marker = output_dir / CSV_REFRESH_MARKER
-    was_interrupted = marker.exists()
-    marker.write_text("Refresh incomplete; re-run analysis_lists.py refresh.\n")
-    replaced = []
+def refresh(args, *, download, build):
+    plans = prepare_refresh(args)
+    started = perf_counter()
+    stage = "API download"
     try:
-        for name in filenames:
-            replaced.append(name)
-            (staging / name).replace(output_dir / name)
-        if snapshot_path is not None:
-            atomic_write_text(
-                snapshot_path, (staging / snapshot_path.name).read_text(encoding="utf8")
+        logger.info(
+            "Refresh 1/3: downloading one shared API snapshot for %s",
+            ", ".join(args.groups),
+        )
+        download(argparse.Namespace(**(vars(args) | {"output": args.api_snapshot})))
+        stage = "registry build"
+        logger.info("Refresh 2/3: building curated registry")
+        build(argparse.Namespace(**(vars(args) | {"output": args.snapshot})))
+        results = []
+        for directory, profile in plans:
+            stage = f"rendering {profile.group}"
+            logger.info("Refresh 3/3: rendering %s into %s", profile.group, directory)
+            counts = render_group(args.snapshot, directory, profile)
+            results.extend(
+                [
+                    (profile.group, directory),
+                    ("Report", directory / "view-report.json"),
+                    *[
+                        (f"{profile.group} {key}", value)
+                        for key, value in counts.items()
+                    ],
+                ]
             )
     except BaseException:
-        for name in reversed(replaced):
-            previous = backup / name
-            if previous.exists():
-                previous.replace(output_dir / name)
-            else:
-                (output_dir / name).unlink(missing_ok=True)
-        if not was_interrupted:
-            marker.unlink()
+        logger.error(
+            "Refresh stopped during %s; later steps were not run. Completed outputs are retained; no workflow-wide rollback is performed.",
+            stage,
+        )
         raise
-    marker.unlink()
-
-
-def refresh_csv_files(
-    tasks: Sequence[DownloadTable],
-    csv_dir: Path,
-    debug_dir: Path,
-    *,
-    cookies: dict[str, str] | None = None,
-    use_local_html: bool = False,
-    debug: bool = False,
-    scope: RetrievalScope | None = None,
-) -> None:
-    """Fetch and publish CSVs only, for the standalone download command."""
-    with staged_csv_files(
-        tasks,
-        csv_dir,
-        debug_dir,
-        cookies=cookies,
-        use_local_html=use_local_html,
-        debug=debug,
-        scope=scope,
-    ) as staging:
-        publish_csv_batch(
-            staging, csv_dir, [t.csv_filename for t in tasks] + [SCOPE_FILENAME]
-        )
-    logger.debug("Published complete CSV batch.")
-
-
-def update_registry(csv_dir: Path, snapshot_path: Path, *, force=False):
-    """Validate existing CSVs and atomically publish their registry."""
-    registry = build_registry(csv_dir, snapshot_path, force=force)
-    registry.store_json(snapshot_path)
-
-
-def refresh_analysis_lists(
-    csv_dir: Path,
-    debug_dir: Path,
-    snapshot_path: Path,
-    *,
-    force: bool = False,
-    cookies: dict[str, str] | None = None,
-    use_local_html: bool = False,
-    debug: bool = False,
-    scope: RetrievalScope | None = None,
-) -> None:
-    """Stage and validate all inputs before publishing CSVs and JSON together."""
-    scope = scope or load_scope()
-    if snapshot_path.exists():
-        with discard_baseline_notices():
-            previous = GlanceRegistry.from_json(snapshot_path).retrieval_scope
-        check_scope(scope, previous)
-    tasks = download_tasks()
-    with staged_csv_files(
-        tasks,
-        csv_dir,
-        debug_dir,
-        cookies=cookies,
-        use_local_html=use_local_html,
-        debug=debug,
-        scope=scope,
-    ) as staging:
-        registry = build_registry(staging, snapshot_path, force=force)
-        registry.store_json(staging / snapshot_path.name)
-        publish_csv_batch(
-            staging,
-            csv_dir,
-            [t.csv_filename for t in tasks] + [SCOPE_FILENAME],
-            snapshot_path=snapshot_path,
-        )
-    logger.debug(
-        "Published CSV batch and registry. Render pages to preview the changes."
+    print_summary(
+        "Refresh complete",
+        [
+            ("API snapshot", args.api_snapshot),
+            ("Curated registry", args.snapshot),
+            *results,
+            ("Elapsed", f"{perf_counter() - started:.2f}s"),
+        ],
+        color=args.color,
     )

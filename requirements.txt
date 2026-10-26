@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-# Install the package with support for all commands, including CERN login.
+# Install the API-based download/build/render workflow.
 # Dependencies are maintained in pyproject.toml.
-.[download]
+.

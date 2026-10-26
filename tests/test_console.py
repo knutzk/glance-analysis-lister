@@ -116,19 +116,53 @@ class ConsoleTests(unittest.TestCase):
         self.assertIn("WARN  needs attention", stream.getvalue())
         self.assertEqual(output.getvalue(), "Completed\n  Records  12\n")
 
+    def test_redirected_summaries_precede_subsequent_diagnostics(self):
+        code = """
+import logging
+from analysis_lister.console import configure_logging, print_summary
+with configure_logging(color="never"):
+    log = logging.getLogger("analysis_lister.demo")
+    log.info("first stage")
+    print_summary("First complete", [("Records", 3)], color="never")
+    log.info("second stage")
+    print_summary("Second complete", color="never")
+    log.info("finished")
+"""
+        environment = os.environ.copy()
+        environment.pop("PYTHONUNBUFFERED", None)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=ROOT,
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        expected = [
+            "first stage",
+            "First complete",
+            "Records",
+            "second stage",
+            "Second complete",
+            "finished",
+        ]
+        positions = [result.stdout.index(text) for text in expected]
+        self.assertEqual(positions, sorted(positions), result.stdout)
+
     def test_logging_options_work_before_or_after_subcommand(self):
         for flags in (
-            ["--verbose", "validate-lookups", "--color", "always"],
-            ["--color", "always", "validate-lookups", "--verbose"],
+            ["--verbose", "format-citations", "--color", "always"],
+            ["--color", "always", "format-citations", "--verbose"],
         ):
             with (
                 patch.object(cli, "configure_logging") as setup,
-                patch.object(cli, "run"),
+                patch.object(cli, "_run_format_citations"),
             ):
                 cli.main(flags)
                 setup.assert_called_once_with(verbose=True, quiet=False, color="always")
         with patch("sys.stderr", io.StringIO()), self.assertRaises(SystemExit) as error:
-            cli.main(["--quiet", "validate-lookups", "--verbose"])
+            cli.main(["--quiet", "format-citations", "--verbose"])
         self.assertEqual(error.exception.code, 2)
 
     def test_forced_colour_overrides_no_color_and_never_stays_plain(self):
@@ -137,8 +171,20 @@ class ConsoleTests(unittest.TestCase):
                 self.subTest(mode=mode),
                 patch.dict(os.environ, {"NO_COLOR": "1"}),
                 patch("sys.stdout", io.StringIO()) as output,
+                patch(
+                    "analysis_lister.citations.formatting.format_citations",
+                    return_value=0,
+                ),
             ):
-                cli.main(["--color", mode, "validate-lookups"])
+                cli.main(
+                    [
+                        "--color",
+                        mode,
+                        "format-citations",
+                        "--doi-cache",
+                        "/tmp/gal-console-empty-citations.json",
+                    ]
+                )
                 self.assertEqual("\033[" in output.getvalue(), mode == "always")
 
     def test_redirected_cli_output_has_no_ansi_or_traceback_on_failure(self):
@@ -147,7 +193,9 @@ class ConsoleTests(unittest.TestCase):
                 sys.executable,
                 "-m",
                 "analysis_lister",
-                "render",
+                "render-group",
+                "--group",
+                "DEMO",
                 "--snapshot",
                 "missing-synthetic.json",
             ],
@@ -156,7 +204,7 @@ class ConsoleTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(result.stdout, "")
+        self.assertIn("WARNING:", result.stdout)
         self.assertIn("ERROR", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         self.assertNotIn("\033[", result.stderr)
@@ -170,7 +218,9 @@ class ConsoleTests(unittest.TestCase):
                     sys.executable,
                     "-m",
                     "analysis_lister",
-                    "render",
+                    "render-group",
+                    "--group",
+                    "DEMO",
                     "--snapshot",
                     str(ROOT / "examples/synthetic_registry.json"),
                     "--output-dir",
@@ -181,8 +231,7 @@ class ConsoleTests(unittest.TestCase):
                 text=True,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Pages rendered", result.stdout)
-        self.assertIn("Rendering", result.stderr)
+        self.assertIn("Group views rendered", result.stdout)
         self.assertNotIn("Writing output file", result.stderr)
         self.assertNotIn("\033[", result.stdout + result.stderr)
 

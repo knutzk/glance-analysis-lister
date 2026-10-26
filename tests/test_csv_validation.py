@@ -10,9 +10,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.download import HTMLParser
-from analysis_lister.glance.csv_loader import read_csv_rows
-from analysis_lister.html_tables import (
+from analysis_lister.downloaders.csv_io import read_csv_rows
+from analysis_lister.downloaders.html import HTMLParser
+from analysis_lister.downloaders.tables import (
     parse_html_table,
     table_to_rows,
     validate_table_completeness,
@@ -90,7 +90,7 @@ class CsvValidationTests(unittest.TestCase):
         for html in (
             "<table><tr><th>ID</th><th>Status</th></tr><tr><td>ID</td></tr></table>",
             "<table><tr><th>ID</th></tr><tr><td>ID</td><td>extra</td></tr></table>",
-            "<table><tr><th>ID</th><th>ID</th></tr><tr><td>a</td><td>b</td></tr></table>",
+            "<table><tr><td>a</td><td>b</td></tr></table>",
         ):
             with self.subTest(html=html):
                 self.path.write_text("previous")
@@ -101,23 +101,86 @@ class CsvValidationTests(unittest.TestCase):
     def test_invalid_table_is_saved_for_diagnostics_without_replacing_csv(self):
         self.path.write_text("previous CSV")
         diagnostic = self.path.parent / "debug" / "analyses.html"
-        html = "<table><tr><th>Renamed</th></tr><tr><td>entry</td></tr></table>"
-        with self.assertRaisesRegex(ValueError, "Missing columns"):
-            HTMLParser.parse_to_csv(
-                html, self.path, diagnostic, column_filter=["Reference Code"]
-            )
+        html = (
+            "<table><tr><th>ID</th><th>Status</th></tr><tr><td>entry</td></tr></table>"
+        )
+        with self.assertRaisesRegex(ValueError, "expected 2 cells"):
+            HTMLParser.parse_to_csv(html, self.path, diagnostic)
         self.assertEqual(self.path.read_text(), "previous CSV")
         self.assertEqual(diagnostic.read_text(), html + "\n")
 
-    def test_duplicate_unused_html_headers_are_allowed(self):
-        HTMLParser.parse_to_csv(
+    def test_duplicate_html_labels_preserve_both_columns_in_csv(self):
+        html = (
             "<span>Showing 1 to 1 of 1 results</span>"
-            "<table><tr><th>ID</th><th>Unused</th><th>Unused</th></tr>"
-            "<tr><td>one</td><td>a</td><td>b</td></tr></table>",
-            self.path,
-            column_filter=["ID"],
+            "<table><tr><th>Reference Code</th>"
+            "<th>Related Papers ref codes</th><th>Related Papers ref codes</th>"
+            "<th>Related Papers ref codes (2)</th><th>Related Papers ref codes</th></tr>"
+            "<tr><td>ANA-DEMO-2099-01</td><td> first </td><td>second</td>"
+            "<td>third</td><td>fourth</td></tr></table>"
         )
-        self.assertEqual(self.path.read_text(), '"ID"\n"one"\n')
+        with self.assertLogs(
+            "analysis_lister.downloaders.tables", level="WARNING"
+        ) as logs:
+            HTMLParser.parse_to_csv(html, self.path)
+        rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "Reference Code": "ANA-DEMO-2099-01",
+                    "Related Papers ref codes": " first ",
+                    "Related Papers ref codes (3)": "second",
+                    "Related Papers ref codes (2)": "third",
+                    "Related Papers ref codes (4)": "fourth",
+                }
+            ],
+        )
+        self.assertEqual(len(logs.output), 2)
+        self.assertIn("all columns retained", logs.output[0])
+        self.assertNotIn("ANA-DEMO-2099-01", "\n".join(logs.output))
+
+    def test_unnamed_and_duplicate_headers_are_preserved_together(self):
+        html = (
+            "<span>Showing 1 to 1 of 1 results</span>"
+            "<table><tr><th></th><th>Reference Code</th>"
+            "<th>Related Papers ref codes</th><th>Related Papers ref codes</th>"
+            "<th>Unnamed column 1</th><th> </th></tr>"
+            "<tr><td>action</td><td>ANA-DEMO-2099-01</td><td>first</td>"
+            "<td>second</td><td>third</td><td>fourth</td></tr></table>"
+        )
+        with self.assertLogs(
+            "analysis_lister.downloaders.tables", level="WARNING"
+        ) as logs:
+            HTMLParser.parse_to_csv(html, self.path)
+        rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "Unnamed column 1 (2)": "action",
+                    "Reference Code": "ANA-DEMO-2099-01",
+                    "Related Papers ref codes": "first",
+                    "Related Papers ref codes (2)": "second",
+                    "Unnamed column 1": "third",
+                    "Unnamed column 6": "fourth",
+                }
+            ],
+        )
+        self.assertEqual(len(logs.output), 3)
+        self.assertIn("unnamed HTML header", logs.output[0])
+
+    def test_duplicate_identifier_headers_still_fail(self):
+        for header in ("Reference Code", "Temporary Reference Code"):
+            table = parse_html_table(
+                f"<table><tr><th>{header}</th><th>{header}</th></tr>"
+                "<tr><td>one</td><td>two</td></tr></table>",
+                source="synthetic",
+            )
+            with (
+                self.subTest(header=header),
+                self.assertRaisesRegex(ValueError, "Invalid table headers"),
+            ):
+                table_to_rows(table, source="synthetic")
 
 
 class HtmlTableParsingTests(unittest.TestCase):
@@ -166,10 +229,8 @@ class HtmlTableParsingTests(unittest.TestCase):
             source="synthetic table",
         )
         self.assertEqual(
-            table_to_rows(
-                table, source="synthetic table", column_filter=["ID", "Status"]
-            ),
-            [["Status", "ID"], [" Phase 0 is  Active ", "first"]],
+            table_to_rows(table, source="synthetic table"),
+            [["Status", "ID", "Unused"], [" Phase 0 is  Active ", "first", "ignored"]],
         )
 
     def test_parser_diagnostics_identify_source_and_bad_row(self):

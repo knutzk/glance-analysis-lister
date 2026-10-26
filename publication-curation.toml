@@ -1,0 +1,81 @@
+# Shared publication archive policies. All listed groups, subgroups and
+# keywords are combined with OR. A group matches an internal identifier
+# token or a leading/additional affiliation. Groups absent from this file
+# fall back to their internal identifier token, with a warning.
+
+[groups.BLS]
+title = "B physics and light states"
+groups = ["BLS", "BPHY"]
+
+[groups.DAPR]
+title = "Data preparation"
+groups = ["DAPR", "DPBG", "DPDQ", "LUMI"]
+
+[groups.DETECTORS]
+title = "Detector systems"
+groups = ["FDET", "HGTD", "LARG", "MDET", "SCTD", "TCAL"]
+
+[groups.EGAM]
+title = "Electron and photon performance"
+groups = ["EGAM"]
+
+[groups.EXOT]
+title = "Exotics searches"
+groups = ["EXOT"]
+subgroups = []
+keywords = []
+
+[groups.FTAG]
+title = "Flavour tagging performance"
+groups = ["FTAG"]
+
+[groups.GPER]
+title = "Global performance"
+groups = ["GPER"]
+
+[groups.HIGP]
+title = "Higgs physics"
+groups = ["HIGP", "HIGG"]
+subgroups = ["HDBS-DiHiggs"]
+
+[groups.HION]
+title = "Heavy-ion physics"
+groups = ["HION"]
+
+[groups.HMBS]
+title = "Higgs and multi-boson searches"
+groups = ["HMBS", "HDBS", "SUSY"]
+
+[groups.IDTR]
+title = "ID tracking performance"
+groups = ["IDTR"]
+
+[groups.JETM]
+title = "Jet/Etmiss performance"
+groups = ["JETM"]
+
+[groups.MUON]
+title = "Muon performance"
+groups = ["MUON"]
+
+[groups.PMGR]
+title = "Physics modelling"
+groups = ["PMGR"]
+
+[groups.STDM]
+title = "Standard Model physics"
+groups = ["STDM"]
+
+[groups.TAUP]
+title = "Tau performance"
+groups = ["TAUP"]
+
+[groups.TDAQ]
+title = "Trigger and data acquisition"
+groups = ["TDAQ", "TRIG"]
+
+[groups.TOPQ]
+title = "Top physics"
+groups = ["TOPQ"]
+subgroups = ["HIGG-HSG8", "HIGP-Tops"]
+keywords = []

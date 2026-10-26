@@ -13,24 +13,19 @@ from unittest.mock import Mock, patch
 import requests
 
 from analysis_lister import cli
-from analysis_lister.citation_store import (
-    Citations,
-    cached_citations,
+from analysis_lister.citations.formatting import format_citations, format_journal_name
+from analysis_lister.citations.inspire import InspireClient, inspire_citation
+from analysis_lister.citations.resolver import (
+    infer_citation,
+    resolve_dois,
+    snapshot_dois,
+)
+from analysis_lister.citations.store import (
+    default_store_path,
     load_store,
     normalize_doi,
     save_store,
 )
-from analysis_lister.doi_resolver import (
-    InspireClient,
-    format_citations,
-    format_journal_name,
-    infer_citation,
-    inspire_citation,
-    resolve_dois,
-    snapshot_dois,
-)
-from analysis_lister.glance.paper import Paper
-from analysis_lister.lookup_validation import validate_lookups
 
 DOI = "10.9999/demo"
 JHEP = "10.1007/JHEP07(2099)999"
@@ -75,13 +70,13 @@ class CitationStoreTests(unittest.TestCase):
         self.path = self.root / "nested/citations.json"
 
     def test_curated_defaults_are_rich_and_preserve_corrections(self):
-        validate_lookups()
-        for value in Citations.values():
+        citations = load_store(default_store_path())
+        for value in citations.values():
             self.assertIn("source", value)
             self.assertNotIn("locked", value)
             self.assertTrue(value["citation"])
         self.assertEqual(
-            Citations["10.1140/epjc/s10052-020-08541-3"]["citation"],
+            citations["10.1140/epjc/s10052-020-08541-3"]["citation"],
             "Erratum: Eur. Phys. J. C 80 (2020) 1092",
         )
 
@@ -93,10 +88,10 @@ class CitationStoreTests(unittest.TestCase):
         self.assertEqual(set(loaded), {DOI})
         self.assertEqual(load_store(self.root / "missing.json"), {})
 
-    def test_one_line_per_doi_and_redundant_legacy_fields_are_removed(self):
+    def test_one_line_per_doi_and_unknown_material_is_omitted(self):
         values = {
-            DOI: record('Citation with "quotes" and Unicode γ', locked=False),
-            "10.9999/other": record(source="inspire", locked=True, material="unknown"),
+            DOI: record('Citation with "quotes" and Unicode γ'),
+            "10.9999/other": record(source="inspire", material="unknown"),
         }
         save_store(self.path, values)
         text = self.path.read_text()
@@ -113,43 +108,13 @@ class CitationStoreTests(unittest.TestCase):
             f'{{"{DOI}": {{}}, "{DOI}": {{}}}}',
             json.dumps({DOI: record(), DOI.upper(): record()}),
             json.dumps({DOI: record(locked="true")}),
+            json.dumps({DOI: record(locked=True)}),
+            json.dumps({DOI: record(locked=False)}),
             '{"10.9999/demo": {"citation": "Demo", "source": "manual", "source": "inspire"}}',
         ):
             self.path.write_text(text)
             with self.subTest(text=text), self.assertRaises(ValueError):
                 load_store(self.path)
-
-    def test_cached_citations_restore_after_failure_and_feed_json_loading_offline(self):
-        save_store(self.path, {DOI: record("Cached citation")})
-        original = Citations.copy()
-        with (
-            self.assertRaisesRegex(RuntimeError, "synthetic"),
-            cached_citations(self.path),
-        ):
-            self.assertEqual(Citations[DOI]["citation"], "Cached citation")
-            raise RuntimeError("synthetic")
-        self.assertEqual(Citations, original)
-        from attrs import fields
-
-        data = {f.name: "" for f in fields(Paper) if f.init}
-        data.update(
-            ref_code="DEMO-2099-01",
-            status=" Phase 0 is  Finished ",
-            status_paper=" Publication Phase is  Active ",
-            date_publication="2099-01-01",
-            doi_urls=[f"https://doi.org/{DOI}"],
-            keywords=[],
-            subgroups=[],
-            supporting_docs=[],
-        )
-        with (
-            cached_citations(self.path),
-            patch.object(
-                requests.Session, "get", side_effect=AssertionError("network")
-            ),
-        ):
-            paper = Paper.from_json(data)
-        self.assertEqual(paper.journal_ref, "Cached citation")
 
 
 class ResolutionTests(unittest.TestCase):
@@ -275,25 +240,26 @@ class ResolutionTests(unittest.TestCase):
         snapshot.write_text(
             json.dumps(
                 {
-                    "entries": {
-                        "DEMO-2099-01": {
-                            "doi_urls": [
-                                f"https://www.doi.org/DOI:{JHEP}",
-                                "not-a-doi",
-                                42,
-                            ]
+                    "schema": "glance-api-registry",
+                    "papers": [
+                        {
+                            "publicationPhase": {
+                                "finalJournalPublicationUrls": [
+                                    {"url": "https://doi.org/" + JHEP},
+                                    {"url": "https://doi.org/invalid"},
+                                ]
+                            }
                         }
-                    }
+                    ],
                 }
             )
         )
-        with self.assertLogs(level="WARNING") as logs:
+        with self.assertLogs(level="WARNING"):
             self.assertEqual(snapshot_dois(snapshot), {JHEP.lower()})
-        self.assertIn("Skipped 2 malformed DOI values", logs.output[0])
 
     def test_inference_is_incremental_and_never_contacts_inspire(self):
         with patch(
-            "analysis_lister.doi_resolver.InspireClient",
+            "analysis_lister.citations.resolver.InspireClient",
             side_effect=AssertionError("network"),
         ):
             first = resolve_dois([JHEP, JHEP.lower()], self.path)
@@ -303,32 +269,19 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(second["existing"], 1)
         self.assertEqual(self.path.read_bytes(), before)
 
-    def test_locked_entries_are_protected_even_on_explicit_refresh(self):
+    def test_manual_entries_are_protected_even_on_explicit_refresh(self):
         save_store(self.path, {DOI: record()})
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         client.assert_not_called()
         self.assertEqual(summary["locked"], 1)
         self.assertEqual(load_store(self.path)[DOI], record())
 
-    def test_source_alone_controls_protection_for_legacy_entries(self):
-        self.path.write_text(json.dumps({DOI: record(source="manual", locked=False)}))
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
-            summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
-        client.assert_not_called()
-        self.assertEqual(summary["locked"], 1)
-        self.path.write_text(json.dumps({DOI: record(source="inspire", locked=True)}))
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
-            client.return_value.fetch.return_value = payload()
-            summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
-        self.assertEqual(summary["resolved"], 1)
-        self.assertNotIn("locked", load_store(self.path)[DOI])
-
-    def test_inspire_refreshes_unlocked_entries_and_inference_cannot_erase_material(
+    def test_inspire_refreshes_non_manual_entries_and_inference_cannot_erase_material(
         self,
     ):
         save_store(self.path, {DOI: record("Old", source="inspire")})
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.return_value = payload()
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         self.assertEqual(summary["resolved"], 1)
@@ -353,41 +306,52 @@ class ResolutionTests(unittest.TestCase):
 
     def test_failures_are_retryable_and_successes_survive_interruption(self):
         second = "10.9999/other"
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = [requests.ReadTimeout(), payload()]
             first = resolve_dois([DOI], self.path, method="inspire")
             self.assertNotIn(DOI, load_store(self.path))
             retry = resolve_dois([DOI], self.path, method="inspire")
         self.assertEqual(first["failed"], 1)
         self.assertEqual(retry["resolved"], 1)
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = KeyboardInterrupt()
             with self.assertRaises(KeyboardInterrupt):
                 resolve_dois([second], self.path, method="inspire")
         self.assertIn(DOI, load_store(self.path))
 
     def test_auto_infers_before_api_and_limit_counts_only_attempts(self):
-        with patch("analysis_lister.doi_resolver.InspireClient") as client:
+        with patch("analysis_lister.citations.resolver.InspireClient") as client:
             summary = resolve_dois([JHEP, DOI], self.path, method="auto", limit=1)
         client.assert_not_called()  # The JHEP DOI sorts first.
         self.assertEqual(summary["resolved"], 1)
         self.assertEqual(summary["deferred"], 1)
 
-    def test_snapshot_reads_raw_doi_urls_and_ignores_stale_derived_values(self):
+    def test_snapshot_reads_authoritative_links_and_ignores_stale_derived_dois(self):
         snapshot = self.root / "registry.json"
         snapshot.write_text(
             json.dumps(
                 {
-                    "entries": {
-                        "DEMO-2099-01": {
-                            "doi_urls": [f"https://doi.org/{JHEP}"],
-                            "dois": [DOI],
+                    "schema": "glance-curated-registry",
+                    "papers": [
+                        {
+                            "publicationPhase": {
+                                "finalJournalPublicationUrls": [
+                                    {"url": "https://doi.org/" + JHEP}
+                                ],
+                                "gal_dois": [{"doi": DOI}],
+                            }
                         }
-                    }
+                    ],
                 }
             )
         )
         self.assertEqual(snapshot_dois(snapshot), {JHEP.lower()})
+
+    def test_legacy_snapshot_format_is_rejected(self):
+        snapshot = self.root / "legacy.json"
+        snapshot.write_text(json.dumps({"entries": {}}))
+        with self.assertRaisesRegex(ValueError, "Unsupported DOI snapshot format"):
+            snapshot_dois(snapshot)
 
     def test_cli_requires_inputs_and_prevents_snapshot_overwrite(self):
         for flags in (
@@ -539,8 +503,8 @@ class InspireTests(unittest.TestCase):
             inspire_citation(DOI, data)["citation"], "Demo J. 12 (2099) 101"
         )
 
-    @patch("analysis_lister.doi_resolver.time.sleep")
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_http_client_uses_verified_tls_timeouts_and_bounded_rate_limit_retry(
         self, session, sleep
     ):
@@ -559,8 +523,8 @@ class InspireTests(unittest.TestCase):
         client.close()
         session.return_value.close.assert_called_once()
 
-    @patch("analysis_lister.doi_resolver.time.sleep")
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_tls_errors_are_not_retried_and_long_retry_after_is_deferred(
         self, session, sleep
     ):
@@ -577,7 +541,24 @@ class InspireTests(unittest.TestCase):
             InspireClient().fetch(DOI)
         sleep.assert_not_called()
 
-    @patch("analysis_lister.doi_resolver.requests.Session")
+    @patch("analysis_lister.citations.inspire.time.sleep")
+    @patch("analysis_lister.citations.inspire.requests.Session")
+    def test_http_date_retry_after_uses_utc_and_remains_bounded(self, session, sleep):
+        from datetime import UTC, datetime
+
+        session.return_value.get.side_effect = [
+            response(429, headers={"Retry-After": "Thu, 01 Jan 2099 00:00:06 GMT"}),
+            response(),
+        ]
+        with patch("analysis_lister.citations.inspire.datetime") as clock:
+            clock.now.return_value = datetime(2099, 1, 1, tzinfo=UTC)
+            self.assertEqual(InspireClient().fetch(DOI), payload())
+        self.assertIn(
+            ((6.0,), {}), [(call.args, call.kwargs) for call in sleep.call_args_list]
+        )
+        self.assertEqual(session.return_value.get.call_count, 2)
+
+    @patch("analysis_lister.citations.inspire.requests.Session")
     def test_not_found_is_unresolved(self, session):
         session.return_value.get.return_value = response(404)
         self.assertIsNone(InspireClient().fetch(DOI))

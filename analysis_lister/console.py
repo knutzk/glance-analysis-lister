@@ -112,3 +112,4 @@ def print_summary(title, details=(), *, color="auto"):
         if type(value) is int:
             value = f"{value:,}"
         print(f"  {str(label):<{padding}}  {value}")
+    sys.stdout.flush()

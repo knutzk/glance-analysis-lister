@@ -1,391 +1,576 @@
-# glance-analysis-lister
+# GLANCE analysis lister
 
-Python 3.13 tools for maintaining ATLAS GLANCE analysis registries and generating
-Markdown pages for the Top Working Group.
+Download ATLAS GLANCE records, build a curated JSON registry, and generate
+searchable group-wide analysis and publication pages. Rendering uses saved data
+and requires no database, authentication, or live requests.
 
 ## Install
 
-**Recommended for running the tool:** use Python 3.13, create a virtual
-environment, and install with pip. Run these commands from the repository root:
+Use Python 3.13 or newer. From a checkout, create an environment and install the
+package:
 
 ```bash
 python3.13 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
-analysis-lister --help
+python -m pip install .
 ```
 
-This installs the tool and dependencies for all commands, including downloads
-and interactive CERN login. Activate the environment again with
-`source .venv/bin/activate` when opening a new terminal.
+Live GLANCE downloads require an authorised CERN account.
 
-After pulling code updates, update the installation in the active environment:
+The CLI is available as `analysis-lister` or `python -m analysis_lister`.
+
+| Command | Purpose |
+| --- | --- |
+| `refresh` | Download once, build the registry and render selected groups sequentially. |
+| `download-html` | Optional fallback: export all four HTML tables as independent CSVs. |
+| `download-api` | Download all accessible analyses, papers, CONF notes and PUB notes through stare. |
+| `compare-snapshots` | Compare two saved API snapshots or two curated registries offline. |
+| `build-registry` | Curate saved API JSON using bundled public identifiers and citation metadata. |
+| `render-group` | Generate ongoing-analysis, paper, CONF-note and PUB-note pages. |
+| `resolve-dois` | Infer citations or retrieve public citation metadata from INSPIRE. |
+| `format-citations` | Normalise cached non-manual citations offline. |
+
+Use `COMMAND --help` for the complete argument list. Common options include
+`--verbose`, `--quiet`, and `--color auto|always|never`. Diagnostics go to stderr;
+results and output paths go to stdout. Summaries are flushed immediately so
+combined redirected logs retain execution order. Missing publication-policy warnings also
+go to stdout.
+
+Downloads and builds log their configuration, input/output paths and processing
+stages to stderr. API progress includes sorting, page counts and page timings;
+build progress includes resource counts and identifier/DOI summaries. `--verbose`
+adds each request's offset and limit; `--quiet` retains warnings and final results.
+Credentials, authentication URL parameters and raw record payloads are not logged;
+warnings may identify records needing attention.
+
+## Refresh group pages in one command
+
+From the consuming repository, run:
 
 ```bash
-python -m pip install --upgrade -r requirements.txt
+analysis-lister refresh --groups TOPQ --output-dir docs/analyses --login
 ```
 
-The `.[download]` line inside `requirements.txt` is pip syntax: `.` means this
-local package, and `[download]` selects its optional download/login dependencies.
-Pip reads the dependency declarations from `pyproject.toml`. Any `.egg-info/`
-directory created during installation is generated metadata; leave it to pip.
+This downloads one shared API snapshot, builds the curated registry offline, then
+renders the four group pages, assets and JSON diagnostic report. Authentication
+and token refresh are managed by stare; omit `--login` to use stored credentials.
+HTML downloading is independent and is not part of this workflow. No citation
+metadata service is queried.
 
-## Use
-
-Run commands from the directory containing your private inputs and desired
-output. All data paths are relative to the working directory. The package
-includes no registry, downloaded GLANCE data, or private analysis titles.
+For several groups:
 
 ```bash
-analysis-lister --help
-analysis-lister refresh --login --csv-dir csv --snapshot json/glance_registry.json
-analysis-lister render --snapshot json/glance_registry.json --output-dir pages
-analysis-lister validate-lookups --snapshot json/glance_registry.json
+analysis-lister refresh --groups TOPQ HIGP --output-dir pages
 ```
 
-`python -m analysis_lister` provides the same commands. `download` refreshes only
-the CSV tables; `build-registry` constructs a registry from existing CSVs.
-Each command has `--help`. Interactive CERN login requires Chrome and a terminal.
-Rendering uses a local snapshot and requires no login.
+A single group writes directly into the output directory. Multiple groups write
+into lowercase subdirectories (`pages/topq/`, `pages/higp/`). Group tokens must be
+uppercase and unique. `--curation-config` selects publication policies and titles.
+`--api-snapshot` and `--snapshot` select the source and curated destinations;
+their defaults remain in the current working directory. `--page-size` defaults to
+500. `--allow-count-drop` applies to both download and build count guards.
 
-Markdown pages are written to `pages/` by default. Use `--output-dir` to choose
-a different destination. Obsidian export defaults to `obsidian_output/`.
+Configuration and destination collisions are checked before authentication.
+Steps run sequentially and stop at the first failure. Completed outputs remain;
+there is no rollback across the entire workflow or all rendered pages. Use
+`build-registry` or `render-group` to resume from the saved snapshots without
+another download. The final summary lists both snapshots, each group's output
+and diagnostic report, counts and total elapsed time.
 
-Refresh stages all four tables, validates the candidate registry and promotes
-CSVs with rollback before atomically replacing JSON. Drops greater than 20% are
-rejected; `--allow-count-drop` overrides only that guard. Run refresh and registry
-build operations sequentially.
+## Download and build a registry
 
-## Console output
-
-Normal output shows concise progress and a final summary. Diagnostics go to
-stderr; command results and output paths go to stdout, so they can be redirected
-separately. Coloured severity labels are enabled on terminals, and long notices
-wrap with aligned continuation lines. Redirected output is plain text.
-
-Use `--verbose` (`-v`) for timestamps, module names, per-file activity and query
-details. `--quiet` (`-q`) keeps warnings, errors and the final results. Both flags
-work before or after the command. Expected command failures omit tracebacks;
-verbose mode includes them for troubleshooting.
+Run these commands **sequentially** from the directory that will hold your data:
 
 ```bash
-analysis-lister refresh --verbose --csv-dir csv/all --snapshot json/all_registry.json
-analysis-lister render --snapshot json/all_registry.json --quiet
-analysis-lister --color never validate-lookups
+analysis-lister download-api --login
+analysis-lister build-registry
 ```
 
-`--color auto|always|never` controls colour independently for stdout and stderr.
-Automatic colour respects `NO_COLOR` and `TERM=dumb`; `always` explicitly forces
-it, including for redirected output. No extra terminal dependency is required.
+The API download retrieves all accessible records without group or subgroup filters.
+Group selection happens when views are prepared.
 
-## Retrieval configuration
+| Data | Default location |
+| --- | --- |
+| Validated API source | `glance_api_registry.json` |
+| Curated registry | `glance_curated_registry.json` |
+| Shared citation dictionary | glance-analysis-lister’s maintained `json/doi_metadata.json` |
+| Public PUB-note identifiers | Shared `json/pubnote_identifiers.json` |
 
-`download` and `refresh` accept `--config PATH` for a TOML retrieval selection.
-Without it, both use the bundled [unfiltered configuration](analysis_lister/configs/all.toml),
-retrieving all accessible non-deleted ATLAS records. Group profiles remain
-optional. The [TOPQ configuration](analysis_lister/configs/topq.toml) selects
-records involving any of its three configured subgroups, including records
-led by other groups.
+API JSON and curated JSON default to the current working directory. Keep these
+local artifacts out of version control in the consuming repository. Ignore
+generated diagnostic reports too, while
+keeping any Markdown and browser assets you intend to deploy. The shared
+citation dictionary is maintained with the package. A suitable
+`.gitignore` block is:
+
+```gitignore
+/glance_api_registry.json
+/glance_curated_registry.json
+**/view-report.json
+```
+
+Set explicit destinations with:
 
 ```bash
-analysis-lister refresh --config analysis_lister/configs/topq.toml \
-  --csv-dir csv/topq --snapshot json/topq_registry.json
+analysis-lister download-api --output data/api.json
+analysis-lister build-registry \
+  --api-snapshot data/api.json \
+  --output data/curated.json
 ```
 
-The bundled [HIGP configuration](analysis_lister/configs/higp.toml) selects
-subgroups 824, 825, 826, 827, 828, 831, 830 and 829. Use separate destinations:
+Authentication uses stare's browser SSO and credential storage. Omit `--login`
+to reuse stored credentials. Registry construction is offline: it needs only the
+API JSON and bundled identifier/citation dictionaries. Keep downloaded records
+and view reports out of the public package repository.
+
+The API download stores validated stare model output, including explicit
+relationships between independent records. `download-api --page-size 250` changes
+how many records are requested per page; the default is 500. Performance depends
+on server and network conditions. Any positive integer can be
+requested, subject to server support; 500 is not a documented server maximum.
+The selected page size is recorded in the source metadata. Retrieval remains sequential, through
+one shared stare client, with response caching disabled.
+
+Pages explicitly request ascending identifier sorting: `referenceCode` for
+analyses/papers and `temporaryReferenceCode` for CONF/PUB notes. These aliases
+are present on stare's detailed models, and its [sorting documentation](https://github.com/kratsg/stare/blob/d47df314e4e4bb00e34d00b1f8cbe3ce85bdf22c/docs/examples.md)
+accepts camelCase API fields. Sorting is recorded in the snapshot metadata.
+It does not create a transactional snapshot: records may still change between
+requests. Duplicate detection, consistent totals, count-drop protection and atomic
+publication protect the downloaded data. Offline tests exercise the actual stare client and
+serializers, but cannot establish server limits, live sorting behavior or speed.
+
+API downloads and registry builds reject per-resource count drops greater than
+20%. `--allow-count-drop` overrides only that guard, never schema validation.
+Inputs cannot be overwritten by registry output, and successful candidates are
+published atomically. Run downloading and building sequentially against a given
+set of files.
+
+Both download commands finish with the same summary: output location and files,
+record counts per resource, total records, elapsed time (including authentication
+and publication), and the validation checks that passed. API count-drop overrides
+are stated explicitly. HTML replay from saved files uses the same summary without
+authentication or network access.
+
+On failure, the command checks output bytes against their pre-download state
+before reporting preservation. If it cannot verify the files, or they changed,
+it says so. An HTML interruption marker takes precedence: the batch is reported
+as incomplete, with retained staging/recovery paths listed. Saved debug HTML may
+be partial. A preservation message does not establish that pre-existing data was
+valid or complete. Failed commands do not print a completion summary.
+
+### Compare saved snapshots
+
+Keep the previous snapshot under a separate filename before downloading or
+building its replacement, then compare records offline:
 
 ```bash
-analysis-lister refresh --config analysis_lister/configs/higp.toml \
-  --csv-dir csv/higp --snapshot json/higp_registry.json
+analysis-lister compare-snapshots previous.json glance_curated_registry.json --details \
+  --output snapshot-comparison.json
 ```
 
-The configuration specifies GLANCE query values directly; it does not infer
-group membership from subgroup names or maintain an organisational hierarchy:
+Compare two API files or two curated files from the same endpoint. Records are
+matched by native identifier, independently of their order in the file. The
+summary counts added, removed, changed and unchanged records for each resource.
+`--details` lists affected identifiers and field paths; the optional JSON report
+includes before/after values and input file hashes. Changes to statuses,
+affiliations, DOIs, relationships and missing fields are all included. Reports
+contain snapshot data and should remain private alongside the source files.
+
+Container timestamps and build metadata are excluded from change detection.
+Dictionary order is ignored, but list order is significant, including DOI and
+correction order. Missing fields and explicit `null` values are distinct. A
+change in the curation implementation or shared dictionaries can change a curated
+record without a GLANCE edit; compare API snapshots to isolate upstream changes.
+Neither input is modified. A successful comparison exits with status zero even
+when differences are found; invalid snapshots or incompatible formats fail.
+
+### Optional HTML fallback
+
+Install the optional dependencies with `python -m pip install '.[html]'` from a
+checkout, then run `analysis-lister download-html --login`. Chrome opens for
+manual CERN SSO; later runs reuse `cookies.json`. This exports all available
+columns from analyses, papers, CONF notes and PUB notes to the current directory.
+Use `--csv-dir DIR` to choose another destination. These CSVs are standalone
+exports, not inputs to `build-registry`.
+
+TLS verification stays enabled, including support for `REQUESTS_CA_BUNDLE`.
+Complete-table counters and identifiers are checked before batch publication;
+failed writes roll back, retaining backups and an interruption marker if rollback
+fails. Do not consume a batch while `.html-download-in-progress` exists. A
+successful rerun repairs an interrupted batch. Keep cookies and exported data
+private. Ignore `cookies.json`, the four exported CSVs, `html_manifest.json`,
+`.html-download-in-progress`, `.refresh-*/`, and any directory selected with
+`--save-html` in the consuming repository. Duplicate or unnamed non-identifier
+headers receive unique names; every column and its original position is retained.
+`download-html --help` also describes saving and replaying HTML offline.
+
+### Curated data and provenance
+
+The curated registry retains independent API records and explicit relationships.
+Selected nested collections become names or string lists. Added or reshaped
+fields use the `gal_` prefix; source keys are removed only after enrichment.
+The registry records identifier-source evidence, dictionary hashes and build
+provenance. DOI/citation pairs, including corrections, stay aligned.
+
+Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
+controls named-object conversions. After enrichment, `registry/fields.py` selects
+only record fields consumed by the views (including search, curation and
+diagnostics), down to nested links, metadata and DOI/citation entries. New API fields are excluded by default.
+Add fields to this selection when a view starts consuming them. The full API
+snapshot remains the source for rebuilding; the curated file is not a lossless
+API archive. Snapshot and build metadata are retained for provenance and safe
+replacement. The curated schema is version 2.
+
+`build-registry` logs retained/discarded field counts for each resource and the
+input/output file sizes with their percentage change. Field counts refer to
+nested object-key occurrences after enrichment, including original and derived
+fields; they are not a measure of lost information. All records are retained.
+Byte sizes include JSON formatting and build metadata.
+
+### Public links and note identifiers
+
+Paper public-page URLs are constructed from their native reference codes for
+published or arXiv-submitted records. The canonical URL is recorded as derived;
+page availability is not checked.
+
+A valid API final identifier takes precedence. Otherwise, CONF/PUB public numbers
+are extracted unambiguously from API public-page URLs. PUB notes whose API links
+point to CDS use the shared `json/pubnote_identifiers.json` dictionary: public CDS
+record number → public PUB identifier and canonical CDS source URL. Its initial
+associations were retained from the existing GLANCE export; no CDS requests are
+made at runtime. No private analysis identifiers, titles or people are stored in
+this dictionary. It supplies static associations for historical detector and
+technical PUB-note series, without a runtime updater.
+
+Notes with release evidence but no identifier produce explicit diagnostics rather than
+a guessed number. Each derivation is recorded in `gal_publicationProvenance`, and
+the curated metadata records the dictionary hash and source counts.
+
+## Configure and render group pages
+
+The shared [`publication-curation.toml`](publication-curation.toml) defines publication
+inclusion for all consumers and is bundled with the package. `render-group` uses
+it automatically, regardless of the working directory. Edit this file to maintain
+shared policies; use `--curation-config PATH` for an explicit alternative. For example:
 
 ```toml
-name = "TOPQ"
-
-[selection]
-field = "subgroups"
-operator = "contains"
-values = [80, 198, 205]
+[groups.TOPQ]
+title = "Top Quark Physics"
+groups = ["TOPQ"]
+subgroups = []
+keywords = []
 ```
 
-Each value becomes an indexed GLANCE filter clause, as in the original query.
-Selections must contain at least one positive integer ID or nonempty string;
-duplicate values are removed. Unknown configuration keys are rejected. The
-field and operator are GLANCE's query identifiers, not display column labels.
-The bundled subgroup query is verified against the previous implementation;
-other fields, operators and group IDs must be obtained from GLANCE and verified
-before use. This release does not discover groups or retrieve clone
-relationships, and does not claim to provide a verified leading-group query
-preset.
+Every criterion is combined with **OR**:
 
-Downloads store `retrieval_scope.json` alongside CSVs. Registry builds carry
-that selection into the snapshot. Existing destinations with a different
-selection are rejected, even with `--allow-count-drop`; use separate CSV and
-snapshot destinations for different datasets. Existing CSV batches, snapshots
-or saved HTML without scope metadata cannot be used for refresh: retrieve into
-fresh destinations. No group selection is inferred from old data. Changing a
-scope's display name or reordering its values does not create a new selection.
+- A configured group matches an internal identifier token or a leading/additional
+  main-group affiliation.
+- A configured subgroup matches an exact leading/additional subgroup name.
+- A configured keyword matches an exact label, ignoring case.
 
-`--save-html DIR` saves full responses, including result counters, plus scope
-metadata; CSVs retain their selected columns. With `--from-html DIR`, scope
-metadata must be present and match. Offline replay validates the saved result
-counters exactly as a live download does; it does not apply server-side
-filters to saved records. Older table-only HTML must be downloaded again.
+Missing publication affiliations or metadata can use the explicitly linked
+analysis, with that derivation recorded in the view report. There is no implicit
+extra group criterion. A policy with no criteria selects no publications.
 
-These options configure retrieval only. Rendering and Obsidian export retain
-their existing TOPQ presentation assumptions.
-
-Unfiltered retrieval is the default, so no configuration flag is needed:
+Use one table per group, including groups using only their own name. `title`
+sets publication-page headings. Missing group configuration prints a warning to
+stdout and falls back to the internal identifier's group token.
 
 ```bash
-analysis-lister refresh --csv-dir csv/all --snapshot json/all_registry.json
+analysis-lister render-group --group TOPQ \
+  --snapshot glance_curated_registry.json \
+  --output-dir docs/analyses
 ```
 
-This profile uses `name = "ATLAS"` and `all = true` without a `[selection]`
-table. An explicit custom configuration still cannot contain an empty selection.
+The default destination is `pages/group`. Output consists of `ongoing.md`,
+`papers.md`, `confnotes.md`, `pubnotes.md`, `view-report.json`, and reusable assets.
+`--group-title` changes the ongoing-page display title.
 
-Every table must include GLANCE’s `Showing 1 to N of N results` counter, and the
-parsed CSV row count must equal the reported total. Missing or conflicting
-counters, partial pages and truncated responses abort the entire batch before
-publication. Pagination is detected and rejected rather than silently storing
-one page. `--allow-count-drop` cannot bypass this check. Completeness is checked
-against the total GLANCE reports for the authenticated user and requested scope.
+Generated Markdown comments identify the generator Git commit and the input
+registry filename and SHA-256, plus hashes of the effective render profile and
+generator contents. YAML front matter remains first. Copied CSS and
+JavaScript identify the source commit and preserve their SPDX notices; assets
+are independent of the registry. A modified checkout is marked `-dirty`. Source
+archives and wheels retain the revision recorded at build time. If revision
+information is unavailable, the header explicitly says `unknown`. No generation
+timestamp is added. These notices do not apply the package licence to registry
+content.
 
-## Publication matching
+Rendering the same snapshot bytes and basename with the same effective profile,
+generator contents/revision and runtime produces byte-identical pages, assets and
+reports. Tests check separate processes, Python hash seeds, time zones and output
+locations. Unchanged files are not rewritten, preserving their timestamps and
+inodes; missing or modified generated files are replaced. Unrelated files remain
+untouched. The log reports written/unchanged counts, which are not stored in the
+report because they depend on the existing output directory.
 
-Papers, CONF notes and PUB notes enrich an analysis only when their reference-code suffix
-and nonempty short title both match exactly. Unmatched paper rows do not enrich
-an analysis; unmatched CONF rows likewise remain unattached. PUB notes without a match are retained independently
-under their full `PUB-...` identifier, using their own metadata and publication
-status. They do not acquire an ANA link or appear as ongoing analyses.
+The report records the effective `profile` and its canonical `profile_sha256`,
+including the group, display title and selected publication policy. Unrelated
+TOML groups, comments and formatting are excluded. `generator.content_sha256`
+hashes package Python files and browser assets by relative name and content,
+distinguishing different local edits even under the same `-dirty` commit label.
+Installed packages and checkouts with identical contents have the same content
+hash. Citation and identifier data used to build the registry are already covered
+by the snapshot hash and its curation provenance; rendering does not reload them.
 
-Building from CSV requires short titles for papers and CONF/PUB notes, plus
-PUB descriptive metadata. Older minimal note CSV exports must be downloaded
-again before rebuilding the registry.
-Existing JSON snapshots remain readable.
+The render command prints the `view-report.json` path to stdout; pages do not link
+to this report. Diagnostics are grouped by cause: uncertain states, missing or
+conflicting relationships, and missing public note identifiers. Each entry names
+the record, states whether it is included on the page, and explains the issue's
+effect on classification, progress, affiliations or identifiers. These effects
+are separate from actual inclusion: a missing analysis link need not exclude an
+otherwise published paper.
 
-## Ignored analyses
+One-way publication links are informational because the outbound link is used
+successfully. Other diagnostic causes remain warnings. Missing optional display
+fields are not warnings. `--quiet` suppresses informational log messages; the JSON
+report still retains them.
 
-`analysis_lister/lookup_dicts/ignored_analyses.py` lists reviewed exceptions with
-reasons. These analysis identifiers stay in snapshots but are excluded from
-output views, view counts and unmatched-record warnings. This does not alter
-GLANCE statuses or create publication links. Independent PUB records retain
-their own identifiers and are unaffected by an ignored ANA identifier.
+The report provides `diagnostic_groups` with issue counts, distinct-record counts
+and affected entries. `warning_issues` and `informational_issues` count issues,
+whereas `records_with_diagnostics` counts records once, including informational
+cases. The existing `analyses_needing_review` and `records_with_diagnostics` lists
+remain available and may overlap. The report also records the input hash, source
+timestamps, policy, rule identifiers and detailed derivation evidence. It includes
+selected records and their explicit one-hop relationship context; treat it as
+private data alongside the generated pages.
 
-## Clone relationships
+### Ongoing analyses
 
-Maintain verified clone and duplicate origins in `analysis_lister/lookup_dicts/clones.py`.
-`Clones` maps each clone's analysis reference to its original analysis reference;
-multiple clones can share an origin. Add a `# Source:` or `# Reason:` comment
-immediately above every entry. Validate changes with `analysis-lister validate-lookups`.
+Ongoing selection uses leading or additional main-group affiliation, independently
+of publication-curation policy. Each native analysis appears once. Analyses with finished phase 0 and a linked
+publication marked Created remain ongoing as “Awaiting publication review”;
+papers that have finished phase 1 or phase 2 remain in publication review until
+submission or publication is established. Unresolved linked publication states
+still require review. Closed and
+completed analyses are excluded; uncertain records are listed separately.
 
-Clone exclusions are calculated in memory from this dictionary whenever a
-registry is loaded. No clone fields or exclusion flags are stored in JSON.
-Dictionary changes therefore apply to existing snapshots, without downloading
-new data.
+Cards show GLANCE links, affiliations and review milestones. Expand a card for
+people, supporting documents and metadata. The controls provide free-text search,
+subgroup buttons, review-stage sorting, Expand all and Reset. Search includes
+identifiers, titles, people, keywords, triggers and statistical tools. Review-stage
+sorting follows the displayed milestone ticks.
 
-A paper supersedes CONF entries on its ancestor chain, including during paper
-review. Closed or unstarted papers do not supersede them. Distinct sibling
-publications and active analyses remain visible. Known finished clone-family
-records without an attached publication are omitted. All records and original
-GLANCE states remain in JSON. Missing descendants do not supersede CONF notes,
-and cycles are rejected. Normal publication date cuts still apply.
+Subgroup buttons are derived from recorded names in the group's namespace and
+appear only when they have matching ongoing analyses. Repeated `subgroup` URL
+parameters preselect buttons with OR logic:
 
-## Try the synthetic example
+```text
+ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second
+```
 
-From a checkout, render the included example without CERN access:
+Each card also has a permalink that reveals and opens it.
+
+### Publication tables
+
+Each publication type has its own expandable table, with one row per publication
+and no pagination. Papers show GLANCE, arXiv and citation/DOI links and publication
+dates. Notes show their public identifier, GLANCE and CDS links, and release dates.
+Expanded details include recorded affiliations, people, metadata and supporting
+links. Expand all and Collapse all apply to visible results.
+
+All three pages search identifiers, subgroup names, titles, citations, keywords
+and people. Papers also search DOI strings; notes search CDS URLs. Papers offer
+Published (has a DOI) and Under review (no DOI) buttons. Notes offer non-superseded
+and superseded buttons, defaulting to non-superseded notes; explicit superseding
+objects are linked in the details.
+
+After/before filters select inclusive year-and-month bounds on publication or
+release dates. Undated entries remain visible unless a before bound is set.
+Search, dates and status must all match; multiple selected statuses use OR.
+Reset clears filters and restores the default status selection.
+
+Publication URLs preserve `q`, `after`, `before`, paper `status` and note
+`supersession` parameters, for example:
+
+```text
+papers/?q=example&after=2022-01&before=2024-06&status=published
+```
+
+### Enable browser assets
+
+For output under `docs/analyses`, append these entries to the site's
+configuration. Load the common files before the view-specific files:
+
+```yaml
+extra_css:
+  - analyses/assets/gal-common.css
+  - analyses/assets/gal-ongoing.css
+  - analyses/assets/gal-papers.css
+  - analyses/assets/gal-notes.css
+extra_javascript:
+  - analyses/assets/gal-common.js
+  - analyses/assets/gal-ongoing.js
+  - analyses/assets/gal-papers.js
+  - analyses/assets/gal-notes.js
+```
+
+One copy serves all groups. The assets support Zensical instant navigation,
+keyboard controls and dynamically inserted content. Without JavaScript, the full
+collections and details remain readable. Browser filtering makes no live requests.
+
+## Citations
+
+`json/doi_metadata.json` is the maintained citation dictionary, also bundled with
+the package. CLI commands use this shared dictionary by default, independently
+of the current working directory. Citation resolution and formatting update the
+selected dictionary; they do not create a per-consumer copy. Stores are loaded
+explicitly for each operation, not when importing the package. `--doi-cache PATH`
+selects another store; a missing custom store starts empty.
+
+Resolve DOIs from a saved API or curated registry:
 
 ```bash
-analysis-lister render --snapshot examples/synthetic_registry.json \
-  --output-dir pages
+analysis-lister resolve-dois --snapshot glance_api_registry.json --method infer
+analysis-lister resolve-dois --snapshot glance_api_registry.json --method inspire
 ```
 
-This writes 13 Markdown pages under `pages/`. All four records, names, titles,
-dates and publication links are invented. The `DEMO` reference codes do not
-identify real analyses. See [the example notes](examples/README.md).
+`infer` is offline and recognises fully specified JHEP citations. `inspire` queries
+public INSPIRE metadata. `auto` tries inference first. Repeated `--doi` arguments
+can be used instead of a snapshot. `--limit 10` limits attempts;
+`--refresh-existing` revisits non-manual entries. Entries whose source is `manual`
+are protected from automatic replacement. Citation records use `citation` and
+`source`, with optional `material`, `resolved_at`, `source_url` and `inspire_id`.
+Protection depends on `source = "manual"`; there is no separate lock setting.
 
-## Obsidian export
+Publication DOIs are extracted from URL fields in the API's final journal
+publication links. DOI resolver URLs and publisher URLs containing a DOI are
+supported. Link labels are ignored; a DOI appearing only in a label is not used.
+Publisher identifiers such as ScienceDirect PIIs are not converted into DOIs.
 
-```bash
-analysis-lister export-obsidian --snapshot examples/synthetic_registry.json \
-  --output-dir obsidian_output
-```
+Resolved entries include citation text and provenance, with material labels when
+known. A uniquely identified original publication is listed before its known
+errata, addenda and editorial notes. Corrections are ordered by DOI-encoded dates
+when those establish an order; otherwise their relative input order is retained.
+Ambiguous ordering that cannot identify an original publication through material
+labels or dates produces a warning. Ambiguous associations remain unresolved and retryable. Requests use a
+separate session without GLANCE credentials, verified TLS, bounded retries and
+rate limiting. Successful results are saved atomically after each entry.
 
-The exporter writes papers to `obs_published/` and ongoing analyses to
-`obs_ongoing/` under the chosen destination. The example produces one note in
-each directory. CONF and PUB notes are included in the site pages, but are not
-exported as separate Obsidian notes. Existing notes that this run did not write
-are reported as stale and left in place.
-
-For your own data, supply your snapshot.
-The default destination is `obsidian_output/`.
-
-## Maintained analysis relationships
-
-Titles come directly from GLANCE’s Short Title, Public Short Title and Full
-Title fields. The only maintained analysis dictionary is
-`analysis_lister/lookup_dicts/clones.py`, which covers clone and duplicate
-origins. Citation metadata lives in `json/doi_metadata.json`. No private Python
-lookup overrides are supported; select a different JSON citation store with
-`--doi-cache` when needed. Validate maintained data with
-`analysis-lister validate-lookups`.
-
-## DOI citation resolution
-
-The single citation dictionary is [json/doi_metadata.json](json/doi_metadata.json).
-It is versioned in Git, with one complete DOI entry per line for readable diffs.
-The wheel and source distribution include the same dictionary. There is no
-separate maintained Python citation dictionary and no merging of seed entries.
-
-Each record requires `citation` and `source`. Protection follows the source:
-`manual` citations are never replaced automatically; inferred and INSPIRE
-citations can be refreshed explicitly. To protect an edited citation, set its
-source to `manual`. There is no separate `locked` field. Older stores containing
-that field remain readable, but it is ignored and removed on writing.
-`material` is stored only when the publication/correction role is known.
-
-All commands read the dictionary offline. `--doi-cache PATH` selects a separate
-store; a missing custom store starts empty. When working outside a checkout,
-the default path uses the packaged copy until a working-directory store is
-written. Only `resolve-dois` can make INSPIRE requests.
-
-INSPIRE's compact journal abbreviations are formatted consistently with the
-existing citations, for example `Phys.Rev.D` → `Phys. Rev. D`. After an update
-that used an older formatter has finished, fix stored non-manual citations
-without repeating network lookups:
+Normalise non-manual cached journal names and starting pages offline with:
 
 ```bash
 analysis-lister format-citations
 ```
 
-This also shortens page ranges to the starting page, for example `101–120` →
-`101`. New INSPIRE resolutions use the same convention. Citation provenance,
-correction prefixes, dates and individual article numbers are retained.
-Manual citations are unchanged. Unknown journal abbreviations are
-retained rather than guessed. Do not run it while a resolver is writing the
-same JSON file.
+After editing or resolving citations, run `build-registry` again to embed them,
+then `render-group`. Citation resolution does not rewrite registry snapshots.
+Run operations that write the same dictionary sequentially.
 
-First infer citations without network access:
+## Python access
 
-```bash
-analysis-lister resolve-dois --snapshot json/all_registry.json --method infer
+Read a registry without importing downloaders, authentication clients or renderers:
+
+```python
+from analysis_lister.registry import CuratedRegistry
+
+registry = CuratedRegistry.from_json("examples/synthetic_registry.json")
+for paper in registry.records("papers"):
+    print(paper["referenceCode"])
 ```
 
-The initial rule recognises complete JHEP DOIs, for example
-`10.1007/JHEP07(2023)203` → `JHEP 07 (2023) 203`. It records
-`source = "doi-pattern:jhep"`; no `material` field is written:
-the DOI identifies the citation components, but not whether it is a correction.
+`get(resource, reference)` looks up a native identifier; `resolve_link(link)`
+follows an explicit relationship. Returned records and metadata are copies.
 
-Then retrieve remaining missing citations from INSPIRE:
+Prepared collections are independent of Markdown:
 
-```bash
-analysis-lister resolve-dois --snapshot json/all_registry.json --method inspire
+```python
+from analysis_lister.views.prepare import prepare_group
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+
+policy = PublicationPolicy(groups=("DEMO",))
+view = prepare_group(registry, GroupProfile("DEMO", publication_policy=policy))
+for publication in view.archive:
+    for link in publication.details.publication_records:
+        print(publication.label, link.label, link.url)
 ```
 
-Alternatively, `--method auto` tries inference before INSPIRE. Inference is the
-default. Existing entries are skipped; `--refresh-existing` revisits only
-non-manual entries. To enrich inferred citations with correction metadata, run
-`--method inspire --refresh-existing`. Manual entries are never replaced.
-`--limit 10` bounds the number of entries attempted in a run. Individual DOIs
-can be supplied using repeated `--doi` arguments instead of `--snapshot`.
+Prepared rows expose `metadata` containing search text and record attributes
+such as keywords, triggers and subgroup assignments. `view.controls` separately
+describes the available choices on each page: ongoing subgroup buttons and
+sorting, paper publication status, and note supersession. Record metadata does
+not imply that a corresponding filter control is displayed. The report records
+these controls alongside the derivation evidence.
 
-Successful results include provenance and resolution timestamps and are saved
-atomically after each entry. Failed requests, missing records, incomplete
-citations and ambiguous DOI/publication associations remain retryable; failed
-refreshes retain the previous citation. INSPIRE lookups match the requested DOI
-and material to publication information, and label verified errata/addenda.
-DOI ordering uses cached publication/correction labels and dates encoded in
-DOIs. Ambiguous cases retain input order with a warning; no manual order
-dictionary is maintained.
-Duplicate publication rows are combined only when their structured citation
-fields agree; compatible partial rows can fill missing fields. Conflicting
-metadata remains unresolved. An unlabelled DOI can inherit an explicit label
-from another occurrence of that same DOI, or a unique remaining material when
-exactly one DOI and one publication material remain unmatched.
+`load_publication_policy(path, group)` in `views.curation` loads the same TOML used
+by the CLI. `None` denotes missing configuration; `PublicationPolicy()` is an
+explicitly empty policy. Reports use schema version 2.
 
-INSPIRE requests use a separate session without GLANCE cookies, verified TLS,
-bounded timeouts and retries, and rate limiting. A server-requested pause over
-60 seconds is deferred to a later run. No titles or analysis identifiers are
-sent to INSPIRE, only DOIs. See the
-[INSPIRE API documentation](https://github.com/inspirehep/rest-api-doc) and
-[publication metadata schema](https://github.com/inspirehep/inspire-schemas/blob/master/inspire_schemas/records/hep.yml).
+## Development and validation
 
-Subsequent `render`, `build-registry`, `refresh` and `export-obsidian` operations
-use the cached citations. The resolver does not rewrite registry snapshots;
-citation fields are reconstructed when a snapshot is loaded. Review and commit
-citation updates as normal data changes. Only this citation JSON and the
-synthetic example JSON are permitted public JSON files; private registries,
-cookies and other generated JSON remain ignored. Run resolution and operations
-that edit the same dictionary sequentially.
-
-## TLS
-
-Downloads verify certificates and hostnames. The wheel includes the public
-Sectigo intermediate certificate required by GLANCE; see
-[certificate provenance](analysis_lister/certs/README.md).
-`REQUESTS_CA_BUNDLE`, then `CURL_CA_BUNDLE`, can replace the trust bundle.
-
-## Development
-
-With the virtual environment from the installation section active, install the
-**development requirements**:
+From a checkout with an active environment:
 
 ```bash
 python -m pip install -r requirements-dev.txt
-```
-
-This includes `-e .[dev]`, so it also installs the package in **editable mode**:
-source changes take effect immediately. It includes the runtime dependencies,
-download support and development tools; you do not need to install both
-requirements files. Rerun the command after changing dependencies or package
-metadata.
-
-Run the checks with:
-
-```bash
 python -m unittest discover -s tests -v
 ruff check .
 ruff format --check .
+git diff --check
 python -m build
 ```
 
-GitHub CI runs these checks on Python 3.13 for pushes and pull requests. It also
-installs the built wheel in a clean environment and checks the CLI, synthetic
-page rendering, bundled certificate, and licence files. CI requires no CERN
-credentials or private analysis data.
+The development requirements install the package in editable mode. Reinstall
+after changing dependencies or package metadata. CI runs the offline checks on
+Python 3.13 and validates the built wheel in a clean environment using
+`scripts/check_distribution.py`. This checks the installed CLI, synthetic
+rendering, packaged assets, shared dictionaries, publication policies and licences.
 
-Tests use synthetic records and do not establish that live authentication works.
-Use local snapshots to test rendering changes. Preserve GLANCE's exact padded
-status strings, DOI/erratum alignment and unique subgroup anchors. Validate
-maintained lookups after changing them.
+View tests are separated by preparation, ongoing rendering, paper rendering,
+note rendering, shared publication controls, publication curation and output
+building. Synthetic fixtures are shared through `tests/view_fixtures.py`.
+`tests/test_retained_field_contract.py` guards source-record reads during
+preparation and rendering: a lookup outside `registry/fields.py` fails with its
+resource and nested path, even when the field is absent from the fixture. Tests
+exercise populated and sparse records; add scenarios when introducing new
+conditional view behavior. Output comparisons additionally check that trimming
+records preserves rendering and search metadata.
 
-## Releases
+Browser checks are separate developer tools. They require installed Chrome and
+ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,
+screenshots and driver logs:
 
-For each release, update the version in `pyproject.toml` and add release notes
-in `.github/release-notes/vX.Y.Z.txt`. Commit and push those changes, wait for CI,
-then create and push an annotated `vX.Y.Z` tag on the verified commit.
+```bash
+python tests/browser/check_ongoing.py --driver /path/to/chromedriver
+python tests/browser/check_papers.py --driver /path/to/chromedriver
+python tests/browser/check_notes.py --resource confnotes --driver /path/to/chromedriver
+python tests/browser/check_notes.py --resource pubnotes --driver /path/to/chromedriver
+```
 
-Tag CI checks the version and notes, runs the normal checks, builds and verifies
-the distributions, and creates a draft GitHub Release with the wheel and source
-archive attached. Review the workflow log and draft before publishing it.
-The release job alone has repository write permission. PyPI publishing is not
-configured. Never move a published version tag; issue a new version for fixes.
+Run the public synthetic example without credentials:
 
-## Licence and contact
+```bash
+analysis-lister render-group --group DEMO \
+  --snapshot examples/synthetic_registry.json --output-dir pages/demo
+```
 
-Copyright © 2024–2026 Knut Zoch. The software is licensed under
-[GNU GPL version 3](LICENCE) (`GPL-3.0-only`), without warranty.
-You may use, modify and redistribute it, including commercially. When
-redistributing the software or modified versions, preserve the copyright and
-licence notices, provide the corresponding source as required by GPLv3, and
-keep the covered work under GPLv3. Private modifications need not be published.
+Tests use invented data and do not establish that live CERN authentication works.
 
-This licence covers the software; it grants no rights to private GLANCE data.
-The bundled Sectigo certificate is a third-party artifact, whose issuer and
-provenance are documented [separately](analysis_lister/certs/README.md).
+## Package structure
+
+| Directory | Responsibility |
+| --- | --- |
+| `downloaders/` | Independent API retrieval and optional HTML-to-CSV downloads, authentication, validation and safe publication. |
+| `registry/` | Offline enrichment, schema validation, DOI extraction, snapshot comparison and thin registry access. |
+| `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
+| `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
+| `tests/browser/` | Manual synthetic browser checks. |
+| `scripts/` | Installed-distribution validation used by CI. |
+
+Paths for `downloaders/`, `registry/`, `citations/` and `views/` are relative to
+`analysis_lister/`. Its `cli.py` defines commands; `refresh.py` coordinates
+preflight checks and the sequential download/build/render workflow.
+
+Within `views/`, `analysis_states.py` and `publication_states.py` contain the
+traceable lifecycle and milestone rules. Collection preparation uses these rules
+without importing renderers. Markdown rendering consumes prepared records and
+page controls; `people.py` shares plain-text board/chair formatting across views.
+`diagnostics.py` classifies diagnostic causes and effects; `report.py` records
+the corresponding decisions and evidence.
+
+## Licence
+
+Copyright © 2024–2026 Knut Zoch. Licensed under
+[GNU GPL version 3](LICENCE), `GPL-3.0-only`.
 
 Maintainer: [Knut Zoch](https://github.com/knutzk).

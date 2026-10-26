@@ -11,13 +11,13 @@ license = "GPL-3.0-only"
 license-files = ["LICENCE"]
 authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
-dependencies = ["attrs>=26.1", "requests>=2.34"]
+dependencies = ["attrs>=26.1", "requests>=2.34", "stare==0.6.1"]
 
 [project.urls]
 Repository = "https://github.com/knutzk/glance-analysis-lister.git"
 
 [project.optional-dependencies]
-download = ["beautifulsoup4>=4.15", "selenium>=4.46"]
+html = ["beautifulsoup4>=4.15", "selenium>=4.46"]
 dev = ["beautifulsoup4>=4.15", "selenium>=4.46", "ruff==0.16.0", "build>=1.2"]
 
 [project.scripts]
@@ -27,7 +27,7 @@ analysis-lister = "analysis_lister.cli:main"
 include = ["analysis_lister*"]
 
 [tool.setuptools.package-data]
-analysis_lister = ["certs/*.pem", "certs/README.md", "configs/*.toml"]
+analysis_lister = ["_source_revision.txt", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
 
 [tool.setuptools.data-files]
-"share/glance-analysis-lister" = ["json/doi_metadata.json"]
+"share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml"]

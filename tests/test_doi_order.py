@@ -6,70 +6,85 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
-
-from attrs import fields
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.glance.analysis import Analysis
-from analysis_lister.glance.doi import format_url_dois, order_doi_urls
-from analysis_lister.glance.paper import Paper
-from analysis_lister.markdown.subgroup_pages.published import render_citation_block
+from analysis_lister.citations.ordering import order_doi_urls
 
 ORIGINAL = "10.1140/epjc/s10052-024-11111-1"
 CORRECTION = "10.1140/epjc/s10052-024-99999-9"
 
 
 class DoiOrderTests(unittest.TestCase):
-    def test_prefixed_doi_uses_normalized_citation_key(self):
-        data = {field.name: "" for field in fields(Paper) if field.init}
-        data.update(
-            ref_code="TEST",
-            status=" Phase 0 is  Finished ",
-            status_paper=" Publication Phase is  Active ",
-            doi_urls=[f"https://doi.org/DOI:{ORIGINAL.upper()}"],
-            keywords=[],
-            subgroups=[],
-            supporting_docs=[],
-        )
-        with (
-            patch.dict(
-                "analysis_lister.citation_store.Citations",
-                {ORIGINAL: "Synthetic citation"},
-                clear=True,
-            ),
-            self.assertNoLogs(level="WARNING"),
-        ):
-            self.assertEqual(Paper.from_json(data).journal_ref, "Synthetic citation")
-
     def test_cached_material_orders_correction_before_date_inference(self):
-        with (
-            patch.dict(
-                "analysis_lister.citation_store.Citations",
-                {
-                    ORIGINAL: {"material": "publication"},
-                    CORRECTION: {"material": "erratum"},
-                },
-                clear=True,
-            ),
-            self.assertNoLogs(level="WARNING"),
-        ):
+        citations = {
+            ORIGINAL: {"material": "publication"},
+            CORRECTION: {"material": "erratum"},
+        }
+        with self.assertNoLogs(level="WARNING"):
             self.assertEqual(
-                order_doi_urls(self.urls(CORRECTION, ORIGINAL), "TEST"),
+                order_doi_urls(
+                    self.urls(CORRECTION, ORIGINAL), "TEST", citations=citations
+                ),
                 self.urls(ORIGINAL, CORRECTION),
             )
 
     def urls(self, *dois):
         return [f"https://doi.org/{doi}" for doi in dois]
 
+    def test_multiple_known_corrections_keep_ambiguous_relative_order(self):
+        second = "10.9999/invented-correction"
+        citations = {
+            ORIGINAL: {"material": "publication"},
+            CORRECTION: {"material": "erratum"},
+            second: {"material": "erratum"},
+        }
+        with self.assertNoLogs(level="WARNING"):
+            self.assertEqual(
+                order_doi_urls(
+                    self.urls(second, ORIGINAL, CORRECTION), "TEST", citations=citations
+                ),
+                self.urls(ORIGINAL, second, CORRECTION),
+            )
+
+    def test_known_corrections_sort_by_distinct_dates(self):
+        early = "10.1007/jhep01(2099)001"
+        late = "10.1007/jhep03(2099)002"
+        for material in ("erratum", "addendum", "editorial note"):
+            citations = {
+                ORIGINAL: {"material": "publication"},
+                early: {"material": material},
+                late: {"material": "erratum"},
+            }
+            with self.subTest(material=material), self.assertNoLogs(level="WARNING"):
+                self.assertEqual(
+                    order_doi_urls(
+                        self.urls(late, early, ORIGINAL), "TEST", citations=citations
+                    ),
+                    self.urls(ORIGINAL, early, late),
+                )
+
+    def test_unknown_or_multiple_publications_still_warn(self):
+        third = "10.9999/invented"
+        for material in (None, "unknown", "publication"):
+            citations = {
+                ORIGINAL: {"material": "publication"},
+                CORRECTION: {"material": "erratum"},
+                third: {"material": material},
+            }
+            urls = self.urls(CORRECTION, third, ORIGINAL)
+            with self.subTest(material=material), self.assertLogs(level="WARNING"):
+                self.assertEqual(
+                    order_doi_urls(urls, "TEST", citations=citations), urls
+                )
+
     def test_distinct_dates_sort_and_host_aliases_deduplicate(self):
         original = "10.1007/JHEP07(2023)203"
         correction = "10.1007/JHEP05(2025)159"
-        raw = (
-            "".join(self.urls(correction, original)) + f"https://dx.doi.org/{original}"
-        )
         self.assertEqual(
-            order_doi_urls(format_url_dois(raw), "TEST"),
+            order_doi_urls(
+                self.urls(correction, original) + [f"https://dx.doi.org/{original}"],
+                "TEST",
+            ),
             self.urls(original, correction),
         )
 
@@ -84,60 +99,6 @@ class DoiOrderTests(unittest.TestCase):
                 urls = self.urls(*dois)
                 self.assertEqual(order_doi_urls(urls, "TOPQ-2025-01"), urls)
             self.assertIn("ambiguous DOI order", logs.output[0])
-
-    def test_json_load_orders_by_cached_material_before_resolving_citations(self):
-        data = {field.name: "" for field in fields(Paper) if field.init}
-        data.update(
-            ref_code="TEST",
-            status=" Phase 0 is  Finished ",
-            status_paper=" Publication Phase is  Active ",
-            date_publication="2024-01-01",
-            doi_urls=self.urls(CORRECTION, ORIGINAL),
-            keywords=[],
-            subgroups=[],
-            supporting_docs=[],
-            journal_ref="stale serialized citation",
-        )
-        with (
-            patch.dict(
-                "analysis_lister.citation_store.Citations",
-                {
-                    ORIGINAL: {
-                        "citation": "Original citation",
-                        "material": "publication",
-                    },
-                    CORRECTION: {"citation": "Erratum citation", "material": "erratum"},
-                },
-            ),
-        ):
-            paper = Paper.from_json(data)
-            base = Analysis.from_json(
-                {
-                    field.name: data.get(field.name, "")
-                    for field in fields(Analysis)
-                    if field.init
-                }
-            )
-            from_csv = Paper.from_analysis_and_dict(
-                base,
-                {
-                    "Final Journal Publication URLs": "".join(
-                        self.urls(CORRECTION, ORIGINAL)
-                    ),
-                    "Status": " Publication Phase is  Active ",
-                    "Publication Date": "2024-01-01",
-                },
-            )
-        self.assertEqual(from_csv.dois, paper.dois)
-        self.assertEqual(
-            from_csv.journal_ref_corrections, paper.journal_ref_corrections
-        )
-        self.assertEqual(paper.dois, [ORIGINAL, CORRECTION])
-        self.assertEqual(paper.journal_ref, "Original citation")
-        self.assertEqual(paper.journal_ref_corrections, ["Erratum citation"])
-        block = render_citation_block(paper)
-        self.assertIn(f"[Erratum citation, DOI: {CORRECTION}]", block)
-        self.assertLess(block.index(ORIGINAL), block.index(CORRECTION))
 
 
 if __name__ == "__main__":

@@ -9,19 +9,25 @@ from pathlib import Path
 
 import requests
 
+from .citations.store import default_store_path
 from .console import configure_logging, print_summary
+from .downloaders.api import DEFAULT_PAGE_SIZE
+from .views.curation import default_curation_path
 
 logger = logging.getLogger(__name__)
 
-CSV_DIR = Path("csv")
-COOKIE_FILE = Path("cookies.json")
-SNAPSHOT_PATH = Path("json/glance_registry.json")
-OUTPUT_DIR = Path("pages")
+API_SNAPSHOT_PATH = Path("glance_api_registry.json")
+CURATED_SNAPSHOT_PATH = Path("glance_curated_registry.json")
 
 
-def _validate_download(command, args):
+def _validate_html_download(command, args):
     if args.from_html is not None and args.save_html is not None:
         command.error("--from-html cannot be combined with --save-html")
+    if (
+        args.save_html is not None
+        and args.save_html.resolve() == args.csv_dir.resolve()
+    ):
+        command.error("--save-html and --csv-dir must use separate directories")
 
 
 def _positive_int(value):
@@ -67,25 +73,9 @@ def parser():
     citations.add_argument(
         "--doi-cache",
         type=Path,
-        default=Path("json/doi_metadata.json"),
-        help="Persistent citation JSON dictionary (default: %(default)s); read offline if present.",
+        default=default_store_path(),
+        help="Maintained citation JSON dictionary (default: shared glance-analysis-lister dictionary).",
     )
-    csv = argparse.ArgumentParser(add_help=False)
-    csv.add_argument(
-        "--csv-dir",
-        type=Path,
-        default=CSV_DIR,
-        help="CSV directory (default: %(default)s).",
-    )
-
-    snapshot = argparse.ArgumentParser(add_help=False)
-    snapshot.add_argument(
-        "--snapshot",
-        type=Path,
-        default=SNAPSHOT_PATH,
-        help="Registry JSON path (default: %(default)s).",
-    )
-
     counts = argparse.ArgumentParser(add_help=False)
     counts.add_argument(
         "--allow-count-drop",
@@ -93,104 +83,165 @@ def parser():
         help="Allow an understood drop in registry counts; other checks still apply.",
     )
 
-    download = argparse.ArgumentParser(add_help=False)
-    download.add_argument(
-        "--config",
-        type=Path,
-        help="Retrieval TOML configuration (default: all accessible ATLAS records).",
+    command = argparse.ArgumentParser(description=__doc__, parents=[console])
+    command.set_defaults(validator=None)
+    commands = command.add_subparsers(dest="command", required=True)
+    api = commands.add_parser(
+        "download-api",
+        help="Download the API source registry using browser SSO.",
+        parents=[console, counts],
     )
-    source = download.add_mutually_exclusive_group()
+    api.add_argument(
+        "--output",
+        type=Path,
+        default=API_SNAPSHOT_PATH,
+        help="API source JSON destination (default: %(default)s).",
+    )
+    api.add_argument(
+        "--login", action="store_true", help="Open CERN SSO in your browser."
+    )
+    api.add_argument(
+        "--page-size",
+        type=_positive_int,
+        default=DEFAULT_PAGE_SIZE,
+        help="Records requested per API page (default: %(default)s); larger sizes require server support and may not be faster.",
+    )
+    api.set_defaults(handler=_run_download_api)
+    refresh = commands.add_parser(
+        "refresh",
+        parents=[console, counts, citations],
+        help="Download once, build a registry and render selected groups sequentially.",
+    )
+    refresh.add_argument(
+        "--groups", nargs="+", required=True, help="Group tokens, e.g. TOPQ HIGP."
+    )
+    refresh.add_argument("--api-snapshot", type=Path, default=API_SNAPSHOT_PATH)
+    refresh.add_argument(
+        "--snapshot",
+        type=Path,
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated registry destination.",
+    )
+    refresh.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pages"),
+        help="One group: write directly here. Multiple groups: lowercase group subdirectories (default: %(default)s).",
+    )
+    refresh.add_argument(
+        "--curation-config", type=Path, default=default_curation_path()
+    )
+    refresh.add_argument(
+        "--login", action="store_true", help="Open CERN SSO in your browser."
+    )
+    refresh.add_argument("--page-size", type=_positive_int, default=DEFAULT_PAGE_SIZE)
+    refresh.set_defaults(handler=_run_refresh)
+    html = commands.add_parser(
+        "download-html",
+        help="Fallback: download GLANCE HTML tables as standalone CSVs.",
+        description="Download all four GLANCE HTML tables as CSVs. These are independent exports, not inputs to build-registry. Requires the html extra; Chrome is required for --login.",
+        parents=[console],
+    )
+    html.add_argument(
+        "--csv-dir",
+        type=Path,
+        default=Path("."),
+        help="CSV output directory (default: current working directory).",
+    )
+    source = html.add_mutually_exclusive_group()
     source.add_argument(
         "--login",
         action="store_true",
-        help="Log in using Chrome and save fresh cookies.",
+        help="Log in manually using Chrome and save fresh cookies.",
     )
     source.add_argument(
         "--from-html",
         type=Path,
         metavar="DIR",
-        help="Read saved HTML tables from DIR without network access.",
+        help="Replay saved HTML and its manifest from DIR without network access.",
     )
-    download.add_argument(
+    html.add_argument(
         "--save-html",
         type=Path,
         metavar="DIR",
-        help="Save downloaded HTML tables to DIR.",
+        help="Save downloaded HTML and its manifest to DIR for offline replay.",
     )
-    download.add_argument(
+    html.add_argument(
         "--cookies",
         type=Path,
-        default=COOKIE_FILE,
+        default=Path("cookies.json"),
         help="Session cookie file (default: %(default)s).",
     )
-    download.set_defaults(validator=_validate_download)
-
-    output = argparse.ArgumentParser(add_help=False)
-    output.add_argument(
-        "--output-dir",
-        type=Path,
-        default=OUTPUT_DIR,
-        help="Markdown destination (default: %(default)s).",
+    html.set_defaults(handler=_run_download_html, validator=_validate_html_download)
+    build = commands.add_parser(
+        "build-registry",
+        help="Build a curated registry from API JSON and shared identifier/citation data.",
+        parents=[counts, citations, console],
     )
-
-    obsidian_output = argparse.ArgumentParser(add_help=False)
-    obsidian_output.add_argument(
-        "--output-dir",
+    build.set_defaults(handler=_run_build_registry)
+    build.add_argument(
+        "--api-snapshot",
         type=Path,
-        default=Path("obsidian_output"),
-        help="Obsidian destination (default: %(default)s).",
+        default=API_SNAPSHOT_PATH,
+        help="API JSON input (default: %(default)s).",
     )
-
-    review = argparse.ArgumentParser(add_help=False)
-    review.add_argument(
+    build.add_argument(
+        "--output",
+        type=Path,
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated JSON output (default: %(default)s).",
+    )
+    compare = commands.add_parser(
+        "compare-snapshots",
+        parents=[console],
+        help="Compare two saved API or two curated snapshots offline.",
+        description="Compare records by native identifier. Container timestamps and build metadata are ignored; list order is significant. No live requests.",
+    )
+    compare.add_argument("before", type=Path, help="Previous snapshot.")
+    compare.add_argument("after", type=Path, help="New snapshot in the same format.")
+    compare.add_argument(
+        "--details",
+        action="store_true",
+        help="List added/removed identifiers and changed field paths, without record values.",
+    )
+    compare.add_argument(
+        "--output",
+        type=Path,
+        help="Write a detailed JSON report including before/after field values.",
+    )
+    compare.set_defaults(handler=_run_compare_snapshots)
+    group = commands.add_parser(
+        "render-group",
+        parents=[console],
+        help="Render ongoing analyses and separate publication pages.",
+    )
+    group.add_argument(
         "--snapshot",
         type=Path,
-        help="Review lookup use against this registry JSON snapshot.",
+        default=CURATED_SNAPSHOT_PATH,
+        help="Curated registry JSON (default: %(default)s).",
     )
-
-    command = argparse.ArgumentParser(description=__doc__, parents=[console])
-    command.set_defaults(validator=None)
-    commands = command.add_subparsers(dest="command", required=True)
-    for name, description, parents, handler in (
-        (
-            "refresh",
-            "Download and publish CSVs and a validated registry.",
-            [csv, snapshot, counts, download],
-            _run_refresh,
-        ),
-        ("download", "Download and publish CSVs only.", [csv, download], _run_download),
-        (
-            "build-registry",
-            "Validate existing CSVs and publish their registry.",
-            [csv, snapshot, counts],
-            _run_build_registry,
-        ),
-        (
-            "render",
-            "Generate Markdown pages from a registry snapshot.",
-            [snapshot, output],
-            _run_render,
-        ),
-        (
-            "validate-lookups",
-            "Validate lookup dictionaries and optionally review a snapshot.",
-            [review],
-            _run_validate_lookups,
-        ),
-        (
-            "export-obsidian",
-            "Export papers and ongoing analyses as Obsidian notes.",
-            [snapshot, obsidian_output],
-            _run_export_obsidian,
-        ),
-    ):
-        sub = commands.add_parser(
-            name,
-            help=description,
-            description=description,
-            parents=[*parents, citations, console],
-        )
-        sub.set_defaults(handler=handler)
+    group.add_argument(
+        "--group",
+        required=True,
+        help="Exact leading/additional main-group name, e.g. TOPQ.",
+    )
+    group.add_argument(
+        "--curation-config",
+        type=Path,
+        default=default_curation_path(),
+        help="Publication policies TOML (default: shared package policy).",
+    )
+    group.add_argument(
+        "--group-title", default="", help="Display title (default: group name)."
+    )
+    group.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pages/group"),
+        help="Destination for group pages, assets and report (default: %(default)s).",
+    )
+    group.set_defaults(handler=_run_render_group)
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
@@ -217,7 +268,7 @@ def parser():
     resolve.add_argument(
         "--limit",
         type=_positive_int,
-        help="Maximum number of missing/unlocked entries to attempt.",
+        help="Maximum number of missing/non-manual entries to attempt.",
     )
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     formatting = commands.add_parser(
@@ -229,100 +280,173 @@ def parser():
     return command
 
 
-def _download_cookies(args):
-    from analysis_lister.download import resolve_cookies
+def _run_download_api(args):
+    from .downloaders.api import download_registry
+    from .downloaders.reporting import run_download
 
-    if args.from_html is not None:
-        return None
-    return resolve_cookies(args.cookies, generate_new_cookies=args.login)
-
-
-def _retrieval_options(args):
-    from analysis_lister.retrieval import load_scope
-
-    return {"scope": load_scope(args.config)} if args.config is not None else {}
+    run_download(
+        lambda: download_registry(
+            args.output,
+            login=args.login,
+            allow_count_drop=args.allow_count_drop,
+            page_size=args.page_size,
+        ),
+        kind="API",
+        destination=args.output,
+        files=[args.output],
+        color=args.color,
+        validation="Passed: model/schema validation, pagination totals and unique identifiers; "
+        + (
+            "count-drop guard explicitly overridden"
+            if args.allow_count_drop
+            else "count-drop guard enabled"
+        ),
+        recovery_dir=args.output.parent,
+        recovery_pattern=f".{args.output.name}.*.tmp",
+    )
 
 
 def _run_refresh(args):
-    from analysis_lister.refresh import refresh_analysis_lists
+    from .refresh import refresh
 
-    options = _retrieval_options(args)
-    refresh_analysis_lists(
-        args.csv_dir,
-        args.from_html or args.save_html or Path("debug"),
-        args.snapshot,
-        force=args.allow_count_drop,
-        cookies=_download_cookies(args),
-        use_local_html=args.from_html is not None,
-        debug=args.save_html is not None,
-        **options,
-    )
-    print_summary(
-        "Refresh complete",
-        [("CSV directory", args.csv_dir), ("Registry", args.snapshot)],
+    refresh(args, download=_run_download_api, build=_run_build_registry)
+
+
+def _run_download_html(args):
+    from .downloaders.auth import resolve_cookies
+    from .downloaders.csv_batch import download_html_csvs
+    from .downloaders.html import download_tasks
+    from .downloaders.manifest import CSV_REFRESH_MARKER, HTML_MANIFEST
+    from .downloaders.reporting import run_download
+
+    tasks = download_tasks()
+
+    def download():
+        try:
+            import bs4  # noqa: F401
+
+            if args.login:
+                import selenium  # noqa: F401
+        except ImportError:
+            raise ValueError(
+                "HTML downloading requires optional dependencies: pip install 'glance-analysis-lister[html]'"
+            ) from None
+        logger.info(
+            "HTML configuration: all accessible records and columns; sequential retrieval; source=%s",
+            args.from_html
+            if args.from_html is not None
+            else "live GLANCE tables (verified TLS)",
+        )
+        logger.info(
+            "Authentication: %s",
+            "none (offline HTML replay)"
+            if args.from_html is not None
+            else "Chrome SSO requested"
+            if args.login
+            else "using saved cookies",
+        )
+        cookies = (
+            None
+            if args.from_html is not None
+            else resolve_cookies(args.cookies, generate_new_cookies=args.login)
+        )
+        return download_html_csvs(
+            tasks,
+            args.csv_dir,
+            args.from_html or args.save_html or Path("debug"),
+            cookies=cookies,
+            use_local_html=args.from_html is not None,
+            debug=args.save_html is not None,
+        )
+
+    run_download(
+        download,
+        kind="HTML",
+        destination=args.csv_dir,
+        files=[args.csv_dir / task.csv_filename for task in tasks]
+        + [args.csv_dir / HTML_MANIFEST],
+        validation="Passed: table completeness, headers, row widths and unique identifiers; batch published",
         color=args.color,
-    )
-
-
-def _run_download(args):
-    from analysis_lister.download import download_tasks
-    from analysis_lister.refresh import refresh_csv_files
-
-    options = _retrieval_options(args)
-    refresh_csv_files(
-        download_tasks(),
-        args.csv_dir,
-        args.from_html or args.save_html or Path("debug"),
-        cookies=_download_cookies(args),
-        use_local_html=args.from_html is not None,
-        debug=args.save_html is not None,
-        **options,
-    )
-    print_summary(
-        "Download complete", [("CSV directory", args.csv_dir)], color=args.color
+        marker=args.csv_dir / CSV_REFRESH_MARKER,
+        recovery_dir=args.csv_dir,
+        recovery_pattern=".refresh-*",
+        saved_html=args.save_html,
     )
 
 
 def _run_build_registry(args):
-    from analysis_lister.refresh import update_registry
+    from analysis_lister.registry.builder import build_registry
 
-    update_registry(args.csv_dir, args.snapshot, force=args.allow_count_drop)
-    print_summary("Registry ready", [("Registry", args.snapshot)], color=args.color)
-
-
-def _run_render(args):
-    from analysis_lister.render import render_pages
-
-    render_pages(args.snapshot, args.output_dir)
-    print_summary("Pages rendered", [("Output", args.output_dir)], color=args.color)
-
-
-def _run_export_obsidian(args):
-    from analysis_lister.obsidian import export_obsidian
-
-    export_obsidian(args.snapshot, args.output_dir)
+    result = build_registry(
+        args.api_snapshot,
+        args.output,
+        allow_count_drop=args.allow_count_drop,
+        doi_cache=args.doi_cache,
+    )
     print_summary(
-        "Obsidian export complete", [("Output", args.output_dir)], color=args.color
+        "Registry ready", [("Registry", args.output), *result.items()], color=args.color
     )
 
 
-def _run_validate_lookups(args):
-    from analysis_lister.lookup_validation import validate_lookups
+def _run_compare_snapshots(args):
+    from .registry.comparison import compare_files
 
-    validate_lookups()
-    if args.snapshot is not None:
-        from analysis_lister.glance.glance_registry import GlanceRegistry
-        from analysis_lister.lookup_review import lookup_review_notices
+    report = compare_files(args.before, args.after, output=args.output)
+    details = []
+    for resource, changes in report["resources"].items():
+        counts = changes["counts"]
+        details.append(
+            (
+                resource,
+                ", ".join(
+                    f"{counts[key]} {key}"
+                    for key in ("added", "removed", "changed", "unchanged")
+                ),
+            )
+        )
+    if args.output:
+        details.append(("Report", args.output))
+    print_summary("Snapshot comparison (records only)", details, color=args.color)
+    if args.details:
+        for resource, changes in report["resources"].items():
+            for kind in ("added", "removed"):
+                for reference in changes[kind]:
+                    print(f"  {kind}: {resource}/{reference}")
+            for record in changes["changed"]:
+                print(f"  changed: {resource}/{record['reference']}")
+                for field in record["fields"]:
+                    print(f"    {field['kind']}: {field['path']}")
 
-        notices = lookup_review_notices(GlanceRegistry.from_json(args.snapshot))
-        for level, message in notices:
-            logger.log(level, "%s", message)
-        print(f"Snapshot review: {len(notices)} notice(s); no entries changed.")
-    print_summary("All analysis lookup dictionaries are valid.", color=args.color)
+
+def _run_render_group(args):
+    from analysis_lister.views.build import render_group
+    from analysis_lister.views.curation import load_publication_policy
+    from analysis_lister.views.profiles import GroupProfile
+
+    counts = render_group(
+        args.snapshot,
+        args.output_dir,
+        GroupProfile(
+            args.group,
+            args.group_title,
+            publication_policy=load_publication_policy(
+                args.curation_config, args.group
+            ),
+        ),
+    )
+    print_summary(
+        "Group views rendered",
+        [
+            ("Output", args.output_dir),
+            ("Report", args.output_dir / "view-report.json"),
+            *counts.items(),
+        ],
+        color=args.color,
+    )
 
 
 def _run_resolve_dois(args):
-    from analysis_lister.doi_resolver import resolve_dois, snapshot_dois
+    from analysis_lister.citations.resolver import resolve_dois, snapshot_dois
 
     dois = snapshot_dois(args.snapshot) if args.snapshot is not None else args.doi
     summary = resolve_dois(
@@ -341,18 +465,10 @@ def _run_resolve_dois(args):
 
 
 def _run_format_citations(args):
-    from analysis_lister.doi_resolver import format_citations
+    from analysis_lister.citations.formatting import format_citations
 
     changed = format_citations(args.doi_cache)
     print_summary(f"Updated formatting in {changed} citation(s).", color=args.color)
-
-
-def run(args):
-    """Invoke the registered handler; optional dependencies remain lazy imports."""
-    from analysis_lister.citation_store import cached_citations
-
-    with cached_citations(args.doi_cache):
-        args.handler(args)
 
 
 def main(argv=None):
@@ -366,7 +482,7 @@ def main(argv=None):
         args.validator(command, args)
     with configure_logging(verbose=args.verbose, quiet=args.quiet, color=args.color):
         try:
-            run(args)
+            args.handler(args)
         except (ValueError, OSError, requests.RequestException) as error:
             logger.error("%s", error)
             logger.debug("Command failed", exc_info=True)
