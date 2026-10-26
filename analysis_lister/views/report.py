@@ -9,6 +9,7 @@ from pathlib import Path
 
 from attrs import asdict
 
+from ..provenance import json_fingerprint
 from ..registry.reader import LINK_RESOURCES
 from .curation import archive_curation_statement
 from .diagnostics import diagnostic_entry, group_diagnostics
@@ -79,6 +80,7 @@ def build_report(view, snapshot, raw):
             "sha256": sha256(raw).hexdigest(),
         },
         "profile": asdict(profile),
+        "profile_sha256": json_fingerprint(asdict(profile)),
         "source_metadata": view.source_metadata,
         "policy": {
             "group": "ongoing analyses always use main-group affiliation; all archive publication types use the separately recorded archive-curation rule",

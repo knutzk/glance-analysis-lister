@@ -233,7 +233,8 @@ The default destination is `pages/group`. Output consists of `ongoing.md`,
 `--group-title` changes the ongoing-page display title.
 
 Generated Markdown comments identify the generator Git commit and the input
-registry filename and SHA-256. YAML front matter remains first. Copied CSS and
+registry filename and SHA-256, plus hashes of the effective render profile and
+generator contents. YAML front matter remains first. Copied CSS and
 JavaScript identify the source commit and preserve their SPDX notices; assets
 are independent of the registry. A modified checkout is marked `-dirty`. Source
 archives and wheels retain the revision recorded at build time. If revision
@@ -241,10 +242,22 @@ information is unavailable, the header explicitly says `unknown`. No generation
 timestamp is added. These notices do not apply the package licence to registry
 content.
 
-Unchanged files are not rewritten, preserving their timestamps and inodes;
-missing or modified generated files are replaced. Unrelated files remain
+Rendering the same snapshot bytes and basename with the same effective profile,
+generator contents/revision and runtime produces byte-identical pages, assets and
+reports. Tests check separate processes, Python hash seeds, time zones and output
+locations. Unchanged files are not rewritten, preserving their timestamps and
+inodes; missing or modified generated files are replaced. Unrelated files remain
 untouched. The log reports written/unchanged counts, which are not stored in the
 report because they depend on the existing output directory.
+
+The report records the effective `profile` and its canonical `profile_sha256`,
+including the group, display title and selected publication policy. Unrelated
+TOML groups, comments and formatting are excluded. `generator.content_sha256`
+hashes package Python files and browser assets by relative name and content,
+distinguishing different local edits even under the same `-dirty` commit label.
+Installed packages and checkouts with identical contents have the same content
+hash. Citation and identifier data used to build the registry are already covered
+by the snapshot hash and its curation provenance; rendering does not reload them.
 
 The render command prints the `view-report.json` path to stdout; pages do not link
 to this report. Diagnostics are grouped by cause: uncertain states, missing or

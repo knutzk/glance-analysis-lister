@@ -3,8 +3,10 @@
 
 """Identify the generator checkout or the revision recorded when packaging it."""
 
+import json
 import re
 import subprocess
+from hashlib import sha256 as digest
 from html import escape
 from pathlib import Path
 
@@ -50,7 +52,45 @@ def generator_revision(root=None):
     return "unknown"
 
 
-def markdown_provenance(content, *, revision, snapshot, sha256):
+def json_fingerprint(value):
+    """Hash canonical UTF-8 JSON; dictionary order is irrelevant, list order is not."""
+    raw = json.dumps(
+        value,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return digest(raw.encode("utf-8")).hexdigest()
+
+
+def generator_fingerprint(package_dir=None):
+    """Identify Python and browser-asset contents, including uncommitted edits.
+
+    Use relative names and file bytes, not paths, mtimes, bytecode or Git metadata.
+    Shared data dictionaries are already embedded in the curated snapshot;
+    the effective group profile is fingerprinted separately.
+    """
+    root = (
+        Path(package_dir)
+        if package_dir is not None
+        else Path(__file__).resolve().parent
+    )
+    paths = set(root.rglob("*.py"))
+    for suffix in ("*.js", "*.css"):
+        paths.update((root / "views/assets").glob(suffix))
+    return json_fingerprint(
+        {
+            path.relative_to(root).as_posix(): digest(path.read_bytes()).hexdigest()
+            for path in sorted(paths)
+            if "__pycache__" not in path.relative_to(root).parts
+        }
+    )
+
+
+def markdown_provenance(
+    content, *, revision, snapshot, sha256, profile_sha256=None, generator_sha256=None
+):
     """Put provenance after YAML front matter, without a generation timestamp."""
     filename = (
         escape(Path(snapshot).name)
@@ -64,7 +104,13 @@ def markdown_provenance(content, *, revision, snapshot, sha256):
         f"Generator Git commit: {revision}\n"
         f"Registry snapshot: {filename}\n"
         f"Registry SHA-256: {sha256}\n"
-        "Regenerate with: analysis-lister render-group\n"
+        + (f"Render profile SHA-256: {profile_sha256}\n" if profile_sha256 else "")
+        + (
+            f"Generator contents SHA-256: {generator_sha256}\n"
+            if generator_sha256
+            else ""
+        )
+        + "Regenerate with: analysis-lister render-group\n"
         "-->\n\n"
     )
     if content.startswith("---\n"):

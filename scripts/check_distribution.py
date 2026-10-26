@@ -17,7 +17,12 @@ from tempfile import TemporaryDirectory
 
 import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
-from analysis_lister.provenance import asset_provenance, generator_revision
+from analysis_lister.provenance import (
+    asset_provenance,
+    generator_fingerprint,
+    generator_revision,
+    json_fingerprint,
+)
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.public_identifiers import (
     default_identifiers_path,
@@ -90,6 +95,7 @@ def main():
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
     revision = generator_revision()
+    assert generator_fingerprint() == generator_fingerprint(root / "analysis_lister")
     assert revision != "unknown", "Installed wheel must retain its source Git commit"
     citation_path = default_store_path()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
@@ -301,6 +307,8 @@ def main():
         report = json.loads((group_output / "view-report.json").read_text())
         assert report["counts"]["ongoing_analyses"] == 1
         assert report["generator"]["git_commit"] == revision
+        assert report["generator"]["content_sha256"] == generator_fingerprint()
+        assert report["profile_sha256"] == json_fingerprint(report["profile"])
         for page in group_output.glob("*.md"):
             assert "Generator Git commit: " + revision in page.read_text()
             assert (
