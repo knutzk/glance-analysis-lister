@@ -91,11 +91,12 @@ generated pages and view reports out of the public package repository.
 
 The API download stores validated stare model output, including explicit
 relationships between independent records. `download-api --page-size 250` changes
-how many records are requested per page; the default remains 100. Any positive
-integer can be requested, subject to server support. No documented server maximum
-has been established. Larger pages reduce calculated request counts, but faster
-downloads require live measurements; no speed improvement is assumed. The selected
-page size is recorded in the source metadata. Retrieval remains sequential, through
+how many records are requested per page; the default is 500. In two user-run
+comparisons with reversed execution order, 500 returned identical records and was
+about 3.3 times faster than 100 (mean elapsed times: 35.91 versus 118.21 seconds).
+Performance depends on server and network conditions. Any positive integer can be
+requested, subject to server support; 500 is not a documented server maximum.
+The selected page size is recorded in the source metadata. Retrieval remains sequential, through
 one shared stare client, with response caching disabled.
 
 Pages explicitly request ascending identifier sorting: `referenceCode` for

@@ -94,7 +94,7 @@ assert "bs4" not in sys.modules
         ):
             cli.main(["download-api"])
         operation.assert_called_once_with(
-            cli.API_SNAPSHOT_PATH, login=False, allow_count_drop=False, page_size=100
+            cli.API_SNAPSHOT_PATH, login=False, allow_count_drop=False, page_size=500
         )
         citations.assert_not_called()
         parser = cli.parser()
@@ -105,8 +105,8 @@ assert "bs4" not in sys.modules
         with patch(
             "analysis_lister.downloaders.api.download_registry", return_value={}
         ) as operation:
-            cli.main(["download-api", "--page-size", "500"])
-        self.assertEqual(operation.call_args.kwargs["page_size"], 500)
+            cli.main(["download-api", "--page-size", "250"])
+        self.assertEqual(operation.call_args.kwargs["page_size"], 250)
         for value in ("0", "-1", "1.5", "not-an-integer"):
             with (
                 self.subTest(value=value),

@@ -23,7 +23,7 @@ from ..storage import atomic_write_text
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PAGE_SIZE = 100
+DEFAULT_PAGE_SIZE = 500
 # stare documents sort_by as a camelCase API field; these are the model aliases
 # identifying records on the four detailed resource endpoints.
 SORT_FIELDS = {
