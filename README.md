@@ -538,7 +538,8 @@ exercise populated and sparse records; add scenarios when introducing new
 conditional view behavior. Output comparisons additionally check that trimming
 records preserves rendering and search metadata.
 
-A separate CI job installs a matching Chrome/ChromeDriver pair and runs all four
+A separate CI job checks the runner-provided Chrome/ChromeDriver versions and
+sandboxed startup, then runs all four
 standalone browser checks plus a synthetic Zensical integration test. Both jobs
 must pass before a tagged release can be created. The site test builds strictly,
 serves only on loopback, and verifies real instant navigation, repeat visits,
