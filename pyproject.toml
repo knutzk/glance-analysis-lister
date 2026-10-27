@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glance-analysis-lister"
-version = "0.1.0"
+version = "0.2.0"
 description = "Maintain ATLAS GLANCE analysis registries and render analysis pages"
 readme = "README.md"
 license = "GPL-3.0-only"

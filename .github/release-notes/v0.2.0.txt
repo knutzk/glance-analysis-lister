@@ -1,0 +1,79 @@
+## Main changes
+
+- **New API workflow:** download through stare and CERN SSO, build a compact curated registry offline, and generate multiple groups' pages with one `refresh` command.
+- **New interactive views:** ongoing-analysis cards and separate paper, CONF-note and PUB-note archives, with search, filters, expandable details and shareable URLs.
+- **Configurable group curation:** shared publication policies support group affiliations, predecessor groups, subgroups and keywords.
+- **Traceable data:** explicit record relationships, improved DOI/correction handling, actionable diagnostics, snapshot comparison and reproducible generated files.
+- **Broader validation:** 272 offline tests, installed-package checks and CI browser tests, including real Zensical instant navigation.
+- **Breaking changes:** rebuild existing registries and migrate CLI commands, Python consumers and site navigation. Legacy renderers, lookup overrides and Obsidian export are removed; HTML downloading remains an optional standalone export.
+
+## Breaking changes and migration
+
+- Replaces the v0.1.0 CSV-derived registry and fixed Markdown views with an API-based registry workflow and configurable group views. Existing registries must be rebuilt; consumers must migrate to the curated format and new commands.
+- Replaces `download`, `render`, `export-obsidian` and `validate-lookups` with `download-api`, `download-html`, `build-registry`, `render-group`, `compare-snapshots`, `resolve-dois`, `format-citations` and the redesigned `refresh` workflow. Old CLI arguments and compatibility aliases are removed.
+- Removes Obsidian export, the old group/subgroup renderers, legacy model classes, lookup dictionaries and their import paths. There is no generated overview or combined publication-archive front page.
+- Removes downloading configuration files, group-specific retrieval profiles and `--lookup-dir`. Downloads retrieve all accessible records; group selection happens during view preparation.
+- Introduces curated registry schema version 2 and view-report schema version 2. Curated records retain only fields needed for display, search, curation, relationships and diagnostics. Keep the full API snapshot if you need other source fields.
+- Namespaces added or reshaped record fields with `gal_`. Nested structures, people roles and metadata are consolidated; consumers must not expect the original API shape for these fields.
+- Registry construction no longer consumes CSV files or HTML enrichment. HTML-only internal-note editors are omitted. The optional HTML downloader produces independent exports.
+- Replaces the `download` installation extra with `html`. Normal installation includes stare and does not require Selenium or Beautiful Soup; the HTML fallback requires the optional extra, with Chrome needed for interactive HTML login.
+- API and curated JSON default to `glance_api_registry.json` and `glance_curated_registry.json` in the calling directory. HTML CSVs also default to that directory. Shared DOI metadata, public-note identifier mappings and publication policies remain packaged, maintained data.
+- Group rendering produces `ongoing.md`, `papers.md`, `confnotes.md`, `pubnotes.md`, browser assets and `view-report.json`. Consumers must update navigation, enable the generated CSS/JavaScript and ignore downloaded data and diagnostic reports as appropriate.
+- Citation protection now depends on `source = "manual"`; the obsolete `locked` field is no longer accepted. Importing the package no longer loads or mutates a global citation dictionary.
+
+## Downloads and workflows
+
+- Adds stare 0.6.1 integration with browser CERN SSO, stored credentials and stare-managed token refresh. One shared GLANCE client retrieves detailed records sequentially with response caching disabled and TLS verification enabled.
+- Adds configurable API pagination through `--page-size`, defaulting to 500 after live comparisons with 100-record pages showed identical results and substantially shorter downloads.
+- Requests ascending identifier sorting using `referenceCode` for analyses/papers and `temporaryReferenceCode` for CONF/PUB notes. Records are serialized with validated JSON-mode, alias-preserving model output. Sorting does not guarantee a transactional snapshot.
+- Preserves duplicate detection, pagination-total consistency, per-resource count-drop protection and atomic JSON publication. `--allow-count-drop` overrides only the count-drop guard.
+- Adds a sequential `refresh` command: download once, build offline, then render selected groups. One group writes directly into the output directory; multiple groups use lowercase subdirectories. Configuration and path collisions are checked before authentication; failures stop subsequent steps while retaining completed outputs.
+- Retains optional `download-html` with browser login or saved cookies, verified HTTP transport, saved-HTML replay and all-column exports for all four resources. Complete-table counters, headers, row widths and identifiers are validated before publication.
+- Preserves staged HTML batch publication, rollback, interruption markers and recovery files. Duplicate or unnamed non-identifier HTML headers receive unique names without dropping or reordering columns.
+- Adds consistent download summaries covering output paths, resource counts, elapsed time and validation settings. Failure reporting checks whether existing output bytes were preserved and identifies incomplete batches and retained recovery files.
+
+## Registry, identifiers and citations
+
+- Builds curated registries offline from the API snapshot and shared identifier/citation dictionaries. Native analyses, papers, CONF notes and PUB notes remain independent records with explicit relationships.
+- Replaces title-based matching and manual clone exclusions with explicit links. Publication-owned relationships take precedence over contradictory analysis-owned links; resolved one-way links remain usable with recorded provenance.
+- Consolidates contacts, editors and editorial boards into name lists, retains chair information, flattens keywords/triggers/statistical tools and group assignments, and extracts date-only meeting lists. Missing leading assignments remain null; multiple leading assignments produce warnings.
+- Uses an explicit nested field-retention list after enrichment. Logs retained/discarded field occurrences and input/output byte sizes while retaining every source record.
+- Adds public CONF/PUB identifier recovery from API identifiers and public URLs, including software and technical PUB series. A bundled CDS-to-PUB dictionary supplies historical mappings without additional runtime requests.
+- Derives canonical paper public-page URLs from native identifiers when publication evidence is present. Identifier derivations, dictionary hashes and source counts are recorded as provenance.
+- Embeds DOI/citation pairs in curated papers. Extracts DOIs exclusively from URL fields, including supported publisher URL paths; ignores API labels because label/URL associations can be inconsistent. There is no label fallback.
+- Adds incremental citation resolution through offline JHEP inference or public INSPIRE metadata, with explicit method selection, limits and refresh controls. Manual entries are protected; successful resolutions are saved atomically with provenance.
+- Improves DOI association matching, duplicate/partial metadata reconciliation, journal abbreviations and starting-page formatting. Ambiguous associations remain unresolved rather than selecting an arbitrary match.
+- Orders a uniquely identified original publication before its known corrections, including multiple errata. DOI-encoded dates order corrections where possible; otherwise their input order is retained. Genuine ambiguity in identifying the original remains diagnostic.
+- Adds offline `compare-snapshots` for API or curated snapshots, with added/removed/changed records, field paths, optional detailed JSON and input hashes. Record order and container timestamps are ignored; list order and missing-versus-null distinctions are preserved.
+- Adds a thin `CuratedRegistry` reader with identifier lookup and explicit-link resolution, returning copies without importing downloaders or renderers.
+
+## Group views and browser interaction
+
+- Adds reusable prepared collections, typed details, explicit filter metadata and traceable derivation rules independent of Markdown.
+- Adds shared TOML publication policies for multiple groups, including predecessor groups and merged subgroups. Configured group tokens/affiliations, exact subgroup names and keywords are combined with OR. Policy titles control publication headings; missing policies warn and fall back to the group's identifier token.
+- Keeps ongoing-analysis selection based solely on leading/additional main-group affiliation, independently of publication policies. Historical subgroup changes do not impose a publication cutoff.
+- Adds compact expandable analysis cards with GLANCE identifier buttons, group/subgroup tags, people and email lists, supporting documents, metadata tags, dated milestones and direct card links.
+- Adds responsive approval flows for EdBoard assignment, pre-approval, approval and both ATLAS circulations. Milestone ticks depend on recorded evidence; review-stage sorting follows those displayed ticks. Linked paper milestones identify phase 1, phase 2 or submission.
+- Handles analyses awaiting publication review, papers with finished phase 1/2 awaiting submission, independent released PUB notes, software-note identifiers and closed records. Uncertain states remain explicitly reviewable instead of being guessed; unresolved publication links on closed analyses do not warn.
+- Adds separate expandable paper, CONF-note and PUB-note tables with short titles, public identifiers, publication/release dates, publication links and detailed affiliations, people and metadata. Editorial board chairs are marked consistently across views.
+- Adds paper publication-status filters and note supersession filters, including links to superseding records. Notes default to non-superseded entries. Tables remain unpaginated.
+- Adds free-text search across identifiers, titles, affiliations, people and relevant metadata, including paper DOI/citation information and note CDS URLs. Ongoing subgroup buttons appear only for matching analyses in the selected group's namespace.
+- Adds inclusive year/month date bounds, result counts, reset and expand/collapse-all controls. Undated publications remain visible unless a before bound is set. Selections combine with OR within categories and AND between categories.
+- Persists search through `q` on every view, ongoing subgroup/sort selections and publication date/status selections in URLs. Reload and browser-history navigation restore filters; unrelated URL parameters and card anchors are preserved.
+- Adds reusable CSS/JavaScript with keyboard controls, responsive layouts, Zensical instant-navigation support and readable no-JavaScript output. Filtering requires no database or live requests.
+- Explains selection criteria on the generated pages, including the archive's broader group involvement. Footers identify GLANCE extraction dates and the generator; detailed JSON diagnostics are reported through the CLI rather than linked from the pages.
+
+## Diagnostics, reproducibility and validation
+
+- Adds concise coloured logging, verbose/quiet controls, download/build configuration and progress reporting, and immediate summary flushing so redirected logs preserve execution order.
+- Groups view diagnostics by cause and severity, names affected records, states inclusion/exclusion and explains the practical effect. JSON reports expose dedicated review lists, diagnostic groups, issue counts and distinct-record counts.
+- Records effective publication policies, relationship evidence and lifecycle/milestone decisions in reports. Missing optional display fields do not generate warnings.
+- Adds generated-file notices with Git revision, registry hash, effective-profile hash and generator-content fingerprint. Wheels and source archives retain build-time revision provenance; registry content is not relicensed by these notices.
+- Makes generated Markdown easier to version by separating table rows and metadata fields, omitting unused browser payloads, avoiding generation timestamps and preserving unchanged files without rewriting them.
+- Tests reproducible output across processes, hash seeds, time zones and output locations, plus source-field contracts that detect view reads outside the curated retention list.
+- Reorganises the package into downloaders, registry construction/access, citations and views. Separates lifecycle rules, relationships, preparation, diagnostics, rendering and shared browser utilities; updates the README around the current package.
+- Expands the offline suite from 119 tests at v0.1.0 to 272, including real stare models/serializers, failure injection, storage safeguards, lifecycle rules, provenance and installed-distribution checks.
+- Adds CI execution of standalone Chrome checks for ongoing, paper, CONF and PUB views, plus a strict synthetic Zensical build/browser test covering real instant navigation, repeated visits, search/sort URL restoration, reset, expansion and assets. Browser dependencies remain separate from normal installation.
+- Requires both offline/package checks and browser/site checks before CI creates a draft release. The packaging workflow builds the wheel from the source distribution and verifies it in a clean environment.
+- Validates the end-to-end authenticated API refresh with TOPQ and HIGP locally, and verifies follow-up lifecycle fixes against the saved snapshot. Automated tests use synthetic data and do not access CERN services; consumer-specific theme overrides are outside the synthetic site test.
+- Retains Python 3.13 or newer and GPL-3.0-only licensing. No private snapshots or credentials are included in the package.

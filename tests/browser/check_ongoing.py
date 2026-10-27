@@ -8,6 +8,7 @@ Run from an editable development checkout:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -91,6 +92,8 @@ def run_checks(work_dir):
     output = work_dir / "fixture.html"
     output.write_text(html)
     options = Options()
+    if chrome := os.environ.get("CHROME_BINARY"):
+        options.binary_location = chrome
     for value in (
         "--headless=new",
         "--no-first-run",
@@ -120,6 +123,92 @@ def run_checks(work_dir):
         def reset():
             driver.find_element(By.CSS_SELECTOR, "[data-gal-reset]").click()
             count(4)
+
+        driver.get(
+            output.as_uri() + "?q=Signal&sort=reference&unrelated=keep#synthetic-anchor"
+        )
+        count(2)
+        assert (
+            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                "value"
+            )
+            == "Signal"
+        )
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "reference"
+        )
+        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search.clear()
+        search.send_keys("Invented trigger")
+        count(1)
+        assert "q=Invented+trigger" in driver.current_url
+        assert driver.current_url.endswith("#synthetic-anchor")
+        driver.refresh()
+        count(1)
+        assert "sort=reference" in driver.current_url
+        reset()
+        assert "q=" not in driver.current_url and "sort=" not in driver.current_url
+        assert "unrelated=keep" in driver.current_url
+        assert driver.current_url.endswith("#synthetic-anchor")
+        driver.execute_script(
+            "history.pushState(null, '', '?q=Signal&sort=stage-asc'); window.dispatchEvent(new PopStateEvent('popstate'))"
+        )
+        count(2)
+        assert (
+            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                "value"
+            )
+            == "Signal"
+        )
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "stage-asc"
+        )
+        # Exercise actual back/forward traversal, not just a dispatched popstate.
+        driver.execute_script(
+            "history.pushState(null, '', '?q=Background&sort=reference'); window.dispatchEvent(new PopStateEvent('popstate'))"
+        )
+        count(2)
+        driver.back()
+        wait.until(
+            lambda d: (
+                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                    "value"
+                )
+                == "Signal"
+            )
+        )
+        count(2)
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "stage-asc"
+        )
+        driver.forward()
+        wait.until(
+            lambda d: (
+                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                    "value"
+                )
+                == "Background"
+            )
+        )
+        count(2)
+        assert (
+            Select(
+                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+            ).first_selected_option.get_attribute("value")
+            == "reference"
+        )
+        driver.get(output.as_uri() + "?sort=invalid")
+        count(4)
+        assert "sort=" not in driver.current_url
 
         driver.get(output.as_uri() + "?subgroup=DEMO-Alpha%2C+with+comma")
         count(2)

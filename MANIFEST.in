@@ -8,3 +8,4 @@ include publication-curation.toml
 recursive-include examples *.json *.py *.md
 include scripts/check_distribution.py
 recursive-include tests *.py
+include tests/browser/requirements.txt

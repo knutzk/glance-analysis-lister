@@ -360,6 +360,17 @@ parameters preselect buttons with OR logic:
 ongoing/?subgroup=DEMO-First&subgroup=DEMO-Second
 ```
 
+All views use `q` for free-text search. Ongoing pages additionally persist their
+sort selection as `sort=reference`, `sort=stage-desc` or `sort=stage-asc`; the
+default sort is omitted. Search and sort are restored when opening or reloading
+a link and when navigating browser history. Reset clears the page's filters and
+restores its default sort. Shared URL helpers preserve unrelated parameters and
+card anchors.
+
+```text
+ongoing/?q=example&subgroup=DEMO-First&sort=stage-desc
+```
+
 Each card also has a permalink that reveals and opens it.
 
 ### Publication tables
@@ -512,7 +523,8 @@ python -m build
 
 The development requirements install the package in editable mode. Reinstall
 after changing dependencies or package metadata. CI runs the offline checks on
-Python 3.13 and validates the built wheel in a clean environment using
+Python 3.13. `python -m build` builds the wheel from the source distribution,
+then CI validates that wheel in a clean environment using
 `scripts/check_distribution.py`. This checks the installed CLI, synthetic
 rendering, packaged assets, shared dictionaries, publication policies and licences.
 
@@ -526,15 +538,33 @@ exercise populated and sparse records; add scenarios when introducing new
 conditional view behavior. Output comparisons additionally check that trimming
 records preserves rendering and search metadata.
 
-Browser checks are separate developer tools. They require installed Chrome and
-ChromeDriver, use shared synthetic fixtures, and clean up their temporary HTML,
-screenshots and driver logs:
+A separate CI job checks the runner-provided Chrome/ChromeDriver versions and
+sandboxed startup, then runs all four
+standalone browser checks plus a synthetic Zensical integration test. Both jobs
+must pass before a tagged release can be created. The site test builds strictly,
+serves only on loopback, and verifies real instant navigation, repeat visits,
+search URL persistence on all pages, ongoing sort persistence, reset, expansion
+and loaded stylesheets. It uses the
+built-in Zensical theme; consumer-specific theme overrides are not covered.
+No CERN credentials or live GLANCE data are used.
+
+The same checks can be run locally with installed Chrome and ChromeDriver.
+`CHROME_BINARY` optionally selects the Chrome executable; drivers are supplied
+explicitly. Tests clean up temporary sites, HTML, screenshots and driver logs.
+Zensical is a test-only dependency pinned separately from the package:
+
+```bash
+python -m pip install -r tests/browser/requirements.txt
+```
+
+Run the browser checks:
 
 ```bash
 python tests/browser/check_ongoing.py --driver /path/to/chromedriver
 python tests/browser/check_papers.py --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource confnotes --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource pubnotes --driver /path/to/chromedriver
+python tests/browser/check_zensical.py --driver /path/to/chromedriver
 ```
 
 Run the public synthetic example without credentials:
@@ -554,7 +584,7 @@ Tests use invented data and do not establish that live CERN authentication works
 | `registry/` | Offline enrichment, schema validation, DOI extraction, snapshot comparison and thin registry access. |
 | `citations/` | Citation storage, formatting, ordering, INSPIRE client and resolution workflow. |
 | `views/` | Policies, prepared data, relationships, provenance reports, renderers and browser assets. |
-| `tests/browser/` | Manual synthetic browser checks. |
+| `tests/browser/` | Synthetic standalone and Zensical browser checks, run locally and in CI. |
 | `scripts/` | Installed-distribution validation used by CI. |
 
 Paths for `downloaders/`, `registry/`, `citations/` and `views/` are relative to
@@ -567,6 +597,10 @@ without importing renderers. Markdown rendering consumes prepared records and
 page controls; `people.py` shares plain-text board/chair formatting across views.
 `diagnostics.py` classifies diagnostic causes and effects; `report.py` records
 the corresponding decisions and evidence.
+
+## AI Assistance Disclosure
+
+Parts of this codebase were developed with the assistance of AI assistants (Codex, OpenAI; Claude, Anthropic). All output was reviewed and validated by the author.
 
 ## Licence
 

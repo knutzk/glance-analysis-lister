@@ -7,6 +7,7 @@ Run from an editable checkout with --driver /path/to/chromedriver.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -69,6 +70,8 @@ def run_checks(work_dir):
         f'<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details{{content-visibility:auto}}</style>{css}</head><body class="md-typeset">{markup}{js}</body></html>'
     )
     options = Options()
+    if chrome := os.environ.get("CHROME_BINARY"):
+        options.binary_location = chrome
     for flag in (
         "--headless=new",
         "--no-first-run",

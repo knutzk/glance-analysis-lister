@@ -33,27 +33,18 @@
       const expandAll = controls.querySelector("[data-gal-archive-expand-all]");
       const urlKeys = {publication_status: "status"};
       function readURL() {
-        const params = new URLSearchParams(location.search);
-        search.value = params.get("q") || "";
-        after.value = params.get("after") || "";
-        before.value = params.get("before") || "";
+        const params = common.readURLFields({q: search, after, before});
         categories.forEach(category => {
           const values = params.getAll(urlKeys[category.dataset.galFilter] || category.dataset.galFilter);
           category.querySelectorAll("[data-gal-value]").forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.galValue))));
         });
       }
       function writeURL(selections) {
-        const url = new URL(location.href);
-        for (const [key, value] of [["q", search.value.trim()], ["after", after.value], ["before", before.value]]) {
-          url.searchParams.delete(key);
-          if (value) url.searchParams.set(key, value);
-        }
-        selections.forEach(({key, values}) => {
-          const param = urlKeys[key] || key;
-          url.searchParams.delete(param);
-          values.forEach(value => url.searchParams.append(param, value));
+        const values = {q: search.value.trim(), after: after.value, before: before.value};
+        selections.forEach(({key, values: selected}) => {
+          values[urlKeys[key] || key] = selected;
         });
-        common.replaceURL(url);
+        common.writeURLParams(values);
       }
       function syncExpandAll() {
         if (!expandAll) return;
