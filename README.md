@@ -597,6 +597,10 @@ page controls; `people.py` shares plain-text board/chair formatting across views
 `diagnostics.py` classifies diagnostic causes and effects; `report.py` records
 the corresponding decisions and evidence.
 
+## AI Assistance Disclosure
+
+Parts of this codebase were developed with the assistance of AI assistants (Codex, OpenAI; Claude, Anthropic). All output was reviewed and validated by the author.
+
 ## Licence
 
 Copyright © 2024–2026 Knut Zoch. Licensed under
