@@ -102,6 +102,40 @@ class PaperRenderingTests(unittest.TestCase):
         )
         self.assertIn("publicationPhase.publishedOnlineDate", trace["date"]["inputs"])
 
+    def test_papers_under_review_precede_published_papers_in_date_order(self):
+        old = publication(1, date="1999-01-01")
+        recent = publication(2, date="2099-02-01")
+        published_undated = publication(3, date=None)
+        submitted = publication(4, status="Publication Phase Active", date=None)
+        submitted["publicationPhase"]["arXivSubmissionDate"] = "2099-03-01"
+        submitted["publicationPhase"]["gal_dois"] = []
+        review_dated = publication(5, date="2000-01-01")
+        review_dated["publicationPhase"]["gal_dois"] = []
+        active = publication(6, status="Phase 2 Active", date=None)
+        view = self.prepare(
+            snapshot(
+                papers=(old, submitted, recent, published_undated, review_dated, active)
+            )
+        )
+        soup = BeautifulSoup(papers_page(view), "html.parser")
+        rows = soup.select("[data-gal-item]")
+        self.assertEqual(
+            [row.select_one('th[scope="row"]').text for row in rows],
+            [
+                paper["referenceCode"]
+                for paper in (review_dated, submitted, recent, old, published_undated)
+            ],
+        )
+        self.assertEqual(
+            [row["data-gal-date"] for row in rows],
+            ["2000-01-01", "", "2099-02-01", "1999-01-01", ""],
+        )
+        for row in rows:
+            self.assertEqual(
+                row.select_one("[data-gal-paper-toggle]")["aria-controls"],
+                row.find_next_sibling("tr")["id"],
+            )
+
     def test_paper_details_show_latest_milestone_and_submission_date(self):
         paper = publication(1, status="Publication Phase Active", date=None)
         paper["publicationPhase"].update(

@@ -101,7 +101,8 @@ def publication_page(view, resource, *, revision=None):
         else "Released notes across all available years, including superseded historical notes. "
     )
     out += (
-        "Dates are paper publication dates.\n\n"
+        "Papers under review appear first, followed by published papers "
+        "ordered by publication date, newest first.\n\n"
         if resource == "papers"
         else "Dates are note release dates.\n\n"
     )
