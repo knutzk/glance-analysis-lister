@@ -74,7 +74,11 @@ def record_button(label, url):
 
 def paper_table(view):
     resource = "papers"
-    rows = tuple(row for row in view.archive if row.resource == resource)
+    # Keep the archive's date ordering within each publication-status group.
+    rows = sorted(
+        (row for row in view.archive if row.resource == resource),
+        key=lambda row: row.metadata["publication_status"] != "under-review",
+    )
     out = '<section class="gal-collection gal-archive" data-gal-archive data-gal-collection data-gal-noun="papers" aria-label="Papers archive">'
     out += render_controls(
         anchor(view.profile.group, "papers-filters"),
