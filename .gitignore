@@ -28,3 +28,7 @@ dist/
 
 # Local coding-agent guidance.
 /AGENTS.md
+
+# Public schema and independently invented compatibility fixtures.
+!/analysis_lister/registry/schemas/curated-v2.schema.json
+!/tests/fixtures/curated/*.json

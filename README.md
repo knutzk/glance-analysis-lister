@@ -215,12 +215,18 @@ provenance. DOI/citation pairs, including corrections, stay aligned.
 
 Transformation rules live in `registry/enrichment.py`: `STRING_LIST_FIELDS`
 controls named-object conversions. After enrichment, `registry/fields.py` selects
-only record fields consumed by the views (including search, curation and
-diagnostics), down to nested links, metadata and DOI/citation entries. New API fields are excluded by default.
-Add fields to this selection when a view starts consuming them. The full API
-snapshot remains the source for rebuilding; the curated file is not a lossless
-API archive. Snapshot and build metadata are retained for provenance and safe
-replacement. The curated schema is version 2.
+the domain fields defined by the [curated v2 contract](docs/curated-format.md),
+down to nested relationships, metadata and DOI/citation entries. New API fields
+are excluded by default; adopting one is a data-contract decision independent
+of any particular view. The full API snapshot remains the source for rebuilding;
+the curated file is not a lossless API archive. Snapshot and build metadata are
+retained for provenance and safe replacement.
+
+The bundled JSON Schema validates nested types and dates before reading or
+publishing a registry. Counts and identifier uniqueness are checked separately.
+Optional additions remain compatible within v2; breaking changes require a new
+version. Fixed synthetic fixtures protect compatibility independently of views.
+Only v2 is currently supported; no implicit migration is performed.
 
 `build-registry` logs retained/discarded field counts for each resource and the
 input/output file sizes with their percentage change. Field counts refer to

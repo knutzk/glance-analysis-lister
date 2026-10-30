@@ -26,6 +26,26 @@ from analysis_lister.views.publication_states import PAPER_MILESTONES
 
 
 class RegistryFieldTests(unittest.TestCase):
+    def test_curation_preserves_journal_code_and_missing_or_null_values(self):
+        api = api_fixture()
+        api["papers"][0]["publicationPhase"] = {}
+        self.assertNotIn(
+            "finalSubmissionJournal", curate(api)["papers"][0]["publicationPhase"]
+        )
+        for value in (None, "EPJC", "NEW_INTERNAL_CODE", "  Original Value  "):
+            with self.subTest(value=value):
+                api["papers"][0]["publicationPhase"]["finalSubmissionJournal"] = value
+                before = copy.deepcopy(api)
+                curated = curate(api)
+                loaded = CuratedRegistry(json.loads(json.dumps(curated)))
+                self.assertEqual(
+                    loaded.records("papers")[0]["publicationPhase"][
+                        "finalSubmissionJournal"
+                    ],
+                    value,
+                )
+                self.assertEqual(api, before)
+
     def test_field_counts_include_nested_keys_but_not_scalar_list_items(self):
         self.assertEqual(
             count_fields(
@@ -91,12 +111,6 @@ class RegistryFieldTests(unittest.TestCase):
             },
         )
         self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
-
-    def test_every_dated_paper_milestone_is_retained(self):
-        for phase, events in PAPER_MILESTONES.items():
-            for field, _ in events:
-                with self.subTest(phase=phase, field=field):
-                    self.assertIn(field, RECORD_FIELDS["papers"][phase])
 
     def test_projection_preserves_missing_null_and_string_list_values(self):
         record = {

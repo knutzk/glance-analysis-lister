@@ -11,7 +11,7 @@ license = "GPL-3.0-only"
 license-files = ["LICENCE"]
 authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
-dependencies = ["attrs>=26.1", "requests>=2.34", "stare==0.6.1"]
+dependencies = ["attrs>=26.1", "jsonschema>=4.23,<5", "rfc3339-validator>=0.1.4", "requests>=2.34", "stare==0.6.1"]
 
 [project.urls]
 Repository = "https://github.com/knutzk/glance-analysis-lister.git"
@@ -27,7 +27,7 @@ analysis-lister = "analysis_lister.cli:main"
 include = ["analysis_lister*"]
 
 [tool.setuptools.package-data]
-analysis_lister = ["_source_revision.txt", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
+analysis_lister = ["_source_revision.txt", "registry/schemas/*.json", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
 
 [tool.setuptools.data-files]
 "share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml"]

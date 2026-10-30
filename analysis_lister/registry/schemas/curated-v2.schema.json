@@ -1,0 +1,829 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-FileCopyrightText: 2024-2026 Knut Zoch; SPDX-License-Identifier: GPL-3.0-only",
+  "title": "GLANCE curated registry v2",
+  "description": "Stable domain contract. Optional additions are allowed at every object level unless a map explicitly constrains its values. No defaults are inserted. See docs/curated-format.md.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "glance-curated-registry"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "counts": {
+      "type": "object",
+      "properties": {
+        "analyses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "papers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confnotes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pubnotes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "analyses",
+        "papers",
+        "confnotes",
+        "pubnotes"
+      ]
+    },
+    "fetched_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "gal_curation": {
+      "$ref": "#/$defs/curation"
+    },
+    "analyses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analysis"
+      }
+    },
+    "papers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/paper"
+      }
+    },
+    "confnotes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/note"
+      }
+    },
+    "pubnotes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/note"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "schema_version",
+    "counts",
+    "analyses",
+    "papers",
+    "confnotes",
+    "pubnotes"
+  ],
+  "$defs": {
+    "text": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "milestoneDate": {
+      "description": "A source calendar date or timestamp, null, or an empty source value. No timezone conversion or historical inference is applied.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "const": ""
+        },
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ],
+      "title": "ISO date or timestamp, null, or empty string"
+    },
+    "link": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/text"
+        },
+        "referenceCode": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "url": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "url": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "groups": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "leadingGroup": {
+          "$ref": "#/$defs/text"
+        },
+        "leadingSubgroup": {
+          "$ref": "#/$defs/text"
+        },
+        "otherGroups": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "subgroups": {
+          "$ref": "#/$defs/optionalNames"
+        }
+      }
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "gal_keywords": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "gal_triggers": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "gal_statisticalTools": {
+          "$ref": "#/$defs/optionalNames"
+        }
+      }
+    },
+    "documentation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "supportingInternalDocuments": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/url"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/text"
+        },
+        "source": {
+          "$ref": "#/$defs/text"
+        },
+        "source_url": {
+          "$ref": "#/$defs/text"
+        },
+        "api_field": {
+          "$ref": "#/$defs/text"
+        },
+        "cds_record": {
+          "$ref": "#/$defs/text"
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        },
+        "availability_checked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "doi": {
+      "type": "object",
+      "properties": {
+        "doi": {
+          "$ref": "#/$defs/text"
+        },
+        "url": {
+          "$ref": "#/$defs/text"
+        },
+        "citation": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "collision": {
+      "type": "object",
+      "properties": {
+        "year": {
+          "$ref": "#/$defs/text"
+        },
+        "run": {
+          "$ref": "#/$defs/text"
+        },
+        "type": {
+          "$ref": "#/$defs/text"
+        },
+        "ecmValue": {
+          "$ref": "#/$defs/text"
+        },
+        "ecmUnit": {
+          "$ref": "#/$defs/text"
+        },
+        "luminosityValue": {
+          "$ref": "#/$defs/text"
+        },
+        "luminosityUnit": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "common": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/text"
+        },
+        "shortTitle": {
+          "$ref": "#/$defs/text"
+        },
+        "gal_analysisContacts": {
+          "$ref": "#/$defs/names"
+        },
+        "gal_contactEditors": {
+          "$ref": "#/$defs/names"
+        },
+        "gal_groups": {
+          "$ref": "#/$defs/groups"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "documentation": {
+          "$ref": "#/$defs/documentation"
+        },
+        "analysisTeam": false
+      },
+      "required": [
+        "gal_analysisContacts",
+        "gal_contactEditors"
+      ]
+    },
+    "publication": {
+      "type": "object",
+      "properties": {
+        "relatedAnalysis": {
+          "$ref": "#/$defs/link"
+        },
+        "gal_publicationProvenance": {
+          "$ref": "#/$defs/provenance"
+        }
+      }
+    },
+    "analysisPhase": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/text"
+        },
+        "startDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "editorialBoardFormedDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "pgcOrSgcSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "gal_editorialBoard": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_editorialBoardChairs": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_eoiMeetingDates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "gal_editorialBoardRequestMeetingDates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "gal_preApprovalMeetingDates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "gal_approvalMeetingDates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    },
+    "paperPhase1": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "gal_editorialBoard": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_editorialBoardChairs": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_editorialBoardExOfficio": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_readers": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_firstReaders": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_secondReaders": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_firstSignOffResponsible": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_secondSignOffResponsible": {
+          "$ref": "#/$defs/people"
+        },
+        "startDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "editorialBoardFormedDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "pgcApprovalDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "editorialBoardDraftSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "languageEditorsSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "draftReleasedDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "presentationDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "atlasMeetingDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "pubcommSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "publicWebPageUrlForFiguresAndTables": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "paperPhase2": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "startDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "editorialBoardDraft2SignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "draft2SentToCernDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "draft2CernSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "draft2ReleasedDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "editorialBoardRevisedSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "pubcommChairOrDeputySignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "spokespersonDelegatedSignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "spokespersonOrDeputySignOffDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "paperClosureDate": {
+          "$ref": "#/$defs/milestoneDate"
+        }
+      }
+    },
+    "publicationPhase": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "startDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "arXivSubmissionDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "firstRefereeReportDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "journalAcceptanceDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "firstProofDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "publishedOnlineDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "finalSubmissionJournal": {
+          "$ref": "#/$defs/text"
+        },
+        "arXivUrls": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/url"
+          }
+        },
+        "gal_dois": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/doi"
+          }
+        }
+      }
+    },
+    "noteMetadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "gal_keywords": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "gal_triggers": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "gal_statisticalTools": {
+          "$ref": "#/$defs/optionalNames"
+        },
+        "mvaMlTools": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/text"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "collisions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/collision"
+          }
+        }
+      }
+    },
+    "notePhase": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "gal_editorialBoard": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_editorialBoardChairs": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_editorialBoardExOfficio": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_readers": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_firstReaders": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_secondReaders": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_firstSignOffResponsible": {
+          "$ref": "#/$defs/people"
+        },
+        "gal_secondSignOffResponsible": {
+          "$ref": "#/$defs/people"
+        },
+        "releaseDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "pgcApprovalDate": {
+          "$ref": "#/$defs/milestoneDate"
+        },
+        "draftCdsUrl": {
+          "$ref": "#/$defs/text"
+        },
+        "publicWebPageUrlForFiguresAndTables": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "analysis": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "referenceCode": {
+              "$ref": "#/$defs/identifier"
+            },
+            "relatedPublications": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/$defs/link"
+              }
+            },
+            "phase0": {
+              "$ref": "#/$defs/analysisPhase"
+            }
+          },
+          "required": [
+            "referenceCode"
+          ]
+        }
+      ]
+    },
+    "paper": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        },
+        {
+          "$ref": "#/$defs/publication"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "referenceCode": {
+              "$ref": "#/$defs/identifier"
+            },
+            "gal_figuresUrl": {
+              "$ref": "#/$defs/text"
+            },
+            "phase1": {
+              "$ref": "#/$defs/paperPhase1"
+            },
+            "phase2": {
+              "$ref": "#/$defs/paperPhase2"
+            },
+            "publicationPhase": {
+              "$ref": "#/$defs/publicationPhase"
+            }
+          },
+          "required": [
+            "referenceCode"
+          ]
+        }
+      ]
+    },
+    "note": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        },
+        {
+          "$ref": "#/$defs/publication"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "temporaryReferenceCode": {
+              "$ref": "#/$defs/identifier"
+            },
+            "finalReferenceCode": {
+              "$ref": "#/$defs/text"
+            },
+            "gal_finalReferenceCode": {
+              "$ref": "#/$defs/text"
+            },
+            "supersededBy": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/$defs/link"
+              }
+            },
+            "metadata": {
+              "$ref": "#/$defs/noteMetadata"
+            },
+            "phase1": {
+              "$ref": "#/$defs/notePhase"
+            }
+          },
+          "required": [
+            "temporaryReferenceCode"
+          ]
+        }
+      ]
+    },
+    "store": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "curation": {
+      "type": "object",
+      "properties": {
+        "built_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "contacts_as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "api_schema": {
+          "type": "string"
+        },
+        "doi_statistics": {
+          "type": "object",
+          "properties": {
+            "papers_with_dois": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "malformed_links": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "public_identifier_statistics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "citation_store": {
+          "$ref": "#/$defs/store"
+        },
+        "pubnote_identifier_store": {
+          "$ref": "#/$defs/store"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "client": {
+          "type": "string"
+        },
+        "client_version": {
+          "type": "string"
+        },
+        "selection": {
+          "type": "string"
+        },
+        "representation": {
+          "type": "string"
+        },
+        "base_url": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sort_fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "sort_descending": {
+          "type": "boolean"
+        }
+      }
+    },
+    "optionalNames": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "people": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "$ref": "#/$defs/names"
+        }
+      ]
+    }
+  }
+}

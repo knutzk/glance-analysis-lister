@@ -76,6 +76,16 @@ class CuratedTests(unittest.TestCase):
         self.assertNotIn("@example.test", json.dumps(result))
         self.assertEqual(before, self.api)
 
+    def test_invalid_nested_candidate_does_not_replace_valid_output(self):
+        self.output.parent.mkdir(parents=True)
+        self.output.write_text(json.dumps(registry.curate(self.api)))
+        previous = self.output.read_bytes()
+        self.api["papers"][0]["phase2"] = {"draft2ReleasedDate": "2099-02-30"}
+        self.api_path.write_text(json.dumps(self.api))
+        with self.assertRaisesRegex(ValueError, "phase2.draft2ReleasedDate"):
+            builder.build_registry(self.api_path, self.output)
+        self.assertEqual(self.output.read_bytes(), previous)
+
     def test_reserved_namespace_collisions_are_rejected(self):
         self.api["papers"][0]["metadata"]["gal_future"] = "collision"
         with self.assertRaisesRegex(ValueError, "reserved gal_"):
