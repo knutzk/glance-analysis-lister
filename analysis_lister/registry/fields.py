@@ -120,6 +120,7 @@ RECORD_FIELDS = {
                 "arXivSubmissionDate",
                 "firstRefereeReportDate",
                 "journalAcceptanceDate",
+                "finalSubmissionJournal",
                 "firstProofDate",
                 "publishedOnlineDate",
             ),

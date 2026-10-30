@@ -26,6 +26,26 @@ from analysis_lister.views.publication_states import PAPER_MILESTONES
 
 
 class RegistryFieldTests(unittest.TestCase):
+    def test_curation_preserves_journal_code_and_missing_or_null_values(self):
+        api = api_fixture()
+        api["papers"][0]["publicationPhase"] = {}
+        self.assertNotIn(
+            "finalSubmissionJournal", curate(api)["papers"][0]["publicationPhase"]
+        )
+        for value in (None, "EPJC", "NEW_INTERNAL_CODE", "  Original Value  "):
+            with self.subTest(value=value):
+                api["papers"][0]["publicationPhase"]["finalSubmissionJournal"] = value
+                before = copy.deepcopy(api)
+                curated = curate(api)
+                loaded = CuratedRegistry(json.loads(json.dumps(curated)))
+                self.assertEqual(
+                    loaded.records("papers")[0]["publicationPhase"][
+                        "finalSubmissionJournal"
+                    ],
+                    value,
+                )
+                self.assertEqual(api, before)
+
     def test_field_counts_include_nested_keys_but_not_scalar_list_items(self):
         self.assertEqual(
             count_fields(
