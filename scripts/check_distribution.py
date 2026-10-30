@@ -146,6 +146,7 @@ def main():
         )
         for contract_file in (
             schema_path,
+            "docs/curated-format.md",
             "tests/fixtures/curated/v2-baseline.json",
             "tests/fixtures/curated/v2-milestones.json",
         ):

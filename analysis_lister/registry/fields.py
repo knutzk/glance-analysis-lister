@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Persist only record fields used by view preparation, search and diagnostics.
+"""Persist the domain fields covered by the curated registry contract.
 
 Selections apply after enrichment. None keeps a leaf value; a dictionary selects
 nested fields, including fields within list items. Missing keys and nulls remain
-missing or null. This contract deliberately does not import the views package.
+missing or null. The bundled v2 JSON Schema defines their stored types.
+Field retention is a data-contract decision, independent of individual views.
 """
 
 
@@ -36,7 +37,7 @@ COMMON = {
 PUBLICATION = {
     **COMMON,
     "relatedAnalysis": LINK,
-    # The complete derived evidence is consumed by publication diagnostics.
+    # Retain the complete derived evidence for identifier provenance.
     "gal_publicationProvenance": None,
 }
 NOTE = {

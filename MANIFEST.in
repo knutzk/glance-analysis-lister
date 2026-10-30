@@ -9,4 +9,5 @@ recursive-include examples *.json *.py *.md
 include scripts/check_distribution.py
 recursive-include tests *.py
 include tests/browser/requirements.txt
+recursive-include docs *.md
 recursive-include tests/fixtures/curated *.json
