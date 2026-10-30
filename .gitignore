@@ -28,3 +28,6 @@ dist/
 
 # Local coding-agent guidance.
 /AGENTS.md
+
+# Public curated registry schema.
+!/analysis_lister/registry/schemas/curated-v2.schema.json
