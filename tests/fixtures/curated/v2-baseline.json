@@ -1,0 +1,84 @@
+{
+  "schema": "glance-curated-registry",
+  "schema_version": 2,
+  "fetched_at": "2099-01-15T10:00:00Z",
+  "counts": {
+    "analyses": 1,
+    "papers": 1,
+    "confnotes": 1,
+    "pubnotes": 1
+  },
+  "analyses": [
+    {
+      "referenceCode": "ANA-FIXTURE-2099-01",
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "shortTitle": "Invented contract analysis",
+      "phase0": {
+        "startDate": "2099-01-01",
+        "gal_editorialBoard": [
+          "Invented Member"
+        ]
+      },
+      "relatedPublications": [
+        {
+          "type": "Paper",
+          "referenceCode": "FIXTURE-2099-01"
+        }
+      ],
+      "metadata": {
+        "gal_keywords": null
+      }
+    }
+  ],
+  "papers": [
+    {
+      "referenceCode": "FIXTURE-2099-01",
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "relatedAnalysis": {
+        "type": "Analysis",
+        "referenceCode": "ANA-FIXTURE-2099-01"
+      },
+      "phase1": null,
+      "publicationPhase": {
+        "journalAcceptanceDate": "2099-01-14T12:00:00+01:00"
+      }
+    }
+  ],
+  "confnotes": [
+    {
+      "temporaryReferenceCode": "CONF-FIXTURE-2099-01",
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "finalReferenceCode": null,
+      "supersededBy": [],
+      "phase1": {
+        "gal_editorialBoard": "Invented Member",
+        "gal_firstSignOffResponsible": "Invented Signer"
+      }
+    }
+  ],
+  "pubnotes": [
+    {
+      "temporaryReferenceCode": "PUB-FIXTURE-2099-01",
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "metadata": {
+        "mvaMlTools": [
+          "Invented tool",
+          {
+            "name": "Invented model"
+          }
+        ],
+        "collisions": [
+          {
+            "year": "2099",
+            "ecmValue": "13",
+            "ecmUnit": "TeV"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 from importlib.metadata import distribution
+from importlib.resources import files
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -115,6 +116,16 @@ def main():
     assert policy_path.read_bytes() == (root / "publication-curation.toml").read_bytes()
     assert load_publication_policy(policy_path, "TOPQ") is not None
 
+    schema_path = "analysis_lister/registry/schemas/curated-v2.schema.json"
+    assert (
+        files("analysis_lister.registry")
+        .joinpath("schemas/curated-v2.schema.json")
+        .read_bytes()
+        == (root / schema_path).read_bytes()
+    )
+    for fixture in (root / "tests/fixtures/curated").glob("*.json"):
+        CuratedRegistry.from_json(fixture)
+
     archives = list((root / "dist").glob("*.tar.gz"))
     assert len(archives) == 1, "Expected one source distribution"
     with tarfile.open(archives[0]) as archive:
@@ -133,6 +144,15 @@ def main():
             archive.extractfile(prefix + "json/pubnote_identifiers.json").read()
             == (root / "json/pubnote_identifiers.json").read_bytes()
         )
+        for contract_file in (
+            schema_path,
+            "tests/fixtures/curated/v2-baseline.json",
+            "tests/fixtures/curated/v2-milestones.json",
+        ):
+            assert (
+                archive.extractfile(prefix + contract_file).read()
+                == (root / contract_file).read_bytes()
+            )
         sample = "examples/synthetic_registry.json"
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()

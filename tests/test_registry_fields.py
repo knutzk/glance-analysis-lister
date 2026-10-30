@@ -112,12 +112,6 @@ class RegistryFieldTests(unittest.TestCase):
         )
         self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
 
-    def test_every_dated_paper_milestone_is_retained(self):
-        for phase, events in PAPER_MILESTONES.items():
-            for field, _ in events:
-                with self.subTest(phase=phase, field=field):
-                    self.assertIn(field, RECORD_FIELDS["papers"][phase])
-
     def test_projection_preserves_missing_null_and_string_list_values(self):
         record = {
             "metadata": {"mvaMlTools": ["Tool", {"name": "Other", "id": 1}]},
