@@ -58,6 +58,7 @@ python tests/browser/check_papers.py --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource confnotes --driver /path/to/chromedriver
 python tests/browser/check_notes.py --resource pubnotes --driver /path/to/chromedriver
 python tests/browser/check_zensical.py --driver /path/to/chromedriver
+python tests/browser/check_demo.py --driver /path/to/chromedriver
 ```
 
 CI checks Chrome/ChromeDriver compatibility and sandboxed startup before running
@@ -65,6 +66,11 @@ these checks. The Zensical test builds strictly, serves on loopback and checks
 instant navigation, repeat visits, search/filter URLs, ongoing sort persistence,
 reset, expansion and stylesheets. It covers the built-in theme, not consumer theme
 overrides. Tests remove their temporary sites, HTML, screenshots and driver logs.
+
+The demo check follows the documented generation commands, starts the standalone
+preview, exercises the empty-policy tutorial and restores the original output.
+It also builds the documentation and checks all four embedded demo pages under
+the repository subpath. Both sites reuse the instant-navigation and filter checks.
 
 Both offline and browser CI jobs must pass before the release job creates a draft
 release from a tag. All test data is invented; these checks do not establish live

@@ -63,7 +63,7 @@ def build_site(work, base):
     )
 
 
-def browse(base, driver_path):
+def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
     options = Options()
     if chrome := os.environ.get("CHROME_BINARY"):
         options.binary_location = chrome
@@ -73,13 +73,13 @@ def browse(base, driver_path):
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
     with webdriver.Chrome(options=options, service=Service(str(driver_path))) as driver:
         wait = WebDriverWait(driver, 15)
-        driver.get(base)
+        driver.get(base + start_page)
         wait.until(
             lambda d: d.execute_script("return typeof document$ !== 'undefined'")
         )
         driver.execute_script("window.integrationDocument = 'preserved';")
         for page in (*PAGES, "ongoing", "papers"):
-            url = base + f"analyses/{page}/"
+            url = base + f"{page_prefix}{page}/"
             link = next(
                 e
                 for e in driver.find_elements(By.CSS_SELECTOR, "a[href]")
