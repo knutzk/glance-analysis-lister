@@ -22,7 +22,7 @@ Paths below are relative to the repository root.
 | `analysis_lister/storage.py` | Atomic file replacement. |
 | `analysis_lister/provenance.py` | Source revisions and content fingerprints. |
 | `tests/browser/` | Synthetic standalone and Zensical integration checks. |
-| `scripts/` | Distribution validation and screenshot capture. |
+| `scripts/` | Distribution validation, documentation builds and screenshot capture. |
 
 ## View preparation and rendering
 

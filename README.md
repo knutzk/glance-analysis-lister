@@ -104,7 +104,8 @@ Offline and browser checks use
 synthetic data; live CERN authentication needs separate validation.
 
 See [development and validation](docs/development.md) for setup and checks.
-Use independently invented fixtures when contributing.
+Use independently invented fixtures when contributing. To edit or preview these
+guides, follow the [local site guide](docs/site.md).
 
 ## AI assistance disclosure
 

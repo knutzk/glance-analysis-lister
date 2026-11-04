@@ -1,2 +1,2 @@
-# Site integration only; not a runtime dependency of the package.
-zensical==0.0.58
+# Share the documentation site's pinned Zensical version.
+-r ../../requirements-docs.txt

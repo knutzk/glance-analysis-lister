@@ -1,0 +1,17 @@
+/* SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+
+/* Separate captured views from the surrounding documentation. */
+.md-typeset img[src$="images/ongoing.png"],
+.md-typeset img[src$="images/papers.png"],
+.md-typeset img[src$="images/ongoing-card.png"],
+.md-typeset img[src$="images/publication-row.png"] {
+  display: block;
+  box-sizing: border-box;
+  padding: 0.4rem;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.4rem;
+  background: var(--md-code-bg-color);
+  box-shadow: 0 0.15rem 0.6rem rgb(0 0 0 / 12%);
+}

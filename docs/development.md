@@ -49,7 +49,7 @@ Install Chrome, a compatible ChromeDriver and the site-test requirements:
 python -m pip install -r tests/browser/requirements.txt
 ```
 
-These requirements pin Zensical for site integration tests.
+These requirements reuse the Zensical pin in `requirements-docs.txt`.
 `CHROME_BINARY` can select the Chrome executable; supply the driver explicitly:
 
 ```bash
@@ -68,4 +68,5 @@ overrides. Tests remove their temporary sites, HTML, screenshots and driver logs
 
 Both offline and browser CI jobs must pass before the release job creates a draft
 release from a tag. All test data is invented; these checks do not establish live
-CERN authentication.
+CERN authentication. To preview the documentation itself, use the
+[local site guide](site.md).

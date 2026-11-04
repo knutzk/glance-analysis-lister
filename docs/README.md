@@ -1,6 +1,7 @@
 # Documentation overview
 
-These guides cover the package's user workflows and data contracts.
+These guides cover the package's user workflows and data contracts. Each row
+corresponds to one page in the **Documentation** navigation, in the same order.
 Start with the synthetic example if you do not have CERN access.
 
 | Guide | What you will learn |
@@ -18,8 +19,8 @@ Start with the synthetic example if you do not have CERN access.
 | [Python access](python-access.md) | Read registries and prepare views without rendering Markdown. |
 
 The [homepage](../README.md) provides installation and a quick start. Contributor
-material covers [architecture](architecture.md), [validation](development.md)
-and [screenshots](images/README.md).
+material—architecture, validation, site editing and screenshots—is grouped under
+**Development**.
 
 Commands assume the repository root unless a guide specifies another working
 directory. Live downloads require authorised CERN access; saved-data workflows

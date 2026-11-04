@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+[project]
+site_name = "GLANCE analysis lister · development"
+site_description = "Analysis and publication pages from ATLAS GLANCE records"
+site_url = "https://knutzk.github.io/glance-analysis-lister/"
+repo_url = "https://github.com/knutzk/glance-analysis-lister"
+# scripts/docs.py selects public inputs and preserves their repository paths.
+docs_dir = "site-src"
+site_dir = "site"
+extra_css = ["docs/stylesheets/site.css"]
+nav = [
+  { "Home" = "README.md" },
+  { "Documentation" = [
+    { "Overview" = "docs/README.md" },
+    { "Synthetic example" = "examples/README.md" },
+    { "Commands and recovery" = "docs/workflows.md" },
+    { "Rendering and policies" = "docs/rendering.md" },
+    { "Ongoing analyses" = "docs/ongoing.md" },
+    { "Publication tables" = "docs/publications.md" },
+    { "Diagnostic reports" = "docs/diagnostics.md" },
+    { "Curation and identifiers" = "docs/registry.md" },
+    { "Curated v2 contract" = "docs/curated-format.md" },
+    { "Citations" = "docs/citations.md" },
+    { "Provenance" = "docs/provenance.md" },
+    { "Python access" = "docs/python-access.md" },
+  ] },
+  { "Development" = [
+    { "Architecture" = "docs/architecture.md" },
+    { "Validation" = "docs/development.md" },
+    { "Local documentation site" = "docs/site.md" },
+    { "Screenshots" = "docs/images/README.md" },
+  ] },
+]
+
+[project.theme]
+font = false
+features = ["navigation.instant", "toc.integrate", "content.code.copy"]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "blue"
+accent = "teal"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "blue"
+accent = "teal"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.validation]
+invalid_links = true
+invalid_link_anchors = true
