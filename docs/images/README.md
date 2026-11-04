@@ -16,7 +16,8 @@ Set `CHROME_BINARY` to select a different Chrome executable. For environment
 setup, see [development and validation](../development.md).
 
 The script builds a strict temporary site, runs the Zensical browser checks,
-expands each view and captures it at a 1440-pixel browser width. It extends the
+expands the original example record on each page and captures the full collection
+at a 1440-pixel browser width. It extends the
 viewport height to fit the content. Browser and font differences can change the
 pixels.
 

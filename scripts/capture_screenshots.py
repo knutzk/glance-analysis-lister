@@ -40,18 +40,23 @@ def capture(base, driver_path):
             wait.until(
                 lambda d: d.find_element(
                     By.CSS_SELECTOR, "[data-gal-count]"
-                ).text.startswith("1 of 1")
+                ).text.startswith("4 of 4")
             )
-            expand = (
-                "[data-gal-expand-all]"
+            record = (
+                "#analysis-demo-ana-demo-2099-01"
                 if page == "ongoing"
-                else "[data-gal-archive-expand-all]"
+                else "#publication-papers-demo-demo-2099-01"
             )
-            driver.find_element(By.CSS_SELECTOR, expand).click()
+            toggle = (
+                "[data-gal-card-toggle]"
+                if page == "ongoing"
+                else "[data-gal-paper-toggle]"
+            )
+            driver.find_element(By.CSS_SELECTOR, f"{record} {toggle}").click()
             wait.until(
-                lambda d, expand=expand: (
-                    d.find_element(By.CSS_SELECTOR, expand).get_attribute(
-                        "aria-pressed"
+                lambda d, record=record, toggle=toggle: (
+                    d.find_element(By.CSS_SELECTOR, f"{record} {toggle}").get_attribute(
+                        "aria-expanded"
                     )
                     == "true"
                 )
@@ -65,10 +70,19 @@ def capture(base, driver_path):
             assert content.screenshot(str(destination / f"{page}.png"))
             print(f"Captured docs/images/{page}.png")
             selector, filename = (
-                (".gal-card", "ongoing-card")
+                (record, "ongoing-card")
                 if page == "ongoing"
                 else (".gal-table-scroll", "publication-row")
             )
+            if page == "papers":
+                # Keep the explanatory capture focused on the documented paper.
+                driver.execute_script(
+                    "const row = document.querySelector(arguments[0]);"
+                    "for (const other of row.parentElement.children) {"
+                    "if (other !== row && other !== row.nextElementSibling) "
+                    "other.style.display = 'none';}",
+                    record,
+                )
             detail = driver.find_element(By.CSS_SELECTOR, selector)
             assert detail.screenshot(str(destination / f"{filename}.png"))
             print(f"Captured docs/images/{filename}.png")
