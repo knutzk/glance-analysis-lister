@@ -30,6 +30,10 @@ assets, dictionaries, policies and licences.
 
 ## Choose regression coverage
 
+The [field walkthrough](contributing-field.md) follows a synthetic trigger from
+API input to stored data, prepared search metadata and a rendered analysis card.
+Use it to locate the right layer and select tests for a contribution.
+
 View tests cover preparation, ongoing pages, papers, notes, shared controls,
 publication policies and output generation. Use the shared synthetic fixtures
 in `tests/view_fixtures.py`; construct new records independently of private data.
