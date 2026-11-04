@@ -13,12 +13,14 @@ extra_css = [
   "docs/assets/gal-common.css",
   "docs/assets/gal-ongoing.css",
   "docs/assets/gal-papers.css",
+  "docs/assets/gal-notes.css",
   "docs/stylesheets/site.css",
 ]
 extra_javascript = [
   "docs/assets/gal-common.js",
   "docs/assets/gal-ongoing.js",
   "docs/assets/gal-papers.js",
+  "docs/assets/gal-notes.js",
 ]
 nav = [
   { "Home" = "README.md" },
@@ -35,6 +37,13 @@ nav = [
     { "Citations" = "docs/citations.md" },
     { "Provenance" = "docs/provenance.md" },
     { "Python access" = "docs/python-access.md" },
+  ] },
+  { "Demo" = [
+    { "Overview" = "examples/demo/index.md" },
+    { "Ongoing analyses" = "examples/demo/ongoing.md" },
+    { "Papers" = "examples/demo/papers.md" },
+    { "Conference notes" = "examples/demo/confnotes.md" },
+    { "Public notes" = "examples/demo/pubnotes.md" },
   ] },
   { "Development" = [
     { "Architecture" = "docs/architecture.md" },

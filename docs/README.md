@@ -22,6 +22,9 @@ The [homepage](../README.md) provides installation and a quick start. Contributo
 material—architecture, validation, site editing and screenshots—is grouped under
 **Development**.
 
+The **Demo** navigation contains all four interactive pages from the
+[synthetic example](../examples/demo/index.md).
+
 Commands assume the repository root unless a guide specifies another working
 directory. Live downloads require authorised CERN access; saved-data workflows
 run offline.

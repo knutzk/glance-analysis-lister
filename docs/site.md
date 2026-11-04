@@ -2,9 +2,9 @@
 
 [Documentation index](README.md)
 
-The Zensical site displays the repository README, guides and roadmap. Edit these
-source files to update the site. The ongoing-analysis and publication guides
-embed working examples rendered from the public synthetic fixture.
+The Zensical site displays the repository README and guides. Edit these source
+files to update the site. The **Demo** section contains all four generated pages;
+the ongoing-analysis and publication guides also embed individual records.
 
 ## Preview
 
@@ -58,6 +58,13 @@ the package's renderer and copies its shared CSS and JavaScript. Only
 that fixture changes; restart it after editing renderer code.
 Site styles hide the filter controls and result counts in these single-record
 examples; titles still expand the details.
+
+The full demo uses the same fixture and `examples/demo/publication-curation.toml`
+as the [standalone tutorial](../examples/README.md). It retains all search, sort
+and filter controls. The builder renders in a temporary directory and copies only
+the four Markdown pages into the site, alongside the maintained demo overview.
+Diagnostic reports are not included. Changes to the tracked fixture or policy
+regenerate both the full demo and the embedded examples during preview.
 
 The configured URL uses the expected GitHub Pages repository subpath. The site
 is local development documentation; no deployment workflow is configured.

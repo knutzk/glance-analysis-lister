@@ -1,6 +1,7 @@
 # Synthetic example
 
-Run a complete local site without CERN access. The [demo overview](demo/index.md)
+Run a complete local site without CERN access, or explore the same records in
+the documentation site's **Demo** section. The [demo overview](demo/index.md)
 suggests an interaction to try on each page.
 
 [`synthetic_registry.json`](synthetic_registry.json) contains independently
@@ -103,8 +104,9 @@ selection or a missing-policy warning.
 
 Restore the original result by rerunning the render command from **Install and
 generate**, with `--curation-config examples/demo/publication-curation.toml`.
-All four pages return to one record each. Experiments in `pages/demo-policy.toml`
-leave the tracked policy unchanged.
+All four pages return to one record each. The documentation site's demo continues
+to use the tracked policy; experiments in `pages/demo-policy.toml` affect only the
+standalone demo.
 
 ## Optional: see missing-policy fallback
 

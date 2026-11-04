@@ -63,6 +63,8 @@ Try the live [analysis card](docs/ongoing.md#read-an-analysis-card) and
 [publication table](docs/publications.md#read-a-publication-row) in the
 documentation site. To use your generated pages in another Zensical site,
 [enable the browser assets](docs/rendering.md#enable-browser-assets).
+The documentation site's [Demo section](examples/demo/index.md) contains all four
+generated pages.
 
 ## Refresh pages from GLANCE
 

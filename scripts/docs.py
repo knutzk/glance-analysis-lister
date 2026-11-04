@@ -14,6 +14,7 @@ import time
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 if (ROOT / "analysis_lister/__init__.py").is_file():
@@ -55,29 +56,58 @@ PUBLIC_FILES = (
 
 
 @lru_cache(maxsize=1)
-def example_fragments(snapshot):
+def example_fragments(snapshot, policy):
     """Use the package's real views and controls with only the public fixture."""
     from analysis_lister.registry import CuratedRegistry
     from analysis_lister.views.markdown.ongoing import ongoing_cards
     from analysis_lister.views.markdown.papers import paper_table
     from analysis_lister.views.prepare import prepare_group
-    from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 
     registry = CuratedRegistry(json.loads(snapshot))
-    view = prepare_group(
-        registry,
-        GroupProfile("DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))),
-    )
+    view = prepare_group(registry, demo_profile(policy))
     return {"ongoing": ongoing_cards(view), "publications": paper_table(view)}
+
+
+def demo_profile(policy):
+    """Read the same explicit policy used by the standalone tutorial."""
+    from analysis_lister.views.curation import load_publication_policy
+    from analysis_lister.views.profiles import GroupProfile
+
+    with TemporaryDirectory(prefix="glance-demo-policy-") as directory:
+        path = Path(directory) / "publication-curation.toml"
+        path.write_bytes(policy)
+        publication_policy = load_publication_policy(path, "DEMO")
+    if publication_policy is None:
+        raise ValueError("The demo requires an explicit DEMO publication policy")
+    return GroupProfile(
+        "DEMO", title="Synthetic demo", publication_policy=publication_policy
+    )
+
+
+@lru_cache(maxsize=1)
+def demo_pages(snapshot, policy):
+    """Render only the fixed synthetic input; publish only the four demo pages."""
+    from analysis_lister.views.build import render_group
+
+    with TemporaryDirectory(prefix="glance-docs-demo-") as directory:
+        work = Path(directory)
+        source = work / "synthetic_registry.json"
+        source.write_bytes(snapshot)
+        render_group(source, work / "pages", demo_profile(policy))
+        return {
+            f"examples/demo/{name}.md": (work / "pages" / f"{name}.md").read_bytes()
+            for name in ("ongoing", "papers", "confnotes", "pubnotes")
+        }
 
 
 def stage(root=ROOT):
     """Copy changed public sources without rewriting unchanged files."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
-    for name, fragment in example_fragments(
-        sources["examples/synthetic_registry.json"]
-    ).items():
+    snapshot = sources["examples/synthetic_registry.json"]
+    policy = sources["examples/demo/publication-curation.toml"]
+    sources.update(demo_pages(snapshot, policy))
+    for name, fragment in example_fragments(snapshot, policy).items():
         page = f"docs/{name}.md"
         text = sources[page].decode("utf-8")
         start, end = f"<!-- BEGIN LIVE {name} -->", f"<!-- END LIVE {name} -->"
@@ -88,7 +118,7 @@ def stage(root=ROOT):
         sources[page] = (
             before + '<div class="gal-doc-example">\n' + fragment + "</div>\n" + after
         ).encode("utf-8")
-    for component in ("common", "ongoing", "papers"):
+    for component in ("common", "ongoing", "papers", "notes"):
         for extension in ("css", "js"):
             filename = f"gal-{component}.{extension}"
             sources[f"docs/assets/{filename}"] = (
@@ -109,7 +139,10 @@ def main():
     # Check the renderer's dependencies before clearing an existing preview.
     try:
         importlib.import_module("zensical")
-        example_fragments((ROOT / "examples/synthetic_registry.json").read_bytes())
+        example_fragments(
+            (ROOT / "examples/synthetic_registry.json").read_bytes(),
+            (ROOT / "examples/demo/publication-curation.toml").read_bytes(),
+        )
     except ModuleNotFoundError as error:
         parser.exit(
             1,
