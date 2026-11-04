@@ -7,7 +7,12 @@ include json/pubnote_identifiers.json
 include publication-curation.toml
 recursive-include examples *.json *.py *.md
 include scripts/check_distribution.py
+include scripts/capture_screenshots.py
 recursive-include tests *.py
 include tests/browser/requirements.txt
 recursive-include docs *.md
+include docs/images/ongoing.png
+include docs/images/papers.png
+include docs/images/ongoing-card.png
+include docs/images/publication-row.png
 recursive-include tests/fixtures/curated *.json

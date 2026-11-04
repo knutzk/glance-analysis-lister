@@ -2,6 +2,12 @@
 *.png
 *.pdf
 
+# Public screenshots generated only from the synthetic example.
+!/docs/images/ongoing.png
+!/docs/images/papers.png
+!/docs/images/ongoing-card.png
+!/docs/images/publication-row.png
+
 # Private inputs and generated output must never be published.
 cookies.json
 *.csv
@@ -28,6 +34,9 @@ dist/
 
 # Local coding-agent guidance.
 /AGENTS.md
+
+# Local planning document.
+/ROADMAP.md
 
 # Public schema and independently invented compatibility fixtures.
 !/analysis_lister/registry/schemas/curated-v2.schema.json
