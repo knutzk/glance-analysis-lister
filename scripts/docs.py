@@ -37,6 +37,7 @@ PUBLIC_FILES = (
     "docs/README.md",
     "docs/architecture.md",
     "docs/citations.md",
+    "docs/cli-reference.md",
     "docs/curated-format.md",
     "docs/development.md",
     "docs/diagnostics.md",

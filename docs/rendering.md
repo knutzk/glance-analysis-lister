@@ -30,13 +30,19 @@ subgroups = []
 keywords = []
 ```
 
-Criteria are combined with **OR**: any match includes the publication.
+Only a top-level `groups` table is accepted. Each `[groups.NAME]` table accepts
+these fields; unknown fields or invalid types fail validation, including in
+tables for other groups.
 
-| Criterion | Match |
-| --- | --- |
-| `groups` | An internal identifier's group token, or a leading/additional main-group affiliation. |
-| `subgroups` | An exact leading/additional subgroup name. |
-| `keywords` | An exact label, ignoring case. |
+| Field | Type / default when omitted | Meaning |
+| --- | --- | --- |
+| `title` | Nonempty string / group display title | Publication-page title. |
+| `groups` | List of nonempty strings / `[]` | Match an internal identifier's group token (case-insensitive), or an exact leading/additional main-group affiliation. |
+| `subgroups` | List of nonempty strings / `[]` | Match an exact leading/additional subgroup name. A name containing a comma remains one string. |
+| `keywords` | List of nonempty strings / `[]` | Match an exact label after trimming whitespace and ignoring case. |
+
+Criteria are combined with **OR**: any match includes the publication. These
+rules select publications independently of ongoing-analysis membership.
 
 Missing publication affiliations or metadata can be supplied by an explicitly
 linked analysis; the report records that derivation. No extra group criterion
@@ -45,7 +51,9 @@ is added implicitly. An explicitly empty policy selects no publications.
 If a group's table is missing, the command warns on stdout and falls back to
 its internal identifier's group token. Define a table even for a group that
 selects only its own publications. `title` sets publication-page headings;
-`--group-title` separately sets the ongoing-page heading.
+`--group-title` sets the ongoing-page heading and supplies the fallback when
+the policy omits `title`; without either, headings use the group name. Policy
+strings are trimmed, and duplicate criteria are removed when loading.
 
 ## Enable browser assets
 
