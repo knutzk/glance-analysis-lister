@@ -153,7 +153,7 @@ snapshots and pages are unchanged until rebuilt and rendered.
 
 Successful commands and help exit `0`. Argument-parsing errors exit `2`.
 Handled validation, filesystem and request failures exit `1`; inspect the error
-and [recovery guidance](workflows.md#validation-and-recovery) before retrying.
+and [troubleshooting guidance](troubleshooting.md) before retrying.
 
 Results and output paths go to stdout, diagnostics to stderr. Missing-policy
 warnings also go to stdout. See [logs and summaries](workflows.md#logs-and-summaries)

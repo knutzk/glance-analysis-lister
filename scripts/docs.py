@@ -48,6 +48,7 @@ PUBLIC_FILES = (
     "docs/registry.md",
     "docs/rendering.md",
     "docs/site.md",
+    "docs/troubleshooting.md",
     "docs/stylesheets/site.css",
     "docs/workflows.md",
     "docs/images/README.md",

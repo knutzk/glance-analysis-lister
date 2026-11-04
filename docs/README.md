@@ -9,6 +9,7 @@ Start with the synthetic example if you do not have CERN access.
 | [Synthetic example](../examples/README.md) | Generate and preview a complete demo, then change its publication policy. |
 | [Commands and recovery](workflows.md) | Download, refresh, compare snapshots, export CSVs and recover failed runs. |
 | [Command-line reference](cli-reference.md) | Look up every command, option and default. |
+| [Troubleshooting](troubleshooting.md) | Diagnose installation, access, validation and page problems; resume failed work. |
 | [Rendering and policies](rendering.md) | Select publications, generate group pages and enable browser assets. |
 | [Ongoing analyses](ongoing.md) | Read an analysis card, understand membership and use filters. |
 | [Publication tables](publications.md) | Read paper and note rows, filter by date/status and share a view. |

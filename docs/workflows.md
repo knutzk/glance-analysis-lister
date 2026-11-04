@@ -153,12 +153,11 @@ schema validation. Validated JSON candidates replace the output atomically, and
 registry output cannot overwrite its input. Run operations that write the same
 files sequentially.
 
-| Failure | Recovery |
-| --- | --- |
-| Download failed | Inspect the error and existing outputs before retrying. A failed command does not print a completion summary. |
-| Build failed after a successful download | Correct the cause and rerun `build-registry` with the saved API snapshot. |
-| Rendering failed | Correct the cause and rerun `render-group` with the saved curated registry. Rendered files are replaced individually. |
-| HTML publication failed | Failed writes trigger rollback. If rollback fails, retain the listed backups and recovery paths. Do not consume the batch while `.html-download-in-progress` exists; a successful rerun repairs it. |
+For symptoms and commands to resume at the failed stage, see
+[troubleshooting](troubleshooting.md#resume-an-interrupted-workflow). Rendered
+files are replaced individually. HTML publication uses batch rollback; retain
+the reported backups and recovery paths if rollback fails, and do not consume
+an export while `.html-download-in-progress` exists.
 
 Download failures compare output bytes with their pre-download state before
 claiming preservation. If the check fails or bytes changed, the command says so.
