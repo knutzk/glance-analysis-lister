@@ -29,11 +29,18 @@ class PreparationTests(unittest.TestCase):
     def test_distributed_curated_example_has_all_publication_types(self):
         registry = CuratedRegistry.from_json(ROOT / "examples/synthetic_registry.json")
         view = prepare_group(registry, GroupProfile("DEMO"))
-        self.assertEqual(len(view.ongoing), 1)
+        self.assertEqual(len(view.ongoing), 4)
         self.assertEqual(
             {row.resource for row in view.archive}, {"papers", "confnotes", "pubnotes"}
         )
-        self.assertEqual(len(view.archive), 3)
+        self.assertEqual(len(view.archive), 12)
+        self.assertEqual(
+            [
+                sum(row.resource == resource for row in view.archive)
+                for resource in ("papers", "confnotes", "pubnotes")
+            ],
+            [4, 4, 4],
+        )
 
     def test_leading_and_additional_membership_not_subgroups_controls_unique_rows(self):
         first = analysis(1, additional=("DEMO",))

@@ -59,9 +59,9 @@ or preview at a time.
 | Output | Contents |
 | --- | --- |
 | `pages/demo/index.md` | Copied demo overview. |
-| `pages/demo/ongoing.md` | One invented ongoing analysis. |
-| `pages/demo/papers.md` | One invented paper with a DOI. |
-| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | One invented note on each page. |
+| `pages/demo/ongoing.md` | Four analyses with overlapping subgroups, keywords and different review stages. |
+| `pages/demo/papers.md` | Two papers with DOIs and two submitted papers without DOIs, shown as **Under review**. |
+| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | Four notes per page, including one superseded note hidden by default. |
 | `pages/demo/assets/` | CSS and JavaScript for styling and interaction. |
 | `pages/demo/view-report.json` | Selection decisions, provenance and diagnostics for the invented records; also copied into the standalone site. |
 | `site-demo/` | Built standalone HTML and assets. |
@@ -98,13 +98,14 @@ analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
 
 The running preview reloads the generated pages. If you stopped it, run the
 preview command again. Each publication page now has no selected records, while
-the ongoing page still shows one analysis. Publication policy and ongoing-analysis
+the ongoing page still shows four analyses. Publication policy and ongoing-analysis
 membership are independent. An explicit empty policy does not trigger fallback
 selection or a missing-policy warning.
 
 Restore the original result by rerunning the render command from **Install and
 generate**, with `--curation-config examples/demo/publication-curation.toml`.
-All four pages return to one record each. The documentation site's demo continues
+All four pages return to four records each; note pages initially show the three
+non-superseded notes. The documentation site's demo continues
 to use the tracked policy; experiments in `pages/demo-policy.toml` affect only the
 standalone demo.
 

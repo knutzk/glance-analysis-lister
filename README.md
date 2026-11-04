@@ -16,12 +16,12 @@ These screenshots show **fictional example records** rendered in a Zensical site
 **Ongoing analyses:** searchable cards with affiliations, review progress and
 expandable details.
 
-![Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and one analysis card.](docs/images/ongoing.png)
+![Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards.](docs/images/ongoing.png)
 
 **Publications:** searchable tables for papers, conference notes (CONF) and public
 notes (PUB), with date filters and expandable record details.
 
-![Synthetic paper page with search, date and publication-status filters, and one expanded paper.](docs/images/papers.png)
+![Synthetic paper page with search, date and publication-status filters, and four papers, one expanded.](docs/images/papers.png)
 
 [Try the synthetic example](#install-and-try-without-credentials) or read about
 [page controls and site integration](docs/rendering.md).
@@ -49,9 +49,9 @@ The command writes:
 
 | Output under `pages/demo/` | Contents |
 | --- | --- |
-| `ongoing.md` | One invented ongoing analysis. |
-| `papers.md` | One invented paper. |
-| `confnotes.md`, `pubnotes.md` | One invented note on each page. |
+| `ongoing.md` | Four invented ongoing analyses at different review stages. |
+| `papers.md` | Four invented papers: two with DOIs and two without. |
+| `confnotes.md`, `pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
 | `assets/` | Shared CSS and JavaScript for styling and interaction. |
 | `view-report.json` | Selection decisions, provenance and diagnostics. |
 

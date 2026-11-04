@@ -22,6 +22,9 @@ For the synthetic registry, this prints:
 
 ```text
 DEMO-2099-01
+DEMO-2099-02
+DEMO-2099-03
+DEMO-2099-04
 ```
 
 `get(resource, reference)` looks up a native identifier. `resolve_link(link)`

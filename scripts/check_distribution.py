@@ -223,7 +223,8 @@ def main():
             check=True,
         )
         example_report = json.loads((example_output / "view-report.json").read_text())
-        assert example_report["counts"]["archive_publications"] == 3
+        assert example_report["counts"]["ongoing_analyses"] == 4
+        assert example_report["counts"]["archive_publications"] == 12
         api_input = work / "api.json"
         resources = ("analyses", "papers", "confnotes", "pubnotes")
         raw = {

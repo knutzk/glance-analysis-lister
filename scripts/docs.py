@@ -58,6 +58,8 @@ PUBLIC_FILES = (
 @lru_cache(maxsize=1)
 def example_fragments(snapshot, policy):
     """Use the package's real views and controls with only the public fixture."""
+    from attrs import evolve
+
     from analysis_lister.registry import CuratedRegistry
     from analysis_lister.views.markdown.ongoing import ongoing_cards
     from analysis_lister.views.markdown.papers import paper_table
@@ -65,6 +67,18 @@ def example_fragments(snapshot, policy):
 
     registry = CuratedRegistry(json.loads(snapshot))
     view = prepare_group(registry, demo_profile(policy))
+    # The explanatory guides discuss these specific records; the demo shows all.
+    view = evolve(
+        view,
+        ongoing=tuple(
+            row for row in view.ongoing if row.reference == "ANA-DEMO-2099-01"
+        ),
+        publications=tuple(
+            row
+            for row in view.publications
+            if row.resource == "papers" and row.reference == "DEMO-2099-01"
+        ),
+    )
     return {"ongoing": ongoing_cards(view), "publications": paper_table(view)}
 
 

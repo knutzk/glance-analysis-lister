@@ -22,7 +22,7 @@ Search, dates and status must all match; selected statuses are combined with OR.
 
 ## Read a publication row
 
-The [synthetic fixture](../examples/README.md) contains one paper. Click its title
+This paper is one of four in the [synthetic fixture](../examples/README.md). Click its title
 to reveal its details. This is the
 same table renderer used in generated group pages.
 

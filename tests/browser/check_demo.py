@@ -20,6 +20,7 @@ from threading import Thread
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from bs4 import BeautifulSoup
 from check_zensical import SiteHandler, browse
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +50,7 @@ def render(work, policy, publications):
     assert result.returncode == 0, result.stdout + result.stderr
     assert "No publication curation configuration" not in result.stdout
     report = json.loads((work / "pages/demo/view-report.json").read_text())
-    assert report["counts"]["ongoing_analyses"] == 1
+    assert report["counts"]["ongoing_analyses"] == 4
     assert report["counts"]["archive_publications"] == publications
     assert report["counts"]["warning_issues"] == 0
 
@@ -108,7 +109,7 @@ def check_demo(work, driver):
         shutil.copyfile(ROOT / name, destination)
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
-    render(work, POLICY, 3)
+    render(work, POLICY, 12)
     shutil.copyfile(work / "examples/demo/index.md", work / "pages/demo/index.md")
     subprocess.run(
         [
@@ -130,7 +131,7 @@ def check_demo(work, driver):
     assert edited != original_policy
     (work / "pages/demo-policy.toml").write_text(edited)
     render(work, "pages/demo-policy.toml", 0)
-    render(work, POLICY, 3)
+    render(work, POLICY, 12)
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
     with preview(work) as base:
@@ -139,6 +140,13 @@ def check_demo(work, driver):
     # Build the documentation site with the complete demo under its real subpath.
     subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
     assert not list((work / "site-src").rglob("view-report.json"))
+    for guide in ("ongoing", "publications"):
+        html = (work / "site/docs" / guide / "index.html").read_text()
+        records = BeautifulSoup(html, "html.parser").select(
+            ".gal-doc-example [data-gal-item]"
+        )
+        assert len(records) == 1, "Explanatory guides should show one record"
+        assert records[0]["id"].endswith("demo-2099-01")
     served = work / "served"
     served.mkdir()
     (served / "glance-analysis-lister").symlink_to(
