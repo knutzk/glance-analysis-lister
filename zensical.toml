@@ -28,6 +28,7 @@ nav = [
     { "Overview" = "docs/README.md" },
     { "Synthetic example" = "examples/README.md" },
     { "Commands and recovery" = "docs/workflows.md" },
+    { "Command-line reference" = "docs/cli-reference.md" },
     { "Rendering and policies" = "docs/rendering.md" },
     { "Ongoing analyses" = "docs/ongoing.md" },
     { "Publication tables" = "docs/publications.md" },

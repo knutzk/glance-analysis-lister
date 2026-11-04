@@ -7,18 +7,8 @@ Use `analysis-lister` or `python -m analysis_lister` after
 access requires an authorised CERN account. Run data commands from the directory
 where you want to keep the snapshots, or supply explicit paths.
 
-| Command | Purpose |
-| --- | --- |
-| `refresh` | Download once, build the registry and render selected groups. |
-| `download-api` | Retrieve all accessible analyses, papers, CONF notes and PUB notes. |
-| `build-registry` | Curate saved API JSON using bundled identifiers and citations. |
-| `render-group` | Generate the four group pages, assets and diagnostic report. |
-| `compare-snapshots` | Compare two API snapshots or two curated registries offline. |
-| `download-html` | Export the four GLANCE HTML tables as standalone CSVs. |
-| `resolve-dois` | Infer citations or retrieve public metadata from INSPIRE. |
-| `format-citations` | Normalise cached non-manual citations offline. |
-
-Use `analysis-lister COMMAND --help` for the full argument list. See
+The [command-line reference](cli-reference.md) lists every command, option and
+default. Use `analysis-lister COMMAND --help` for your installed version. See
 [rendering](rendering.md) and [citation maintenance](citations.md) for those workflows.
 
 ## Refresh group pages in one command
@@ -44,14 +34,6 @@ A single group writes directly into the output directory. Multiple groups use
 lowercase subdirectories, such as `pages/topq/` and `pages/higp/`. Group tokens
 must be uppercase and unique.
 
-| Option | Effect |
-| --- | --- |
-| `--curation-config PATH` | Select publication policies and titles. |
-| `--api-snapshot PATH` | Set the downloaded API snapshot destination. |
-| `--snapshot PATH` | Set the curated registry destination. |
-| `--page-size N` | Set the number of records requested per API page; default 500. |
-| `--allow-count-drop` | Override count-drop guards for both download and build. |
-
 Configuration and destination collisions are checked before authentication.
 Stages run sequentially and stop at the first failure; completed outputs remain.
 There is no rollback across the whole refresh or all rendered pages. The final
@@ -72,12 +54,8 @@ relationships. Group and subgroup selection happens later, when preparing views.
 Building the registry needs only the saved API JSON and identifier/citation
 dictionaries; it makes no network requests.
 
-| Data | Default location |
-| --- | --- |
-| API snapshot | `glance_api_registry.json` in the calling directory |
-| Curated registry | `glance_curated_registry.json` in the calling directory |
-| Citation dictionary | Bundled `json/doi_metadata.json` |
-| Public PUB-note identifiers | Bundled `json/pubnote_identifiers.json` |
+Default snapshot and dictionary locations are listed in the
+[reference](cli-reference.md#paths-and-shared-options).
 
 To choose snapshot destinations:
 
