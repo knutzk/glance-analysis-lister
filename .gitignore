@@ -35,6 +35,14 @@ dist/
 /site/
 /site-demo/
 /.cache/
+/.python-version
+.DS_Store
+/.zensical-preview.yml
+
+# Local event-list work, pending separate integration.
+/analysis_lister/events.py
+/analysis_lister/event_labels.py
+/tests/test_events.py
 
 # Local coding-agent guidance.
 /AGENTS.md
