@@ -13,7 +13,7 @@ python scripts/capture_screenshots.py --driver /path/to/chromedriver
 ```
 
 Set `CHROME_BINARY` to select a different Chrome executable. For environment
-setup, see [development and validation](../../README.md#development-and-validation).
+setup, see [development and validation](../development.md).
 
 The script builds a strict temporary site, runs the Zensical browser checks,
 expands each view and captures it at a 1440-pixel browser width. It extends the
