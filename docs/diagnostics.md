@@ -60,4 +60,4 @@ support inclusion. Check the source relationship or snapshot completeness;
 do not infer that the paper is unpublished or should be removed.
 
 In this example, `counts.records_with_diagnostics` and `counts.warning_issues`
-are both 1. The archive still contains all three synthetic publications.
+are both 1. The archive still contains all twelve synthetic publications.
