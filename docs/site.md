@@ -33,6 +33,11 @@ Example rendering runs offline without CERN credentials. The light/dark switch
 beside search starts with your system preference and remembers manual changes.
 Page headings appear within the left navigation, leaving more room for content.
 
+If an ignored `ROADMAP.md` exists in the repository root, the preview adds it to
+navigation automatically. It uses an ignored `.zensical-preview.yml` generated
+from `zensical.toml`; no tracked configuration changes are needed. Restart the
+preview after adding or removing the roadmap. Static builds exclude it.
+
 ## Build static HTML
 
 ```bash

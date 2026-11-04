@@ -56,25 +56,23 @@ def render(work, policy, publications):
 
 
 @contextmanager
-def preview(work):
+def preview(work, *, documentation=False):
     """Start and stop the actual documented Zensical preview command."""
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
     base = f"http://127.0.0.1:{port}/"
+    if documentation:
+        base += "glance-analysis-lister/"
+    command = (
+        [sys.executable, "scripts/docs.py", "serve"]
+        if documentation
+        else [sys.executable, "-m", "zensical", "serve", "-f", "zensical-demo.toml"]
+    )
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "zensical",
-                "serve",
-                "-f",
-                "zensical-demo.toml",
-                "--dev-addr",
-                f"127.0.0.1:{port}",
-            ],
+            [*command, "--dev-addr", f"127.0.0.1:{port}"],
             cwd=work,
             stdout=log,
             stderr=subprocess.STDOUT,
@@ -137,8 +135,29 @@ def check_demo(work, driver):
     with preview(work) as base:
         browse(base, driver, page_prefix="")
 
+    # Local roadmap preview must not require edits to the tracked config or leak
+    # into a subsequent public build. Use invented text, never a local roadmap.
+    config_before = (work / "zensical.toml").read_bytes()
+    roadmap = work / "ROADMAP.md"
+    roadmap.write_text("# Local roadmap preview\n\n- [ ] Invented task\n")
+    with preview(work, documentation=True) as base:
+        with urlopen(base + "ROADMAP/", timeout=5) as response:
+            assert "Local roadmap preview" in response.read().decode()
+        roadmap.write_text(roadmap.read_text() + "\nUpdated local planning text.\n")
+        deadline = time.monotonic() + 15
+        while True:
+            with urlopen(base + "ROADMAP/", timeout=5) as response:
+                if "Updated local planning text." in response.read().decode():
+                    break
+            assert time.monotonic() < deadline, "Roadmap preview did not reload"
+            time.sleep(0.1)
+    assert (work / "zensical.toml").read_bytes() == config_before
+
     # Build the documentation site with the complete demo under its real subpath.
     subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
+    assert not (work / "site-src/ROADMAP.md").exists()
+    assert not (work / "site/ROADMAP").exists()
+    assert 'href="ROADMAP/' not in (work / "site/index.html").read_text()
     assert not list((work / "site-src").rglob("view-report.json"))
     for guide in ("ongoing", "publications"):
         html = (work / "site/docs" / guide / "index.html").read_text()
@@ -170,7 +189,7 @@ def check_demo(work, driver):
             server.shutdown()
             thread.join()
     print(
-        "Demo checks passed: standalone preview, policy tutorial and documentation demo."
+        "Demo checks passed: standalone preview, policy tutorial, local roadmap isolation and documentation demo."
     )
 
 
