@@ -48,6 +48,27 @@ This validates links and anchors and writes HTML to `site/`. Run only one build
 or preview at a time: both commands clear the generated `site-src/` and `site/`
 directories when they start. Edit the original sources, not those copies.
 
+## Inspect a CI build
+
+The CI workflow builds the public documentation on pull requests, pushes and
+manual runs. Its `documentation` job uses the same strict build command and
+uploads `documentation-site`, retained for 14 days. The browser job separately
+checks the synthetic demo and policy tutorial.
+
+In the repository's **Actions** tab, open the relevant CI run and download
+`documentation-site` from its artifacts. Extract its contents into
+`preview/glance-analysis-lister/`, so that `index.html` is directly inside that
+directory. Serve it with:
+
+```bash
+python -m http.server 8000 --bind 127.0.0.1 --directory preview
+```
+
+Open <http://127.0.0.1:8000/glance-analysis-lister/> and stop with **Ctrl+C**.
+This preserves the repository subpath used by the configured site URL. The
+artifact includes the synthetic demo; it excludes the local roadmap and demo
+diagnostic reports. Uploading the artifact does not deploy a public site.
+
 ## Add or configure content
 
 [`zensical.toml`](../zensical.toml) defines navigation, colours and styles.
