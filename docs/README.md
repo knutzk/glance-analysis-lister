@@ -19,9 +19,10 @@ Start with the synthetic example if you do not have CERN access.
 | [Citations](citations.md) | Resolve and format citations, including corrections. |
 | [Provenance](provenance.md) | Trace generated files and understand reproducible output. |
 | [Python access](python-access.md) | Read registries and prepare views without rendering Markdown. |
+| [Glossary](glossary.md) | Understand ATLAS terminology, identifiers and the package's data layers. |
 
 The [homepage](../README.md) provides installation and a quick start. Contributor
-material—architecture, validation, site editing and screenshots—is grouped under
+material—architecture, a field walkthrough, validation, site editing and screenshots—is grouped under
 **Development**.
 
 The **Demo** navigation contains all four interactive pages from the

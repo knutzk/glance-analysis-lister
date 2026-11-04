@@ -19,6 +19,8 @@ corrections.
 New API fields are excluded until explicitly adopted into the data contract,
 independently of any view. The registry retains snapshot and build metadata,
 identifier evidence and dictionary hashes for provenance and safe replacement.
+For a worked example across these layers, see the
+[contributor field walkthrough](contributing-field.md).
 
 The bundled schema validates nested types and dates; separate checks enforce
 counts and unique identifiers. Only curated v2 is supported. See the contract's

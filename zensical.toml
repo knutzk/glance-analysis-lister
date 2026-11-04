@@ -39,6 +39,7 @@ nav = [
     { "Citations" = "docs/citations.md" },
     { "Provenance" = "docs/provenance.md" },
     { "Python access" = "docs/python-access.md" },
+    { "Glossary" = "docs/glossary.md" },
   ] },
   { "Demo" = [
     { "Overview" = "examples/demo/index.md" },
@@ -49,6 +50,7 @@ nav = [
   ] },
   { "Development" = [
     { "Architecture" = "docs/architecture.md" },
+    { "Field walkthrough" = "docs/contributing-field.md" },
     { "Validation" = "docs/development.md" },
     { "Local documentation site" = "docs/site.md" },
     { "Screenshots" = "docs/images/README.md" },
