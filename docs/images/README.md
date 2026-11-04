@@ -21,7 +21,8 @@ viewport height to fit the content. Browser and font differences can change the
 pixels.
 
 The script replaces four PNGs: the full `ongoing.png` and `papers.png` views,
-and the focused `ongoing-card.png` and `publication-row.png` details for guides.
-Temporary pages and reports are removed. Inspect
+and the focused `ongoing-card.png` and `publication-row.png` fallbacks shown when
+reading the guides on GitHub. The documentation site replaces those fallbacks
+with live rendered examples. Temporary pages and reports are removed. Inspect
 the images before committing them. The fixtures and capture script are
 GPL-3.0-only; the site uses Zensical's built-in theme.

@@ -15,7 +15,7 @@ analysis-lister render-group --group DEMO \
 ```
 
 The [quick start](../README.md#install-and-try-without-credentials) lists the
-outputs. The guides show an example
+outputs. The documentation site embeds a working
 [analysis card](../docs/ongoing.md#read-an-analysis-card) and
 [paper table](../docs/publications.md#read-a-publication-row) from this fixture.
 For your own site, enable the [generated browser assets](../docs/rendering.md#enable-browser-assets).

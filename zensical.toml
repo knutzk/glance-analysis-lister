@@ -9,7 +9,17 @@ repo_url = "https://github.com/knutzk/glance-analysis-lister"
 # scripts/docs.py selects public inputs and preserves their repository paths.
 docs_dir = "site-src"
 site_dir = "site"
-extra_css = ["docs/stylesheets/site.css"]
+extra_css = [
+  "docs/assets/gal-common.css",
+  "docs/assets/gal-ongoing.css",
+  "docs/assets/gal-papers.css",
+  "docs/stylesheets/site.css",
+]
+extra_javascript = [
+  "docs/assets/gal-common.js",
+  "docs/assets/gal-ongoing.js",
+  "docs/assets/gal-papers.js",
+]
 nav = [
   { "Home" = "README.md" },
   { "Documentation" = [

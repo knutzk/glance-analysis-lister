@@ -22,10 +22,13 @@ Search, dates and status must all match; selected statuses are combined with OR.
 
 ## Read a publication row
 
-The [synthetic fixture](../examples/README.md) contains one paper, shown below.
-In a generated group page, click its title to reveal its details.
+The [synthetic fixture](../examples/README.md) contains one paper. Click its title
+to reveal its details. This is the
+same table renderer used in generated group pages.
 
+<!-- BEGIN LIVE publications -->
 ![Synthetic publication table with a paper identifier, title, citation, date and expanded details.](images/publication-row.png)
+<!-- END LIVE publications -->
 
 `DEMO-2099-01` has an invented DOI and an online publication date of 1 February
 2099. It appears under **Published**, because that filter checks for a DOI.

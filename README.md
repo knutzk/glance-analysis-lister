@@ -57,9 +57,9 @@ The command writes:
 The missing-policy warning for `DEMO` is expected; generation succeeds using
 identifier-based selection. The [example notes](examples/README.md) explain it.
 
-See the example [analysis card](docs/ongoing.md#read-an-analysis-card) and
-[publication table](docs/publications.md#read-a-publication-row). To use your
-generated pages in a Zensical site,
+Try the live [analysis card](docs/ongoing.md#read-an-analysis-card) and
+[publication table](docs/publications.md#read-a-publication-row) in the
+documentation site. To use your generated pages in another Zensical site,
 [enable the browser assets](docs/rendering.md#enable-browser-assets).
 A standalone demo site and tutorial remain planned.
 

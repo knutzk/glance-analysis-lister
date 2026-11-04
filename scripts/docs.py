@@ -5,14 +5,19 @@
 
 import argparse
 import importlib
+import json
 import shlex
 import shutil
 import subprocess
 import sys
 import time
+from functools import lru_cache
+from importlib.resources import files
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if (ROOT / "analysis_lister/__init__.py").is_file():
+    sys.path.insert(0, str(ROOT))
 # Never stage the whole checkout or docs tree: they may contain private outputs.
 PUBLIC_FILES = (
     "README.md",
@@ -46,10 +51,46 @@ PUBLIC_FILES = (
 )
 
 
+@lru_cache(maxsize=1)
+def example_fragments(snapshot):
+    """Use the package's real views and controls with only the public fixture."""
+    from analysis_lister.registry import CuratedRegistry
+    from analysis_lister.views.markdown.ongoing import ongoing_cards
+    from analysis_lister.views.markdown.papers import paper_table
+    from analysis_lister.views.prepare import prepare_group
+    from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+
+    registry = CuratedRegistry(json.loads(snapshot))
+    view = prepare_group(
+        registry,
+        GroupProfile("DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))),
+    )
+    return {"ongoing": ongoing_cards(view), "publications": paper_table(view)}
+
+
 def stage(root=ROOT):
     """Copy changed public sources without rewriting unchanged files."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
+    for name, fragment in example_fragments(
+        sources["examples/synthetic_registry.json"]
+    ).items():
+        page = f"docs/{name}.md"
+        text = sources[page].decode("utf-8")
+        start, end = f"<!-- BEGIN LIVE {name} -->", f"<!-- END LIVE {name} -->"
+        if text.count(start) != 1 or text.count(end) != 1:
+            raise ValueError(f"Expected one live-example block in {page}")
+        before, rest = text.split(start)
+        _, after = rest.split(end)
+        sources[page] = (
+            before + '<div class="gal-doc-example">\n' + fragment + "</div>\n" + after
+        ).encode("utf-8")
+    for component in ("common", "ongoing", "papers"):
+        for extension in ("css", "js"):
+            filename = f"gal-{component}.{extension}"
+            sources[f"docs/assets/{filename}"] = (
+                files("analysis_lister.views") / "assets" / filename
+            ).read_bytes()
     for name, content in sources.items():
         destination = root / "site-src" / name
         if not destination.exists() or destination.read_bytes() != content:
@@ -62,9 +103,10 @@ def main():
     parser.add_argument("command", choices=("build", "serve"))
     parser.add_argument("--dev-addr", default="127.0.0.1:8000")
     args = parser.parse_args()
-    # Check the site dependency before clearing an existing preview.
+    # Check the renderer's dependencies before clearing an existing preview.
     try:
         importlib.import_module("zensical")
+        example_fragments((ROOT / "examples/synthetic_registry.json").read_bytes())
     except ModuleNotFoundError as error:
         parser.exit(
             1,

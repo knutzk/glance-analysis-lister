@@ -15,3 +15,20 @@
   background: var(--md-code-bg-color);
   box-shadow: 0 0.15rem 0.6rem rgb(0 0 0 / 12%);
 }
+
+.gal-doc-example {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.4rem;
+}
+
+/* Single-record examples focus on the card; full pages retain their controls. */
+.gal-doc-example .gal-filters,
+.gal-doc-example .gal-result-count {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .gal-doc-example { padding: 0.4rem; }
+}

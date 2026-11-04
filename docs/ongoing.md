@@ -8,11 +8,13 @@ filtering rules to interpret your own pages.
 
 ## Read an analysis card
 
-This screenshot shows a card generated from the [synthetic example](../examples/README.md).
-In a generated page, click its title to open the details. All identifiers, email addresses and metadata are invented;
+This is a working card generated from the [synthetic example](../examples/README.md).
+Click its title to open the details. All identifiers, email addresses and metadata are invented;
 the external links do not identify real records.
 
+<!-- BEGIN LIVE ongoing -->
 ![Expanded synthetic analysis card, with its identifier, affiliations, milestone row and recorded details.](images/ongoing-card.png)
+<!-- END LIVE ongoing -->
 
 | Part of the card | What the example shows |
 | --- | --- |
