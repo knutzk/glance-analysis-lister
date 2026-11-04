@@ -6,7 +6,7 @@ Start with the synthetic example if you do not have CERN access.
 
 | Guide | What you will learn |
 | --- | --- |
-| [Synthetic example](../examples/README.md) | Generate pages from invented records and understand the expected policy warning. |
+| [Synthetic example](../examples/README.md) | Generate and preview a complete demo, then change its publication policy. |
 | [Commands and recovery](workflows.md) | Download, refresh, compare snapshots, export CSVs and recover failed runs. |
 | [Rendering and policies](rendering.md) | Select publications, generate group pages and enable browser assets. |
 | [Ongoing analyses](ongoing.md) | Read an analysis card, understand membership and use filters. |

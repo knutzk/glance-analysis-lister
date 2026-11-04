@@ -37,8 +37,9 @@ cd glance-analysis-lister
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
-analysis-lister render-group --group DEMO \
-  --snapshot examples/synthetic_registry.json --output-dir pages/demo
+analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+  --snapshot examples/synthetic_registry.json \
+  --curation-config examples/demo/publication-curation.toml --output-dir pages/demo
 ```
 
 Installation needs internet access; rendering the example runs offline.
@@ -54,14 +55,14 @@ The command writes:
 | `assets/` | Shared CSS and JavaScript for styling and interaction. |
 | `view-report.json` | Selection decisions, provenance and diagnostics. |
 
-The missing-policy warning for `DEMO` is expected; generation succeeds using
-identifier-based selection. The [example notes](examples/README.md) explain it.
+The explicit DEMO policy selects the invented publications without a missing-policy
+warning. Follow the [synthetic example](examples/README.md) to preview the complete
+site and try changing its publication policy.
 
 Try the live [analysis card](docs/ongoing.md#read-an-analysis-card) and
 [publication table](docs/publications.md#read-a-publication-row) in the
 documentation site. To use your generated pages in another Zensical site,
 [enable the browser assets](docs/rendering.md#enable-browser-assets).
-A standalone demo site and tutorial remain planned.
 
 ## Refresh pages from GLANCE
 

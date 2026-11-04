@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+[project]
+site_name = "GLANCE analysis lister · synthetic demo"
+site_description = "Explore independently invented analysis and publication records"
+site_url = "http://127.0.0.1:8001/"
+docs_dir = "pages/demo"
+site_dir = "site-demo"
+extra_css = [
+  "assets/gal-common.css",
+  "assets/gal-ongoing.css",
+  "assets/gal-papers.css",
+  "assets/gal-notes.css",
+]
+extra_javascript = [
+  "assets/gal-common.js",
+  "assets/gal-ongoing.js",
+  "assets/gal-papers.js",
+  "assets/gal-notes.js",
+]
+nav = [
+  { "Demo overview" = "index.md" },
+  { "Ongoing analyses" = "ongoing.md" },
+  { "Papers" = "papers.md" },
+  { "Conference notes" = "confnotes.md" },
+  { "Public notes" = "pubnotes.md" },
+]
+
+[project.theme]
+font = false
+features = ["navigation.instant", "toc.integrate", "content.code.copy"]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "blue"
+accent = "teal"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "blue"
+accent = "teal"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.validation]
+invalid_links = true
+invalid_link_anchors = true

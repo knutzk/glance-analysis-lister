@@ -1,32 +1,124 @@
 # Synthetic example
 
+Run a complete local site without CERN access. The [demo overview](demo/index.md)
+suggests an interaction to try on each page.
+
 [`synthetic_registry.json`](synthetic_registry.json) contains independently
 invented DEMO-2099 records, people, titles, dates and publication metadata. No
-private snapshot was used. It follows the current curated schema and is
-licensed under GPL-3.0-only. Generated GLANCE links use invented identifiers and
-do not identify real records.
+private snapshot was used. It follows the current curated schema and is licensed
+under GPL-3.0-only. External record links use invented identifiers.
 
-After [installation](../README.md#install-and-try-without-credentials), run from
-the repository root:
+## Install and generate
+
+Use Python 3.13 and Git. From a macOS or Linux shell:
+
+```bash
+git clone https://github.com/knutzk/glance-analysis-lister.git
+cd glance-analysis-lister
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-docs.txt
+analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+  --snapshot examples/synthetic_registry.json \
+  --curation-config examples/demo/publication-curation.toml \
+  --output-dir pages/demo
+cp examples/demo/index.md pages/demo/index.md
+```
+
+If you already have a checkout and environment, start with the install command.
+Installation needs internet access; generation and preview use only local data.
+`python -m analysis_lister` is equivalent to `analysis-lister`.
+
+The explicit [DEMO policy](demo/publication-curation.toml) selects publications
+matching `DEMO`, so this workflow produces no missing-policy warning.
+
+## Preview or build
+
+From the repository root, with the same environment active:
+
+```bash
+python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
+```
+
+Open <http://127.0.0.1:8001/> and use the navigation to visit all four pages.
+Stop the server with **Ctrl+C**. Port 8001 allows the demo to run alongside the
+[documentation preview](../docs/site.md) on port 8000. In a new terminal,
+run `source .venv/bin/activate` again.
+
+To build static HTML instead:
+
+```bash
+python -m zensical build -f zensical-demo.toml --clean --strict
+```
+
+The [demo configuration](../zensical-demo.toml) loads the generated browser assets,
+enables instant navigation and provides light/dark mode. Run only one demo build
+or preview at a time.
+
+| Output | Contents |
+| --- | --- |
+| `pages/demo/index.md` | Copied demo overview. |
+| `pages/demo/ongoing.md` | One invented ongoing analysis. |
+| `pages/demo/papers.md` | One invented paper with a DOI. |
+| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | One invented note on each page. |
+| `pages/demo/assets/` | CSS and JavaScript for styling and interaction. |
+| `pages/demo/view-report.json` | Selection decisions, provenance and diagnostics for the invented records; also copied into the standalone site. |
+| `site-demo/` | Built standalone HTML and assets. |
+
+Generation writes into `pages/demo/`; it does not change the fixture or policy.
+For your own site, follow [browser asset integration](../docs/rendering.md#enable-browser-assets).
+
+## Tutorial: change publication selection
+
+Keep the tracked example intact and experiment with a policy copy:
+
+```bash
+cp examples/demo/publication-curation.toml pages/demo-policy.toml
+```
+
+Edit `pages/demo-policy.toml` so all three selection lists are empty:
+
+```toml
+[groups.DEMO]
+title = "Synthetic demo"
+groups = []
+subgroups = []
+keywords = []
+```
+
+Regenerate using that copy:
+
+```bash
+analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+  --snapshot examples/synthetic_registry.json \
+  --curation-config pages/demo-policy.toml \
+  --output-dir pages/demo
+```
+
+The running preview reloads the generated pages. If you stopped it, run the
+preview command again. Each publication page now has no selected records, while
+the ongoing page still shows one analysis. Publication policy and ongoing-analysis
+membership are independent. An explicit empty policy does not trigger fallback
+selection or a missing-policy warning.
+
+Restore the original result by rerunning the render command from **Install and
+generate**, with `--curation-config examples/demo/publication-curation.toml`.
+All four pages return to one record each. Experiments in `pages/demo-policy.toml`
+leave the tracked policy unchanged.
+
+## Optional: see missing-policy fallback
+
+To demonstrate missing configuration separately, omit `--curation-config` and
+write to another directory:
 
 ```bash
 analysis-lister render-group --group DEMO \
-  --snapshot examples/synthetic_registry.json --output-dir pages/demo
+  --snapshot examples/synthetic_registry.json --output-dir pages/demo-fallback
 ```
 
-The [quick start](../README.md#install-and-try-without-credentials) lists the
-outputs. The documentation site embeds a working
-[analysis card](../docs/ongoing.md#read-an-analysis-card) and
-[paper table](../docs/publications.md#read-a-publication-row) from this fixture.
-For your own site, enable the [generated browser assets](../docs/rendering.md#enable-browser-assets).
+The bundled shared policies have no `DEMO` entry, so this command warns on stdout
+and selects publications by the `DEMO` token in their identifiers. See
+[publication policies](../docs/rendering.md#publication-policies) for the distinction
+between missing and explicitly empty configuration.
 
-## Expected policy warning
-
-The bundled policies have no `DEMO` entry. This example therefore prints a
-missing-policy warning on stdout and selects publications by the `DEMO` token
-in their identifiers. It deliberately demonstrates the fallback behaviour.
-Use `--curation-config PATH` to supply an
-[explicit policy](../docs/rendering.md#publication-policies).
-
-The [README screenshots](../docs/images/README.md) use this same fixture with
-an explicit DEMO policy.
+The [README screenshots](../docs/images/README.md) use the same synthetic fixture.

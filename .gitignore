@@ -33,6 +33,7 @@ dist/
 .ruff_cache/
 /site-src/
 /site/
+/site-demo/
 /.cache/
 
 # Local coding-agent guidance.
