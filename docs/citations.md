@@ -5,10 +5,33 @@
 Citation commands update the bundled `json/doi_metadata.json` dictionary by
 default, regardless of the working directory. They do not create a local copy.
 Use `--doi-cache PATH` to select another store; a missing custom store starts
-empty. Stores are loaded for each operation, not on import. Entries require
-`citation` and `source`; optional fields are `material`, `resolved_at`,
-`source_url` and `inspire_id`. Material labels distinguish publications, errata,
-addenda and editorial notes.
+empty. Stores are loaded for each operation, not on import.
+
+## DOI metadata JSON
+
+The store is a JSON object keyed by normalised, lowercase DOIs. This example
+uses invented DOIs, citations and dates:
+
+```json
+{
+  "10.1007/jhep07(2099)999": {
+    "citation": "JHEP 07 (2099) 999",
+    "source": "doi-pattern:jhep",
+    "resolved_at": "2099-03-01T12:00:00+00:00"
+  },
+  "10.9999/synthetic": {
+    "citation": "Invented journal citation",
+    "source": "manual",
+    "material": "publication"
+  }
+}
+```
+
+Each record requires `citation` and `source`. The first records an inferred
+citation and when it was resolved; the second is protected from automatic
+replacement because its source is `manual`. Optional fields are `material`,
+`resolved_at`, `source_url` and `inspire_id`. Material labels distinguish
+publications, errata, addenda and editorial notes.
 
 ## Resolve citations
 
