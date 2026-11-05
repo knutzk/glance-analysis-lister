@@ -95,9 +95,16 @@ of old documentation must be decided before documentation publication begins.
 
 ## Release notes
 
-Maintained notes live in `.github/release-notes/`: `v0.2.0.txt` covers the API
-workflow, curated v2 and group views; `v0.1.0.txt` describes the historical
-CSV-based workflow.
+The site renders the maintained `.github/release-notes/vVERSION.txt` files
+without introducing a second editable source:
+
+- [v0.2.0 notes](../.github/release-notes/v0.2.0.txt): API workflow, curated v2 and group views.
+- [v0.1.0 notes](../.github/release-notes/v0.1.0.txt): historical CSV-based workflow.
+
+When adding a version, add its notes to `RELEASE_VERSIONS` in `scripts/docs.py`,
+the site navigation and the source-distribution manifest. Notes remain outside
+the wheel. Run the site and source-archive checks so the rendered pages can be
+rebuilt from the release sources.
 
 These files describe their versions; their presence does not establish that a
 release has been published or that its validation covers the current checkout.

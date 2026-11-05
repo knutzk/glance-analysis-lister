@@ -55,6 +55,10 @@ nav = [
     { "Field walkthrough" = "docs/contributing-field.md" },
     { "Validation" = "docs/development.md" },
     { "Releases" = "docs/releases.md" },
+    { "Release notes" = [
+      { "v0.2.0" = "docs/release-notes/v0.2.0.md" },
+      { "v0.1.0 (historical)" = "docs/release-notes/v0.1.0.md" },
+    ] },
     { "Local documentation site" = "docs/site.md" },
     { "Screenshots" = "docs/images/README.md" },
   ] },
