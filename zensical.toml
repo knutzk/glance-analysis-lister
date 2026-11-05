@@ -39,6 +39,8 @@ nav = [
     { "Citations" = "docs/citations.md" },
     { "Provenance" = "docs/provenance.md" },
     { "Python access" = "docs/python-access.md" },
+    { "Compatibility" = "docs/compatibility.md" },
+    { "Upgrading" = "docs/upgrading.md" },
     { "Glossary" = "docs/glossary.md" },
   ] },
   { "Demo" = [
@@ -52,6 +54,7 @@ nav = [
     { "Architecture" = "docs/architecture.md" },
     { "Field walkthrough" = "docs/contributing-field.md" },
     { "Validation" = "docs/development.md" },
+    { "Releases" = "docs/releases.md" },
     { "Local documentation site" = "docs/site.md" },
     { "Screenshots" = "docs/images/README.md" },
   ] },
