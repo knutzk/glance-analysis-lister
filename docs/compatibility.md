@@ -11,7 +11,7 @@ Pin an exact version or commit, review the matching release notes and follow the
 
 | Interface | Current scope | Upgrade considerations |
 | --- | --- | --- |
-| CLI | The eight commands and options in the [reference](cli-reference.md). | Use exit status to detect failure. Human-readable summaries, log wording and ordering are not a machine-readable protocol. |
+| CLI | The eight commands, `--version` and options in the [reference](cli-reference.md). | Results go to stdout and diagnostics to stderr. Use exit status to detect failure; human-readable summaries, log wording and ordering are not a machine-readable protocol. |
 | Curated registry | The [v2 contract](curated-format.md), including optional additions, independent identities and missing/null/empty distinctions. | Existing v2 fixtures remain readable. A breaking stored-format change requires a new schema version and explicit migration support. |
 | Publication policies | The TOML fields and defaults in [rendering and policies](rendering.md#publication-policies). | Missing and explicitly empty policies have different meanings. Bundled policy contents can change between releases. |
 | Python | Only the imports and result attributes in [Python access](python-access.md). | Reader methods return copies; prepared objects are consumed as read-only values. Other helpers and nested rule evidence are internal. |
@@ -51,8 +51,9 @@ for the rules governing format changes.
 The support scope above is the starting point for a stable release. Before v1.0,
 the project still needs an explicit deprecation policy, compatibility checks
 across supported package versions, and decisions on long-lived generated URLs
-and diagnostic-report consumers. Citation-store defaults also need a persistence
-decision: current citation commands can write to shared installed data.
+and diagnostic-report consumers. Citation updates require an explicit writable
+store; builds read bundled data by default. See [citation maintenance](citations.md)
+for persistence and upgrade behaviour.
 
 Current tests establish offline and browser behaviour for their tested
 environments; they do not establish live CERN login or support on every platform

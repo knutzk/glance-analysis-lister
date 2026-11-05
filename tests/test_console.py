@@ -159,10 +159,18 @@ with configure_logging(color="never"):
                 patch.object(cli, "configure_logging") as setup,
                 patch.object(cli, "_run_format_citations"),
             ):
-                cli.main(flags)
+                cli.main([*flags, "--doi-cache", "unused-synthetic-citations.json"])
                 setup.assert_called_once_with(verbose=True, quiet=False, color="always")
         with patch("sys.stderr", io.StringIO()), self.assertRaises(SystemExit) as error:
-            cli.main(["--quiet", "format-citations", "--verbose"])
+            cli.main(
+                [
+                    "--quiet",
+                    "format-citations",
+                    "--verbose",
+                    "--doi-cache",
+                    "unused-synthetic-citations.json",
+                ]
+            )
         self.assertEqual(error.exception.code, 2)
 
     def test_forced_colour_overrides_no_color_and_never_stays_plain(self):

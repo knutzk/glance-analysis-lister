@@ -79,7 +79,7 @@ def _unique_pairs(pairs):
 
 
 def default_store_path():
-    """Locate the single tracked store in a checkout or installed distribution."""
+    """Locate bundled citations for read defaults or explicit maintenance."""
     checkout = Path(__file__).resolve().parents[2] / DEFAULT_CACHE
     if checkout.is_file():
         return checkout
@@ -96,10 +96,7 @@ def default_store_path():
 def load_store(path: Path):
     """Read exactly one dictionary, without merging another source into it."""
     if not path.exists():
-        if path == DEFAULT_CACHE:
-            path = default_store_path()
-        else:
-            return {}
+        return {}
     data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_pairs)
     if not isinstance(data, dict):
         raise ValueError("Citation store must be a DOI-keyed dictionary")

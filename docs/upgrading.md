@@ -24,10 +24,13 @@ contain private locations. Keep copies of the API and curated snapshots,
 publication policy, custom citation store, consuming-site configuration and
 working generated output. Store real data privately.
 
-If you changed the shared citation store or policy in an installed package,
-copy it outside that environment before upgrading. The current defaults are
-package data and can be replaced during installation. Pass explicit
+If an older workflow changed the shared citation store, or you edited the
+installed publication policy, copy those files outside the environment before
+upgrading. Package data can be replaced during installation. Pass explicit
 `--doi-cache` and `--curation-config` paths consistently when comparing versions.
+Citation update commands now require an explicit `--doi-cache` path; registry
+builds still read bundled citations when no override is supplied. There is no
+automatic migration of previous edits or merge into a new store.
 Do not carry cookie files into a public reproduction or documentation build.
 
 ## Install and compare separately
