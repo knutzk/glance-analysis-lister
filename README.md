@@ -103,6 +103,8 @@ and other workflows.
 ## Project status and contributing
 
 The package is at **0.2.0**; v1.0 compatibility promises are not yet finalized.
+See [compatibility](docs/compatibility.md) for the current interface scope and
+[upgrading](docs/upgrading.md) before replacing a working installation.
 Offline and browser checks use
 synthetic data; live CERN authentication needs separate validation.
 

@@ -81,3 +81,8 @@ creates a draft release from a tag. The documentation job also supplies an
 [HTML artifact for review](site.md#inspect-a-ci-build). All test data is invented;
 these checks do not establish live CERN authentication. To preview the
 documentation itself, use the [local site guide](site.md).
+
+For version changes, artifact checks and the tag workflow, follow
+[release qualification](releases.md). The [compatibility guide](compatibility.md)
+defines the current interface boundaries; the [upgrade guide](upgrading.md)
+describes how consumers can evaluate a candidate using saved data.
