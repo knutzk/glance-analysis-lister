@@ -104,6 +104,7 @@ def main():
     assert generator_fingerprint() == generator_fingerprint(root / "analysis_lister")
     assert revision != "unknown", "Installed wheel must retain its source Git commit"
     citation_path = default_store_path()
+    bundled_citations_before = citation_path.read_bytes()
     assert not citation_path.is_relative_to(root), "Must load installed citation data"
     assert citation_path.read_bytes() == (root / "json/doi_metadata.json").read_bytes()
     assert load_store(citation_path), "Installed citation dictionary must not be empty"
@@ -198,6 +199,7 @@ def main():
                 "--doi-cache",
                 str(work / "citations.json"),
             ],
+            ["format-citations", "--doi-cache", str(work / "citations.json")],
         ]
         executable = Path(sys.executable).parent / "analysis-lister"
         for invocation in (
@@ -210,6 +212,17 @@ def main():
             assert reported.returncode == 0, reported.stderr
             assert reported.stdout == f"analysis-lister {package.version}\n"
             assert not reported.stderr
+        for command in (
+            ["resolve-dois", "--doi", "10.1007/JHEP07(2099)999"],
+            ["format-citations"],
+        ):
+            rejected = subprocess.run(
+                [str(executable), *command], cwd=work, capture_output=True, text=True
+            )
+            assert rejected.returncode == 2
+            assert "--doi-cache" in rejected.stderr
+            assert not rejected.stdout
+        assert not list(work.iterdir()), "Rejected writes must not create a local store"
         for command in commands:
             subprocess.run([str(executable), *command], cwd=work, check=True)
         comparison = json.loads((work / "comparison.json").read_text())
@@ -369,6 +382,7 @@ def main():
         assert citation["source"] == "doi-pattern:jhep"
         assert "locked" not in citation
 
+    assert citation_path.read_bytes() == bundled_citations_before
     print("Installed CLI, synthetic rendering and licences verified.")
 
 

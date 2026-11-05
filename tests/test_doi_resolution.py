@@ -6,6 +6,7 @@
 import io
 import json
 import unittest
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -87,6 +88,43 @@ class CitationStoreTests(unittest.TestCase):
         self.assertEqual(loaded[DOI]["source"], "inspire")
         self.assertEqual(set(loaded), {DOI})
         self.assertEqual(load_store(self.root / "missing.json"), {})
+
+    def test_explicit_missing_legacy_path_starts_empty_and_preserves_bundled_data(self):
+        bundled = default_store_path()
+        before = bundled.read_bytes()
+        with chdir(self.root), patch("sys.stdout", io.StringIO()):
+            path = Path("json/doi_metadata.json")
+            self.assertEqual(load_store(path), {})
+            cli.main(["resolve-dois", "--doi", JHEP, "--doi-cache", str(path)])
+            self.assertEqual(set(load_store(path)), {JHEP.lower()})
+            save_store(path, {DOI: record("Keep this manual entry")})
+            cli.main(["format-citations", "--doi-cache", str(path)])
+            self.assertEqual(
+                load_store(path)[DOI]["citation"], "Keep this manual entry"
+            )
+        self.assertEqual(bundled.read_bytes(), before)
+
+    def test_cli_requires_an_explicit_write_store_before_loading_or_resolving(self):
+        for flags in (
+            ["resolve-dois", "--doi", JHEP],
+            ["format-citations"],
+        ):
+            with (
+                self.subTest(flags=flags),
+                patch("sys.stderr", io.StringIO()) as error_output,
+                patch("analysis_lister.citations.store.load_store") as load,
+                patch("analysis_lister.citations.resolver.resolve_dois") as resolve,
+                patch(
+                    "analysis_lister.citations.formatting.format_citations"
+                ) as format_store,
+                self.assertRaises(SystemExit) as error,
+            ):
+                cli.main(flags)
+            self.assertEqual(error.exception.code, 2)
+            self.assertIn("--doi-cache", error_output.getvalue())
+            load.assert_not_called()
+            resolve.assert_not_called()
+            format_store.assert_not_called()
 
     def test_one_line_per_doi_and_unknown_material_is_omitted(self):
         values = {

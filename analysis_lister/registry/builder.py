@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from time import perf_counter
 
-from ..citations.store import DEFAULT_CACHE, default_store_path, load_store
+from ..citations.store import default_store_path, load_store
 from ..storage import atomic_write_text
 from .enrichment import curate
 from .public_identifiers import default_identifiers_path, load_identifiers
@@ -22,7 +22,7 @@ def build_registry(
     output,
     *,
     allow_count_drop=False,
-    doi_cache=DEFAULT_CACHE,
+    doi_cache=None,
     pubnote_identifiers=None,
 ):
     """Build offline and atomically publish without overwriting source inputs."""
@@ -43,9 +43,7 @@ def build_registry(
         if pubnote_identifiers is not None
         else default_identifiers_path()
     )
-    citation_path = Path(doi_cache)
-    if citation_path == DEFAULT_CACHE and not citation_path.exists():
-        citation_path = default_store_path()
+    citation_path = Path(doi_cache) if doi_cache is not None else default_store_path()
     inputs = [api_path, citation_path, identifier_path]
     if any(output.resolve() == path.resolve() for path in inputs):
         raise ValueError("Registry output must not overwrite an input")

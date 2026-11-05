@@ -5,6 +5,23 @@ test run is evidence for a candidate, not permission to tag, push or publish it.
 Consumers should follow [upgrading](upgrading.md); contributors should start with
 [development and validation](development.md).
 
+## Unreleased CLI changes
+
+The development checkout includes these changes since the maintained v0.2.0 notes:
+
+- `analysis-lister --version` reports the installed package version.
+- Missing publication-policy warnings now go to stderr, including with `--quiet`.
+  Redirect diagnostic output separately from results if your scripts previously
+  read those warnings from stdout.
+- `resolve-dois` and `format-citations` require `--doi-cache PATH`. Builds still
+  read bundled citations by default. An explicit missing path starts empty,
+  including `json/doi_metadata.json`; the old fallback to bundled entries is
+  removed. Preserve existing edits and [choose a store](citations.md#choose-a-store)
+  before upgrading. No per-user store or automatic data migration is introduced.
+
+Include these changes in the next version's release notes when selecting a
+candidate. They do not change curated schema v2.
+
 ## Prepare an exact candidate
 
 Choose the commit and version together. Review the public interfaces and bundled

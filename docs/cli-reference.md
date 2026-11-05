@@ -23,11 +23,13 @@ Two defaults are located through the package, independently of the working direc
 | Option | Default | Used by |
 | --- | --- | --- |
 | `--curation-config PATH` | Shared `publication-curation.toml` | `refresh`, `render-group` |
-| `--doi-cache PATH` | Shared `json/doi_metadata.json` | `refresh`, `build-registry`, `resolve-dois`, `format-citations` |
+| `--doi-cache PATH` | Shared `json/doi_metadata.json` (read only) | `refresh`, `build-registry` |
+| `--doi-cache PATH` | Required; no default | `resolve-dois`, `format-citations` |
 
-These are checkout files for an editable installation, or installed data files
-for a wheel. Citation commands **write to the selected store**, including the
-shared default. A missing custom store starts empty. See
+The shared defaults are checkout files for an editable installation, or installed
+data files for a wheel. Citation updates require an explicit writable store;
+there is no default that modifies installed data. Every explicit path selects
+only that file, and a missing store starts empty. See
 [citation maintenance](citations.md) and [policy fields](rendering.md#publication-policies).
 Public-note identifiers are read from the packaged dictionary; there is no CLI
 override for that dictionary.
@@ -138,7 +140,7 @@ exactly one input form. Manual entries are never replaced automatically.
 | --- | --- | --- |
 | `--snapshot PATH` | One input form required | Read DOIs from an API snapshot or curated registry. |
 | `--doi DOI` | One input form required | Bare DOI or doi.org URL; repeat for multiple DOIs. |
-| `--doi-cache PATH` | Shared citation store | Store to update; must not overwrite the snapshot. |
+| `--doi-cache PATH` | Required | Writable store to update; must not overwrite the snapshot. |
 | `--method infer\|inspire\|auto` | `infer` | Offline JHEP inference, public INSPIRE lookup, or inference followed by lookup. |
 | `--refresh-existing` | Off | Revisit existing non-manual entries. |
 | `--limit N` | No limit | Positive maximum number of eligible entries to attempt. |
@@ -150,7 +152,7 @@ afterwards to propagate citations to pages.
 ## `format-citations`
 
 Normalise non-manual citations offline. The only command-specific option is
-`--doi-cache PATH`, defaulting to the shared citation store. Updates that store;
+`--doi-cache PATH`, which is required. Updates that store;
 snapshots and pages are unchanged until rebuilt and rendered.
 
 ## Exit status and logs

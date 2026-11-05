@@ -2,10 +2,36 @@
 
 [Documentation index](README.md)
 
-Citation commands update the bundled `json/doi_metadata.json` dictionary by
-default, regardless of the working directory. They do not create a local copy.
-Use `--doi-cache PATH` to select another store; a missing custom store starts
-empty. Stores are loaded for each operation, not on import.
+`resolve-dois` and `format-citations` require **`--doi-cache PATH`**. Choose a
+writable store outside the package installation so your updates survive upgrades.
+There is no implicit write destination or per-user cache. Stores are loaded for
+each operation, not on import.
+
+`build-registry` and `refresh` read the bundled `json/doi_metadata.json` by default,
+regardless of the working directory. Pass `--doi-cache PATH` to make them read
+your maintained store. Every explicit path selects exactly that file: a missing
+file starts empty, even if named `json/doi_metadata.json`. There is no automatic
+merge with bundled entries.
+
+## Choose a store
+
+To start with the bundled citations, copy them from a matching source checkout
+or source archive. For a new store, run from that source root:
+
+```bash
+mkdir -p data
+cp json/doi_metadata.json data/doi-metadata.json
+```
+
+If you already maintain a store, keep it and use its path instead. Resolver
+updates are saved atomically; formatting writes only when an entry changes.
+Keep a backup of your edits. Upgrading the package does not migrate or merge
+this external file with newer bundled citations.
+
+Maintainers can deliberately update the tracked dictionary by passing
+`--doi-cache json/doi_metadata.json` from the checkout. Review those public
+metadata changes before committing them. An installed package's shared data
+directory is not a durable location for user updates.
 
 ## DOI metadata JSON
 
@@ -38,8 +64,10 @@ publications, errata, addenda and editorial notes.
 Use a saved API snapshot or curated registry:
 
 ```bash
-analysis-lister resolve-dois --snapshot glance_api_registry.json --method infer
-analysis-lister resolve-dois --snapshot glance_api_registry.json --method inspire
+analysis-lister resolve-dois --snapshot glance_api_registry.json \
+  --method infer --doi-cache data/doi-metadata.json
+analysis-lister resolve-dois --snapshot glance_api_registry.json \
+  --method inspire --doi-cache data/doi-metadata.json
 ```
 
 | Method | Behaviour |
@@ -62,11 +90,12 @@ saved atomically. Ambiguous associations remain unresolved and can be retried.
 Normalise cached journal names and starting pages offline:
 
 ```bash
-analysis-lister format-citations
+analysis-lister format-citations --doi-cache data/doi-metadata.json
 ```
 
 Manual entries are left unchanged. After editing, resolving or formatting
-citations, run `build-registry` to embed them in the registry, then `render-group`
+citations, run `build-registry --doi-cache data/doi-metadata.json` to embed them
+in the registry, then `render-group`
 to update the pages. Citation commands do not rewrite snapshots. Run commands
 that write the same dictionary sequentially.
 
