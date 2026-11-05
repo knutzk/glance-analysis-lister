@@ -8,6 +8,7 @@ import importlib
 import json
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -19,12 +20,14 @@ from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 PREVIEW_CONFIG = ".zensical-preview.yml"
+RELEASE_VERSIONS = ("v0.2.0", "v0.1.0")
 if (ROOT / "analysis_lister/__init__.py").is_file():
     sys.path.insert(0, str(ROOT))
 # Never stage the whole checkout or docs tree: they may contain private outputs.
 PUBLIC_FILES = (
     "README.md",
     "LICENCE",
+    *(f".github/release-notes/{version}.txt" for version in RELEASE_VERSIONS),
     "zensical.toml",
     "zensical-demo.toml",
     "scripts/docs.py",
@@ -133,6 +136,21 @@ def stage(root=ROOT, *, include_roadmap=False):
     """Copy changed public sources without rewriting unchanged files."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
+    for version in RELEASE_VERSIONS:
+        notes = sources.pop(f".github/release-notes/{version}.txt")
+        heading = (
+            f"# {version} release notes\n\n"
+            "These repository notes describe this version. Commands and validation\n"
+            "results below are historical; they do not qualify the current checkout.\n"
+            "See [release qualification](../releases.md) and "
+            "[upgrading](../upgrading.md).\n\n"
+        )
+        sources[f"docs/release-notes/{version}.md"] = heading.encode("utf-8") + notes
+        # Keep source links usable on GitHub; the site links to rendered notes.
+        sources["docs/releases.md"] = sources["docs/releases.md"].replace(
+            f"(../.github/release-notes/{version}.txt)".encode(),
+            f"(release-notes/{version}.md)".encode(),
+        )
     if include_roadmap:
         sources["ROADMAP.md"] = (root / "ROADMAP.md").read_bytes()
         config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]
@@ -201,6 +219,9 @@ def main():
     if args.command == "build":
         return subprocess.call([*command, "--clean", "--strict"], cwd=ROOT)
     with subprocess.Popen([*command, "--dev-addr", args.dev_addr], cwd=ROOT) as process:
+        # A supervisor may terminate only this wrapper. Handle SIGTERM like
+        # Ctrl+C so the Zensical child is stopped before a subsequent build.
+        previous_termination = signal.signal(signal.SIGTERM, signal.default_int_handler)
         try:
             while process.poll() is None:
                 time.sleep(0.5)
@@ -212,9 +233,14 @@ def main():
         except KeyboardInterrupt:
             return 0
         finally:
+            signal.signal(signal.SIGTERM, previous_termination)
             if process.poll() is None:
                 process.terminate()
-            process.wait()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
         return process.returncode
 
 

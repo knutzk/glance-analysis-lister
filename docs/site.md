@@ -92,6 +92,12 @@ the four Markdown pages into the site, alongside the maintained demo overview.
 Diagnostic reports are not included. Changes to the tracked fixture or policy
 regenerate both the full demo and the embedded examples during preview.
 
+Release notes are staged from the explicitly listed `.github/release-notes/`
+files as Markdown pages under `docs/release-notes/`. Edit the original `.txt`
+files; the site adds a version heading and historical-context notice. Preview
+reloads those edits, and the source archive includes the originals. See
+[release qualification](releases.md#release-notes) when adding another version.
+
 The configured URL uses the expected GitHub Pages repository subpath. The site
 is local development documentation; no deployment workflow is configured.
 For other settings, see the [Zensical configuration guide](https://zensical.org/docs/setup/basics/).

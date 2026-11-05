@@ -43,7 +43,7 @@ def main():
 
     package = distribution("glance-analysis-lister")
     assert not any(
-        str(path).startswith(("docs/", "examples/", "scripts/"))
+        str(path).startswith((".github/", "docs/", "examples/", "scripts/"))
         or str(path).endswith((".png", "zensical.toml", "zensical-demo.toml"))
         for path in package.files
     ), "Documentation and screenshots belong in the source archive, not the wheel"
@@ -152,6 +152,8 @@ def main():
         for contract_file in (
             schema_path,
             "docs/curated-format.md",
+            ".github/release-notes/v0.1.0.txt",
+            ".github/release-notes/v0.2.0.txt",
             "zensical-demo.toml",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",
