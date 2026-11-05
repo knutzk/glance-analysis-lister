@@ -5,6 +5,7 @@
 
 import argparse
 import logging
+from importlib.metadata import version
 from pathlib import Path
 
 import requests
@@ -84,6 +85,12 @@ def parser():
     )
 
     command = argparse.ArgumentParser(description=__doc__, parents=[console])
+    command.add_argument(
+        "--version",
+        action="version",
+        version=f"analysis-lister {version('glance-analysis-lister')}",
+        help="Show the installed package version and exit.",
+    )
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
     api = commands.add_parser(

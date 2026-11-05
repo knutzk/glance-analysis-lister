@@ -12,9 +12,12 @@ the Python API, CLI and stored-data contracts.
 Record the installed package version and resolved dependencies:
 
 ```bash
-python -c 'from importlib.metadata import version; print(version("glance-analysis-lister"))'
+analysis-lister --version
 python -m pip freeze > previous-environment.txt
 ```
+
+For an older installation without `--version`, use
+`python -c 'from importlib.metadata import version; print(version("glance-analysis-lister"))'`.
 
 Review that environment file before sharing it: direct dependency URLs can
 contain private locations. Keep copies of the API and curated snapshots,

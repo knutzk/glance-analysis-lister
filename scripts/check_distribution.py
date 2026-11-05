@@ -200,6 +200,16 @@ def main():
             ],
         ]
         executable = Path(sys.executable).parent / "analysis-lister"
+        for invocation in (
+            [str(executable)],
+            [sys.executable, "-m", "analysis_lister"],
+        ):
+            reported = subprocess.run(
+                [*invocation, "--version"], cwd=work, capture_output=True, text=True
+            )
+            assert reported.returncode == 0, reported.stderr
+            assert reported.stdout == f"analysis-lister {package.version}\n"
+            assert not reported.stderr
         for command in commands:
             subprocess.run([str(executable), *command], cwd=work, check=True)
         comparison = json.loads((work / "comparison.json").read_text())

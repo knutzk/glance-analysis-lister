@@ -7,6 +7,10 @@ This reference describes the current CLI; v1.0 compatibility promises are still
 being defined. Use `analysis-lister COMMAND --help` to check your installed version.
 For worked sequences, see [commands and recovery](workflows.md).
 
+`analysis-lister --version` prints `analysis-lister VERSION` to stdout and exits
+successfully without running a workflow. This top-level option reports installed
+package metadata; `-v` remains the verbose-logging option.
+
 ## Paths and shared options
 
 Relative paths resolve from the calling directory. Snapshot defaults are

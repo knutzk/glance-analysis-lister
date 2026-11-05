@@ -36,10 +36,10 @@ These version numbers are independent:
 | Diagnostic schema version | Report `schema_version` | The current report layout, without a complete compatibility promise. |
 | Generator revision and hashes | Generated provenance headers and report | The implementation and inputs used to create particular output. |
 
-To identify the installed package without relying on an unimplemented CLI flag:
+To identify the installed package:
 
 ```bash
-python -c 'from importlib.metadata import version; print(version("glance-analysis-lister"))'
+analysis-lister --version
 ```
 
 A future package v1.0 can still use curated schema v2. Changing a JSON version

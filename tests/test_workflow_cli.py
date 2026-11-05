@@ -6,6 +6,7 @@
 import subprocess
 import sys
 import unittest
+from importlib.metadata import version
 from pathlib import Path
 from unittest.mock import patch
 
@@ -16,6 +17,19 @@ SCRIPTS = Path(__file__).resolve().parents[1]
 
 
 class WorkflowCliTests(unittest.TestCase):
+    def test_version_exits_successfully_without_running_a_workflow(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "analysis_lister", "--version"],
+            cwd=SCRIPTS,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout, f"analysis-lister {version('glance-analysis-lister')}\n"
+        )
+        self.assertEqual(result.stderr, "")
+
     def test_imports_do_not_configure_logging_or_load_browser_dependencies(self):
         code = """
 import logging
