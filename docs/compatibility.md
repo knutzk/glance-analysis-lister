@@ -17,7 +17,7 @@ Pin an exact version or commit, review the matching release notes and follow the
 | Python | Only the imports and result attributes in [Python access](python-access.md). | Reader methods return copies; prepared objects are consumed as read-only values. Other helpers and nested rule evidence are internal. |
 | Generated pages | Four Markdown filenames, generated browser assets and the integration described in [rendering](rendering.md). | Deploy pages and assets from the same generation. HTML structure, CSS classes and internal JavaScript functions are not a supported extension API. |
 | Record/filter URLs | The emitted record fragments and parameters in the [generated URL contract](rendering.md#generated-file-and-url-contract). | Preserve the group and native identity for stable fragments. The consuming site owns URL prefixes and redirects; data and policy changes can change which records a link shows. |
-| Diagnostic reports | Current `view-report.json`, labelled schema version 2 and explained in [diagnostics](diagnostics.md). | Useful for inspection, but not yet a stable external JSON API. Rule identifiers, evidence dictionaries and reason strings may change; do not infer stability from the version number alone. |
+| Diagnostic reports | The [supported v2 summary](diagnostics.md#supported-report-summary): identity, input/generator fingerprints and counts. | Summary fields retain names, types and meanings within v2; additions are allowed. Detailed evidence, issue codes and reason strings remain internal. |
 | Bundled metadata | Citation dictionary, public-note identifiers and publication policies. | Content changes can alter new registries or views without changing the stored schema. Preserve overrides and compare results. |
 
 The command-line and curated-data interfaces serve different purposes. A CLI
@@ -33,7 +33,7 @@ These version numbers are independent:
 | --- | --- | --- |
 | Package version | Installed distribution metadata; `pyproject.toml` in a checkout | The code and bundled data release. |
 | Curated schema version | Registry `schema_version` | The stored data contract; currently `2`. |
-| Diagnostic schema version | Report `schema_version` | The current report layout, without a complete compatibility promise. |
+| Diagnostic schema version | Report `schema_version` | The supported report-summary contract; detailed traces are not versioned external APIs. |
 | Generator revision and hashes | Generated provenance headers and report | The implementation and inputs used to create particular output. |
 
 To identify the installed package:
@@ -49,9 +49,8 @@ for the rules governing format changes.
 ## What remains to settle before v1.0
 
 The support scope above is the starting point for a stable release. Before v1.0,
-the project still needs an explicit deprecation policy, compatibility checks
-across supported package versions, and decisions on long-lived generated URLs
-and diagnostic-report consumers. Citation updates require an explicit writable
+the project still needs an explicit deprecation policy and compatibility checks
+across supported package versions. Citation updates require an explicit writable
 store; builds read bundled data by default. See [citation maintenance](citations.md)
 for persistence and upgrade behaviour.
 
