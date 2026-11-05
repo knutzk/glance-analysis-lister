@@ -204,7 +204,8 @@ with configure_logging(color="never"):
             text=True,
         )
         self.assertEqual(result.returncode, 1)
-        self.assertIn("WARNING:", result.stdout)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("No publication curation configuration", result.stderr)
         self.assertIn("ERROR", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         self.assertNotIn("\033[", result.stderr)
@@ -218,6 +219,7 @@ with configure_logging(color="never"):
                     sys.executable,
                     "-m",
                     "analysis_lister",
+                    "--quiet",
                     "render-group",
                     "--group",
                     "DEMO",
@@ -232,6 +234,8 @@ with configure_logging(color="never"):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Group views rendered", result.stdout)
+        self.assertNotIn("No publication curation configuration", result.stdout)
+        self.assertIn("No publication curation configuration", result.stderr)
         self.assertNotIn("Writing output file", result.stderr)
         self.assertNotIn("\033[", result.stdout + result.stderr)
 

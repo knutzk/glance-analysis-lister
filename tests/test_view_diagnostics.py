@@ -12,7 +12,7 @@ from view_fixtures import analysis, publication, snapshot
 
 from analysis_lister.views.build import render_group
 from analysis_lister.views.diagnostics import diagnostic_entry, group_diagnostics
-from analysis_lister.views.profiles import GroupProfile
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 
 
 class DiagnosticReportTests(unittest.TestCase):
@@ -76,7 +76,13 @@ class DiagnosticReportTests(unittest.TestCase):
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(analysis(1))))
             with self.assertNoLogs("analysis_lister.views.build", level="WARNING"):
-                render_group(source, root / "pages", GroupProfile("DEMO"))
+                render_group(
+                    source,
+                    root / "pages",
+                    GroupProfile(
+                        "DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))
+                    ),
+                )
             report = json.loads((root / "pages/view-report.json").read_text())
         self.assertEqual(report["analyses_needing_review"], [])
         self.assertEqual(report["records_with_diagnostics"], [])
@@ -112,7 +118,13 @@ class DiagnosticReportTests(unittest.TestCase):
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(record, papers=(paper,))))
             with self.assertLogs("analysis_lister.views.build", level="INFO") as logs:
-                counts = render_group(source, root / "pages", GroupProfile("DEMO"))
+                counts = render_group(
+                    source,
+                    root / "pages",
+                    GroupProfile(
+                        "DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))
+                    ),
+                )
             report = json.loads((root / "pages/view-report.json").read_text())
         self.assertEqual(counts["warning_issues"], 0)
         self.assertEqual(counts["informational_issues"], 1)

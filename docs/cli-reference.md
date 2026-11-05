@@ -159,6 +159,6 @@ Successful commands and help exit `0`. Argument-parsing errors exit `2`.
 Handled validation, filesystem and request failures exit `1`; inspect the error
 and [troubleshooting guidance](troubleshooting.md) before retrying.
 
-Results and output paths go to stdout, diagnostics to stderr. Missing-policy
-warnings also go to stdout. See [logs and summaries](workflows.md#logs-and-summaries)
+Results and output paths go to stdout; diagnostics, including missing-policy
+warnings, go to stderr. See [logs and summaries](workflows.md#logs-and-summaries)
 for verbosity and download-completion details.
