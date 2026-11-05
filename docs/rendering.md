@@ -48,7 +48,7 @@ Missing publication affiliations or metadata can be supplied by an explicitly
 linked analysis; the report records that derivation. No extra group criterion
 is added implicitly. An explicitly empty policy selects no publications.
 
-If a group's table is missing, the command warns on stdout and falls back to
+If a group's table is missing, the command warns on stderr and falls back to
 its internal identifier's group token. Define a table even for a group that
 selects only its own publications. `title` sets publication-page headings;
 `--group-title` sets the ongoing-page heading and supplies the fallback when

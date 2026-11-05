@@ -58,7 +58,7 @@ def render(work, policy, publications):
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "No publication curation configuration" not in result.stdout
+    assert "No publication curation configuration" not in result.stdout + result.stderr
     report = json.loads((work / "pages/demo/view-report.json").read_text())
     assert report["counts"]["ongoing_analyses"] == 4
     assert report["counts"]["archive_publications"] == publications
