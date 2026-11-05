@@ -20,12 +20,20 @@ The development checkout includes these changes since the maintained v0.2.0 note
   before upgrading. No per-user store or automatic data migration is introduced.
 
 Include these changes in the next version's release notes when selecting a
-candidate. They do not change curated schema v2.
+candidate. The required citation-store argument is a breaking CLI change, so
+the [change policy](compatibility.md#change-and-deprecation-policy) requires a
+minor version after v0.2.0. These changes do not change curated schema v2.
+
+The development documentation also defines the generated filename/URL contract
+and the supported summary in report schema v2. Detailed report evidence remains
+internal. Contract regressions cover saved URLs and summary fields without
+freezing generated HTML layout or explanatory text.
 
 ## Prepare an exact candidate
 
 Choose the commit and version together. Review the public interfaces and bundled
-data changes, update `pyproject.toml` and version-specific README wording, and
+data changes against the compatibility policy, update `pyproject.toml` and
+version-specific README wording, and
 maintain `.github/release-notes/vVERSION.txt`. The tag must be `vVERSION`; CI checks
 that it matches package metadata and that the notes exist and are nonempty.
 
