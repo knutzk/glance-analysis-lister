@@ -5,6 +5,7 @@
 
 import json
 import unittest
+from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -23,6 +24,60 @@ FRAGMENTS = {
 
 
 class GeneratedContractTests(unittest.TestCase):
+    def test_report_summary_identifies_inputs_and_counts_diagnostics(self):
+        data = json.loads((ROOT / "examples/synthetic_registry.json").read_text())
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "synthetic.json"
+            output = root / "pages"
+            for with_warning in (False, True):
+                if with_warning:
+                    data["papers"][0]["relatedAnalysis"] = {
+                        "type": "Analysis",
+                        "referenceCode": "ANA-DEMO-2099-99",
+                    }
+                raw = json.dumps(data).encode()
+                source.write_bytes(raw)
+                render_group(
+                    source,
+                    output,
+                    GroupProfile(
+                        "DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))
+                    ),
+                )
+                report = json.loads((output / "view-report.json").read_text())
+                with self.subTest(with_warning=with_warning):
+                    self.assertEqual(report["schema"], "glance-group-view-report")
+                    self.assertIs(type(report["schema_version"]), int)
+                    self.assertEqual(report["schema_version"], 2)
+                    self.assertEqual(report["snapshot"]["filename"], "synthetic.json")
+                    self.assertEqual(
+                        report["snapshot"]["sha256"], sha256(raw).hexdigest()
+                    )
+                    self.assertEqual(report["profile"]["group"], "DEMO")
+                    self.assertRegex(report["profile_sha256"], r"\A[0-9a-f]{64}\Z")
+                    self.assertEqual(
+                        report["generator"]["name"], "glance-analysis-lister"
+                    )
+                    self.assertIsInstance(report["generator"]["git_commit"], str)
+                    self.assertTrue(report["generator"]["git_commit"])
+                    self.assertRegex(
+                        report["generator"]["content_sha256"], r"\A[0-9a-f]{64}\Z"
+                    )
+                    # Additional keys are allowed; do not freeze internal traces.
+                    expected = {
+                        "ongoing_analyses": 4,
+                        "analyses_needing_review": 0,
+                        "publication_records": 12,
+                        "archive_publications": 12,
+                        "records_with_diagnostics": int(with_warning),
+                        "warning_issues": int(with_warning),
+                        "informational_issues": 0,
+                    }
+                    for key, value in expected.items():
+                        self.assertIs(type(report["counts"][key]), int)
+                        self.assertEqual(report["counts"][key], value)
+
     def test_filenames_and_record_fragments_survive_display_changes(self):
         data = json.loads((ROOT / "examples/synthetic_registry.json").read_text())
         with TemporaryDirectory() as directory:

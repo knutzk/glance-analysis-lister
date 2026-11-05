@@ -27,7 +27,7 @@ The supported output names are:
 | `assets/gal-ongoing.css`, `assets/gal-ongoing.js` | Analysis-card presentation and controls. |
 | `assets/gal-papers.css`, `assets/gal-papers.js` | Paper-table presentation and controls. |
 | `assets/gal-notes.css`, `assets/gal-notes.js` | CONF/PUB-note presentation and controls. |
-| `view-report.json` | Private [diagnostic report](diagnostics.md). |
+| `view-report.json` | Private diagnostic report with a [supported summary](diagnostics.md#supported-report-summary). |
 
 New files may be added. Existing names and the URL forms below are compatibility
 surfaces; changes must follow the [compatibility policy](compatibility.md).
