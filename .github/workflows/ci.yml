@@ -90,6 +90,7 @@ jobs:
             pyproject.toml
             requirements-dev.txt
             tests/browser/requirements.txt
+            requirements-docs.txt
       - name: Install browser and site test dependencies
         run: python -m pip install -r requirements-dev.txt -r tests/browser/requirements.txt
       - name: Select sandbox-compatible runner browsers
@@ -113,6 +114,8 @@ jobs:
           python tests/browser/check_notes.py --resource confnotes --driver "$CHROMEDRIVER"
           python tests/browser/check_notes.py --resource pubnotes --driver "$CHROMEDRIVER"
           python tests/browser/check_zensical.py --driver "$CHROMEDRIVER"
+      - name: Check the documented demo and policy tutorial
+        run: python tests/browser/check_demo.py --driver "$CHROMEDRIVER"
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')

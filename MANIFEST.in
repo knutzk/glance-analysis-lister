@@ -5,9 +5,18 @@ include requirements*.txt
 include json/doi_metadata.json
 include json/pubnote_identifiers.json
 include publication-curation.toml
-recursive-include examples *.json *.py *.md
+recursive-include examples *.json *.py *.md *.toml
 include scripts/check_distribution.py
+include scripts/capture_screenshots.py
+include scripts/docs.py
+include zensical.toml
+include zensical-demo.toml
 recursive-include tests *.py
 include tests/browser/requirements.txt
 recursive-include docs *.md
+include docs/images/ongoing.png
+include docs/images/papers.png
+include docs/images/ongoing-card.png
+include docs/images/publication-row.png
+include docs/stylesheets/site.css
 recursive-include tests/fixtures/curated *.json

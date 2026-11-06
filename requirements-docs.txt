@@ -1,0 +1,3 @@
+# Documentation and site integration; not a runtime package dependency.
+-e .
+zensical==0.0.58

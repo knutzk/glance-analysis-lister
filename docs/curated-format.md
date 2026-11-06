@@ -1,7 +1,9 @@
 <!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 
-# Curated registry contract
+# Curated v2 contract
+
+[Documentation index](README.md)
 
 The curated JSON is a reusable domain dataset, independent of GLANCE API models,
 publication policies, Markdown renderers and the events list. Curation adapts
@@ -10,9 +12,8 @@ meaning or type of an existing curated field.
 
 Version 2 is defined by the bundled
 [`curated-v2.schema.json`](../analysis_lister/registry/schemas/curated-v2.schema.json)
-(JSON Schema Draft 2020-12) and the semantics below. The existing layout and names
-are retained. Validation does not insert defaults, reconstruct history, merge
-records or filter by group.
+(JSON Schema Draft 2020-12) and the rules below. Validation does not insert
+defaults, reconstruct history, merge records or filter by group.
 
 ## Compatibility policy
 
@@ -35,16 +36,15 @@ records or filter by group.
   frozen when introduced. Do not rewrite them to match a new writer. Add another
   fixture for a new feature and keep existing fixtures readable.
 
-This first schema formalizes intended v2 types that were previously only partly
-checked. Malformed known fields now fail earlier, at load/build time, with a field
-path. This tightening is intentional; valid saved registries need no rewriting.
+Malformed known fields fail at load or build time with a field path. Valid saved
+v2 registries need no rewriting.
 
 ## Container, identity and relationships
 
 The four resource arrays (`analyses`, `papers`, `confnotes`, `pubnotes`) and their
 nonnegative integer `counts` are required. Empty arrays with zero counts are valid
-storage. Download completeness and replacement count-drop protection are separate
-safeguards and remain unchanged.
+storage. Download completeness and count-drop protection are
+[separate checks](workflows.md#validation-and-recovery).
 
 Analyses and papers use `referenceCode`; notes use `temporaryReferenceCode`.
 Native identifiers are nonempty and unique within their resource. Public note
@@ -70,8 +70,11 @@ and documentation objects can be null.
 `gal_analysisContacts` and `gal_contactEditors` are required arrays of names.
 Optional board, reader and sign-off roles accept a string, string array or null
 for compatibility with existing v2 consumers; the writer emits arrays for boards
-and readers. Optional derived metadata lists also accept null. People describe the snapshot, not necessarily the
-membership at a historical assignment date. Raw `analysisTeam` is prohibited.
+and readers. Optional derived metadata lists also accept null. Raw `analysisTeam`
+is prohibited.
+
+People describe membership recorded in the snapshot, which may differ from
+membership at a historical assignment date.
 
 Milestone values retain a calendar date (`YYYY-MM-DD`) or an RFC 3339 timestamp
 with timezone; null and empty source strings mean no date. Derived
@@ -92,10 +95,10 @@ linked page was checked. DOI, URL and citation values remain together in each
 
 ## Validation and use
 
-`CuratedRegistry.from_json(path)` validates before returning a reader whose
-returned records are copies. `validate_registry(data)` performs the same checks
-without transforming input. The builder validates candidates before atomically
-replacing the output.
+`CuratedRegistry.from_json(path)` validates the data and returns a reader. Records
+returned by that reader are copies. `validate_registry(data)` performs the same
+checks without transforming input. The builder validates candidates before
+atomically replacing the output.
 
 1. JSON Schema checks containers, nested types, required fields and date formats.
    Unknown optional fields are allowed. Maps such as identifier source counts

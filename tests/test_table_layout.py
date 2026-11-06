@@ -35,7 +35,9 @@ class TableLayoutTests(unittest.TestCase):
         ):
             with self.subTest(resource=resource):
                 rows = [line for line in markup.splitlines() if line.startswith("<tr")]
-                self.assertEqual(len(rows), 3)  # Header, publication, expansion.
+                self.assertEqual(
+                    len(rows), 9
+                )  # Header and four publication/detail pairs.
                 self.assertTrue(
                     any(
                         line.startswith('<th scope="row"') and line.endswith("</tr>")
@@ -51,8 +53,11 @@ class TableLayoutTests(unittest.TestCase):
                 self.assertNotIn("\n\n", markup.strip())
                 soup = BeautifulSoup(markup, "html.parser")
                 body_rows = soup.select("tbody > tr")
-                self.assertEqual(len(body_rows), 2)
-                self.assertIs(body_rows[0].find_next_sibling(), body_rows[1])
+                self.assertEqual(len(body_rows), 8)
+                for index in range(0, len(body_rows), 2):
+                    self.assertIs(
+                        body_rows[index].find_next_sibling(), body_rows[index + 1]
+                    )
                 self.assertFalse(
                     soup.select("[data-gal-subgroups], [data-gal-resource]")
                 )

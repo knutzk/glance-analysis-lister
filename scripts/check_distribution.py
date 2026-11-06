@@ -42,6 +42,11 @@ def main():
         raise RuntimeError("Check must import the installed wheel, not the checkout")
 
     package = distribution("glance-analysis-lister")
+    assert not any(
+        str(path).startswith(("docs/", "examples/", "scripts/"))
+        or str(path).endswith((".png", "zensical.toml", "zensical-demo.toml"))
+        for path in package.files
+    ), "Documentation and screenshots belong in the source archive, not the wheel"
     retired = (
         "analysis_lister/download.py",
         "analysis_lister/certs/",
@@ -147,6 +152,9 @@ def main():
         for contract_file in (
             schema_path,
             "docs/curated-format.md",
+            "zensical-demo.toml",
+            "examples/demo/index.md",
+            "examples/demo/publication-curation.toml",
             "tests/fixtures/curated/v2-baseline.json",
             "tests/fixtures/curated/v2-milestones.json",
         ):
@@ -215,7 +223,8 @@ def main():
             check=True,
         )
         example_report = json.loads((example_output / "view-report.json").read_text())
-        assert example_report["counts"]["archive_publications"] == 3
+        assert example_report["counts"]["ongoing_analyses"] == 4
+        assert example_report["counts"]["archive_publications"] == 12
         api_input = work / "api.json"
         resources = ("analyses", "papers", "confnotes", "pubnotes")
         raw = {

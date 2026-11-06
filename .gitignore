@@ -2,6 +2,12 @@
 *.png
 *.pdf
 
+# Public screenshots generated only from the synthetic example.
+!/docs/images/ongoing.png
+!/docs/images/papers.png
+!/docs/images/ongoing-card.png
+!/docs/images/publication-row.png
+
 # Private inputs and generated output must never be published.
 cookies.json
 *.csv
@@ -25,9 +31,24 @@ __pycache__/
 build/
 dist/
 .ruff_cache/
+/site-src/
+/site/
+/site-demo/
+/.cache/
+/.python-version
+.DS_Store
+/.zensical-preview.yml
+
+# Local event-list work, pending separate integration.
+/analysis_lister/events.py
+/analysis_lister/event_labels.py
+/tests/test_events.py
 
 # Local coding-agent guidance.
 /AGENTS.md
+
+# Local planning document.
+/ROADMAP.md
 
 # Public schema and independently invented compatibility fixtures.
 !/analysis_lister/registry/schemas/curated-v2.schema.json

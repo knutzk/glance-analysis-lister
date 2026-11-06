@@ -63,7 +63,71 @@ def build_site(work, base):
     )
 
 
-def browse(base, driver_path):
+def check_filter_subsets(driver, wait, page):
+    """Exercise nonempty intersections and note supersession in the public demo."""
+    notes = page in {"confnotes", "pubnotes"}
+    counter = "[data-gal-note-count]" if notes else "[data-gal-count]"
+    reset = "[data-gal-note-reset]" if notes else "[data-gal-reset]"
+    search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+
+    def count(expected):
+        wait.until(
+            lambda d: d.find_element(By.CSS_SELECTOR, counter).text.startswith(
+                f"{expected} of 4"
+            )
+        )
+
+    def click(selector):
+        driver.find_element(By.CSS_SELECTOR, selector).click()
+
+    def month(bound, value):
+        driver.execute_script(
+            "const input = document.querySelector(arguments[0]);"
+            "input.value = arguments[1];"
+            "input.dispatchEvent(new Event('input', {bubbles: true}));"
+            "input.dispatchEvent(new Event('change', {bubbles: true}));",
+            f"[data-gal-date-{bound}]",
+            value,
+        )
+
+    search.send_keys("Tracking")
+    count(2)
+    if page == "ongoing":
+        click(reset)
+        click('[data-gal-value="DEMO-Tracking"]')
+        count(2)
+        click('[data-gal-value="DEMO-Calorimetry"]')
+        count(3)  # OR across subgroups; the shared analysis is counted once.
+        search.send_keys("Calibration")
+        count(1)  # Search must also match.
+    elif page == "papers":
+        click('[data-gal-value="published"]')
+        count(1)
+        click(reset)
+        click('[data-gal-value="under-review"]')
+        count(2)
+        search.send_keys("Tracking")
+        count(1)
+        click(reset)
+        month("before", "2099-01")
+        count(1)  # The older published paper; undated submissions are excluded.
+    else:
+        click(reset)
+        click('[data-gal-note-supersession="superseded"]')
+        count(4)
+        click('[data-gal-note-supersession="non-superseded"]')
+        count(1)
+        search.send_keys("Simulation")
+        count(1)
+        click(reset)
+        month("after", "2099-06")
+        month("before", "2099-08")
+        count(1)
+    click(reset)
+    count(3 if notes else 4)
+
+
+def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
     options = Options()
     if chrome := os.environ.get("CHROME_BINARY"):
         options.binary_location = chrome
@@ -73,13 +137,13 @@ def browse(base, driver_path):
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
     with webdriver.Chrome(options=options, service=Service(str(driver_path))) as driver:
         wait = WebDriverWait(driver, 15)
-        driver.get(base)
+        driver.get(base + start_page)
         wait.until(
             lambda d: d.execute_script("return typeof document$ !== 'undefined'")
         )
         driver.execute_script("window.integrationDocument = 'preserved';")
         for page in (*PAGES, "ongoing", "papers"):
-            url = base + f"analyses/{page}/"
+            url = base + f"{page_prefix}{page}/"
             link = next(
                 e
                 for e in driver.find_elements(By.CSS_SELECTOR, "a[href]")
@@ -108,16 +172,18 @@ def browse(base, driver_path):
                 if page in {"confnotes", "pubnotes"}
                 else "[data-gal-count]"
             )
+            default_count = 3 if page in {"confnotes", "pubnotes"} else 4
             wait.until(
-                lambda d, counter=counter: d.find_element(
+                lambda d, counter=counter, default_count=default_count: d.find_element(
                     By.CSS_SELECTOR, counter
-                ).text.startswith("1 of 1")
+                ).text.startswith(f"{default_count} of 4")
             )
+            check_filter_subsets(driver, wait, page)
             search.send_keys("no-synthetic-record-matches")
             wait.until(
                 lambda d, counter=counter: d.find_element(
                     By.CSS_SELECTOR, counter
-                ).text.startswith("0 of 1")
+                ).text.startswith("0 of 4")
             )
             assert "q=no-synthetic-record-matches" in driver.current_url, (
                 driver.current_url
@@ -131,7 +197,7 @@ def browse(base, driver_path):
             wait.until(
                 lambda d, counter=counter: d.find_element(
                     By.CSS_SELECTOR, counter
-                ).text.startswith("0 of 1")
+                ).text.startswith("0 of 4")
             )
             assert (
                 driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
@@ -157,9 +223,9 @@ def browse(base, driver_path):
             assert "q=" not in driver.current_url
             assert "sort=" not in driver.current_url
             wait.until(
-                lambda d, counter=counter: d.find_element(
+                lambda d, counter=counter, default_count=default_count: d.find_element(
                     By.CSS_SELECTOR, counter
-                ).text.startswith("1 of 1")
+                ).text.startswith(f"{default_count} of 4")
             )
             expand = (
                 "[data-gal-expand-all]"
@@ -184,7 +250,7 @@ def browse(base, driver_path):
         ]
         assert not errors, errors
         print(
-            "Zensical checks passed: four pages, real instant navigation, repeat visits, search/sort URL reload, reset, expansion and assets."
+            "Zensical checks passed: four pages, nonempty filter subsets, supersession, real instant navigation, repeat visits, search/sort URL reload, reset, expansion and assets."
         )
 
 

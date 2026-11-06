@@ -11,7 +11,8 @@ license = "GPL-3.0-only"
 license-files = ["LICENCE"]
 authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
-dependencies = ["attrs>=26.1", "jsonschema>=4.23,<5", "rfc3339-validator>=0.1.4", "requests>=2.34", "stare==0.6.1"]
+# stare 0.6.1 imports Hishel's pre-2.0 SpecificationPolicy and storage APIs.
+dependencies = ["attrs>=26.1", "hishel<2", "jsonschema>=4.23,<5", "rfc3339-validator>=0.1.4", "requests>=2.34", "stare==0.6.1"]
 
 [project.urls]
 Repository = "https://github.com/knutzk/glance-analysis-lister.git"
