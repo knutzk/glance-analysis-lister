@@ -12,6 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
+from urllib.parse import parse_qs, urlsplit
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -125,6 +126,66 @@ def check_filter_subsets(driver, wait, page):
         count(1)
     click(reset)
     count(3 if notes else 4)
+
+
+def check_saved_links(driver, wait, base, page_prefix):
+    # Literal bookmarks protect the public URL forms independently of whatever
+    # query strings the current controls generate. Keep these forms readable.
+    bookmarks = (
+        (
+            "ongoing",
+            "q=Tracking&subgroup=DEMO-Tracking&subgroup=DEMO-Calorimetry&sort=reference",
+            "analysis-demo-ana-demo-2099-02",
+            2,
+        ),
+        (
+            "papers",
+            "q=Tracking&status=published&status=under-review&after=2098-01&before=2098-12",
+            "publication-papers-demo-demo-2099-02",
+            1,
+        ),
+        (
+            "confnotes",
+            "q=Simulation&supersession=all&after=2098-01&before=2098-12",
+            "confnote-demo-conf-demo-2099-03",
+            1,
+        ),
+        (
+            "pubnotes",
+            "q=Simulation&supersession=superseded&after=2098-01&before=2098-12",
+            "pubnote-demo-pub-demo-2099-03",
+            1,
+        ),
+    )
+    for page, query, fragment, expected in bookmarks:
+        notes = page in {"confnotes", "pubnotes"}
+        counter = "[data-gal-note-count]" if notes else "[data-gal-count]"
+        reset = "[data-gal-note-reset]" if notes else "[data-gal-reset]"
+        driver.get(base + f"{page_prefix}{page}/?{query}&source=bookmark#{fragment}")
+        for reload in (False, True):
+            if reload:
+                driver.refresh()
+            wait.until(
+                lambda d, counter=counter, expected=expected: d.find_element(
+                    By.CSS_SELECTOR, counter
+                ).text.startswith(f"{expected} of 4")
+            )
+            assert driver.find_element(By.ID, fragment).is_displayed()
+            actual = urlsplit(driver.current_url)
+            assert actual.fragment == fragment
+            params = parse_qs(actual.query)
+            assert params["source"] == ["bookmark"]
+            for key, values in parse_qs(query).items():
+                assert sorted(params[key]) == sorted(values), (page, key, params)
+        driver.find_element(By.CSS_SELECTOR, reset).click()
+        wait.until(
+            lambda d, counter=counter, notes=notes: d.find_element(
+                By.CSS_SELECTOR, counter
+            ).text.startswith(f"{3 if notes else 4} of 4")
+        )
+        actual = urlsplit(driver.current_url)
+        assert parse_qs(actual.query) == {"source": ["bookmark"]}
+        assert actual.fragment == fragment
 
 
 def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
@@ -245,6 +306,7 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
             assert driver.execute_script(
                 "return [...document.styleSheets].some(s => s.href && s.href.endsWith('gal-common.css') && s.cssRules.length > 0)"
             )
+        check_saved_links(driver, wait, base, page_prefix)
         errors = [
             entry for entry in driver.get_log("browser") if entry["level"] == "SEVERE"
         ]

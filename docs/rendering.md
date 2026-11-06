@@ -15,6 +15,84 @@ The command writes `ongoing.md`, `papers.md`, `confnotes.md`, `pubnotes.md`,
 `pages/group`. Rendering is offline. See [provenance](provenance.md) for output
 fingerprints, reproducibility and unchanged-file handling.
 
+## Generated file and URL contract
+
+The supported output names are:
+
+| Output | Purpose |
+| --- | --- |
+| `ongoing.md` | Ongoing-analysis cards. |
+| `papers.md`, `confnotes.md`, `pubnotes.md` | Separate publication tables. |
+| `assets/gal-common.css`, `assets/gal-common.js` | Shared presentation and controls. |
+| `assets/gal-ongoing.css`, `assets/gal-ongoing.js` | Analysis-card presentation and controls. |
+| `assets/gal-papers.css`, `assets/gal-papers.js` | Paper-table presentation and controls. |
+| `assets/gal-notes.css`, `assets/gal-notes.js` | CONF/PUB-note presentation and controls. |
+| `view-report.json` | Private diagnostic report with a [supported summary](diagnostics.md#supported-report-summary). |
+
+New files may be added. Existing names and the URL forms below are compatibility
+surfaces; changes must follow the [change policy](compatibility.md#change-and-deprecation-policy).
+Generate and install pages and assets together. HTML layout, CSS class names,
+internal element IDs and JavaScript functions are not extension APIs.
+
+The consuming site owns the origin, group-directory prefix and conversion of
+Markdown paths to URLs. For example, Zensical normally serves `papers.md` at
+`papers/`. Moving the site or changing its URL style requires redirects in that
+site; the renderer does not manage them.
+
+### Record fragments
+
+The record's group and native identifier determine its fragment. Titles,
+publication display labels and row order do not. For the DEMO fixture:
+
+| Page | Fragment |
+| --- | --- |
+| Ongoing | `#analysis-demo-ana-demo-2099-01` |
+| Papers | `#publication-papers-demo-demo-2099-01` |
+| CONF notes | `#confnote-demo-conf-demo-2099-01` |
+| PUB notes | `#pubnote-demo-pub-demo-2099-01` |
+
+These emitted record fragments are supported. The current form combines the
+page-specific prefix with the group and native reference in lowercase, replacing
+runs outside `a-z`, `0-9` and `-` with `-` and trimming edge hyphens from that
+combined group/reference part. Prefer copying an emitted fragment to constructing
+one. IDs for controls, headings and detail panels are internal.
+
+The fragment stays the same while the group and native identifier stay the same
+and the record remains on that page. A source change, lifecycle transition or
+policy edit can remove the record from the page; there is no historical-record
+redirect. An ongoing-card permalink reveals and expands its card even when
+filters would hide it. Publication fragments identify rows but do not override
+filters or expand details; include the appropriate filters when sharing them.
+
+### Filter parameters
+
+Use normal URL encoding for values, including spaces and commas. Repeat a
+parameter to select several values where the table permits it; do not split a
+subgroup name at commas.
+
+| Pages | Parameter | Values and default |
+| --- | --- | --- |
+| All four | `q` | Case-insensitive substring search; omitted means no search restriction. |
+| Ongoing | `subgroup` | Exact subgroup name, repeated for OR selection. Omitted means all subgroups. |
+| Ongoing | `sort` | `stage-desc` (default), `stage-asc`, or `reference`. |
+| Papers and notes | `after`, `before` | Inclusive `YYYY-MM` bounds. Omitted means no bound. Undated rows satisfy After but not Before. |
+| Papers | `status` | `published` or `under-review`, repeated for OR selection. Omitted means both. These mean DOI present or absent. |
+| Notes | `supersession` | `non-superseded` (default), `superseded`, or `all`. |
+
+Controls restore these values when opening or reloading a link and on browser
+history navigation. Filters from different categories combine with AND. A link
+preserves selection intent, not a fixed set of results: the snapshot and policy
+still determine the available records and subgroup choices.
+
+Controls may normalise a URL by trimming search text, removing empty/default
+values, or reordering parameters. Unknown filter values are not part of this
+contract. Other application parameters and the fragment survive updates and
+Reset. The names in this table are reserved for the package; `subgroup` on note
+pages is a retired control and is removed when the URL is normalised.
+
+See [ongoing links](ongoing.md#share-a-filtered-view) and
+[publication links](publications.md#share-a-filtered-view) for examples.
+
 ## Publication policies
 
 The bundled [`publication-curation.toml`](../publication-curation.toml) controls
@@ -48,7 +126,7 @@ Missing publication affiliations or metadata can be supplied by an explicitly
 linked analysis; the report records that derivation. No extra group criterion
 is added implicitly. An explicitly empty policy selects no publications.
 
-If a group's table is missing, the command warns on stdout and falls back to
+If a group's table is missing, the command warns on stderr and falls back to
 its internal identifier's group token. Define a table even for a group that
 selects only its own publications. `title` sets publication-page headings;
 `--group-title` sets the ongoing-page heading and supplies the fallback when

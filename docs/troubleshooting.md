@@ -104,9 +104,12 @@ offline inference rule covers only recognised JHEP patterns, and ambiguous
 INSPIRE results remain unresolved. Manual entries are protected even with
 `--refresh-existing`.
 
-If the installed shared store is not writable, copy it to a writable location
-and consistently pass `--doi-cache PATH` to citation and build commands. A new,
-missing path starts empty; it does not inherit the shared citations.
+If a citation command reports that `--doi-cache` is required, choose a writable
+store outside the installation and pass its path explicitly. To retain bundled
+entries, [copy the dictionary first](citations.md#choose-a-store). Use the same
+path with build commands. A missing path starts empty; it does not inherit the
+bundled citations. Keep user updates outside installed shared data, which may
+be read-only or replaced during an upgrade.
 
 ## Missing records or inactive page controls
 

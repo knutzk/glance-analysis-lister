@@ -119,7 +119,7 @@ analysis-lister render-group --group DEMO \
   --snapshot examples/synthetic_registry.json --output-dir pages/demo-fallback
 ```
 
-The bundled shared policies have no `DEMO` entry, so this command warns on stdout
+The bundled shared policies have no `DEMO` entry, so this command warns on stderr
 and selects publications by the `DEMO` token in their identifiers. See
 [publication policies](../docs/rendering.md#publication-policies) for the distinction
 between missing and explicitly empty configuration.

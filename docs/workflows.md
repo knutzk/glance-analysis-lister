@@ -167,8 +167,8 @@ do not prove that the pre-existing data was valid or complete.
 
 ## Logs and summaries
 
-Diagnostics go to stderr; results and output paths go to stdout. Missing
-publication-policy warnings are an exception and also go to stdout. Summaries
+Diagnostics, including missing publication-policy warnings, go to stderr;
+results and output paths go to stdout. Summaries
 are flushed immediately to preserve order in combined redirected logs.
 
 Downloads and builds log configuration, paths and processing stages. API progress

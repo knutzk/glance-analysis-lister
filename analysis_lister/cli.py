@@ -5,6 +5,7 @@
 
 import argparse
 import logging
+from importlib.metadata import version
 from pathlib import Path
 
 import requests
@@ -74,7 +75,14 @@ def parser():
         "--doi-cache",
         type=Path,
         default=default_store_path(),
-        help="Maintained citation JSON dictionary (default: shared glance-analysis-lister dictionary).",
+        help="Citation JSON dictionary to read (default: bundled glance-analysis-lister dictionary).",
+    )
+    citation_updates = argparse.ArgumentParser(add_help=False)
+    citation_updates.add_argument(
+        "--doi-cache",
+        type=Path,
+        required=True,
+        help="Citation JSON store to update; choose an explicit writable path. Missing stores start empty.",
     )
     counts = argparse.ArgumentParser(add_help=False)
     counts.add_argument(
@@ -84,6 +92,12 @@ def parser():
     )
 
     command = argparse.ArgumentParser(description=__doc__, parents=[console])
+    command.add_argument(
+        "--version",
+        action="version",
+        version=f"analysis-lister {version('glance-analysis-lister')}",
+        help="Show the installed package version and exit.",
+    )
     command.set_defaults(validator=None)
     commands = command.add_subparsers(dest="command", required=True)
     api = commands.add_parser(
@@ -245,7 +259,7 @@ def parser():
     resolve = commands.add_parser(
         "resolve-dois",
         help="Infer DOI citations or retrieve public INSPIRE metadata incrementally.",
-        parents=[citations, console],
+        parents=[citation_updates, console],
     )
     inputs = resolve.add_mutually_exclusive_group(required=True)
     inputs.add_argument(
@@ -273,7 +287,7 @@ def parser():
     resolve.set_defaults(handler=_run_resolve_dois, validator=_validate_resolution)
     formatting = commands.add_parser(
         "format-citations",
-        parents=[citations, console],
+        parents=[citation_updates, console],
         help="Normalise journal abbreviations and starting pages in non-manual citations offline.",
     )
     formatting.set_defaults(handler=_run_format_citations)

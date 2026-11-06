@@ -5,10 +5,35 @@ test run is evidence for a candidate, not permission to tag, push or publish it.
 Consumers should follow [upgrading](upgrading.md); contributors should start with
 [development and validation](development.md).
 
+## Unreleased CLI changes
+
+The development checkout includes these changes since the maintained v0.2.0 notes:
+
+- `analysis-lister --version` reports the installed package version.
+- Missing publication-policy warnings now go to stderr, including with `--quiet`.
+  Redirect diagnostic output separately from results if your scripts previously
+  read those warnings from stdout.
+- `resolve-dois` and `format-citations` require `--doi-cache PATH`. Builds still
+  read bundled citations by default. An explicit missing path starts empty,
+  including `json/doi_metadata.json`; the old fallback to bundled entries is
+  removed. Preserve existing edits and [choose a store](citations.md#choose-a-store)
+  before upgrading. No per-user store or automatic data migration is introduced.
+
+Include these changes in the next version's release notes when selecting a
+candidate. The required citation-store argument is a breaking CLI change, so
+the [change policy](compatibility.md#change-and-deprecation-policy) requires a
+minor version after v0.2.0. These changes do not change curated schema v2.
+
+The development documentation also defines the generated filename/URL contract
+and the supported summary in report schema v2. Detailed report evidence remains
+internal. Contract regressions cover saved URLs and summary fields without
+freezing generated HTML layout or explanatory text.
+
 ## Prepare an exact candidate
 
 Choose the commit and version together. Review the public interfaces and bundled
-data changes, update `pyproject.toml` and version-specific README wording, and
+data changes against the compatibility policy, update `pyproject.toml` and
+version-specific README wording, and
 maintain `.github/release-notes/vVERSION.txt`. The tag must be `vVERSION`; CI checks
 that it matches package metadata and that the notes exist and are nonempty.
 

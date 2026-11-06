@@ -341,6 +341,53 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
             builder.build_registry(self.api_path, cache, doi_cache=cache)
 
+    def test_default_citations_ignore_working_directory_and_explicit_paths_are_exact(
+        self,
+    ):
+        doi = "10.1007/jhep01(2099)001"
+        self.api["papers"][0]["publicationPhase"] = {
+            "finalJournalPublicationUrls": [{"url": "https://doi.org/" + doi}],
+        }
+        self.api_path.write_text(json.dumps(self.api))
+        bundled = self.root / "bundled-citations.json"
+        bundled.write_text(
+            json.dumps({doi: {"citation": "Bundled example", "source": "manual"}})
+        )
+        local = self.root / "json/doi_metadata.json"
+        local.parent.mkdir()
+        local.write_text(
+            json.dumps({doi: {"citation": "Local example", "source": "manual"}})
+        )
+        before = bundled.read_bytes()
+        with (
+            chdir(self.root),
+            patch.object(builder, "default_store_path", return_value=bundled),
+        ):
+            for options, expected in (
+                ({}, "Bundled example"),
+                ({"doi_cache": Path("json/doi_metadata.json")}, "Local example"),
+            ):
+                with self.subTest(options=options):
+                    builder.build_registry(self.api_path, self.output, **options)
+                    result = json.loads(self.output.read_text())
+                    self.assertEqual(
+                        result["papers"][0]["publicationPhase"]["gal_dois"][0][
+                            "citation"
+                        ],
+                        expected,
+                    )
+            local.unlink()
+            builder.build_registry(
+                self.api_path, self.output, doi_cache=Path("json/doi_metadata.json")
+            )
+            self.assertEqual(
+                json.loads(self.output.read_text())["gal_curation"]["doi_statistics"][
+                    "resolved"
+                ],
+                0,
+            )
+        self.assertEqual(bundled.read_bytes(), before)
+
     def test_unused_api_title_and_creation_values_are_dropped(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
         self.api["analyses"][0]["creationDate"] = "2098-12-01"

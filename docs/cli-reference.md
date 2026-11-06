@@ -7,6 +7,10 @@ This reference describes the current CLI; v1.0 compatibility promises are still
 being defined. Use `analysis-lister COMMAND --help` to check your installed version.
 For worked sequences, see [commands and recovery](workflows.md).
 
+`analysis-lister --version` prints `analysis-lister VERSION` to stdout and exits
+successfully without running a workflow. This top-level option reports installed
+package metadata; `-v` remains the verbose-logging option.
+
 ## Paths and shared options
 
 Relative paths resolve from the calling directory. Snapshot defaults are
@@ -19,11 +23,13 @@ Two defaults are located through the package, independently of the working direc
 | Option | Default | Used by |
 | --- | --- | --- |
 | `--curation-config PATH` | Shared `publication-curation.toml` | `refresh`, `render-group` |
-| `--doi-cache PATH` | Shared `json/doi_metadata.json` | `refresh`, `build-registry`, `resolve-dois`, `format-citations` |
+| `--doi-cache PATH` | Shared `json/doi_metadata.json` (read only) | `refresh`, `build-registry` |
+| `--doi-cache PATH` | Required; no default | `resolve-dois`, `format-citations` |
 
-These are checkout files for an editable installation, or installed data files
-for a wheel. Citation commands **write to the selected store**, including the
-shared default. A missing custom store starts empty. See
+The shared defaults are checkout files for an editable installation, or installed
+data files for a wheel. Citation updates require an explicit writable store;
+there is no default that modifies installed data. Every explicit path selects
+only that file, and a missing store starts empty. See
 [citation maintenance](citations.md) and [policy fields](rendering.md#publication-policies).
 Public-note identifiers are read from the packaged dictionary; there is no CLI
 override for that dictionary.
@@ -134,7 +140,7 @@ exactly one input form. Manual entries are never replaced automatically.
 | --- | --- | --- |
 | `--snapshot PATH` | One input form required | Read DOIs from an API snapshot or curated registry. |
 | `--doi DOI` | One input form required | Bare DOI or doi.org URL; repeat for multiple DOIs. |
-| `--doi-cache PATH` | Shared citation store | Store to update; must not overwrite the snapshot. |
+| `--doi-cache PATH` | Required | Writable store to update; must not overwrite the snapshot. |
 | `--method infer\|inspire\|auto` | `infer` | Offline JHEP inference, public INSPIRE lookup, or inference followed by lookup. |
 | `--refresh-existing` | Off | Revisit existing non-manual entries. |
 | `--limit N` | No limit | Positive maximum number of eligible entries to attempt. |
@@ -146,7 +152,7 @@ afterwards to propagate citations to pages.
 ## `format-citations`
 
 Normalise non-manual citations offline. The only command-specific option is
-`--doi-cache PATH`, defaulting to the shared citation store. Updates that store;
+`--doi-cache PATH`, which is required. Updates that store;
 snapshots and pages are unchanged until rebuilt and rendered.
 
 ## Exit status and logs
@@ -155,6 +161,6 @@ Successful commands and help exit `0`. Argument-parsing errors exit `2`.
 Handled validation, filesystem and request failures exit `1`; inspect the error
 and [troubleshooting guidance](troubleshooting.md) before retrying.
 
-Results and output paths go to stdout, diagnostics to stderr. Missing-policy
-warnings also go to stdout. See [logs and summaries](workflows.md#logs-and-summaries)
+Results and output paths go to stdout; diagnostics, including missing-policy
+warnings, go to stderr. See [logs and summaries](workflows.md#logs-and-summaries)
 for verbosity and download-completion details.

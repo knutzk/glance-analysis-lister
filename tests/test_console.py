@@ -159,10 +159,18 @@ with configure_logging(color="never"):
                 patch.object(cli, "configure_logging") as setup,
                 patch.object(cli, "_run_format_citations"),
             ):
-                cli.main(flags)
+                cli.main([*flags, "--doi-cache", "unused-synthetic-citations.json"])
                 setup.assert_called_once_with(verbose=True, quiet=False, color="always")
         with patch("sys.stderr", io.StringIO()), self.assertRaises(SystemExit) as error:
-            cli.main(["--quiet", "format-citations", "--verbose"])
+            cli.main(
+                [
+                    "--quiet",
+                    "format-citations",
+                    "--verbose",
+                    "--doi-cache",
+                    "unused-synthetic-citations.json",
+                ]
+            )
         self.assertEqual(error.exception.code, 2)
 
     def test_forced_colour_overrides_no_color_and_never_stays_plain(self):
@@ -204,7 +212,8 @@ with configure_logging(color="never"):
             text=True,
         )
         self.assertEqual(result.returncode, 1)
-        self.assertIn("WARNING:", result.stdout)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("No publication curation configuration", result.stderr)
         self.assertIn("ERROR", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         self.assertNotIn("\033[", result.stderr)
@@ -218,6 +227,7 @@ with configure_logging(color="never"):
                     sys.executable,
                     "-m",
                     "analysis_lister",
+                    "--quiet",
                     "render-group",
                     "--group",
                     "DEMO",
@@ -232,6 +242,8 @@ with configure_logging(color="never"):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Group views rendered", result.stdout)
+        self.assertNotIn("No publication curation configuration", result.stdout)
+        self.assertIn("No publication curation configuration", result.stderr)
         self.assertNotIn("Writing output file", result.stderr)
         self.assertNotIn("\033[", result.stdout + result.stderr)
 

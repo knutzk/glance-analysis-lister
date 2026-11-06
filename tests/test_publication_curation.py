@@ -184,9 +184,21 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             self.assertNotIn("Invented publication title", ongoing_page(view))
             for configured, warn in ((profile, False), (GroupProfile("DEMO"), True)):
                 stdout = io.StringIO()
-                with redirect_stdout(stdout):
+                with (
+                    redirect_stdout(stdout),
+                    self.assertLogs(
+                        "analysis_lister.views.build", level="INFO"
+                    ) as logs,
+                ):
                     render_group(path, root / "out", configured)
-                self.assertEqual("WARNING:" in stdout.getvalue(), warn)
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertEqual(
+                    any(
+                        "No publication curation configuration" in item
+                        for item in logs.output
+                    ),
+                    warn,
+                )
 
     def test_config_is_optional_and_validated(self):
         from analysis_lister.views.curation import load_publication_policy
