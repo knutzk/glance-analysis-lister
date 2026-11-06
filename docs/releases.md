@@ -13,6 +13,10 @@ The development checkout includes these changes since the maintained v0.2.0 note
 - Missing publication-policy warnings now go to stderr, including with `--quiet`.
   Redirect diagnostic output separately from results if your scripts previously
   read those warnings from stdout.
+- API download errors distinguish authentication/access, connectivity, response
+  validation and pagination failures. HTML transport errors report safe remedies
+  instead of raw Requests exceptions, including in verbose traces. Exit status 1,
+  TLS verification and publication safeguards are unchanged; no retries are added.
 - `resolve-dois` and `format-citations` require `--doi-cache PATH`. Builds still
   read bundled citations by default. An explicit missing path starts empty,
   including `json/doi_metadata.json`; the old fallback to bundled entries is

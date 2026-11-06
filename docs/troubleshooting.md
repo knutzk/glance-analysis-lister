@@ -28,10 +28,23 @@ for GLANCE. HTML export has its own cookie file: `No cookies found` or
 `Invalid or expired cookies` calls for `download-html --login`, with the same
 `--cookies PATH` on subsequent runs. An API login does not refresh HTML cookies.
 
-For a persistent access-denied response, check account access rather than
-repeatedly logging in. For DNS errors, connection failures or timeouts, check
-connectivity to the endpoint named in the error and retry once connectivity is
-restored. Offline build and render commands can continue using saved snapshots.
+| Error | Next step |
+| --- | --- |
+| Authentication failed or HTTP 401 | Retry with `--login`. If it persists, check account access and authentication-service connectivity. |
+| HTTP 403 | Check your account's GLANCE permissions. A new login does not grant missing access. |
+| HTTP 404 | Check the configured endpoint and client/API compatibility. |
+| HTTP 429 | Wait before retrying; the service is limiting request rate. |
+| HTTP 5xx | Retry after the service recovers. |
+| API network failure | Check connectivity, proxy and TLS/CA settings. This category can include timeouts; it does not imply expired credentials. |
+| HTML connection failure or timeout | Check DNS, network/proxy settings and service availability before retrying. |
+| API client configuration failure | Check stare settings and the installed dependencies. |
+
+The downloader does not automatically retry these failures. Offline build and
+render commands can continue using saved snapshots. API retrieval and HTML
+transport errors omit upstream exception text, response bodies, URL credentials,
+query strings and exception chains, including with `--verbose`. The API error
+retains the exception type for diagnosis; an unknown retrieval failure should be
+reported with that type and a synthetic reproducer.
 
 For an HTML TLS error, check the server certificate chain and any configured
 proxy or CA bundle. The exporter honours `REQUESTS_CA_BUNDLE` (or
@@ -46,8 +59,9 @@ transport; the HTML certificate handling does not configure that client.
 | --- | --- |
 | Expected a supported API or curated registry | Check which file you passed: `build-registry` reads API JSON; `render-group` reads curated v2 JSON. CSVs and diagnostic reports are neither. |
 | A schema error names a field path | Inspect that field's type against the [curated contract](curated-format.md). Use a small invented reproducer when reporting it. Do not change a version number to force acceptance. |
+| API response validation failed | The client could not parse a response or a record lacked its native identifier. Check client/API compatibility; the command does not skip malformed records or publish a partial snapshot. |
 | A reader rejects an older or future schema version | Use a compatible package or rebuild from a supported saved API snapshot. There is currently no automatic schema migration. |
-| Counts disagree, identifiers repeat or API pagination is incomplete | Treat the candidate as invalid. Check source completeness; `--allow-count-drop` cannot bypass these checks. |
+| Counts disagree, identifiers repeat or API pagination is incomplete | Treat the candidate as invalid. Pagination errors name the resource and reason: an empty/invalid count, changing total, incomplete page or duplicate. Check source completeness, then retry the complete download; `--allow-count-drop` cannot bypass these checks. |
 | A resource count dropped by more than 20% | Compare the previous and candidate counts, account permissions and endpoint. Only retry with `--allow-count-drop` when the reduction is understood. |
 | Endpoint differs from the existing destination | Use a new destination for a different source. Retain the previous snapshot for comparison. |
 | An output would overwrite an input | Choose distinct paths for snapshots, dictionaries, policies and generated output. `refresh` checks these before authentication. |
