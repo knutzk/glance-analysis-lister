@@ -101,6 +101,7 @@ automated and manual checks. Keep a short record for the exact candidate:
 | Browser and site | Browser/driver versions, Zensical version, theme and tested URL prefix. |
 | Commands and outcomes | Offline tests, recovery checks, source-to-wheel validation, strict site build, browser suite and consuming-site check; link matching CI runs. |
 | Manual observations | macOS candidate checks, keyboard/focus and narrow-screen inspection; record failures and skipped checks explicitly. |
+| Performance | [Synthetic benchmark](development.md#performance-measurements) report, workload size, environment, provisional limits and all failures; link the manual workflow run when used. |
 | Live acceptance | Separately authorised fresh login, credential reuse, download, build and render results, or "not performed". Record only non-sensitive outcomes. |
 
 Report each environment separately. Prior development runs and synthetic
