@@ -30,6 +30,10 @@ assets, dictionaries, policies and licences.
 
 ## Choose regression coverage
 
+The [field walkthrough](contributing-field.md) follows a synthetic trigger from
+API input to stored data, prepared search metadata and a rendered analysis card.
+Use it to locate the right layer and select tests for a contribution.
+
 View tests cover preparation, ongoing pages, papers, notes, shared controls,
 publication policies and output generation. Use the shared synthetic fixtures
 in `tests/view_fixtures.py`; construct new records independently of private data.
@@ -72,7 +76,13 @@ preview, exercises the empty-policy tutorial and restores the original output.
 It also builds the documentation and checks all four embedded demo pages under
 the repository subpath. Both sites reuse the instant-navigation and filter checks.
 
-Both offline and browser CI jobs must pass before the release job creates a draft
-release from a tag. All test data is invented; these checks do not establish live
-CERN authentication. To preview the documentation itself, use the
-[local site guide](site.md).
+The offline, browser and documentation CI jobs must pass before the release job
+creates a draft release from a tag. The documentation job also supplies an
+[HTML artifact for review](site.md#inspect-a-ci-build). All test data is invented;
+these checks do not establish live CERN authentication. To preview the
+documentation itself, use the [local site guide](site.md).
+
+For version changes, artifact checks and the tag workflow, follow
+[release qualification](releases.md). The [compatibility guide](compatibility.md)
+defines the current interface boundaries; the [upgrade guide](upgrading.md)
+describes how consumers can evaluate a candidate using saved data.

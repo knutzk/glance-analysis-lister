@@ -27,6 +27,16 @@ ROOT = Path(__file__).resolve().parents[2]
 POLICY = "examples/demo/publication-curation.toml"
 
 
+def wait_for_preview_text(url, text):
+    deadline = time.monotonic() + 15
+    while True:
+        with urlopen(url, timeout=5) as response:
+            if text in response.read().decode():
+                return
+        assert time.monotonic() < deadline, f"Preview did not reload: {url}"
+        time.sleep(0.1)
+
+
 def render(work, policy, publications):
     result = subprocess.run(
         [
@@ -56,25 +66,23 @@ def render(work, policy, publications):
 
 
 @contextmanager
-def preview(work):
+def preview(work, *, documentation=False):
     """Start and stop the actual documented Zensical preview command."""
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
     base = f"http://127.0.0.1:{port}/"
+    if documentation:
+        base += "glance-analysis-lister/"
+    command = (
+        [sys.executable, "scripts/docs.py", "serve"]
+        if documentation
+        else [sys.executable, "-m", "zensical", "serve", "-f", "zensical-demo.toml"]
+    )
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "zensical",
-                "serve",
-                "-f",
-                "zensical-demo.toml",
-                "--dev-addr",
-                f"127.0.0.1:{port}",
-            ],
+            [*command, "--dev-addr", f"127.0.0.1:{port}"],
             cwd=work,
             stdout=log,
             stderr=subprocess.STDOUT,
@@ -98,6 +106,11 @@ def preview(work):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+            with socket.socket() as connection:
+                connection.settimeout(1)
+                assert connection.connect_ex(("127.0.0.1", port)) != 0, (
+                    "Preview left its server running after termination"
+                )
 
 
 def check_demo(work, driver):
@@ -137,9 +150,45 @@ def check_demo(work, driver):
     with preview(work) as base:
         browse(base, driver, page_prefix="")
 
+    # Local roadmap preview must not require edits to the tracked config or leak
+    # into a subsequent public build. Use invented text, never a local roadmap.
+    config_before = (work / "zensical.toml").read_bytes()
+    roadmap = work / "ROADMAP.md"
+    roadmap.write_text("# Local roadmap preview\n\n- [ ] Invented task\n")
+    with preview(work, documentation=True) as base:
+        with urlopen(base + "ROADMAP/", timeout=5) as response:
+            assert "Local roadmap preview" in response.read().decode()
+        roadmap.write_text(roadmap.read_text() + "\nUpdated local planning text.\n")
+        wait_for_preview_text(base + "ROADMAP/", "Updated local planning text.")
+        notes = work / ".github/release-notes/v0.2.0.txt"
+        original_notes = notes.read_bytes()
+        notes.write_bytes(
+            original_notes + b"\n\nSynthetic release-note reload check.\n"
+        )
+        wait_for_preview_text(
+            base + "docs/release-notes/v0.2.0/", "Synthetic release-note reload check."
+        )
+        notes.write_bytes(original_notes)
+    assert (work / "zensical.toml").read_bytes() == config_before
+
     # Build the documentation site with the complete demo under its real subpath.
     subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
+    assert not (work / "site-src/ROADMAP.md").exists()
+    assert not (work / "site/ROADMAP").exists()
+    assert 'href="ROADMAP/' not in (work / "site/index.html").read_text()
     assert not list((work / "site-src").rglob("view-report.json"))
+    assert not (work / "site-src/.github").exists()
+    for version in ("v0.1.0", "v0.2.0"):
+        original = (work / f".github/release-notes/{version}.txt").read_bytes()
+        staged = (work / f"site-src/docs/release-notes/{version}.md").read_bytes()
+        assert staged.endswith(original), "Release notes must reuse the maintained text"
+        html = (work / f"site/docs/release-notes/{version}/index.html").read_text()
+        assert "Synthetic release-note reload check." not in html
+        assert (
+            BeautifulSoup(html, "html.parser")
+            .h1.get_text()
+            .startswith(f"{version} release notes")
+        )
     for guide in ("ongoing", "publications"):
         html = (work / "site/docs" / guide / "index.html").read_text()
         records = BeautifulSoup(html, "html.parser").select(
@@ -170,7 +219,7 @@ def check_demo(work, driver):
             server.shutdown()
             thread.join()
     print(
-        "Demo checks passed: standalone preview, policy tutorial and documentation demo."
+        "Demo checks passed: standalone preview, policy tutorial, local roadmap isolation and documentation demo."
     )
 
 

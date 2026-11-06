@@ -8,21 +8,26 @@ import importlib
 import json
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
+import tomllib
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
+PREVIEW_CONFIG = ".zensical-preview.yml"
+RELEASE_VERSIONS = ("v0.2.0", "v0.1.0")
 if (ROOT / "analysis_lister/__init__.py").is_file():
     sys.path.insert(0, str(ROOT))
 # Never stage the whole checkout or docs tree: they may contain private outputs.
 PUBLIC_FILES = (
     "README.md",
     "LICENCE",
+    *(f".github/release-notes/{version}.txt" for version in RELEASE_VERSIONS),
     "zensical.toml",
     "zensical-demo.toml",
     "scripts/docs.py",
@@ -35,16 +40,23 @@ PUBLIC_FILES = (
     "docs/README.md",
     "docs/architecture.md",
     "docs/citations.md",
+    "docs/cli-reference.md",
+    "docs/compatibility.md",
+    "docs/contributing-field.md",
     "docs/curated-format.md",
     "docs/development.md",
     "docs/diagnostics.md",
+    "docs/glossary.md",
     "docs/provenance.md",
     "docs/ongoing.md",
     "docs/publications.md",
     "docs/python-access.md",
     "docs/registry.md",
+    "docs/releases.md",
     "docs/rendering.md",
     "docs/site.md",
+    "docs/troubleshooting.md",
+    "docs/upgrading.md",
     "docs/stylesheets/site.css",
     "docs/workflows.md",
     "docs/images/README.md",
@@ -114,10 +126,41 @@ def demo_pages(snapshot, policy):
         }
 
 
-def stage(root=ROOT):
+def write_changed(destination, content):
+    if not destination.exists() or destination.read_bytes() != content:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
+
+
+def stage(root=ROOT, *, include_roadmap=False):
     """Copy changed public sources without rewriting unchanged files."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
+    for version in RELEASE_VERSIONS:
+        notes = sources.pop(f".github/release-notes/{version}.txt")
+        heading = (
+            f"# {version} release notes\n\n"
+            "These repository notes describe this version. Commands and validation\n"
+            "results below are historical; they do not qualify the current checkout.\n"
+            "See [release qualification](../releases.md) and "
+            "[upgrading](../upgrading.md).\n\n"
+        )
+        sources[f"docs/release-notes/{version}.md"] = heading.encode("utf-8") + notes
+        # Keep source links usable on GitHub; the site links to rendered notes.
+        sources["docs/releases.md"] = sources["docs/releases.md"].replace(
+            f"(../.github/release-notes/{version}.txt)".encode(),
+            f"(release-notes/{version}.md)".encode(),
+        )
+    if include_roadmap:
+        sources["ROADMAP.md"] = (root / "ROADMAP.md").read_bytes()
+        config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]
+        config["nav"].append({"Roadmap": "ROADMAP.md"})
+        # JSON is valid YAML; Zensical accepts the same project settings in both.
+        # Keep this generated config at the repository root for relative paths.
+        write_changed(
+            root / PREVIEW_CONFIG,
+            (json.dumps(config, indent=2) + "\n").encode("utf-8"),
+        )
     snapshot = sources["examples/synthetic_registry.json"]
     policy = sources["examples/demo/publication-curation.toml"]
     sources.update(demo_pages(snapshot, policy))
@@ -139,10 +182,7 @@ def stage(root=ROOT):
                 files("analysis_lister.views") / "assets" / filename
             ).read_bytes()
     for name, content in sources.items():
-        destination = root / "site-src" / name
-        if not destination.exists() or destination.read_bytes() != content:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(content)
+        write_changed(root / "site-src" / name, content)
 
 
 def main():
@@ -172,25 +212,35 @@ def main():
         path = ROOT / directory
         if path.exists():
             shutil.rmtree(path)
-    stage()
-    command = [sys.executable, "-m", "zensical", args.command]
+    include_roadmap = args.command == "serve" and (ROOT / "ROADMAP.md").is_file()
+    stage(include_roadmap=include_roadmap)
+    config = PREVIEW_CONFIG if include_roadmap else "zensical.toml"
+    command = [sys.executable, "-m", "zensical", args.command, "-f", config]
     if args.command == "build":
         return subprocess.call([*command, "--clean", "--strict"], cwd=ROOT)
     with subprocess.Popen([*command, "--dev-addr", args.dev_addr], cwd=ROOT) as process:
+        # A supervisor may terminate only this wrapper. Handle SIGTERM like
+        # Ctrl+C so the Zensical child is stopped before a subsequent build.
+        previous_termination = signal.signal(signal.SIGTERM, signal.default_int_handler)
         try:
             while process.poll() is None:
                 time.sleep(0.5)
                 try:
-                    stage()
+                    stage(include_roadmap=include_roadmap)
                 except FileNotFoundError:
                     # Retry while an editor is replacing a source file.
                     continue
         except KeyboardInterrupt:
             return 0
         finally:
+            signal.signal(signal.SIGTERM, previous_termination)
             if process.poll() is None:
                 process.terminate()
-            process.wait()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
         return process.returncode
 
 

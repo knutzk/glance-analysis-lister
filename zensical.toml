@@ -28,6 +28,8 @@ nav = [
     { "Overview" = "docs/README.md" },
     { "Synthetic example" = "examples/README.md" },
     { "Commands and recovery" = "docs/workflows.md" },
+    { "Command-line reference" = "docs/cli-reference.md" },
+    { "Troubleshooting" = "docs/troubleshooting.md" },
     { "Rendering and policies" = "docs/rendering.md" },
     { "Ongoing analyses" = "docs/ongoing.md" },
     { "Publication tables" = "docs/publications.md" },
@@ -37,6 +39,9 @@ nav = [
     { "Citations" = "docs/citations.md" },
     { "Provenance" = "docs/provenance.md" },
     { "Python access" = "docs/python-access.md" },
+    { "Compatibility" = "docs/compatibility.md" },
+    { "Upgrading" = "docs/upgrading.md" },
+    { "Glossary" = "docs/glossary.md" },
   ] },
   { "Demo" = [
     { "Overview" = "examples/demo/index.md" },
@@ -47,7 +52,13 @@ nav = [
   ] },
   { "Development" = [
     { "Architecture" = "docs/architecture.md" },
+    { "Field walkthrough" = "docs/contributing-field.md" },
     { "Validation" = "docs/development.md" },
+    { "Releases" = "docs/releases.md" },
+    { "Release notes" = [
+      { "v0.2.0" = "docs/release-notes/v0.2.0.md" },
+      { "v0.1.0 (historical)" = "docs/release-notes/v0.1.0.md" },
+    ] },
     { "Local documentation site" = "docs/site.md" },
     { "Screenshots" = "docs/images/README.md" },
   ] },

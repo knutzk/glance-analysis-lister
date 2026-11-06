@@ -3,6 +3,8 @@
 
 """Stable prepared contracts preserve evidence and distinguish missing policy."""
 
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -20,6 +22,45 @@ from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 
 
 class PreparedContractTests(unittest.TestCase):
+    def test_public_preparation_works_without_io_or_renderer_imports(self):
+        code = """
+import sys
+from analysis_lister.registry import CuratedRegistry, RESOURCES, SCHEMA, SCHEMA_VERSION, validate_registry
+from analysis_lister.views.curation import load_publication_policy
+from analysis_lister.views.prepare import prepare_group
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+
+registry = CuratedRegistry.from_json("examples/synthetic_registry.json")
+policy = load_publication_policy("examples/demo/publication-curation.toml", "DEMO")
+before = {resource: registry.records(resource) for resource in RESOURCES}
+assert registry.metadata["schema"] == SCHEMA
+assert registry.metadata["schema_version"] == SCHEMA_VERSION
+validate_registry({**registry.metadata, **{key: list(value) for key, value in before.items()}})
+
+def reject_io(event, args):
+    if event in {"open", "socket.connect", "socket.getaddrinfo"}:
+        raise AssertionError(f"Unexpected I/O during preparation: {event}")
+
+sys.addaudithook(reject_io)
+view = prepare_group(registry, GroupProfile("DEMO", publication_policy=policy))
+assert len(view.ongoing) == 4
+assert len(view.archive) == 12
+assert {resource: registry.records(resource) for resource in RESOURCES} == before
+assert all(isinstance(row.metadata["text"], str) for row in (*view.ongoing, *view.archive))
+empty = prepare_group(registry, GroupProfile("DEMO", publication_policy=PublicationPolicy()))
+assert len(empty.ongoing) == 4 and empty.archive == ()
+assert not any(name.startswith(("analysis_lister.views.markdown", "analysis_lister.downloaders"))
+               for name in sys.modules)
+assert not {"requests", "stare", "selenium"}.intersection(sys.modules)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_record_metadata_is_independent_of_page_control_choices(self):
         active = analysis(1)
         active["gal_groups"]["leadingSubgroup"] = "DEMO-Active"
