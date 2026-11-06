@@ -13,7 +13,6 @@ from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
 from time import perf_counter
-from urllib.parse import urlsplit, urlunsplit
 
 from ..registry.schema import (
     API_SCHEMA as SCHEMA,
@@ -22,6 +21,7 @@ from ..registry.schema import (
     validate_api_registry as validate_registry,
 )
 from ..storage import atomic_write_text
+from .errors import endpoint_label, http_failure
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +41,38 @@ def _validate_page_size(page_size):
         raise ValueError("page_size must be a positive integer")
 
 
-def _endpoint_label(url):
-    """Show the service endpoint without URL credentials, query or fragment."""
-    try:
-        parts = urlsplit(str(url))
-        if not parts.scheme or not parts.netloc:
-            return "configured endpoint"
-        return urlunsplit(
-            (parts.scheme, parts.netloc.rsplit("@", 1)[-1], parts.path, "", "")
-        )
-    except ValueError:
-        return "configured endpoint"
+class _PaginationError(ValueError):
+    """A locally generated completeness error containing no source values."""
+
+
+class _ResponseError(ValueError):
+    """A locally generated response-shape error containing no source values."""
+
+
+def _failure_reason(error, stage):
+    # Keep stare lazy: offline registry/view imports do not need its transport.
+    from stare.exceptions import (
+        ApiError,
+        AuthenticationError,
+        NetworkError,
+        ResponseParseError,
+    )
+
+    if isinstance(error, _PaginationError):
+        return f"Pagination failed: {error}. Retry the complete download; --allow-count-drop cannot bypass this check."
+    if isinstance(error, _ResponseError):
+        return f"Response validation failed: {error}. Check client/API compatibility; no records were skipped."
+    if isinstance(error, ResponseParseError):
+        return "Response validation failed; check client/API compatibility. No records were skipped."
+    if isinstance(error, ApiError):
+        return http_failure(error.status_code)
+    if isinstance(error, NetworkError):
+        return "Network request failed; check connectivity, proxy and TLS/CA settings, then retry when the service is reachable."
+    if isinstance(error, AuthenticationError) or stage == "authentication":
+        return "Authentication failed; retry with --login. If it persists, check account access and authentication-service connectivity."
+    if stage == "configuration":
+        return "Client configuration failed; check stare settings and the installed dependencies."
+    return "Unexpected retrieval failure; check client/API compatibility and report the exception type with a synthetic reproducer."
 
 
 def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None):
@@ -86,26 +107,35 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
                 page_size,
             )
             page_started = perf_counter()
-            result = getattr(client, name).search(
-                offset=offset,
-                limit=page_size,
-                sort_by=SORT_FIELDS[name],
-                sort_desc=False,
-            )
+            try:
+                result = getattr(client, name).search(
+                    offset=offset,
+                    limit=page_size,
+                    sort_by=SORT_FIELDS[name],
+                    sort_desc=False,
+                )
+            except ValueError:
+                # JSON/model validation exceptions can include the entire response.
+                raise _ResponseError(f"{name}: invalid JSON or model fields") from None
             count = result.number_of_results
             if type(count) is not int or count < 1:
-                raise ValueError(f"{name}: empty or invalid result count")
+                raise _PaginationError(f"{name}: empty or invalid result count")
             if total is not None and count != total:
-                raise ValueError(f"{name}: count changed during pagination; retry")
+                raise _PaginationError(f"{name}: count changed during pagination")
             total = count
             batch = result.results
             if not batch or len(batch) > page_size or offset + len(batch) > total:
-                raise ValueError(f"{name}: incomplete or invalid page")
+                raise _PaginationError(f"{name}: incomplete or invalid page")
             for model in batch:
-                record = model.model_dump(mode="json", by_alias=True)
-                key = record_key(record, name)
+                try:
+                    record = model.model_dump(mode="json", by_alias=True)
+                    key = record_key(record, name)
+                except (ValueError, TypeError):
+                    raise _ResponseError(
+                        f"{name}: invalid record or missing native identifier"
+                    ) from None
                 if key in records:
-                    raise ValueError(f"{name}: duplicate record across pages")
+                    raise _PaginationError(f"{name}: duplicate record across pages")
                 records[key] = record
             offset += len(batch)
             logger.info(
@@ -189,6 +219,7 @@ def download_registry(
             "stare is missing; reinstall glance-analysis-lister with its dependencies"
         ) from None
 
+    stage = "configuration"
     try:
         settings = StareSettings(cache_enabled=False)
         client_version = version("stare")
@@ -197,7 +228,7 @@ def download_registry(
             client_version,
             destination,
         )
-        logger.info("API endpoint: %s", _endpoint_label(settings.base_url))
+        logger.info("API endpoint: %s", endpoint_label(settings.base_url))
         logger.info(
             "Configuration: page_size=%d; all accessible records; sequential retrieval; response cache disabled",
             page_size,
@@ -212,21 +243,22 @@ def download_registry(
             "Authentication: %s; credentials and token refresh managed by stare",
             "browser SSO requested" if login else "using stored credentials",
         )
+        stage = "authentication"
         manager = TokenManager(settings)
         if login:
             logger.info("Complete CERN SSO in your browser.")
             manager.login()
         logger.info("Opening one shared GLANCE client with TLS verification enabled")
+        stage = "retrieval"
         with Glance(settings=settings, token_manager=manager) as client:
             candidate = collect_registry(
                 client, page_size=page_size, client_version=client_version
             )
     except Exception as exc:
-        # Model-validation errors can include private records. The command
-        # reports the exception type, without serialising the response or tokens.
+        # Never stringify upstream exceptions or retain their chain in CLI traces.
         raise ValueError(
             f"GLANCE API download failed ({type(exc).__name__}); no registry published. "
-            "If authentication expired, retry with --login."
+            + _failure_reason(exc, stage)
         ) from None
     candidate["source"]["base_url"] = settings.base_url
     publish_registry(candidate, destination, allow_count_drop=allow_count_drop)

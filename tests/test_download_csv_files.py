@@ -79,7 +79,7 @@ class DownloadTests(unittest.TestCase):
                     self.assertLogs(
                         "analysis_lister.downloaders.http", level="ERROR"
                     ) as logs,
-                    self.assertRaises(error),
+                    self.assertRaises(ValueError),
                 ):
                     downloader.DataFetcher.fetch_html("https://example.test", {}, {})
                 self.assertEqual(len(logs.output), 1)
@@ -87,19 +87,25 @@ class DownloadTests(unittest.TestCase):
                 if error is requests.exceptions.SSLError:
                     self.assertIn("TLS verification failed", logs.output[0])
                 else:
-                    self.assertIn("test failure", logs.output[0])
+                    self.assertIn("timed out", logs.output[0])
+                self.assertNotIn("test failure", logs.output[0])
                 get.assert_called_once()
                 self.assertFalse(Path(get.call_args.kwargs["verify"]).exists())
 
     @patch.object(downloader.requests, "get")
     def test_http_error_propagates(self, get):
-        get.return_value.raise_for_status.side_effect = requests.HTTPError("503")
+        response = requests.Response()
+        response.status_code = 503
+        get.return_value.raise_for_status.side_effect = requests.HTTPError(
+            "private response", response=response
+        )
         with (
             self.assertLogs("analysis_lister.downloaders.http", level="ERROR") as logs,
-            self.assertRaises(requests.HTTPError),
+            self.assertRaises(ValueError),
         ):
             downloader.DataFetcher.fetch_html("https://example.test", {}, {})
         self.assertIn("503", logs.output[0])
+        self.assertNotIn("private response", logs.output[0])
 
     @patch.object(downloader.requests, "get")
     def test_expired_session_is_rejected(self, get):
