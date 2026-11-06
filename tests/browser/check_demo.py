@@ -124,6 +124,9 @@ def check_demo(work, driver):
     original_policy = (work / POLICY).read_text()
     render(work, POLICY, 12)
     shutil.copyfile(work / "examples/demo/index.md", work / "pages/demo/index.md")
+    shutil.copyfile(
+        work / "docs/stylesheets/site.css", work / "pages/demo/assets/site.css"
+    )
     subprocess.run(
         [
             sys.executable,

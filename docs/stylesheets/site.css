@@ -2,6 +2,9 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/* Contain the theme's translated title even before JavaScript initializes it. */
+.md-header__title { overflow: hidden; }
+
 /* Separate captured views from the surrounding documentation. */
 .md-typeset img[src$="images/ongoing.png"],
 .md-typeset img[src$="images/papers.png"],

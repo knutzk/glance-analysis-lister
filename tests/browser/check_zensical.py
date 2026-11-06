@@ -14,6 +14,7 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from urllib.parse import parse_qs, urlsplit
 
+from accessibility import check_keyboard, check_layout_and_fallback
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -240,6 +241,7 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
                 ).text.startswith(f"{default_count} of 4")
             )
             check_filter_subsets(driver, wait, page)
+            check_keyboard(driver, wait, page)
             search.send_keys("no-synthetic-record-matches")
             wait.until(
                 lambda d, counter=counter: d.find_element(
@@ -307,12 +309,13 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
                 "return [...document.styleSheets].some(s => s.href && s.href.endsWith('gal-common.css') && s.cssRules.length > 0)"
             )
         check_saved_links(driver, wait, base, page_prefix)
+        check_layout_and_fallback(driver, wait, base, page_prefix)
         errors = [
             entry for entry in driver.get_log("browser") if entry["level"] == "SEVERE"
         ]
         assert not errors, errors
         print(
-            "Zensical checks passed: four pages, nonempty filter subsets, supersession, real instant navigation, repeat visits, search/sort URL reload, reset, expansion and assets."
+            "Zensical checks passed: four pages, filters and saved URLs, instant navigation, keyboard/focus, narrow light/dark layouts, static fallback and assets."
         )
 
 

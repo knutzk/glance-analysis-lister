@@ -24,6 +24,7 @@ analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --curation-config examples/demo/publication-curation.toml \
   --output-dir pages/demo
 cp examples/demo/index.md pages/demo/index.md
+cp docs/stylesheets/site.css pages/demo/assets/site.css
 ```
 
 If you already have a checkout and environment, start with the install command.
@@ -53,8 +54,9 @@ python -m zensical build -f zensical-demo.toml --clean --strict
 ```
 
 The [demo configuration](../zensical-demo.toml) loads the generated browser assets,
-enables instant navigation and provides light/dark mode. Run only one demo build
-or preview at a time.
+enables instant navigation and provides light/dark mode. The copied site stylesheet
+is shared with the documentation site and contains its theme adjustments. Run
+only one demo build or preview at a time.
 
 | Output | Contents |
 | --- | --- |
