@@ -2,6 +2,33 @@
 
 [Documentation index](README.md)
 
+## Supported validation scope
+
+The current maintenance target is Python 3.13 on Ubuntu and macOS, with Chrome
+and the pinned Zensical default theme for interactive pages. Coverage differs
+by environment:
+
+| Surface | Automated acceptance | Manual acceptance and limits |
+| --- | --- | --- |
+| Python and CLI | Python 3.13 on GitHub's `ubuntu-latest` runner: offline regressions, dependency checks, source build and clean installed wheel. | Repeat these checks on macOS for a release candidate. Development runs have passed on macOS 26 arm64 with Python 3.13.12; that does not qualify every macOS version or Intel hardware. |
+| Browser controls | Runner-installed Chrome and matching ChromeDriver, headless, on Ubuntu. Standalone views and both demo sites are checked. | For a candidate, repeat on macOS Chrome and inspect keyboard focus and narrow-screen behaviour. Firefox, Safari, Edge and mobile browsers are not yet qualified. |
+| Site integration | The version pinned in `requirements-docs.txt` (currently Zensical 0.0.58), default theme, instant navigation, repository subpath and strict links. | Check the actual consuming site's theme, assets and URL prefix. Other generators and theme overrides are not covered by the default-theme tests. |
+| Storage and recovery | Synthetic exceptions and interrupts on local filesystems, followed by real retry/offline recovery commands. | Concurrent writers, network filesystems and power-loss durability are outside the tested guarantees. |
+| CERN authentication and live retrieval | Synthetic clients and saved HTML only. | Fresh login, credential reuse and live downloads need a separately authorised acceptance run. They are not qualified by offline CI. |
+
+Package metadata permits Python >=3.13; newer interpreters are not yet part of
+the tested support scope. Windows is also unqualified. A successful install on
+an untested environment does not establish workflow support there. When adding
+a supported environment, add repeatable checks or an explicit manual acceptance
+record before expanding these claims.
+
+CI records the resolved Python, operating system, architecture and dependencies;
+the browser job also records Chrome and ChromeDriver versions. Runner images and
+unlocked dependencies change, so use the logs from the exact candidate rather
+than treating `ubuntu-latest` or "Chrome" as a fixed version. For a manual run,
+record the revision, environment, commands, results and any skipped checks using
+the [release acceptance record](releases.md#record-operational-acceptance).
+
 ## Set up and run checks
 
 Use Python 3.13, matching CI. From the repository root, create and activate
@@ -67,6 +94,32 @@ These checks establish a maintained baseline. They do not prove compatibility
 with an arbitrary historical package or consuming theme. The
 [release procedure](releases.md) requires evaluation of the actual candidate and
 supported upgrade paths.
+
+## Recovery checks
+
+`tests/test_refresh_recovery.py` runs the real download publication, registry
+builder and renderer against a synthetic API client. It interrupts pagination
+and registry replacement, rejects count drops independently at download and
+build time, and fails a file replacement in the second of three groups. Tests
+check saved bytes and stage diagnostics, then execute the documented retry or
+offline recovery commands. Recovered pages match a fresh render; completed groups
+keep their bytes, timestamps and inodes. Network connections are forbidden, and
+offline recovery also forbids construction of the authentication/client objects.
+
+`tests/test_html_storage.py` covers batch rollback and failed rollback. A complete
+offline HTML replay repairs the destination and clears its interruption marker
+while leaving earlier recovery files available. `tests/test_storage.py` covers
+failed flushes and atomic replacements. Run these focused checks with:
+
+```bash
+python -m unittest discover -s tests -p 'test_refresh*.py' -v
+python -m unittest discover -s tests -p 'test_*storage.py' -v
+```
+
+See the [recovery table](troubleshooting.md#resume-an-interrupted-workflow) for
+operator actions. These tests do not simulate machine power loss, filesystem
+corruption or simultaneous writers, and do not establish live login or network
+reliability.
 
 ## Browser and site checks
 

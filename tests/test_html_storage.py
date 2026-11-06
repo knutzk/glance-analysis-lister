@@ -217,6 +217,30 @@ class CsvBatchTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].read_bytes(), self.original["analyses.csv"])
 
+        # Repair from a complete saved HTML set without discarding recovery evidence.
+        recovery_files = {
+            path: path.read_bytes()
+            for path in backups[0].parent.parent.rglob("*")
+            if path.is_file()
+        }
+        with patch.object(downloader.http.DataFetcher, "fetch_html") as fetch:
+            html_download.download_html_csvs(
+                self.tasks, self.csv_dir, self.debug_dir, use_local_html=True
+            )
+        fetch.assert_not_called()
+        self.assertFalse((self.csv_dir / CSV_REFRESH_MARKER).exists())
+        for task in self.tasks:
+            self.assertEqual(
+                (self.csv_dir / task.csv_filename).read_text(),
+                '"Reference Code"\n"new"\n',
+            )
+        self.assertEqual(
+            json.loads((self.csv_dir / HTML_MANIFEST).read_text()),
+            json.loads((self.debug_dir / HTML_MANIFEST).read_text()),
+        )
+        for path, content in recovery_files.items():
+            self.assertEqual(path.read_bytes(), content)
+
 
 if __name__ == "__main__":
     unittest.main()

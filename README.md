@@ -29,7 +29,8 @@ notes (PUB), with date filters and expandable record details.
 ## Install and try without credentials
 
 Use Python 3.13 and Git. Package metadata permits Python 3.13 or newer; CI tests
-3.13. Run these commands in a macOS or Linux shell:
+3.13. See the [tested environment scope](docs/development.md#supported-validation-scope).
+Run these commands in a macOS or Linux shell:
 
 ```bash
 git clone https://github.com/knutzk/glance-analysis-lister.git

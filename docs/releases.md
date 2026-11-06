@@ -85,10 +85,24 @@ This catches missing documentation inputs that a build from the checkout can
 hide. For cross-version qualification, apply the [upgrade procedure](upgrading.md)
 and keep the frozen curated fixtures unchanged.
 
-Record what was actually tested. CI uses Python 3.13 on Ubuntu and runner Chrome;
-package metadata allowing newer Python versions does not mean they were tested.
-Live CERN login, credential reuse and downloads require a separately authorised
-acceptance run. Synthetic checks cannot establish those outcomes.
+### Record operational acceptance
+
+Use the [support matrix](development.md#supported-validation-scope) to select
+automated and manual checks. Keep a short record for the exact candidate:
+
+| Evidence | Record |
+| --- | --- |
+| Candidate | Commit, package version and hashes of the tested source archive and wheel. |
+| Environment | OS version, architecture, Python version and resolved dependencies (`python -m pip freeze` and `python -m pip check`). |
+| Browser and site | Browser/driver versions, Zensical version, theme and tested URL prefix. |
+| Commands and outcomes | Offline tests, recovery checks, source-to-wheel validation, strict site build, browser suite and consuming-site check; link matching CI runs. |
+| Manual observations | macOS candidate checks, keyboard/focus and narrow-screen inspection; record failures and skipped checks explicitly. |
+| Live acceptance | Separately authorised fresh login, credential reuse, download, build and render results, or "not performed". Record only non-sensitive outcomes. |
+
+Report each environment separately. Prior development runs and synthetic
+failures do not establish the candidate's live CERN access or support for
+untested platforms. Never attach credentials, private snapshots or raw private
+logs to a public acceptance record.
 
 ## What CI does
 
