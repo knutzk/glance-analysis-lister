@@ -11,6 +11,8 @@ from tempfile import NamedTemporaryFile
 
 import requests
 
+from .errors import endpoint_label, http_failure
+
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = (10, 30)  # Connection timeout, then socket read timeout (seconds).
@@ -61,8 +63,9 @@ class DataFetcher:
     @staticmethod
     def fetch_html(url, params, cookies):
         """Fetch HTML content from a URL."""
+        endpoint = endpoint_label(url)
         try:
-            logger.debug(f"Fetching data from {url} with params: {params}")
+            logger.debug("Fetching HTML from %s", endpoint)
             with trusted_ca_bundle() as ca_bundle:
                 response = requests.get(
                     url,
@@ -74,15 +77,29 @@ class DataFetcher:
             response.raise_for_status()
             if "Sign in to your account" in response.text:
                 logger.error("Invalid or expired cookies detected.")
-                raise ValueError("Invalid or expired cookies detected.")
+                raise ValueError(
+                    "Invalid or expired cookies detected; retry with --login."
+                )
             return response.text
-        except requests.exceptions.SSLError:
-            logger.error(
-                "TLS verification failed for %s. Check the server certificate "
-                "chain or supply a trusted PEM bundle with REQUESTS_CA_BUNDLE.",
-                url,
-            )
-            raise
-        except requests.RequestException as e:
-            logger.error(f"Error fetching data from {url}: {e}")
-            raise
+        except requests.RequestException as error:
+            if isinstance(error, requests.exceptions.SSLError):
+                reason = (
+                    "TLS verification failed; check the server certificate chain or "
+                    "supply a trusted PEM bundle with REQUESTS_CA_BUNDLE."
+                )
+            elif isinstance(error, requests.Timeout):
+                reason = "Request timed out; check connectivity and service availability before retrying."
+            elif isinstance(error, requests.ConnectionError):
+                reason = "Connection failed; check DNS, network and proxy settings before retrying."
+            elif isinstance(error, requests.HTTPError):
+                status = (
+                    error.response.status_code if error.response is not None else None
+                )
+                reason = http_failure(status)
+            else:
+                reason = "Request failed; check the endpoint, proxy and client configuration."
+            message = f"HTML download from {endpoint}: {reason}"
+            logger.error("%s", message)
+            # Requests exceptions can contain credentials, redirect URLs or bodies.
+            # Keep them out of both normal errors and verbose exception chains.
+            raise ValueError(message) from None

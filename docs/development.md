@@ -97,6 +97,14 @@ supported upgrade paths.
 
 ## Recovery checks
 
+`tests/test_download_errors.py` injects authentication, HTTP-status, network,
+response-validation and pagination failures through the CLI. It checks distinct
+remedies, exit status 1, preserved output bytes and absence of synthetic secrets
+in normal, quiet and verbose output, including nested exception chains. A curated
+schema failure retains its field path without exposing the invalid value.
+The HTML transport checks also verify certificate verification, bounded timeouts
+and absence of automatic retries.
+
 `tests/test_refresh_recovery.py` runs the real download publication, registry
 builder and renderer against a synthetic API client. It interrupts pagination
 and registry replacement, rejects count drops independently at download and
