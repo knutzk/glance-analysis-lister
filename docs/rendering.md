@@ -156,6 +156,14 @@ navigation, keyboard operation and dynamically inserted content. Without
 JavaScript, all records and details remain readable. Filtering makes no live
 requests.
 
+Use Tab or Shift+Tab to move between controls and Enter/Space to activate them.
+The Collapse button returns focus to the record heading. On narrow screens,
+Tab to an archive table's named scroll region and use the arrow keys to reach
+columns outside the viewport; its inset outline marks keyboard focus. Without
+JavaScript, filters are hidden and details are already open, including those of
+superseded notes. The [browser checks](development.md#browser-and-site-checks)
+cover these behaviours in the default Zensical theme.
+
 ## Read the output
 
 The guides to [ongoing analyses](ongoing.md) and [publication tables](publications.md)

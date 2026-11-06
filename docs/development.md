@@ -155,6 +155,21 @@ instant navigation, repeat visits, search/filter URLs, ongoing sort persistence,
 reset, expansion and stylesheets. It covers the built-in theme, not consumer theme
 overrides. Tests remove their temporary sites, HTML, screenshots and driver logs.
 
+The shared `tests/browser/accessibility.py` checks use real Tab/Shift+Tab and
+Enter/Space navigation for search, filters, sorting and disclosures, including
+focus returning to the heading after Collapse. They verify accessible control
+names, pressed/expanded state, live result counts and visible focus outlines.
+At 390- and 320-pixel CSS viewports, light/dark layouts keep the page within the
+viewport while archive tables scroll with arrow keys. With JavaScript disabled,
+all four records and their details remain readable, including superseded notes;
+inactive filters stay hidden. Both demo sites run these checks through
+`check_zensical.py`.
+
+These are Chrome regressions, not a complete accessibility audit. They do not
+replace screen-reader testing, visual contrast assessment, native mobile-browser
+testing or the manual candidate checks in the support matrix. Narrow desktop
+viewports alone do not qualify a mobile browser.
+
 The demo check follows the documented generation commands, starts the standalone
 preview, exercises the empty-policy tutorial and restores the original output.
 It also builds the documentation and checks all four embedded demo pages under
