@@ -12,6 +12,7 @@ extra_css = [
   "assets/gal-ongoing.css",
   "assets/gal-papers.css",
   "assets/gal-notes.css",
+  "assets/site.css",
 ]
 extra_javascript = [
   "assets/gal-common.js",
