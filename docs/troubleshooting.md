@@ -62,6 +62,16 @@ download completeness.
 
 `refresh` stops at the first failed stage and retains completed stages. Inspect
 its error and saved outputs, correct the cause, then restart at the failed stage.
+The download and build each compare counts against their own existing destination;
+a successful download can still be followed by a rejected build.
+
+| Failure point | State to expect | Where to resume |
+| --- | --- | --- |
+| API pagination interrupted, or download count drop rejected | The API destination is not replaced; registry and pages are untouched. | Retry the download or `refresh` after resolving the cause. Pagination restarts from the beginning. |
+| Registry validation/count check fails, or writing is interrupted before replacement | A completed API download remains available. The previous curated registry and pages remain. | `build-registry` using the saved API snapshot, then render. Pass `--allow-count-drop` to the build only if its reduction is understood. |
+| Rendering fails partway through one group | Earlier groups remain complete; the failing group may mix old and new files; later groups are untouched. | Rerender the failing group and every later group, using the same saved registry and policy. |
+| HTML CSV publication and rollback both fail | The interruption marker and reported recovery files remain; the destination is incomplete. | Preserve those files, fix the cause and rerun the full export, or replay a complete saved HTML set. |
+
 For a successful download followed by a failed build:
 
 ```bash
@@ -94,6 +104,12 @@ analysis-lister download-html --from-html saved-html --csv-dir exports
 Keep these directories separate. A partially saved HTML set is not sufficient
 for replay. Do not delete the interruption marker to make an incomplete batch
 appear complete.
+
+These recovery paths have [synthetic failure-injection coverage](development.md#recovery-checks).
+Handled exceptions and Ctrl+C can run cleanup; a force-killed process or power
+loss cannot. A leftover JSON temporary file is not a validated replacement for
+the destination. Atomic replacement alone is not a power-loss durability or
+concurrent-writer guarantee. Stop other writers before inspecting or retrying.
 
 ## Citation updates do not reach the pages
 
