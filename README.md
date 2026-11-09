@@ -28,44 +28,60 @@ notes (PUB), with date filters and expandable record details.
 
 ## Install and try without credentials
 
-Use Python 3.13 and Git. Package metadata permits Python 3.13 or newer; CI tests
-3.13. See the [tested environment scope](docs/development.md#supported-validation-scope).
-Run these commands in a macOS or Linux shell:
+Start a searchable demo website with independently invented records. Use Python
+3.13 and Git in a macOS or Linux shell. Package metadata permits Python 3.13 or
+newer; see the [tested environment scope](docs/development.md#supported-validation-scope).
+
+The demo needs **`requirements-docs.txt`**, which installs both the package and
+Zensical in the same environment. A package-only `pip install .` does not install
+the site preview. These are the same requirements used in the example guide.
 
 ```bash
 git clone https://github.com/knutzk/glance-analysis-lister.git
 cd glance-analysis-lister
 python3.13 -m venv .venv
 source .venv/bin/activate
-python -m pip install .
-analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
-  --snapshot examples/synthetic_registry.json \
-  --curation-config examples/demo/publication-curation.toml --output-dir pages/demo
+python -m pip install -r requirements-docs.txt
+python scripts/demo.py serve
 ```
 
-Installation needs internet access; rendering the example runs offline.
-You can use `python -m analysis_lister` in place of `analysis-lister`.
+**Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
+navigation to open **Ongoing analyses**, search for `Tracking`, and expand a card.
+Try **Papers**, **Conference notes** and **Public notes** next. Stop the server
+with **Ctrl+C**.
 
-The command writes:
+Run the commands from the cloned repository, whose root contains `scripts/`,
+`examples/` and [`zensical-demo.toml`](zensical-demo.toml). The launcher renders
+the records, copies the landing page and stylesheet, creates an editable policy
+at `pages/demo-policy.toml` on first use, and starts Zensical. Existing policy
+edits are preserved. Installation needs internet access; generation and preview
+use only local synthetic data.
 
-| Output under `pages/demo/` | Contents |
+Already have this checkout and `.venv`? Activate it, run the requirements install
+above, then start the launcher. To reopen the demo later, run these from the
+repository root:
+
+```bash
+source .venv/bin/activate
+python scripts/demo.py serve
+```
+
+The launcher prepares these files before serving the website:
+
+| Output | Contents |
 | --- | --- |
-| `ongoing.md` | Four invented ongoing analyses at different review stages. |
-| `papers.md` | Four invented papers: two with DOIs and two without. |
-| `confnotes.md`, `pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
-| `assets/` | Shared CSS and JavaScript for styling and interaction. |
-| `view-report.json` | Selection decisions, provenance and diagnostics. |
+| `pages/demo/index.md` | Demo landing page and suggested interactions. |
+| `pages/demo/ongoing.md` | Four invented ongoing analyses at different review stages. |
+| `pages/demo/papers.md` | Four invented papers: two with DOIs and two without. |
+| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
+| `pages/demo/assets/` | Browser styles and interaction scripts. |
+| `pages/demo/view-report.json` | Selection decisions, provenance and diagnostics. |
+| `pages/demo-policy.toml` | Editable copy of the DEMO publication policy. |
 
-The explicit DEMO policy selects the invented publications without a missing-policy
-warning. Follow the [synthetic example](examples/README.md) to preview the complete
-site and try changing its publication policy.
-
-Try the live [analysis card](docs/ongoing.md#read-an-analysis-card) and
-[publication table](docs/publications.md#read-a-publication-row) in the
-documentation site. To use your generated pages in another Zensical site,
-[enable the browser assets](docs/rendering.md#enable-browser-assets).
-The documentation site's [Demo section](examples/demo/index.md) contains all four
-generated pages.
+Continue with the [policy tutorial](examples/README.md#tutorial-change-publication-selection)
+to change what appears in the running demo. It uses this same environment and
+these generated files. For your own site, see
+[browser asset integration](docs/rendering.md#enable-browser-assets).
 
 ## Refresh pages from GLANCE
 

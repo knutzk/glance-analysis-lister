@@ -156,6 +156,7 @@ def main():
             ".github/release-notes/v0.1.0.txt",
             ".github/release-notes/v0.2.0.txt",
             "zensical-demo.toml",
+            "scripts/demo.py",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",
             "tests/fixtures/curated/v2-baseline.json",

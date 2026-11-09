@@ -6,7 +6,10 @@
 import argparse
 import functools
 import json
+import os
+import re
 import runpy
+import shlex
 import shutil
 import socket
 import subprocess
@@ -17,6 +20,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
+from unittest.mock import patch
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -37,32 +41,46 @@ def wait_for_preview_text(url, text):
         time.sleep(0.1)
 
 
-def render(work, policy, publications):
+def check_outputs(work, publications):
+    report = json.loads((work / "pages/demo/view-report.json").read_text())
+    assert report["counts"]["ongoing_analyses"] == 4
+    assert report["counts"]["archive_publications"] == publications
+    assert report["counts"]["warning_issues"] == 0
+    assert (work / "pages/demo/index.md").read_bytes() == (
+        work / "examples/demo/index.md"
+    ).read_bytes()
+    assert (work / "pages/demo/assets/site.css").read_bytes() == (
+        work / "docs/stylesheets/site.css"
+    ).read_bytes()
+    assert (work / "pages/demo-policy.toml").is_file()
+
+
+def quickstart_command(work):
+    # Read the actual newcomer instructions rather than preparing extra files
+    # here that neither quick start told the reader to create.
+    commands = []
+    for readme in ("README.md", "examples/README.md"):
+        block = re.search(r"```bash\n(.*?)```", (work / readme).read_text(), re.S)
+        assert block, f"Missing quick-start commands in {readme}"
+        commands.append(block[1].strip().splitlines())
+    assert commands[0] == commands[1], "Both entry points must use the same setup"
+    assert "python -m pip install -r requirements-docs.txt" in commands[0]
+    command = shlex.split(commands[0][-1])
+    assert command == ["python", "scripts/demo.py", "serve"]
+    return [sys.executable, *command[1:]]
+
+
+def prepare(work, *, reset=False):
     result = subprocess.run(
-        [
-            str(Path(sys.executable).with_name("analysis-lister")),
-            "render-group",
-            "--group",
-            "DEMO",
-            "--group-title",
-            "Synthetic demo",
-            "--snapshot",
-            "examples/synthetic_registry.json",
-            "--curation-config",
-            policy,
-            "--output-dir",
-            "pages/demo",
-        ],
-        cwd=work,
+        [sys.executable, str(work / "scripts/demo.py"), "prepare"]
+        + (["--reset-policy"] if reset else []),
+        # The script resolves its files from its own checkout, not this cwd.
+        cwd=work / "examples",
         capture_output=True,
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "No publication curation configuration" not in result.stdout + result.stderr
-    report = json.loads((work / "pages/demo/view-report.json").read_text())
-    assert report["counts"]["ongoing_analyses"] == 4
-    assert report["counts"]["archive_publications"] == publications
-    assert report["counts"]["warning_issues"] == 0
 
 
 @contextmanager
@@ -77,7 +95,7 @@ def preview(work, *, documentation=False):
     command = (
         [sys.executable, "scripts/docs.py", "serve"]
         if documentation
-        else [sys.executable, "-m", "zensical", "serve", "-f", "zensical-demo.toml"]
+        else quickstart_command(work)
     )
     log_path = work / "preview.log"
     with log_path.open("w") as log:
@@ -122,36 +140,61 @@ def check_demo(work, driver):
         shutil.copyfile(ROOT / name, destination)
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
-    render(work, POLICY, 12)
-    shutil.copyfile(work / "examples/demo/index.md", work / "pages/demo/index.md")
-    shutil.copyfile(
-        work / "docs/stylesheets/site.css", work / "pages/demo/assets/site.css"
-    )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "zensical",
-            "build",
-            "-f",
-            "zensical-demo.toml",
-            "--clean",
-            "--strict",
-        ],
+    assert not (work / "pages").exists()
+    # The package-only environment failure should explain the required install,
+    # before creating outputs. -S deliberately hides all installed dependencies.
+    missing = subprocess.run(
+        [sys.executable, "-S", "scripts/demo.py", "serve"],
         cwd=work,
-        check=True,
+        capture_output=True,
+        text=True,
     )
+    assert missing.returncode != 0
+    assert "requirements-docs.txt" in missing.stderr
+    assert not (work / "pages").exists()
+    with preview(work) as base:
+        check_outputs(work, 12)
+        assert (work / "pages/demo-policy.toml").read_text() == original_policy
+        with urlopen(base, timeout=5) as response:
+            homepage = BeautifulSoup(response.read(), "html.parser")
+        assert homepage.h1.get_text().strip().startswith("Interactive demo")
+        browse(base, driver, page_prefix="")
 
-    # Follow the policy-copy tutorial, then restore the default result.
-    edited = original_policy.replace('groups = ["DEMO"]', "groups = []")
+    # Use the policy copy created by the launcher, not an implicit test setup.
+    policy = work / "pages/demo-policy.toml"
+    edited = policy.read_text().replace('groups = ["DEMO"]', "groups = []")
     assert edited != original_policy
-    (work / "pages/demo-policy.toml").write_text(edited)
-    render(work, "pages/demo-policy.toml", 0)
-    render(work, POLICY, 12)
+    policy.write_text(edited)
+    prepare(work)
+    check_outputs(work, 0)
+    # Restarting the preview must preserve edits and publish the changed result.
+    with preview(work) as base:
+        check_outputs(work, 0)
+        assert policy.read_text() == edited
+        for page in ("papers", "confnotes", "pubnotes"):
+            with urlopen(base + page + "/", timeout=5) as response:
+                html = BeautifulSoup(response.read(), "html.parser")
+            assert not html.select("[data-gal-item], [data-gal-note]")
+        prepare(work, reset=True)
+        check_outputs(work, 12)
+        wait_for_preview_text(base + "papers/", "data-gal-item")
+    assert policy.read_text() == original_policy
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
-    with preview(work) as base:
-        browse(base, driver, page_prefix="")
+    # Invalid edits must fail without launching a preview or replacing pages.
+    previous = (work / "pages/demo/papers.md").read_bytes()
+    policy.write_text("[invalid TOML")
+    invalid = subprocess.run(
+        [sys.executable, "scripts/demo.py", "build"],
+        cwd=work,
+        capture_output=True,
+        text=True,
+    )
+    assert invalid.returncode != 0
+    assert (work / "pages/demo/papers.md").read_bytes() == previous
+    policy.write_text(original_policy)
+    subprocess.run([sys.executable, "scripts/demo.py", "build"], cwd=work, check=True)
+    assert (work / "site-demo/index.html").is_file()
 
     # Local roadmap preview must not require edits to the tracked config or leak
     # into a subsequent public build. Use invented text, never a local roadmap.
@@ -230,7 +273,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--driver", type=Path, required=True)
     args = parser.parse_args()
-    with TemporaryDirectory(prefix="glance-demo-check-") as directory:
+    # The public-file staging tree contains the schema but not the Python
+    # package. Select the code under test explicitly for module subprocesses,
+    # so that partial tree cannot shadow an editable package installation.
+    with (
+        patch.dict(os.environ, {"PYTHONPATH": str(ROOT)}),
+        TemporaryDirectory(prefix="glance-demo-check-") as directory,
+    ):
         check_demo(Path(directory), args.driver)
 
 

@@ -175,9 +175,13 @@ replace screen-reader testing, visual contrast assessment, native mobile-browser
 testing or the manual candidate checks in the support matrix. Narrow desktop
 viewports alone do not qualify a mobile browser.
 
-The demo check follows the documented generation commands, starts the standalone
-preview, exercises the empty-policy tutorial and restores the original output.
-It also builds the documentation and checks all four embedded demo pages under
+The demo check reads the quick-start commands from both READMEs and requires the
+same dependency setup and launcher. Starting without generated files, it checks
+the landing page, policy copy and assets, then exercises the empty-policy tutorial,
+preservation of edits across restarts and explicit restoration of the example.
+It also checks the missing-dependency guidance and that an invalid policy stops
+generation without replacing existing pages.
+The check also builds the documentation and checks all four embedded demo pages under
 the repository subpath. Both sites reuse the instant-navigation and filter checks.
 
 The offline, browser and documentation CI jobs must pass before the release job
