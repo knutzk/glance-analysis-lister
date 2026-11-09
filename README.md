@@ -42,7 +42,18 @@ cd glance-analysis-lister
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
-python scripts/demo.py serve
+
+mkdir -p pages
+cp examples/demo/publication-curation.toml pages/demo-policy.toml
+
+analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+  --snapshot examples/synthetic_registry.json \
+  --curation-config pages/demo-policy.toml --output-dir pages/demo
+
+cp examples/demo/index.md pages/demo/index.md
+cp docs/stylesheets/site.css pages/demo/assets/site.css
+
+python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
 ```
 
 **Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
@@ -50,23 +61,23 @@ navigation to open **Ongoing analyses**, search for `Tracking`, and expand a car
 Try **Papers**, **Conference notes** and **Public notes** next. Stop the server
 with **Ctrl+C**.
 
-Run the commands from the cloned repository, whose root contains `scripts/`,
-`examples/` and [`zensical-demo.toml`](zensical-demo.toml). The launcher renders
-the records, copies the landing page and stylesheet, creates an editable policy
-at `pages/demo-policy.toml` on first use, and starts Zensical. Existing policy
-edits are preserved. Installation needs internet access; generation and preview
+Run all commands from the cloned repository root, which contains `examples/`
+and [`zensical-demo.toml`](zensical-demo.toml). The commands above create an
+editable policy copy, render the four pages, copy the landing page and stylesheet,
+and start Zensical. Installation needs internet access; rendering and preview
 use only local synthetic data.
 
-Already have this checkout and `.venv`? Activate it, run the requirements install
-above, then start the launcher. To reopen the demo later, run these from the
-repository root:
+Already have this checkout and `.venv`? Activate it and start with the requirements
+install above. The setup's `cp` command replaces the editable policy with the
+example policy; to keep an experiment, use the tutorial's render command instead.
+To reopen an already-generated demo, run only these from the repository root:
 
 ```bash
 source .venv/bin/activate
-python scripts/demo.py serve
+python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
 ```
 
-The launcher prepares these files before serving the website:
+The setup produces:
 
 | Output | Contents |
 | --- | --- |

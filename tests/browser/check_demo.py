@@ -6,7 +6,6 @@
 import argparse
 import functools
 import json
-import os
 import re
 import runpy
 import shlex
@@ -20,7 +19,6 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
-from unittest.mock import patch
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -55,32 +53,47 @@ def check_outputs(work, publications):
     assert (work / "pages/demo-policy.toml").is_file()
 
 
-def quickstart_command(work):
-    # Read the actual newcomer instructions rather than preparing extra files
-    # here that neither quick start told the reader to create.
-    commands = []
-    for readme in ("README.md", "examples/README.md"):
-        block = re.search(r"```bash\n(.*?)```", (work / readme).read_text(), re.S)
-        assert block, f"Missing quick-start commands in {readme}"
-        commands.append(block[1].strip().splitlines())
+def bash_blocks(text):
+    return [
+        [
+            command
+            for line in block.replace("\\\n", "").splitlines()
+            if (command := shlex.split(line, comments=True))
+        ]
+        for block in re.findall(r"```bash\n(.*?)```", text, re.S)
+    ]
+
+
+def executable(command):
+    if command[0] == "python":
+        return [sys.executable, *command[1:]]
+    if command[0] == "analysis-lister":
+        return [str(Path(sys.executable).with_name("analysis-lister")), *command[1:]]
+    assert command[0] in {"mkdir", "cp"}, command
+    return command
+
+
+def quickstart_commands(work):
+    # Execute the documented setup, rather than filling in missing files here.
+    commands = [
+        bash_blocks((work / readme).read_text())[0]
+        for readme in ("README.md", "examples/README.md")
+    ]
     assert commands[0] == commands[1], "Both entry points must use the same setup"
-    assert "python -m pip install -r requirements-docs.txt" in commands[0]
-    command = shlex.split(commands[0][-1])
-    assert command == ["python", "scripts/demo.py", "serve"]
-    return [sys.executable, *command[1:]]
+    install = ["python", "-m", "pip", "install", "-r", "requirements-docs.txt"]
+    # CI already installed these dependencies in the active test environment.
+    return commands[0][commands[0].index(install) + 1 :]
 
 
-def prepare(work, *, reset=False):
-    result = subprocess.run(
-        [sys.executable, str(work / "scripts/demo.py"), "prepare"]
-        + (["--reset-policy"] if reset else []),
-        # The script resolves its files from its own checkout, not this cwd.
-        cwd=work / "examples",
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "No publication curation configuration" not in result.stdout + result.stderr
+def run_commands(work, commands):
+    for command in commands:
+        result = subprocess.run(
+            executable(command), cwd=work, capture_output=True, text=True
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (
+            "No publication curation configuration" not in result.stdout + result.stderr
+        )
 
 
 @contextmanager
@@ -95,8 +108,11 @@ def preview(work, *, documentation=False):
     command = (
         [sys.executable, "scripts/docs.py", "serve"]
         if documentation
-        else quickstart_command(work)
+        else executable(quickstart_commands(work)[-1])
     )
+    if not documentation:
+        assert command[-2:] == ["--dev-addr", "127.0.0.1:8001"]
+        command = command[:-2]  # Use an available port for this test run.
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
@@ -141,17 +157,7 @@ def check_demo(work, driver):
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
     assert not (work / "pages").exists()
-    # The package-only environment failure should explain the required install,
-    # before creating outputs. -S deliberately hides all installed dependencies.
-    missing = subprocess.run(
-        [sys.executable, "-S", "scripts/demo.py", "serve"],
-        cwd=work,
-        capture_output=True,
-        text=True,
-    )
-    assert missing.returncode != 0
-    assert "requirements-docs.txt" in missing.stderr
-    assert not (work / "pages").exists()
+    run_commands(work, quickstart_commands(work)[:-1])
     with preview(work) as base:
         check_outputs(work, 12)
         assert (work / "pages/demo-policy.toml").read_text() == original_policy
@@ -160,12 +166,21 @@ def check_demo(work, driver):
         assert homepage.h1.get_text().strip().startswith("Interactive demo")
         browse(base, driver, page_prefix="")
 
-    # Use the policy copy created by the launcher, not an implicit test setup.
+    # Follow the tutorial's literal commands, including its explicit reset.
+    tutorial_text = (
+        (work / "examples/README.md")
+        .read_text()
+        .split("## Tutorial: change publication selection", 1)[1]
+        .split("\n## ", 1)[0]
+    )
+    tutorial = bash_blocks(tutorial_text)
+    assert len(tutorial) == 3
+    run_commands(work, tutorial[0])
     policy = work / "pages/demo-policy.toml"
     edited = policy.read_text().replace('groups = ["DEMO"]', "groups = []")
     assert edited != original_policy
     policy.write_text(edited)
-    prepare(work)
+    run_commands(work, tutorial[1])
     check_outputs(work, 0)
     # Restarting the preview must preserve edits and publish the changed result.
     with preview(work) as base:
@@ -175,17 +190,17 @@ def check_demo(work, driver):
             with urlopen(base + page + "/", timeout=5) as response:
                 html = BeautifulSoup(response.read(), "html.parser")
             assert not html.select("[data-gal-item], [data-gal-note]")
-        prepare(work, reset=True)
+        run_commands(work, tutorial[2])
         check_outputs(work, 12)
         wait_for_preview_text(base + "papers/", "data-gal-item")
     assert policy.read_text() == original_policy
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
-    # Invalid edits must fail without launching a preview or replacing pages.
+    # Invalid policy edits must not replace previously rendered pages.
     previous = (work / "pages/demo/papers.md").read_bytes()
     policy.write_text("[invalid TOML")
     invalid = subprocess.run(
-        [sys.executable, "scripts/demo.py", "build"],
+        executable(tutorial[1][0]),
         cwd=work,
         capture_output=True,
         text=True,
@@ -193,7 +208,13 @@ def check_demo(work, driver):
     assert invalid.returncode != 0
     assert (work / "pages/demo/papers.md").read_bytes() == previous
     policy.write_text(original_policy)
-    subprocess.run([sys.executable, "scripts/demo.py", "build"], cwd=work, check=True)
+    build_section = (
+        (work / "examples/README.md")
+        .read_text()
+        .split("## Reopen or build the demo", 1)[1]
+        .split("\n## ", 1)[0]
+    )
+    run_commands(work, bash_blocks(build_section)[1])
     assert (work / "site-demo/index.html").is_file()
 
     # Local roadmap preview must not require edits to the tracked config or leak
@@ -273,13 +294,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--driver", type=Path, required=True)
     args = parser.parse_args()
-    # The public-file staging tree contains the schema but not the Python
-    # package. Select the code under test explicitly for module subprocesses,
-    # so that partial tree cannot shadow an editable package installation.
-    with (
-        patch.dict(os.environ, {"PYTHONPATH": str(ROOT)}),
-        TemporaryDirectory(prefix="glance-demo-check-") as directory,
-    ):
+    with TemporaryDirectory(prefix="glance-demo-check-") as directory:
         check_demo(Path(directory), args.driver)
 
 

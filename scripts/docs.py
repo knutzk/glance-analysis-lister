@@ -31,7 +31,6 @@ PUBLIC_FILES = (
     "zensical.toml",
     "zensical-demo.toml",
     "scripts/docs.py",
-    "scripts/demo.py",
     "publication-curation.toml",
     "analysis_lister/registry/schemas/curated-v2.schema.json",
     "examples/README.md",
