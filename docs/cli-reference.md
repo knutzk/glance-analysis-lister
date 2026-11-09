@@ -3,8 +3,9 @@
 [Documentation index](README.md)
 
 Run `analysis-lister COMMAND`, or `python -m analysis_lister COMMAND`.
-This reference describes the current CLI; v1.0 compatibility promises are still
-being defined. Use `analysis-lister COMMAND --help` to check your installed version.
+This reference describes the current CLI, including unreleased changes. The
+[compatibility policy](compatibility.md) defines its supported scope and change
+rules. Use `analysis-lister COMMAND --help` to check your installed version.
 For worked sequences, see [commands and recovery](workflows.md).
 
 `analysis-lister --version` prints `analysis-lister VERSION` to stdout and exits

@@ -8,8 +8,21 @@ access requires an authorised CERN account. Run data commands from the directory
 where you want to keep the snapshots, or supply explicit paths.
 
 The [command-line reference](cli-reference.md) lists every command, option and
-default. Use `analysis-lister COMMAND --help` for your installed version. See
-[rendering](rendering.md) and [citation maintenance](citations.md) for those workflows.
+default. Use `analysis-lister COMMAND --help` for your installed version.
+
+## Choose where to start
+
+Reuse the earliest saved input needed for your change. Only downloading fresh
+GLANCE records requires CERN access; rendering never refreshes the snapshot.
+
+| What changed or needs doing | Start here | Then |
+| --- | --- | --- |
+| Get current GLANCE records and update group pages | [Refresh](#refresh-group-pages-in-one-command) | Inspect the report and integrate the pages into your site. |
+| Rebuild after a curation-code or identifier-dictionary update | [Build from a saved API snapshot](#download-and-build-a-registry) | Render the resulting curated registry. |
+| Update citations | [Maintain the citation store](citations.md) | Build with that store, then render. Only INSPIRE lookup needs public network access. |
+| Change group, publication policy, titles or renderer | [Render a saved curated registry](#reuse-a-snapshot-offline) | Inspect the new pages and report. |
+| Understand changes between saved snapshots | [Compare snapshots](#compare-saved-snapshots) | Review the summary and, if needed, the detailed report. |
+| Add generated pages to an existing site | [Stage pages and enable assets](rendering.md#integrate-into-a-consuming-site) | Build and preview the consuming site. |
 
 ## Refresh group pages in one command
 
@@ -94,6 +107,46 @@ Records can change between requests, so this is not a transactional snapshot.
 Duplicate detection, consistent totals, count-drop checks and atomic publication
 protect the output. Offline tests exercise the stare client and serializers;
 live server limits, sorting behaviour and speed need separate validation.
+
+## Reuse a snapshot offline
+
+If you already have a curated registry, render it directly. For example, from
+this checkout, use the public fixture and its policy:
+
+```bash
+analysis-lister render-group --group DEMO \
+  --snapshot examples/synthetic_registry.json \
+  --curation-config examples/demo/publication-curation.toml \
+  --output-dir pages/demo
+```
+
+This produces four ongoing analyses and twelve archived publications, with no
+diagnostic warnings. Each note page initially hides one superseded note. Use the
+[demo tutorial](../examples/README.md#tutorial-change-publication-selection) to
+edit a policy copy and see which pages change.
+
+For your own data, replace the snapshot, group and policy paths. `render-group`
+handles one group per invocation; use separate output directories when rendering
+several groups from the same snapshot. The group selects ongoing analyses by
+their leading or additional main-group affiliation and identifies the policy
+table used for publications. A publication policy can select other groups,
+subgroups or keywords; it does not change ongoing-analysis membership.
+Browser filters only narrow records already included in a generated page.
+
+If curation rules or citation data changed, first rebuild from the saved API
+snapshot, then render the new registry:
+
+```bash
+analysis-lister build-registry --api-snapshot data/api.json \
+  --doi-cache data/doi-metadata.json --output data/curated.json
+analysis-lister render-group --group TOPQ --snapshot data/curated.json \
+  --curation-config publication-curation.toml --output-dir pages/topq
+```
+
+These paths assume you have saved the API snapshot and chosen your own policy
+and [citation store](citations.md#choose-a-store). Run the commands in order and
+continue only if the build succeeds. The synthetic fixture is already curated;
+it is a rendering input, not an API input to `build-registry`.
 
 ## Compare saved snapshots
 
