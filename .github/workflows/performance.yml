@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+name: Synthetic performance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements-dev.txt
+            tests/browser/requirements.txt
+            requirements-docs.txt
+      - name: Install benchmark dependencies
+        run: python -m pip install -r requirements-dev.txt -r tests/browser/requirements.txt
+      - name: Record environment and select runner browsers
+        shell: bash
+        run: |
+          python -VV
+          python -c 'import platform; print(platform.platform(), platform.machine())'
+          python -m pip check
+          python -m pip freeze
+          chrome=$(command -v google-chrome)
+          driver=$(command -v chromedriver)
+          chrome_version=$("$chrome" --product-version)
+          driver_version=$("$driver" --version | cut -d ' ' -f 2)
+          printf 'Chrome %s; ChromeDriver %s\n' "$chrome_version" "$driver_version"
+          test "${chrome_version%.*}" = "${driver_version%.*}"
+          printf 'CHROME_BINARY=%s\nCHROMEDRIVER=%s\n' "$chrome" "$driver" >> "$GITHUB_ENV"
+          timeout 30 "$chrome" --headless=new --no-first-run \
+            --user-data-dir="$RUNNER_TEMP/chrome-smoke" --dump-dom about:blank
+      - name: Measure the 4000-record synthetic workload
+        run: |
+          python tests/browser/check_performance.py --driver "$CHROMEDRIVER" \
+            --output "$RUNNER_TEMP/performance.json"
+      - name: Save measurements, including timing failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: synthetic-performance
+          path: ${{ runner.temp }}/performance.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -181,6 +181,56 @@ creates a draft release from a tag. The documentation job also supplies an
 these checks do not establish live CERN authentication. To preview the
 documentation itself, use the [local site guide](site.md).
 
+## Performance measurements
+
+Use the public synthetic workload to compare changes on a recorded machine:
+
+```bash
+python tests/browser/check_performance.py --driver /path/to/chromedriver \
+  --output /tmp/glance-performance.json
+```
+
+This uses the same dependencies as the browser checks. It generates 1,000 records
+in each of four categories (4,000 total) in a temporary directory, then removes
+the generated snapshot and site. It never reads the default working-directory
+snapshot or retrieves data. The maintained four-record public demo supplies
+repeated cohorts with unique native/public identifiers and remapped supersession
+links. Each category retains its keyword, subgroup, date and status mix; one
+quarter of each note collection is superseded. This measures scale with modest
+record detail and repeated vocabulary, not the full diversity of a live registry.
+
+The provisional review limits are **30 seconds per fresh CLI render** and
+**500 milliseconds per filter action**. Three fresh subprocess renders include
+Python startup, validation, preparation, all four Markdown pages, assets and the
+report. Each uses a new destination; unchanged-output shortcuts do not apply.
+Site generation is outside the render measurement, and OS caches are not cleared.
+
+On each Zensical page, three rounds exercise half-match and zero-match searches,
+category selection and resets. Browser-side time runs from a dispatched input
+event or button activation through two animation frames, allowing a paint
+opportunity. Expected visible-row counts and counters must agree. This excludes
+WebDriver transport, physical typing and network latency; it is not an INP
+measurement. Page readiness is reported separately without an acceptance limit.
+
+The JSON report contains every timing sample, median and maximum, dataset hash
+and sizes, source/benchmark fingerprints, OS, Python, dependency and browser
+versions, and viewport. Any sample over a limit makes the command fail **after
+writing the report**. Correctness or setup failures also fail the command but
+may prevent report creation. The maximum is deliberately conservative; these
+small samples do not establish a percentile or a public performance guarantee.
+
+For a quick harness check use `--records 8 --repeats 1`; record counts must be
+multiples of four. `--render-limit` and `--filter-limit` select explicit alternate
+thresholds, recorded in the report. Compare equivalent datasets and environments,
+inspect outliers and keep failed runs instead of silently loosening limits.
+Run benchmarks alone, with other heavy jobs stopped.
+
+The manual **Synthetic performance** GitHub Actions workflow runs the default
+workload on Ubuntu and retains the JSON as an artifact, including timing failures.
+It is separate from required PR checks while these limits are provisional.
+Link the run and record its results for a release candidate; a local measurement
+does not establish hosted-runner performance.
+
 For version changes, artifact checks and the tag workflow, follow
 [release qualification](releases.md). The [compatibility guide](compatibility.md)
 defines the current interface boundaries; the [upgrade guide](upgrading.md)
