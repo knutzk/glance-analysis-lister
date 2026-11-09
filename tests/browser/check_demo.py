@@ -6,7 +6,9 @@
 import argparse
 import functools
 import json
+import re
 import runpy
+import shlex
 import shutil
 import socket
 import subprocess
@@ -37,32 +39,61 @@ def wait_for_preview_text(url, text):
         time.sleep(0.1)
 
 
-def render(work, policy, publications):
-    result = subprocess.run(
-        [
-            str(Path(sys.executable).with_name("analysis-lister")),
-            "render-group",
-            "--group",
-            "DEMO",
-            "--group-title",
-            "Synthetic demo",
-            "--snapshot",
-            "examples/synthetic_registry.json",
-            "--curation-config",
-            policy,
-            "--output-dir",
-            "pages/demo",
-        ],
-        cwd=work,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "No publication curation configuration" not in result.stdout + result.stderr
+def check_outputs(work, publications):
     report = json.loads((work / "pages/demo/view-report.json").read_text())
     assert report["counts"]["ongoing_analyses"] == 4
     assert report["counts"]["archive_publications"] == publications
     assert report["counts"]["warning_issues"] == 0
+    assert (work / "pages/demo/index.md").read_bytes() == (
+        work / "examples/demo/index.md"
+    ).read_bytes()
+    assert (work / "pages/demo/assets/site.css").read_bytes() == (
+        work / "docs/stylesheets/site.css"
+    ).read_bytes()
+    assert (work / "pages/demo-policy.toml").is_file()
+
+
+def bash_blocks(text):
+    return [
+        [
+            command
+            for line in block.replace("\\\n", "").splitlines()
+            if (command := shlex.split(line, comments=True))
+        ]
+        for block in re.findall(r"```bash\n(.*?)```", text, re.S)
+    ]
+
+
+def executable(command):
+    if command[0] == "python":
+        return [sys.executable, *command[1:]]
+    if command[0] == "analysis-lister":
+        return [str(Path(sys.executable).with_name("analysis-lister")), *command[1:]]
+    assert command[0] in {"mkdir", "cp"}, command
+    return command
+
+
+def quickstart_commands(work):
+    # Execute the documented setup, rather than filling in missing files here.
+    commands = [
+        bash_blocks((work / readme).read_text())[0]
+        for readme in ("README.md", "examples/README.md")
+    ]
+    assert commands[0] == commands[1], "Both entry points must use the same setup"
+    install = ["python", "-m", "pip", "install", "-r", "requirements-docs.txt"]
+    # CI already installed these dependencies in the active test environment.
+    return commands[0][commands[0].index(install) + 1 :]
+
+
+def run_commands(work, commands):
+    for command in commands:
+        result = subprocess.run(
+            executable(command), cwd=work, capture_output=True, text=True
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (
+            "No publication curation configuration" not in result.stdout + result.stderr
+        )
 
 
 @contextmanager
@@ -77,8 +108,11 @@ def preview(work, *, documentation=False):
     command = (
         [sys.executable, "scripts/docs.py", "serve"]
         if documentation
-        else [sys.executable, "-m", "zensical", "serve", "-f", "zensical-demo.toml"]
+        else executable(quickstart_commands(work)[-1])
     )
+    if not documentation:
+        assert command[-2:] == ["--dev-addr", "127.0.0.1:8001"]
+        command = command[:-2]  # Use an available port for this test run.
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
@@ -122,36 +156,66 @@ def check_demo(work, driver):
         shutil.copyfile(ROOT / name, destination)
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
-    render(work, POLICY, 12)
-    shutil.copyfile(work / "examples/demo/index.md", work / "pages/demo/index.md")
-    shutil.copyfile(
-        work / "docs/stylesheets/site.css", work / "pages/demo/assets/site.css"
-    )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "zensical",
-            "build",
-            "-f",
-            "zensical-demo.toml",
-            "--clean",
-            "--strict",
-        ],
-        cwd=work,
-        check=True,
-    )
+    assert not (work / "pages").exists()
+    run_commands(work, quickstart_commands(work)[:-1])
+    with preview(work) as base:
+        check_outputs(work, 12)
+        assert (work / "pages/demo-policy.toml").read_text() == original_policy
+        with urlopen(base, timeout=5) as response:
+            homepage = BeautifulSoup(response.read(), "html.parser")
+        assert homepage.h1.get_text().strip().startswith("Interactive demo")
+        browse(base, driver, page_prefix="")
 
-    # Follow the policy-copy tutorial, then restore the default result.
-    edited = original_policy.replace('groups = ["DEMO"]', "groups = []")
+    # Follow the tutorial's literal commands, including its explicit reset.
+    tutorial_text = (
+        (work / "examples/README.md")
+        .read_text()
+        .split("## Tutorial: change publication selection", 1)[1]
+        .split("\n## ", 1)[0]
+    )
+    tutorial = bash_blocks(tutorial_text)
+    assert len(tutorial) == 3
+    run_commands(work, tutorial[0])
+    policy = work / "pages/demo-policy.toml"
+    edited = policy.read_text().replace('groups = ["DEMO"]', "groups = []")
     assert edited != original_policy
-    (work / "pages/demo-policy.toml").write_text(edited)
-    render(work, "pages/demo-policy.toml", 0)
-    render(work, POLICY, 12)
+    policy.write_text(edited)
+    run_commands(work, tutorial[1])
+    check_outputs(work, 0)
+    # Restarting the preview must preserve edits and publish the changed result.
+    with preview(work) as base:
+        check_outputs(work, 0)
+        assert policy.read_text() == edited
+        for page in ("papers", "confnotes", "pubnotes"):
+            with urlopen(base + page + "/", timeout=5) as response:
+                html = BeautifulSoup(response.read(), "html.parser")
+            assert not html.select("[data-gal-item], [data-gal-note]")
+        run_commands(work, tutorial[2])
+        check_outputs(work, 12)
+        wait_for_preview_text(base + "papers/", "data-gal-item")
+    assert policy.read_text() == original_policy
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
-    with preview(work) as base:
-        browse(base, driver, page_prefix="")
+    # Invalid policy edits must not replace previously rendered pages.
+    previous = (work / "pages/demo/papers.md").read_bytes()
+    policy.write_text("[invalid TOML")
+    invalid = subprocess.run(
+        executable(tutorial[1][0]),
+        cwd=work,
+        capture_output=True,
+        text=True,
+    )
+    assert invalid.returncode != 0
+    assert (work / "pages/demo/papers.md").read_bytes() == previous
+    policy.write_text(original_policy)
+    build_section = (
+        (work / "examples/README.md")
+        .read_text()
+        .split("## Reopen or build the demo", 1)[1]
+        .split("\n## ", 1)[0]
+    )
+    run_commands(work, bash_blocks(build_section)[1])
+    assert (work / "site-demo/index.html").is_file()
 
     # Local roadmap preview must not require edits to the tracked config or leak
     # into a subsequent public build. Use invented text, never a local roadmap.
