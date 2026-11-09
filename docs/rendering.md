@@ -135,20 +135,23 @@ strings are trimmed, and duplicate criteria are removed when loading.
 
 ## Enable browser assets
 
-For output under `docs/analyses`, add these entries to the consuming site's
-configuration. Load the common files before the view-specific files:
+For pages and assets under `docs/analyses`, add these entries to the existing
+`[project]` table in the consuming site's `zensical.toml`. Merge with any existing
+asset lists, keeping common files before view-specific files:
 
-```yaml
-extra_css:
-  - analyses/assets/gal-common.css
-  - analyses/assets/gal-ongoing.css
-  - analyses/assets/gal-papers.css
-  - analyses/assets/gal-notes.css
-extra_javascript:
-  - analyses/assets/gal-common.js
-  - analyses/assets/gal-ongoing.js
-  - analyses/assets/gal-papers.js
-  - analyses/assets/gal-notes.js
+```toml
+extra_css = [
+  "analyses/assets/gal-common.css",
+  "analyses/assets/gal-ongoing.css",
+  "analyses/assets/gal-papers.css",
+  "analyses/assets/gal-notes.css",
+]
+extra_javascript = [
+  "analyses/assets/gal-common.js",
+  "analyses/assets/gal-ongoing.js",
+  "analyses/assets/gal-papers.js",
+  "analyses/assets/gal-notes.js",
+]
 ```
 
 One asset copy can serve all groups. The controls support Zensical instant
@@ -163,6 +166,73 @@ columns outside the viewport; its inset outline marks keyboard focus. Without
 JavaScript, filters are hidden and details are already open, including those of
 superseded notes. The [browser checks](development.md#browser-and-site-checks)
 cover these behaviours in the default Zensical theme.
+
+## Integrate into a consuming site
+
+Render into a staging directory outside the site's `docs_dir`. Inspect its
+[diagnostic report](diagnostics.md), then copy the four Markdown pages and assets
+into the site source. A site builder can publish JSON files even when no page
+links to them; keeping `view-report.json` outside `docs_dir` avoids including it
+in the built site. The pages themselves still contain the selected records and
+must be appropriate for the site's audience.
+
+For example, from the consuming repository with the package installed, a saved
+curated snapshot at `data/curated.json`, and your policy at
+`publication-curation.toml`:
+
+```bash
+analysis-lister render-group --group TOPQ --snapshot data/curated.json \
+  --curation-config publication-curation.toml --output-dir generated/topq
+```
+
+After a successful render and report review, stage the intended site inputs:
+
+```bash
+mkdir -p docs/analyses/assets
+cp generated/topq/ongoing.md generated/topq/papers.md \
+  generated/topq/confnotes.md generated/topq/pubnotes.md docs/analyses/
+cp generated/topq/assets/gal-*.css generated/topq/assets/gal-*.js docs/analyses/assets/
+```
+
+Keep `data/` and `generated/` out of version control when they hold private data.
+Use a destination reserved for these pages; remove any reports or snapshots
+previously placed there before building. Copying this selection does not clean
+existing site inputs or make the update atomic.
+
+Enable the assets as above. In the same `[project]` table, set `docs_dir = "docs"`
+if it differs, and add a group entry to the existing `nav` list:
+
+```toml
+nav = [
+  { "Analyses" = [
+    { "Ongoing analyses" = "analyses/ongoing.md" },
+    { "Papers" = "analyses/papers.md" },
+    { "Conference notes" = "analyses/confnotes.md" },
+    { "Public notes" = "analyses/pubnotes.md" },
+  ] },
+]
+```
+
+Preserve the site's other navigation entries. If you enable
+`navigation.instant` in `[project.theme].features`, also set `[project].site_url`
+to the site's full URL, including any repository subpath; the feature needs that
+URL to recognise internal navigation. For a local-only site at the origin used
+below, this is `site_url = "http://127.0.0.1:8001/"`.
+
+With Zensical installed in the same environment, build or preview from that
+repository:
+
+```bash
+python -m zensical build --clean --strict
+python -m zensical serve --dev-addr 127.0.0.1:8001
+```
+
+Visit <http://127.0.0.1:8001/> using the site's configured URL prefix, if any.
+Check all four pages, filtering and row expansion, including navigation between
+pages when instant navigation is enabled. Stop the preview with **Ctrl+C**.
+The [standalone demo](../examples/README.md) provides a complete configuration,
+including the shared theme stylesheet and light/dark mode, for trying this with
+synthetic data first.
 
 ## Read the output
 
