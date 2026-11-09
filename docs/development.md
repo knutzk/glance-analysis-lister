@@ -155,6 +155,11 @@ instant navigation, repeat visits, search/filter URLs, ongoing sort persistence,
 reset, expansion and stylesheets. It covers the built-in theme, not consumer theme
 overrides. Tests remove their temporary sites, HTML, screenshots and driver logs.
 
+The ongoing check also verifies that filtering preserves card order, focus and
+expansion without moving unchanged cards. A 1,000-analysis synthetic collection
+exercises distant permalinks and keyboard expansion at desktop and narrow widths;
+print media must render card content without deferring offscreen layout.
+
 The shared `tests/browser/accessibility.py` checks use real Tab/Shift+Tab and
 Enter/Space navigation for search, filters, sorting and disclosures, including
 focus returning to the heading after Collapse. They verify accessible control
@@ -211,6 +216,12 @@ event or button activation through two animation frames, allowing a paint
 opportunity. Expected visible-row counts and counters must agree. This excludes
 WebDriver transport, physical typing and network latency; it is not an INP
 measurement. Page readiness is reported separately without an acceptance limit.
+
+Interactive ongoing cards let Chrome defer offscreen layout until those cards
+approach the viewport. Filter timings therefore measure the visible response,
+not completion of layout for every matching card. All records remain in the DOM;
+the separate large-collection browser check covers distant-card navigation.
+Static no-JavaScript pages and print media do not use this layout optimization.
 
 The JSON report contains every timing sample, median and maximum, dataset hash
 and sizes, source/benchmark fingerprints, OS, Python, dependency and browser
