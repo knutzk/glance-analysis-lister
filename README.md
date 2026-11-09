@@ -101,6 +101,18 @@ existing registry, or use prepared collections directly in Python. See
 [documentation index](docs/README.md) for policies, citations, data contracts
 and other workflows.
 
+## Project background
+
+GLANCE analysis lister grew out of the need for a clear, regularly updated
+overview of ongoing analyses and recent publications. It brings information
+from individual GLANCE records together into searchable group pages.
+
+Initially developed for TOPQ subgroup coordination, its output was subsequently
+adopted on the internal TOPQ group website. The project has since become a
+general package for ATLAS physics and performance groups, with configurable
+group selection and publication policies for Markdown/Zensical websites.
+See [rendering and policies](docs/rendering.md).
+
 ## Project status and contributing
 
 The declared package version is **0.2.0**; this checkout includes unreleased
