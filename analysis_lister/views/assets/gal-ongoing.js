@@ -56,13 +56,17 @@
         const expanded = visible.length > 0 && visible.every(({panel}) => !panel.hidden);
         common.updateExpandButton(expandAll, visible.length, expanded);
       }
+      let appliedSort;
       function update() {
-        if (sorter && cardContainer) {
+        // Filtering does not change order. Moving every card also discards focus
+        // and makes the browser lay out otherwise unchanged cards again.
+        if (sorter && cardContainer && sorter.value !== appliedSort) {
           const ordered = [...items].sort((a, b) => {
             const stage = a.metadata.stage_order - b.metadata.stage_order;
             return (sorter.value === "reference" ? 0 : sorter.value === "stage-desc" ? -stage : stage) || a.metadata.reference.localeCompare(b.metadata.reference);
           });
           ordered.forEach(item => cardContainer.appendChild(item.element));
+          appliedSort = sorter.value;
         }
         const query = search.value.trim().toLowerCase();
         const selections = categories.map((category) => ({
