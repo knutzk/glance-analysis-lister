@@ -33,6 +33,15 @@ and the supported summary in report schema v2. Detailed report evidence remains
 internal. Contract regressions cover saved URLs and summary fields without
 freezing generated HTML layout or explanatory text.
 
+## Unreleased browser changes
+
+Ongoing-analysis filters preserve the existing card order when the sort choice
+has not changed, avoiding unnecessary DOM moves and retaining focus on matching
+cards. Interactive screen views defer offscreen card layout to keep resets
+responsive in large collections. Cards are laid out as they approach the
+viewport; permalinks and keyboard expansion still reveal distant records.
+The static no-JavaScript view and print layout remain fully rendered.
+
 ## Prepare an exact candidate
 
 Choose the commit and version together. Review the public interfaces and bundled

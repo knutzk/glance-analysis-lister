@@ -89,6 +89,12 @@
 .gal-card__title-line .gal-card__permalink { align-self: baseline; }
 .gal-card h2 .gal-card__permalink { display: inline; padding: 0; font: inherit; color: inherit; }
 .gal-card--expandable { transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease; cursor: auto; }
+/* Keep long collections responsive when filters reveal offscreen cards. Chrome
+ * replaces the initial height estimate with each card's measured height. Limit
+ * this to interactive screen views: static fallback and printing stay complete. */
+@media screen {
+  .gal-card--expandable { content-visibility: auto; contain-intrinsic-block-size: auto 20rem; }
+}
 .gal-card--expandable:hover { border-color: var(--gal-accent); transform: none; box-shadow: 0 2px 5px #0002; }
 .gal-card__actions { display: flex; align-items: center; gap: .15rem; flex: 0 0 auto; font-size: .8rem; font-weight: 600; }
 .gal-card__actions .gal-card__permalink { font: inherit; padding: .2rem .3rem; }

@@ -14,6 +14,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
+from performance_fixture import synthetic_registry
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -289,6 +290,44 @@ def run_checks(work_dir):
         driver.get(output.as_uri())
         count(4)
 
+        # Filtering must preserve card order, expansion and focus on a matching
+        # card. Moving unchanged DOM nodes used to drop focus and redo layout.
+        stable = driver.execute_script(
+            """
+            const container = document.querySelector('.gal-cards');
+            const cards = [...container.children];
+            const card = document.getElementById('analysis-demo-ana-demo-2099-01');
+            const toggle = card.querySelector('[data-gal-card-toggle]');
+            toggle.click();
+            toggle.focus();
+            const observer = new MutationObserver(() => {});
+            observer.observe(container, {childList: true});
+            const search = document.querySelector('[data-gal-search]');
+            for (const query of ['Signal', '']) {
+              search.value = query;
+              search.dispatchEvent(new Event('input', {bubbles: true}));
+            }
+            document.querySelector('[data-gal-value="DEMO-Alpha, with comma"]').click();
+            document.querySelector('[data-gal-reset]').click();
+            const result = {
+              moves: observer.takeRecords().length,
+              sameOrder: cards.every((card, i) => container.children[i] === card),
+              focused: document.activeElement === toggle,
+              expanded: toggle.getAttribute('aria-expanded') === 'true',
+            };
+            observer.disconnect();
+            return result;
+            """
+        )
+        assert stable == {
+            "moves": 0,
+            "sameOrder": True,
+            "focused": True,
+            "expanded": True,
+        }, stable
+        driver.get(output.as_uri())
+        count(4)
+
         def choose(category, value):
             choose_filter(driver, category, value)
 
@@ -326,6 +365,19 @@ def run_checks(work_dir):
                 "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).reference"
             )
             == "ANA-DEMO-2099-01"
+        )
+        # A reset after an actual sort change must restore the default order.
+        sorter.select_by_value("stage-desc")
+        default_order = driver.execute_script(
+            "return [...document.querySelectorAll('.gal-card')].map(card => card.id)"
+        )
+        sorter.select_by_value("reference")
+        reset()
+        assert (
+            driver.execute_script(
+                "return [...document.querySelectorAll('.gal-card')].map(card => card.id)"
+            )
+            == default_order
         )
         search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
         search.send_keys("no-match")
@@ -400,9 +452,68 @@ def run_checks(work_dir):
         )
         cards = driver.find_elements(By.CSS_SELECTOR, "[data-gal-item]")
         assert len({round(card.rect["x"]) for card in cards}) == 1
+        check_large_collection(driver, work_dir, html, markup)
         print(
-            "Browser checks passed: OR/AND filters, search, reset, keyboard, instant replacement, idempotence, mobile overflow and no-JavaScript fallback."
+            "Browser checks passed: OR/AND filters, stable order/focus, search, reset, keyboard, instant replacement, idempotence, mobile overflow, no-JavaScript fallback and large-collection navigation/printing."
         )
+
+
+def check_large_collection(driver, work_dir, html, original_markup):
+    """Deferred offscreen layout must still reveal distant cards and print fully."""
+    view = prepare_group(
+        CuratedRegistry(synthetic_registry(1000)), GroupProfile("DEMO")
+    )
+    markup = str(
+        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-ongoing")
+    )
+    output = work_dir / "large.html"
+    output.write_text(html.replace(original_markup, markup))
+    driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
+    driver.set_window_size(1280, 900)
+    driver.get(output.as_uri())
+    wait = WebDriverWait(driver, 20)
+    wait.until(
+        lambda d: d.find_element(By.CSS_SELECTOR, "[data-gal-controls]").is_displayed()
+    )
+    target_id = driver.execute_script(
+        "return document.querySelector('.gal-cards').lastElementChild.id"
+    )
+    for width in (1280, 390):
+        driver.execute_cdp_cmd(
+            "Emulation.setDeviceMetricsOverride",
+            {"width": width, "height": 900, "deviceScaleFactor": 1, "mobile": False},
+        )
+        driver.get(output.as_uri() + "#" + target_id)
+        target = driver.find_element(By.ID, target_id)
+        toggle = target.find_element(By.CSS_SELECTOR, "[data-gal-card-toggle]")
+        wait.until(
+            lambda d, toggle=toggle: toggle.get_attribute("aria-expanded") == "true"
+        )
+        wait.until(
+            lambda d, toggle=toggle: d.execute_script(
+                "const rect = arguments[0].getBoundingClientRect();"
+                "return rect.top >= 0 && rect.top < innerHeight;",
+                toggle,
+            )
+        )
+        assert target.find_element(By.CSS_SELECTOR, "h2").text.strip()
+        collapse = target.find_element(By.CSS_SELECTOR, "[data-gal-card-collapse]")
+        collapse.send_keys(Keys.SPACE)
+        assert toggle.get_attribute("aria-expanded") == "false"
+        assert driver.switch_to.active_element == toggle
+        toggle.send_keys(Keys.ENTER)
+        assert toggle.get_attribute("aria-expanded") == "true"
+        assert driver.execute_script(
+            "return document.documentElement.scrollWidth <= innerWidth"
+        )
+
+    driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"media": "print"})
+    assert driver.execute_script(
+        "return [...document.querySelectorAll('.gal-card')].every(card => "
+        "getComputedStyle(card).contentVisibility === 'visible')"
+    ), "Printing must not defer offscreen card content"
+    driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"media": "screen"})
+    driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
 
 
 def main():
