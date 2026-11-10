@@ -99,7 +99,7 @@ def run_commands(work, commands):
 
 
 @contextmanager
-def preview(work, *, documentation=False):
+def preview(work, *, documentation=False, group_pages=()):
     """Start and stop the actual documented Zensical preview command."""
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
@@ -115,6 +115,8 @@ def preview(work, *, documentation=False):
     if not documentation:
         assert command[-2:] == ["--dev-addr", "127.0.0.1:8001"]
         command = command[:-2]  # Use an available port for this test run.
+    for group in group_pages:
+        command.extend(["--group-pages", group])
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
@@ -147,6 +149,106 @@ def preview(work, *, documentation=False):
                 assert connection.connect_ex(("127.0.0.1", port)) != 0, (
                     "Preview left its server running after termination"
                 )
+
+
+def check_local_group_preview(work, driver):
+    # TOPQ is a navigation label in this test; all records remain invented DEMO data.
+    run_commands(
+        work,
+        [
+            [
+                "analysis-lister",
+                "render-group",
+                "--group",
+                "DEMO",
+                "--snapshot",
+                "examples/synthetic_registry.json",
+                "--curation-config",
+                POLICY,
+                "--output-dir",
+                "pages/topq",
+            ]
+        ],
+    )
+    group = work / "pages/topq"
+    (group / "extra.md").write_text("# Unselected local file\n")
+    (group / "cookies.json").write_text('{"sentinel": "invented test input"}')
+    local = work / ".cache/docs-group-preview"
+    public_before = (work / "site/index.html").read_bytes()
+    with preview(
+        work,
+        documentation=True,
+        group_pages=(
+            "TOPQ=pages/topq",
+            "HIGP=pages/topq",
+        ),
+    ) as base:
+        with urlopen(base, timeout=5) as response:
+            html = response.read().decode()
+        assert "TOPQ (local data)" in html and "HIGP (local data)" in html
+        assert "examples/demo/ongoing/" in html
+        assert (work / "site/index.html").read_bytes() == public_before
+        staged = local / "site-src/local-groups/topq"
+        assert {p.name for p in staged.iterdir()} == {
+            "ongoing.md",
+            "papers.md",
+            "confnotes.md",
+            "pubnotes.md",
+        }
+        assert not list(local.rglob("view-report.json"))
+        assert not list(local.rglob("cookies.json"))
+        assert not list(local.rglob("extra.md"))
+        with urlopen(base + "local-groups/higp/papers/", timeout=5) as response:
+            assert response.status == 200
+        browse(
+            base,
+            driver,
+            page_prefix="local-groups/topq/",
+            start_page="local-groups/topq/papers/",
+        )
+        ongoing = group / "ongoing.md"
+        ongoing.write_text(ongoing.read_text() + "\nLocal group reload sentinel.\n")
+        wait_for_preview_text(
+            base + "local-groups/topq/ongoing/", "Local group reload sentinel."
+        )
+    # Reject accidental publication/network exposure and invalid selections before
+    # starting the server or clearing any generated directories.
+    for command in (
+        ["build", "--group-pages", "TOPQ=pages/topq"],
+        ["serve", "--group-pages", "TOPQ=pages/missing"],
+        ["serve", "--group-pages", "TOPQ=pages/topq", "--dev-addr", "0.0.0.0:8000"],
+        ["serve", "--group-pages", "../TOPQ=pages/topq"],
+        [
+            "serve",
+            "--group-pages",
+            "TOPQ=pages/topq",
+            "--group-pages",
+            "TOPQ=pages/topq",
+        ],
+        [
+            "serve",
+            "--group-pages",
+            "TOPQ=.cache/docs-group-preview/site-src/local-groups/topq",
+        ],
+    ):
+        rejected = subprocess.run(
+            [sys.executable, "scripts/docs.py", *command],
+            cwd=work,
+            capture_output=True,
+            text=True,
+        )
+        assert rejected.returncode == 2, rejected.stdout + rejected.stderr
+    # A normal preview must drop the local sections even while their source and
+    # cached HTML still exist. A subsequent public build must contain none of them.
+    with preview(work, documentation=True) as base:
+        with urlopen(base, timeout=5) as response:
+            assert "local-groups/" not in response.read().decode()
+        assert not (work / "site-src/local-groups").exists()
+    subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
+    assert not (work / "site/local-groups").exists()
+    assert not (work / "site-src/local-groups").exists()
+    for html in (work / "site").rglob("*.html"):
+        assert "Local group reload sentinel." not in html.read_text()
 
 
 def check_demo(work, driver):
@@ -289,8 +391,9 @@ def check_demo(work, driver):
         finally:
             server.shutdown()
             thread.join()
+    check_local_group_preview(work, driver)
     print(
-        "Demo checks passed: standalone preview, policy tutorial, local roadmap isolation and documentation demo."
+        "Demo checks passed: standalone/tutorial, documentation and local group preview isolation."
     )
 
 

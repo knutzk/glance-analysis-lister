@@ -112,6 +112,21 @@ Snapshots default to `glance_api_registry.json` and
 `glance_curated_registry.json` in the calling directory. Keep real snapshots,
 cookies, diagnostic reports and pages containing non-public records private.
 
+To view real group pages alongside **Demo** in this checkout's documentation
+site, use the documentation environment from the quick start and render your
+saved registry into a group directory:
+
+```bash
+analysis-lister render-group --group TOPQ \
+  --snapshot glance_curated_registry.json --output-dir pages/topq
+python scripts/docs.py serve --group-pages TOPQ=pages/topq
+```
+
+Open <http://127.0.0.1:8000/glance-analysis-lister/> and select **TOPQ (local data)**.
+See [local group previews](docs/site.md#preview-your-group-alongside-demo) for
+refreshing directly into that directory, adding more groups and keeping the
+generated data local.
+
 If a stage fails, completed stages remain. See
 [commands, downloads and recovery](docs/workflows.md) to resume from saved data,
 choose destinations or refresh several groups. Use `analysis-lister COMMAND --help`

@@ -22,6 +22,7 @@ GLANCE records requires CERN access; rendering never refreshes the snapshot.
 | Update citations | [Maintain the citation store](citations.md) | Build with that store, then render. Only INSPIRE lookup needs public network access. |
 | Change group, publication policy, titles or renderer | [Render a saved curated registry](#reuse-a-snapshot-offline) | Inspect the new pages and report. |
 | Understand changes between saved snapshots | [Compare snapshots](#compare-saved-snapshots) | Review the summary and, if needed, the detailed report. |
+| Inspect your group alongside the synthetic demo | [Local group preview](site.md#preview-your-group-alongside-demo) | Render to `pages/topq`, then explicitly select it in the local documentation preview. |
 | Add generated pages to an existing site | [Stage pages and enable assets](rendering.md#integrate-into-a-consuming-site) | Build and preview the consuming site. |
 
 ## Refresh group pages in one command

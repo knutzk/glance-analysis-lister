@@ -38,6 +38,48 @@ navigation automatically. It uses an ignored `.zensical-preview.yml` generated
 from `zensical.toml`; no tracked configuration changes are needed. Restart the
 preview after adding or removing the roadmap. Static builds exclude it.
 
+## Preview your group alongside Demo
+
+From this repository root, activate the documentation environment described
+above. To display TOPQ pages from an existing curated registry:
+
+```bash
+analysis-lister render-group --group TOPQ \
+  --snapshot glance_curated_registry.json --output-dir pages/topq
+python scripts/docs.py serve --group-pages TOPQ=pages/topq
+```
+
+Open <http://127.0.0.1:8000/glance-analysis-lister/>. **TOPQ (local data)** appears
+beside **Demo**, with ongoing analyses, papers, conference notes and public notes.
+The synthetic demo remains available. The group pages use the site's existing
+search, filtering, navigation and assets; no landing-page or asset copies are
+needed. Stop the preview with **Ctrl+C**.
+
+If you need fresh CERN data, replace the rendering command above with:
+
+```bash
+analysis-lister refresh --groups TOPQ --output-dir pages/topq --login
+```
+
+Omit `--login` when reusing stored credentials. A single group writes directly
+to the requested output directory; the default curated snapshot is
+`glance_curated_registry.json` in the calling directory. If it lives elsewhere,
+pass its actual path to `render-group --snapshot`. These commands use the bundled
+TOPQ publication policy; pass `--curation-config PATH` to use your own.
+
+The preview reads already-rendered files. After regenerating them in another
+terminal, it reloads their changes. It does not download or render real data
+itself. To include more groups, repeat the option, for example
+`--group-pages TOPQ=pages/topq --group-pages HIGP=pages/higp`, after rendering
+each group into its own directory. Restart the server when changing the selection.
+
+Group previews bind only to loopback and keep their generated sources and HTML
+under the ignored `.cache/docs-group-preview/` directory. Only the four group
+Markdown files are copied: snapshots, diagnostic reports and other files in the
+render directory are excluded. The pages themselves contain your selected data;
+keep `pages/` and the preview cache private. Ordinary previews omit these sections,
+and public `build` commands reject `--group-pages` and use the public allowlist.
+
 ## Build static HTML
 
 ```bash
@@ -47,6 +89,8 @@ python scripts/docs.py build
 This validates links and anchors and writes HTML to `site/`. Run only one build
 or preview at a time: both commands clear the generated `site-src/` and `site/`
 directories when they start. Edit the original sources, not those copies.
+Group previews use their separate cache directories but still share the generated
+preview configuration; run only one documentation command at a time.
 
 ## Inspect a CI build
 
