@@ -44,7 +44,7 @@ def main():
     package = distribution("glance-analysis-lister")
     assert not any(
         str(path).startswith((".github/", "docs/", "examples/", "scripts/"))
-        or str(path).endswith((".png", "zensical.toml", "zensical-demo.toml"))
+        or str(path).endswith((".png", "zensical.toml"))
         for path in package.files
     ), "Documentation and screenshots belong in the source archive, not the wheel"
     retired = (
@@ -153,9 +153,10 @@ def main():
         for contract_file in (
             schema_path,
             "docs/curated-format.md",
+            "docs/images/command-flow.svg",
             ".github/release-notes/v0.1.0.txt",
             ".github/release-notes/v0.2.0.txt",
-            "zensical-demo.toml",
+            "examples/demo/zensical.toml",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",
             "tests/fixtures/curated/v2-baseline.json",
@@ -165,6 +166,12 @@ def main():
                 archive.extractfile(prefix + contract_file).read()
                 == (root / contract_file).read_bytes()
             )
+        assert not any(
+            name.removeprefix(prefix).startswith(
+                ("examples/demo/work/", "examples/demo/.cache/")
+            )
+            for name in archive.getnames()
+        ), "Generated demo output must not ship in the source distribution"
         sample = "examples/synthetic_registry.json"
         assert (
             archive.extractfile(prefix + sample).read() == (root / sample).read_bytes()

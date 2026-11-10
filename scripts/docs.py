@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Build or preview documentation from an explicit list of public files."""
+"""Build public documentation or preview it with selected local group pages."""
 
 import argparse
 import importlib
 import json
+import re
 import shlex
 import shutil
 import signal
@@ -20,6 +21,13 @@ from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 PREVIEW_CONFIG = ".zensical-preview.yml"
+GROUP_PREVIEW = Path(".cache/docs-group-preview")
+GROUP_PAGES = {
+    "Ongoing analyses": "ongoing.md",
+    "Papers": "papers.md",
+    "Conference notes": "confnotes.md",
+    "Public notes": "pubnotes.md",
+}
 RELEASE_VERSIONS = ("v0.2.0", "v0.1.0")
 if (ROOT / "analysis_lister/__init__.py").is_file():
     sys.path.insert(0, str(ROOT))
@@ -29,7 +37,7 @@ PUBLIC_FILES = (
     "LICENCE",
     *(f".github/release-notes/{version}.txt" for version in RELEASE_VERSIONS),
     "zensical.toml",
-    "zensical-demo.toml",
+    "examples/demo/zensical.toml",
     "scripts/docs.py",
     "publication-curation.toml",
     "analysis_lister/registry/schemas/curated-v2.schema.json",
@@ -60,6 +68,7 @@ PUBLIC_FILES = (
     "docs/stylesheets/site.css",
     "docs/workflows.md",
     "docs/images/README.md",
+    "docs/images/command-flow.svg",
     "docs/images/ongoing.png",
     "docs/images/papers.png",
     "docs/images/ongoing-card.png",
@@ -132,8 +141,8 @@ def write_changed(destination, content):
         destination.write_bytes(content)
 
 
-def stage(root=ROOT, *, include_roadmap=False):
-    """Copy changed public sources without rewriting unchanged files."""
+def stage(root=ROOT, *, include_roadmap=False, group_pages=()):
+    """Stage public docs and explicitly selected local preview pages."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
     for version in RELEASE_VERSIONS:
@@ -151,10 +160,36 @@ def stage(root=ROOT, *, include_roadmap=False):
             f"(../.github/release-notes/{version}.txt)".encode(),
             f"(release-notes/{version}.md)".encode(),
         )
+    destination = root / "site-src"
+    if include_roadmap or group_pages:
+        config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]
     if include_roadmap:
         sources["ROADMAP.md"] = (root / "ROADMAP.md").read_bytes()
-        config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]
         config["nav"].append({"Roadmap": "ROADMAP.md"})
+    if group_pages:
+        destination = root / GROUP_PREVIEW / "site-src"
+        config["docs_dir"] = (GROUP_PREVIEW / "site-src").as_posix()
+        config["site_dir"] = (GROUP_PREVIEW / "site").as_posix()
+        config["site_name"] += " · local data"
+        position = next(
+            (i + 1 for i, entry in enumerate(config["nav"]) if "Demo" in entry),
+            len(config["nav"]),
+        )
+        for group, directory in group_pages:
+            prefix = f"local-groups/{group.lower()}"
+            for filename in GROUP_PAGES.values():
+                sources[f"{prefix}/{filename}"] = (directory / filename).read_bytes()
+            config["nav"].insert(
+                position,
+                {
+                    f"{group} (local data)": [
+                        {title: f"{prefix}/{filename}"}
+                        for title, filename in GROUP_PAGES.items()
+                    ]
+                },
+            )
+            position += 1
+    if include_roadmap or group_pages:
         # JSON is valid YAML; Zensical accepts the same project settings in both.
         # Keep this generated config at the repository root for relative paths.
         write_changed(
@@ -182,14 +217,56 @@ def stage(root=ROOT, *, include_roadmap=False):
                 files("analysis_lister.views") / "assets" / filename
             ).read_bytes()
     for name, content in sources.items():
-        write_changed(root / "site-src" / name, content)
+        write_changed(destination / name, content)
+
+
+def group_pages_argument(value):
+    group, separator, directory = value.partition("=")
+    if not separator or not re.fullmatch(r"[A-Z][A-Z0-9_-]*", group) or not directory:
+        raise argparse.ArgumentTypeError("Use GROUP=PATH, for example TOPQ=pages/topq")
+    return group, Path(directory).resolve()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("build", "serve"))
     parser.add_argument("--dev-addr", default="127.0.0.1:8000")
+    parser.add_argument(
+        "--group-pages",
+        type=group_pages_argument,
+        action="append",
+        default=[],
+        metavar="GROUP=PATH",
+        help="Include rendered group pages in the local preview; repeat for more groups",
+    )
     args = parser.parse_args()
+    if args.group_pages:
+        if args.command != "serve":
+            parser.error(
+                "--group-pages is available only with serve, not public builds"
+            )
+        if args.dev_addr.rpartition(":")[0] not in {"127.0.0.1", "localhost", "[::1]"}:
+            parser.error("Group-page previews must bind to a loopback address")
+        groups = [group for group, _ in args.group_pages]
+        if len(set(groups)) != len(groups):
+            parser.error("Specify each preview group only once")
+        for _, directory in args.group_pages:
+            if any(
+                directory.is_relative_to((ROOT / output).resolve())
+                for output in ("site-src", "site", GROUP_PREVIEW)
+            ):
+                parser.error(
+                    "Group pages must be outside generated documentation directories"
+                )
+            missing = [
+                name
+                for name in GROUP_PAGES.values()
+                if not (directory / name).is_file()
+            ]
+            if missing:
+                parser.error(
+                    f"Missing rendered pages in {directory}: {', '.join(missing)}"
+                )
     # Check the renderer's dependencies before clearing an existing preview.
     try:
         importlib.import_module("zensical")
@@ -208,13 +285,18 @@ def main():
         )
     # These directories are disposable outputs owned by this command. Clear old
     # content so a previous preview cannot leak extra files into a later build.
-    for directory in ("site-src", "site"):
+    directories = (
+        (GROUP_PREVIEW / "site-src", GROUP_PREVIEW / "site")
+        if args.group_pages
+        else ("site-src", "site")
+    )
+    for directory in directories:
         path = ROOT / directory
         if path.exists():
             shutil.rmtree(path)
     include_roadmap = args.command == "serve" and (ROOT / "ROADMAP.md").is_file()
-    stage(include_roadmap=include_roadmap)
-    config = PREVIEW_CONFIG if include_roadmap else "zensical.toml"
+    stage(include_roadmap=include_roadmap, group_pages=args.group_pages)
+    config = PREVIEW_CONFIG if include_roadmap or args.group_pages else "zensical.toml"
     command = [sys.executable, "-m", "zensical", args.command, "-f", config]
     if args.command == "build":
         return subprocess.call([*command, "--clean", "--strict"], cwd=ROOT)
@@ -226,7 +308,7 @@ def main():
             while process.poll() is None:
                 time.sleep(0.5)
                 try:
-                    stage(include_roadmap=include_roadmap)
+                    stage(include_roadmap=include_roadmap, group_pages=args.group_pages)
                 except FileNotFoundError:
                     # Retry while an editor is replacing a source file.
                     continue

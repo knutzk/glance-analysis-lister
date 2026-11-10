@@ -183,6 +183,11 @@ preservation of edits across preview restarts and explicit restoration of the
 example. Invalid policy edits must leave previously rendered pages intact.
 The check also builds the documentation and checks all four embedded demo pages under
 the repository subpath. Both sites reuse the instant-navigation and filter checks.
+It also previews explicitly selected local group directories alongside Demo,
+using only invented records. It checks reloading, multiple navigation sections,
+loopback-only serving, exclusion of reports and unrelated files, and isolation
+from subsequent ordinary previews and public builds. The local group pages run
+the same browser interaction and accessibility checks as the synthetic demo.
 
 The offline, browser and documentation CI jobs must pass before the release job
 creates a draft release from a tag. The documentation job also supplies an

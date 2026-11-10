@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="350" viewBox="0 0 760 350" role="img" aria-labelledby="title description">
+  <!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+  <!-- SPDX-License-Identifier: GPL-3.0-only -->
+  <title id="title">GLANCE retrieval, registry construction and page rendering</title>
+  <desc id="description">GLANCE requires CERN access. Refresh combines download-api, build-registry and render-group from left to right, connected by an API snapshot and a curated registry. The flow continues down to generated Markdown pages, browser assets and a diagnostic report, then right to a preview or website.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L8 4L0 8Z" fill="#657780"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: #233846; text-anchor: middle; }
+    .command { fill: #e4f4f2; stroke: #229e95; stroke-width: 1.3; }
+    .context { fill: #f5f8fa; stroke: #92a2ad; stroke-width: 1.3; }
+    .snapshot { fill: #fff; stroke: #8794a3; stroke-width: 1.3; stroke-dasharray: 4 3; }
+    .connector { fill: none; stroke: #657780; stroke-width: 1.4; marker-end: url(#arrow); }
+    .label { font-size: 13px; }
+    .command-label { font-size: 15px; }
+  </style>
+
+  <!-- Equal 29-unit gaps connect the source, refresh frame and output. -->
+  <g id="glance">
+    <rect class="context" x="312" y="12" width="136" height="62" rx="18"/>
+    <text class="label" x="380" y="37">ATLAS GLANCE</text>
+    <text class="label" x="380" y="56">CERN access</text>
+  </g>
+  <path id="source-to-refresh" class="connector" d="M380 74V103"/>
+
+  <g id="refresh">
+    <rect x="8" y="103" width="744" height="128" rx="20" fill="#f6f7f8" stroke="#b4bdc5" stroke-width="1.3"/>
+    <text id="refresh-label" x="380" y="129" font-size="16"><tspan font-weight="600">refresh</tspan><tspan> · three steps in one</tspan></text>
+
+    <g id="download">
+      <rect class="command" x="28" y="154" width="132" height="56" rx="16"/>
+      <text class="command-label" x="94" y="187">1. download-api</text>
+    </g>
+    <path class="connector" d="M160 182H189"/>
+    <g id="api">
+      <rect class="snapshot" x="189" y="158" width="96" height="48" rx="5"/>
+      <text class="label" x="237" y="177">API</text>
+      <text class="label" x="237" y="194">snapshot</text>
+    </g>
+    <path class="connector" d="M285 182H314"/>
+    <g id="build">
+      <rect class="command" x="314" y="154" width="132" height="56" rx="16"/>
+      <text class="command-label" x="380" y="187">2. build-registry</text>
+    </g>
+    <path class="connector" d="M446 182H475"/>
+    <g id="curated">
+      <rect class="snapshot" x="475" y="158" width="96" height="48" rx="5"/>
+      <text class="label" x="523" y="177">Curated</text>
+      <text class="label" x="523" y="194">registry</text>
+    </g>
+    <path class="connector" d="M571 182H600"/>
+    <g id="render">
+      <rect class="command" x="600" y="154" width="132" height="56" rx="16"/>
+      <text class="command-label" x="666" y="187">3. render-group</text>
+    </g>
+  </g>
+
+  <path id="refresh-to-output" class="connector" d="M380 231V260"/>
+  <g id="output">
+    <rect class="context" x="312" y="260" width="136" height="78" rx="16"/>
+    <text class="label" x="380" y="283">Markdown pages</text>
+    <text class="label" x="380" y="302">Browser assets</text>
+    <text class="label" x="380" y="321">Diagnostic report</text>
+  </g>
+  <path id="output-to-preview" class="connector" d="M448 299H477"/>
+  <g id="preview">
+    <rect class="context" x="477" y="260" width="136" height="78" rx="16"/>
+    <text class="label" x="545" y="293">Preview</text>
+    <text class="label" x="545" y="312">or website</text>
+  </g>
+</svg>

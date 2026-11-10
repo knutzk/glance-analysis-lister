@@ -22,6 +22,7 @@ GLANCE records requires CERN access; rendering never refreshes the snapshot.
 | Update citations | [Maintain the citation store](citations.md) | Build with that store, then render. Only INSPIRE lookup needs public network access. |
 | Change group, publication policy, titles or renderer | [Render a saved curated registry](#reuse-a-snapshot-offline) | Inspect the new pages and report. |
 | Understand changes between saved snapshots | [Compare snapshots](#compare-saved-snapshots) | Review the summary and, if needed, the detailed report. |
+| Inspect your group alongside the synthetic demo | [Local group preview](site.md#preview-your-group-alongside-demo) | Render to `pages/topq`, then explicitly select it in the local documentation preview. |
 | Add generated pages to an existing site | [Stage pages and enable assets](rendering.md#integrate-into-a-consuming-site) | Build and preview the consuming site. |
 
 ## Refresh group pages in one command
@@ -55,17 +56,26 @@ elapsed time. See [recovery](#validation-and-recovery) to resume a failed run.
 
 ## Download and build a registry
 
-To run the stages separately, execute these commands **in order**:
+The [command flowchart](../README.md#how-it-fits-together) shows how the saved
+files connect the stages. To produce TOPQ pages without `refresh`, execute
+these three commands **in order**, from the same directory:
 
 ```bash
 analysis-lister download-api --login
 analysis-lister build-registry
+analysis-lister render-group --group TOPQ --output-dir pages/topq
 ```
 
 The download retrieves all accessible records, including their explicit
 relationships. Group and subgroup selection happens later, when preparing views.
 Building the registry needs only the saved API JSON and identifier/citation
 dictionaries; it makes no network requests.
+`build-registry` reads `glance_api_registry.json` and writes
+`glance_curated_registry.json`. `render-group` reads the latter and writes the
+four Markdown pages, browser assets and report into `pages/topq/`.
+Then [preview the pages alongside Demo](site.md#preview-your-group-alongside-demo)
+or integrate them into your consuming site. Neither rendering nor previewing
+downloads fresh records.
 
 Default snapshot and dictionary locations are listed in the
 [reference](cli-reference.md#paths-and-shared-options).
@@ -77,6 +87,8 @@ analysis-lister download-api --output data/api.json
 analysis-lister build-registry \
   --api-snapshot data/api.json \
   --output data/curated.json
+analysis-lister render-group --group TOPQ \
+  --snapshot data/curated.json --output-dir pages/topq
 ```
 
 Keep real snapshots and diagnostic reports out of version control. Add these
@@ -90,6 +102,20 @@ entries to the consuming repository's `.gitignore`:
 
 Add any custom destinations too. Publish generated Markdown and assets only when
 the records they expose are suitable for the intended audience.
+
+### Where the other commands fit
+
+These are separate tools; `refresh` does not run them.
+
+| Command | Role in the workflow |
+| --- | --- |
+| `download-html` | Independent GLANCE HTML-to-CSV export. Its CSV files are not inputs to `build-registry`. |
+| `compare-snapshots` | Compares two saved API snapshots or two curated registries; does not render or update pages. |
+| `resolve-dois` | Retrieves citation metadata from INSPIRE into an explicitly selected writable cache. Use that cache with `build-registry --doi-cache PATH`. |
+| `format-citations` | Formats entries in the selected citation cache. Rebuild the registry with that cache, then render to update displayed citations. |
+
+See [citation maintenance](citations.md) and the
+[command-line reference](cli-reference.md) for options and prerequisites.
 
 ### API pagination
 
@@ -117,7 +143,7 @@ this checkout, use the public fixture and its policy:
 analysis-lister render-group --group DEMO \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/publication-curation.toml \
-  --output-dir pages/demo
+  --output-dir examples/demo/work/pages
 ```
 
 This produces four ongoing analyses and twelve archived publications, with no

@@ -4,8 +4,11 @@
 """Capture documentation images from the public synthetic Zensical site."""
 
 import argparse
+import base64
 import functools
+import math
 import os
+import struct
 import sys
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -35,7 +38,10 @@ def capture(base, driver_path):
     destination.mkdir(parents=True, exist_ok=True)
     with webdriver.Chrome(options=options, service=Service(str(driver_path))) as driver:
         wait = WebDriverWait(driver, 15)
+        pages = []
         for page in ("ongoing", "papers"):
+            if pages:
+                driver.switch_to.new_window("tab")
             driver.get(base + f"analyses/{page}/")
             wait.until(
                 lambda d: d.find_element(
@@ -52,23 +58,82 @@ def capture(base, driver_path):
                 if page == "ongoing"
                 else "[data-gal-paper-toggle]"
             )
-            driver.find_element(By.CSS_SELECTOR, f"{record} {toggle}").click()
-            wait.until(
-                lambda d, record=record, toggle=toggle: (
-                    d.find_element(By.CSS_SELECTOR, f"{record} {toggle}").get_attribute(
-                        "aria-expanded"
+            # The gallery shows all four analysis cards and one paper's details.
+            # Expanded analysis details are captured separately below.
+            if page == "papers":
+                driver.find_element(By.CSS_SELECTOR, f"{record} {toggle}").click()
+                wait.until(
+                    lambda d, record=record, toggle=toggle: (
+                        d.find_element(
+                            By.CSS_SELECTOR, f"{record} {toggle}"
+                        ).get_attribute("aria-expanded")
+                        == "true"
                     )
-                    == "true"
                 )
-            )
             driver.execute_async_script(
                 "const done = arguments[0]; document.fonts.ready.then(() => "
                 "requestAnimationFrame(() => requestAnimationFrame(done)));"
             )
+            collection = driver.find_element(By.CSS_SELECTOR, ".gal-collection")
+            pages.append(
+                (
+                    page,
+                    driver.current_window_handle,
+                    record,
+                    toggle,
+                    collection,
+                    collection.rect,
+                )
+            )
+
+        # Both gallery images start at the filters and contain the full collection.
+        # Give the shorter collection extra space below its records so the frames
+        # match without stretching the image or including the provenance footer.
+        width = math.ceil(max(bounds["width"] for *_, bounds in pages))
+        height = math.ceil(max(bounds["height"] for *_, bounds in pages))
+        padding = 8  # Retain card shadows and rounded filter borders.
+        for page, handle, record, toggle, collection, _ in pages:
+            driver.switch_to.window(handle)
+            assert math.ceil(collection.rect["width"]) == width
+            driver.execute_script(
+                "arguments[0].style.minHeight = arguments[1] + 'px';",
+                collection,
+                height,
+            )
+            bounds = collection.rect
+            screenshot = driver.execute_cdp_cmd(
+                "Page.captureScreenshot",
+                {
+                    "format": "png",
+                    "captureBeyondViewport": True,
+                    "clip": {
+                        "x": math.floor(bounds["x"]) - padding,
+                        "y": math.floor(bounds["y"]) - padding,
+                        "width": width + 2 * padding,
+                        "height": height + 2 * padding,
+                        "scale": 1,
+                    },
+                },
+            )
+            image = base64.b64decode(screenshot["data"])
+            dimensions = struct.unpack(">II", image[16:24])
+            assert dimensions == (width + 2 * padding, height + 2 * padding)
+            (destination / f"{page}.png").write_bytes(image)
+            print(f"Captured docs/images/{page}.png ({dimensions[0]}×{dimensions[1]})")
+
+            driver.execute_script("arguments[0].style.minHeight = '';", collection)
+            if page == "ongoing":
+                driver.find_element(By.CSS_SELECTOR, f"{record} {toggle}").click()
+                wait.until(
+                    lambda d, record=record, toggle=toggle: (
+                        d.find_element(
+                            By.CSS_SELECTOR, f"{record} {toggle}"
+                        ).get_attribute("aria-expanded")
+                        == "true"
+                    )
+                )
             content = driver.find_element(By.CSS_SELECTOR, ".md-content")
             driver.set_window_size(1440, int(content.rect["height"]) + 250)
-            assert content.screenshot(str(destination / f"{page}.png"))
-            print(f"Captured docs/images/{page}.png")
             selector, filename = (
                 (record, "ongoing-card")
                 if page == "ongoing"

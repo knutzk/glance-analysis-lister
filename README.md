@@ -13,15 +13,22 @@ included synthetic example lets you try the package without CERN access.
 
 These screenshots show **fictional example records** rendered in a Zensical site.
 
-**Ongoing analyses:** searchable cards with affiliations, review progress and
-expandable details.
+<table class="gal-screenshot-gallery" role="presentation">
+  <tr>
+    <td width="50%" valign="top">
+      <p><strong>Ongoing analyses</strong></p>
+      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards."></a>
+      <p>Searchable cards with affiliations, review progress and expandable details.</p>
+    </td>
+    <td width="50%" valign="top">
+      <p><strong>Publications</strong></p>
+      <a href="docs/images/papers.png"><img src="docs/images/papers.png" width="360" alt="Synthetic paper page with search, date and publication-status filters, and four papers, one expanded."></a>
+      <p>Tables for papers, conference notes and public notes, with date filters and expandable details.</p>
+    </td>
+  </tr>
+</table>
 
-![Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards.](docs/images/ongoing.png)
-
-**Publications:** searchable tables for papers, conference notes (CONF) and public
-notes (PUB), with date filters and expandable record details.
-
-![Synthetic paper page with search, date and publication-status filters, and four papers, one expanded.](docs/images/papers.png)
+Select a screenshot to open it at full size.
 
 [Try the synthetic example](#install-and-try-without-credentials) or read about
 [page controls and site integration](docs/rendering.md).
@@ -43,17 +50,18 @@ python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
-mkdir -p pages
-cp examples/demo/publication-curation.toml pages/demo-policy.toml
+mkdir -p examples/demo/work
+cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
-  --curation-config pages/demo-policy.toml --output-dir pages/demo
+  --curation-config examples/demo/work/demo-policy.toml \
+  --output-dir examples/demo/work/pages
 
-cp examples/demo/index.md pages/demo/index.md
-cp docs/stylesheets/site.css pages/demo/assets/site.css
+cp examples/demo/index.md examples/demo/work/pages/index.md
+cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
-python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 **Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
@@ -61,9 +69,11 @@ navigation to open **Ongoing analyses**, search for `Tracking`, and expand a car
 Try **Papers**, **Conference notes** and **Public notes** next. Stop the server
 with **Ctrl+C**.
 
-Run all commands from the cloned repository root, which contains `examples/`
-and [`zensical-demo.toml`](zensical-demo.toml). The commands above create an
-editable policy copy, render the four pages, copy the landing page and stylesheet,
+Run all commands from the cloned repository root. The standalone demo's
+configuration, landing page and policy live in [`examples/demo/`](examples/demo/);
+the root `zensical.toml` configures the full package documentation site.
+The commands above create an editable policy copy, render the four pages,
+copy the landing page and stylesheet,
 and start Zensical. Installation needs internet access; rendering and preview
 use only local synthetic data.
 
@@ -74,20 +84,20 @@ To reopen an already-generated demo, run only these from the repository root:
 
 ```bash
 source .venv/bin/activate
-python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 The setup produces:
 
 | Output | Contents |
 | --- | --- |
-| `pages/demo/index.md` | Demo landing page and suggested interactions. |
-| `pages/demo/ongoing.md` | Four invented ongoing analyses at different review stages. |
-| `pages/demo/papers.md` | Four invented papers: two with DOIs and two without. |
-| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
-| `pages/demo/assets/` | Browser styles and interaction scripts. |
-| `pages/demo/view-report.json` | Selection decisions, provenance and diagnostics. |
-| `pages/demo-policy.toml` | Editable copy of the DEMO publication policy. |
+| `examples/demo/work/pages/index.md` | Demo landing page and suggested interactions. |
+| `examples/demo/work/pages/ongoing.md` | Four invented ongoing analyses at different review stages. |
+| `examples/demo/work/pages/papers.md` | Four invented papers: two with DOIs and two without. |
+| `examples/demo/work/pages/confnotes.md`, `examples/demo/work/pages/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
+| `examples/demo/work/pages/assets/` | Browser styles and interaction scripts. |
+| `examples/demo/work/pages/view-report.json` | Selection decisions, provenance and diagnostics. |
+| `examples/demo/work/demo-policy.toml` | Editable copy of the DEMO publication policy. |
 
 Continue with the [policy tutorial](examples/README.md#tutorial-change-publication-selection)
 to change what appears in the running demo. It uses this same environment and
@@ -109,6 +119,21 @@ Snapshots default to `glance_api_registry.json` and
 `glance_curated_registry.json` in the calling directory. Keep real snapshots,
 cookies, diagnostic reports and pages containing non-public records private.
 
+To view real group pages alongside **Demo** in this checkout's documentation
+site, use the documentation environment from the quick start and render your
+saved registry into a group directory:
+
+```bash
+analysis-lister render-group --group TOPQ \
+  --snapshot glance_curated_registry.json --output-dir pages/topq
+python scripts/docs.py serve --group-pages TOPQ=pages/topq
+```
+
+Open <http://127.0.0.1:8000/glance-analysis-lister/> and select **TOPQ (local data)**.
+See [local group previews](docs/site.md#preview-your-group-alongside-demo) for
+refreshing directly into that directory, adding more groups and keeping the
+generated data local.
+
 If a stage fails, completed stages remain. See
 [commands, downloads and recovery](docs/workflows.md) to resume from saved data,
 choose destinations or refresh several groups. Use `analysis-lister COMMAND --help`
@@ -116,17 +141,34 @@ for available options.
 
 ## How it fits together
 
-```text
-GLANCE → validated API snapshot → curated registry → prepared views
-                                                        ↓
-                                            Markdown, assets, reports
+The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps 1–3 in
+order**; previewing the result is a separate step.
+
+![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](docs/images/command-flow.svg)
+
+To run the same three stages yourself, execute these commands in the same
+directory, in order:
+
+```bash
+analysis-lister download-api --login
+analysis-lister build-registry
+analysis-lister render-group --group TOPQ --output-dir pages/topq
 ```
 
-The stages are separate: you can rebuild from a saved API snapshot, render an
-existing registry, or use prepared collections directly in Python. See
-[architecture](docs/architecture.md) for the code layout and the
-[documentation index](docs/README.md) for policies, citations, data contracts
-and other workflows.
+The default filenames connect the steps: `download-api` writes
+`glance_api_registry.json`; `build-registry` reads it and writes
+`glance_curated_registry.json`; `render-group` reads that registry. Only the
+download needs CERN access. Once you have a snapshot, you can start at the
+corresponding later step: rebuild after curation changes, or just render again
+after changing the group or publication policy.
+
+The combined command is
+`analysis-lister refresh --groups TOPQ --output-dir pages/topq --login`.
+Use the [local group preview](docs/site.md#preview-your-group-alongside-demo) to
+view the resulting pages. Reports remain outside the preview.
+
+Other commands handle [CSV exports, comparisons and citation maintenance](docs/workflows.md#where-the-other-commands-fit).
+For the internal layers and prepared Python views, see [architecture](docs/architecture.md).
 
 ## Project background
 

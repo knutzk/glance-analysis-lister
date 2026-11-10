@@ -40,17 +40,19 @@ def wait_for_preview_text(url, text):
 
 
 def check_outputs(work, publications):
-    report = json.loads((work / "pages/demo/view-report.json").read_text())
+    report = json.loads(
+        (work / "examples/demo/work/pages/view-report.json").read_text()
+    )
     assert report["counts"]["ongoing_analyses"] == 4
     assert report["counts"]["archive_publications"] == publications
     assert report["counts"]["warning_issues"] == 0
-    assert (work / "pages/demo/index.md").read_bytes() == (
+    assert (work / "examples/demo/work/pages/index.md").read_bytes() == (
         work / "examples/demo/index.md"
     ).read_bytes()
-    assert (work / "pages/demo/assets/site.css").read_bytes() == (
+    assert (work / "examples/demo/work/pages/assets/site.css").read_bytes() == (
         work / "docs/stylesheets/site.css"
     ).read_bytes()
-    assert (work / "pages/demo-policy.toml").is_file()
+    assert (work / "examples/demo/work/demo-policy.toml").is_file()
 
 
 def bash_blocks(text):
@@ -97,7 +99,7 @@ def run_commands(work, commands):
 
 
 @contextmanager
-def preview(work, *, documentation=False):
+def preview(work, *, documentation=False, group_pages=()):
     """Start and stop the actual documented Zensical preview command."""
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
@@ -113,6 +115,8 @@ def preview(work, *, documentation=False):
     if not documentation:
         assert command[-2:] == ["--dev-addr", "127.0.0.1:8001"]
         command = command[:-2]  # Use an available port for this test run.
+    for group in group_pages:
+        command.extend(["--group-pages", group])
     log_path = work / "preview.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
@@ -147,6 +151,106 @@ def preview(work, *, documentation=False):
                 )
 
 
+def check_local_group_preview(work, driver):
+    # TOPQ is a navigation label in this test; all records remain invented DEMO data.
+    run_commands(
+        work,
+        [
+            [
+                "analysis-lister",
+                "render-group",
+                "--group",
+                "DEMO",
+                "--snapshot",
+                "examples/synthetic_registry.json",
+                "--curation-config",
+                POLICY,
+                "--output-dir",
+                "pages/topq",
+            ]
+        ],
+    )
+    group = work / "pages/topq"
+    (group / "extra.md").write_text("# Unselected local file\n")
+    (group / "cookies.json").write_text('{"sentinel": "invented test input"}')
+    local = work / ".cache/docs-group-preview"
+    public_before = (work / "site/index.html").read_bytes()
+    with preview(
+        work,
+        documentation=True,
+        group_pages=(
+            "TOPQ=pages/topq",
+            "HIGP=pages/topq",
+        ),
+    ) as base:
+        with urlopen(base, timeout=5) as response:
+            html = response.read().decode()
+        assert "TOPQ (local data)" in html and "HIGP (local data)" in html
+        assert "examples/demo/ongoing/" in html
+        assert (work / "site/index.html").read_bytes() == public_before
+        staged = local / "site-src/local-groups/topq"
+        assert {p.name for p in staged.iterdir()} == {
+            "ongoing.md",
+            "papers.md",
+            "confnotes.md",
+            "pubnotes.md",
+        }
+        assert not list(local.rglob("view-report.json"))
+        assert not list(local.rglob("cookies.json"))
+        assert not list(local.rglob("extra.md"))
+        with urlopen(base + "local-groups/higp/papers/", timeout=5) as response:
+            assert response.status == 200
+        browse(
+            base,
+            driver,
+            page_prefix="local-groups/topq/",
+            start_page="local-groups/topq/papers/",
+        )
+        ongoing = group / "ongoing.md"
+        ongoing.write_text(ongoing.read_text() + "\nLocal group reload sentinel.\n")
+        wait_for_preview_text(
+            base + "local-groups/topq/ongoing/", "Local group reload sentinel."
+        )
+    # Reject accidental publication/network exposure and invalid selections before
+    # starting the server or clearing any generated directories.
+    for command in (
+        ["build", "--group-pages", "TOPQ=pages/topq"],
+        ["serve", "--group-pages", "TOPQ=pages/missing"],
+        ["serve", "--group-pages", "TOPQ=pages/topq", "--dev-addr", "0.0.0.0:8000"],
+        ["serve", "--group-pages", "../TOPQ=pages/topq"],
+        [
+            "serve",
+            "--group-pages",
+            "TOPQ=pages/topq",
+            "--group-pages",
+            "TOPQ=pages/topq",
+        ],
+        [
+            "serve",
+            "--group-pages",
+            "TOPQ=.cache/docs-group-preview/site-src/local-groups/topq",
+        ],
+    ):
+        rejected = subprocess.run(
+            [sys.executable, "scripts/docs.py", *command],
+            cwd=work,
+            capture_output=True,
+            text=True,
+        )
+        assert rejected.returncode == 2, rejected.stdout + rejected.stderr
+    # A normal preview must drop the local sections even while their source and
+    # cached HTML still exist. A subsequent public build must contain none of them.
+    with preview(work, documentation=True) as base:
+        with urlopen(base, timeout=5) as response:
+            assert "local-groups/" not in response.read().decode()
+        assert not (work / "site-src/local-groups").exists()
+    subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
+    assert not (work / "site/local-groups").exists()
+    assert not (work / "site-src/local-groups").exists()
+    for html in (work / "site").rglob("*.html"):
+        assert "Local group reload sentinel." not in html.read_text()
+
+
 def check_demo(work, driver):
     # The same allowlist used for documentation keeps private inputs out of tests.
     public = runpy.run_path(str(ROOT / "scripts/docs.py"))["PUBLIC_FILES"]
@@ -156,11 +260,13 @@ def check_demo(work, driver):
         shutil.copyfile(ROOT / name, destination)
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
-    assert not (work / "pages").exists()
+    assert not (work / "examples/demo/work").exists()
     run_commands(work, quickstart_commands(work)[:-1])
     with preview(work) as base:
         check_outputs(work, 12)
-        assert (work / "pages/demo-policy.toml").read_text() == original_policy
+        assert (
+            work / "examples/demo/work/demo-policy.toml"
+        ).read_text() == original_policy
         with urlopen(base, timeout=5) as response:
             homepage = BeautifulSoup(response.read(), "html.parser")
         assert homepage.h1.get_text().strip().startswith("Interactive demo")
@@ -176,7 +282,7 @@ def check_demo(work, driver):
     tutorial = bash_blocks(tutorial_text)
     assert len(tutorial) == 3
     run_commands(work, tutorial[0])
-    policy = work / "pages/demo-policy.toml"
+    policy = work / "examples/demo/work/demo-policy.toml"
     edited = policy.read_text().replace('groups = ["DEMO"]', "groups = []")
     assert edited != original_policy
     policy.write_text(edited)
@@ -197,7 +303,7 @@ def check_demo(work, driver):
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
     # Invalid policy edits must not replace previously rendered pages.
-    previous = (work / "pages/demo/papers.md").read_bytes()
+    previous = (work / "examples/demo/work/pages/papers.md").read_bytes()
     policy.write_text("[invalid TOML")
     invalid = subprocess.run(
         executable(tutorial[1][0]),
@@ -206,7 +312,7 @@ def check_demo(work, driver):
         text=True,
     )
     assert invalid.returncode != 0
-    assert (work / "pages/demo/papers.md").read_bytes() == previous
+    assert (work / "examples/demo/work/pages/papers.md").read_bytes() == previous
     policy.write_text(original_policy)
     build_section = (
         (work / "examples/README.md")
@@ -215,7 +321,7 @@ def check_demo(work, driver):
         .split("\n## ", 1)[0]
     )
     run_commands(work, bash_blocks(build_section)[1])
-    assert (work / "site-demo/index.html").is_file()
+    assert (work / "examples/demo/work/site/index.html").is_file()
 
     # Local roadmap preview must not require edits to the tracked config or leak
     # into a subsequent public build. Use invented text, never a local roadmap.
@@ -285,8 +391,9 @@ def check_demo(work, driver):
         finally:
             server.shutdown()
             thread.join()
+    check_local_group_preview(work, driver)
     print(
-        "Demo checks passed: standalone preview, policy tutorial, local roadmap isolation and documentation demo."
+        "Demo checks passed: standalone/tutorial, documentation and local group preview isolation."
     )
 
 
