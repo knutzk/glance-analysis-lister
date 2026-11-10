@@ -47,6 +47,7 @@ PUBLIC_FILES = (
     "examples/demo/publication-curation.toml",
     "docs/README.md",
     "docs/architecture.md",
+    "docs/cern-demo.md",
     "docs/citations.md",
     "docs/cli-reference.md",
     "docs/compatibility.md",

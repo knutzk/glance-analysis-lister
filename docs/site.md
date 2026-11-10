@@ -122,7 +122,7 @@ landing page and policy under [`examples/demo/`](../examples/demo/index.md); its
 [`zensical.toml`](../examples/demo/zensical.toml) is a template copied to
 `examples/demo/work/zensical.toml` during setup. That local copy reads
 `examples/demo/work/pages/` and builds `examples/demo/work/site/`.
-The [README walkthrough](../README.md#add-cern-atlas-data-to-the-same-demo) adds
+The [CERN data walkthrough](cern-demo.md) adds
 CERN pages alongside Demo in the standalone site, using this same local copy.
 Both sites share `requirements-docs.txt` and `docs/stylesheets/site.css`.
 [`scripts/docs.py`](../scripts/docs.py) lists the public inputs copied into

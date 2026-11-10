@@ -254,13 +254,8 @@ def check_local_group_preview(work, driver):
 
 
 def check_demonstrator_group(work, driver):
-    """Follow the README's navigation/render handoff with invented data only."""
-    section = (
-        (work / "README.md")
-        .read_text()
-        .split("## Add CERN ATLAS data to the same demo", 1)[1]
-        .split("\n## ", 1)[0]
-    )
+    """Follow the CERN guide's navigation/render handoff with invented data only."""
+    section = (work / "docs/cern-demo.md").read_text()
     commands = bash_blocks(section)
     render = commands[1][1].copy()
     assert render[:2] == ["analysis-lister", "render-group"]

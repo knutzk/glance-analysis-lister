@@ -19,24 +19,31 @@ while the preview is running, then continue with the
 Starting fresh? Use Python 3.13 and Git in a macOS or Linux shell:
 
 ```bash
+# Get the project
 git clone https://github.com/knutzk/glance-analysis-lister.git
 cd glance-analysis-lister
+
+# Create an environment and install the package with Zensical
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
+# Create editable demo configuration and policy copies
 mkdir -p examples/demo/work
 cp examples/demo/zensical.toml examples/demo/work/zensical.toml
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
+# Generate pages from the synthetic records
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
 
+# Add the landing page and stylesheet
 cp examples/demo/index.md examples/demo/work/pages/index.md
 cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
+# Start the local preview
 python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
@@ -105,7 +112,7 @@ when you rerun `render-group`. Restarting Zensical only serves the existing page
 For your own site, follow [browser asset integration](../docs/rendering.md#enable-browser-assets).
 
 To add real CERN ATLAS pages alongside Demo in this same site, follow the
-[main README CERN walkthrough](../README.md#add-cern-atlas-data-to-the-same-demo).
+[CERN data walkthrough](../docs/cern-demo.md).
 It uses the same local configuration, environment and preview URL.
 
 ## Tutorial: change publication selection

@@ -10,6 +10,22 @@ where you want to keep the snapshots, or supply explicit paths.
 The [command-line reference](cli-reference.md) lists every command, option and
 default. Use `analysis-lister COMMAND --help` for your installed version.
 
+## How the commands connect
+
+The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps
+1–3 in order**; previewing the result is a separate step.
+
+![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](images/command-flow.svg)
+
+The default filenames connect the stages: `download-api` writes
+`glance_api_registry.json`; `build-registry` reads it and writes
+`glance_curated_registry.json`; `render-group` reads that registry. Only the
+download needs CERN access. From a saved snapshot, rebuild after curation changes
+or render again after changing the group or publication policy.
+
+For a guided first run, [add CERN data to the standalone demo](cern-demo.md).
+The workflows below also support existing consuming websites and explicit paths.
+
 ## Choose where to start
 
 Reuse the earliest saved input needed for your change. Only downloading fresh
@@ -56,7 +72,7 @@ elapsed time. See [recovery](#validation-and-recovery) to resume a failed run.
 
 ## Download and build a registry
 
-The [command flowchart](../README.md#how-it-fits-together) shows how the saved
+The [command flowchart](#how-the-commands-connect) shows how the saved
 files connect the stages. To produce TOPQ pages without `refresh`, execute
 these three commands **in order**, from the same directory:
 
