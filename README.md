@@ -51,6 +51,7 @@ source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
 mkdir -p examples/demo/work
+cp examples/demo/zensical.toml examples/demo/work/zensical.toml
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
@@ -61,7 +62,7 @@ analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
 cp examples/demo/index.md examples/demo/work/pages/index.md
 cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 **Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
@@ -73,18 +74,18 @@ Run all commands from the cloned repository root. The standalone demo's
 configuration, landing page and policy live in [`examples/demo/`](examples/demo/);
 the root `zensical.toml` configures the full package documentation site.
 The commands above create an editable policy copy, render the four pages,
-copy the landing page and stylesheet,
+copy the local site configuration, landing page and stylesheet,
 and start Zensical. Installation needs internet access; rendering and preview
 use only local synthetic data.
 
 Already have this checkout and `.venv`? Activate it and start with the requirements
-install above. The setup's `cp` command replaces the editable policy with the
-example policy; to keep an experiment, use the tutorial's render command instead.
+install above. The setup's `cp` commands reset the local configuration and policy; to keep
+your edits, rerun only the render command or reopen the existing site below.
 To reopen an already-generated demo, run only these from the repository root:
 
 ```bash
 source .venv/bin/activate
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 The setup produces:
@@ -98,46 +99,81 @@ The setup produces:
 | `examples/demo/work/pages/assets/` | Browser styles and interaction scripts. |
 | `examples/demo/work/pages/view-report.json` | Selection decisions, provenance and diagnostics. |
 | `examples/demo/work/demo-policy.toml` | Editable copy of the DEMO publication policy. |
+| `examples/demo/work/zensical.toml` | Editable site configuration, shared by Demo and added groups. |
 
 Continue with the [policy tutorial](examples/README.md#tutorial-change-publication-selection)
 to change what appears in the running demo. It uses this same environment and
 these generated files. For your own site, see
 [browser asset integration](docs/rendering.md#enable-browser-assets).
 
-## Refresh pages from GLANCE
+## Add CERN ATLAS data to the same demo
 
-With an authorised CERN account, run this from the repository that will use the
-pages. `--login` opens browser sign-in:
+Continue in the **same checkout and environment**, using the same demonstrator.
+The synthetic **Demo** stays available; TOPQ will appear alongside it.
+Stop Zensical with **Ctrl+C** before changing its navigation.
+
+With an authorised CERN account, first download the accessible records:
 
 ```bash
-analysis-lister refresh --groups TOPQ --output-dir docs/analyses --login
+analysis-lister download-api --login
 ```
 
-This downloads the accessible records, builds a curated registry and renders the
-four group pages. Omit `--login` on later runs to reuse stored credentials.
-Snapshots default to `glance_api_registry.json` and
-`glance_curated_registry.json` in the calling directory. Keep real snapshots,
-cookies, diagnostic reports and pages containing non-public records private.
-
-To view real group pages alongside **Demo** in this checkout's documentation
-site, use the documentation environment from the quick start and render your
-saved registry into a group directory:
+`--login` opens browser sign-in; omit it on later downloads to reuse stored
+credentials. This writes `glance_api_registry.json` in the repository root.
+Next, build the curated registry and render TOPQ into the demonstrator:
 
 ```bash
+analysis-lister build-registry
 analysis-lister render-group --group TOPQ \
-  --snapshot glance_curated_registry.json --output-dir pages/topq
-python scripts/docs.py serve --group-pages TOPQ=pages/topq
+  --snapshot glance_curated_registry.json \
+  --output-dir examples/demo/work/pages/topq
 ```
 
-Open <http://127.0.0.1:8000/glance-analysis-lister/> and select **TOPQ (local data)**.
-See [local group previews](docs/site.md#preview-your-group-alongside-demo) for
-refreshing directly into that directory, adding more groups and keeping the
-generated data local.
+`build-registry` writes `glance_curated_registry.json`. If you already have that
+curated registry, start at `render-group`. The renderer uses the bundled TOPQ
+publication policy; see [publication policies](docs/rendering.md#publication-policies)
+to customise selection or use another group.
 
-If a stage fails, completed stages remain. See
-[commands, downloads and recovery](docs/workflows.md) to resume from saved data,
-choose destinations or refresh several groups. Use `analysis-lister COMMAND --help`
-for available options.
+In **`examples/demo/work/zensical.toml`**, replace the `nav = [...]` block
+under `[project]` with:
+
+```toml
+nav = [
+  { "Demo" = [
+    { "Overview" = "index.md" },
+    { "Ongoing analyses" = "ongoing.md" },
+    { "Papers" = "papers.md" },
+    { "Conference notes" = "confnotes.md" },
+    { "Public notes" = "pubnotes.md" },
+  ] },
+  { "TOPQ (CERN data)" = [
+    { "Ongoing analyses" = "topq/ongoing.md" },
+    { "Papers" = "topq/papers.md" },
+    { "Conference notes" = "topq/confnotes.md" },
+    { "Public notes" = "topq/pubnotes.md" },
+  ] },
+]
+```
+
+Start the **same preview command** again:
+
+```bash
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
+```
+
+**Open <http://127.0.0.1:8001/> and select TOPQ (CERN data).** Demo and TOPQ
+now share one site, with the same search, filter and navigation controls.
+Rerendering into `examples/demo/work/pages/topq/` updates TOPQ without replacing
+the synthetic pages. The local configuration, generated pages and built HTML
+stay under the ignored `examples/demo/work/` directory.
+
+Keep this local site private: it now contains CERN data, including generated
+reports. Keep real snapshots and cookies private too. The package's public
+documentation build excludes this working directory.
+
+For an existing website, see [integration into a consuming site](docs/rendering.md#integrate-into-a-consuming-site).
+For recovery or other command options, see [commands, downloads and recovery](docs/workflows.md)
+and `analysis-lister COMMAND --help`.
 
 ## How it fits together
 
@@ -152,7 +188,7 @@ directory, in order:
 ```bash
 analysis-lister download-api --login
 analysis-lister build-registry
-analysis-lister render-group --group TOPQ --output-dir pages/topq
+analysis-lister render-group --group TOPQ --output-dir examples/demo/work/pages/topq
 ```
 
 The default filenames connect the steps: `download-api` writes
@@ -162,10 +198,10 @@ download needs CERN access. Once you have a snapshot, you can start at the
 corresponding later step: rebuild after curation changes, or just render again
 after changing the group or publication policy.
 
-The combined command is
-`analysis-lister refresh --groups TOPQ --output-dir pages/topq --login`.
-Use the [local group preview](docs/site.md#preview-your-group-alongside-demo) to
-view the resulting pages. Reports remain outside the preview.
+As an alternative to running those three commands separately, the combined command is
+`analysis-lister refresh --groups TOPQ --output-dir examples/demo/work/pages/topq --login`.
+After adding TOPQ to the demonstrator navigation above, use the same Zensical
+preview command to view updates.
 
 Other commands handle [CSV exports, comparisons and citation maintenance](docs/workflows.md#where-the-other-commands-fit).
 For the internal layers and prepared Python views, see [architecture](docs/architecture.md).
