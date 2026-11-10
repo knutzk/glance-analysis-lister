@@ -31,7 +31,7 @@ nav = [
 
 [project.theme]
 font = false
-features = ["navigation.instant", "toc.integrate", "content.code.copy"]
+features = ["navigation.instant", "content.code.copy"]
 
 [[project.theme.palette]]
 media = "(prefers-color-scheme: light)"

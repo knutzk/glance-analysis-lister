@@ -1,6 +1,6 @@
 # Regenerate the screenshots
 
-The documentation images are browser captures of the Zensical views built from [`examples/synthetic_registry.json`](../../examples/synthetic_registry.json).
+The four PNG screenshots are browser captures of the Zensical views built from [`examples/synthetic_registry.json`](../../examples/synthetic_registry.json).
 They use an explicit DEMO publication policy and only independently invented
 data.
 
@@ -27,3 +27,12 @@ reading the guides on GitHub. The documentation site replaces those fallbacks
 with live rendered examples. Temporary pages and reports are removed. Inspect
 the images before committing them. The fixtures and capture script are
 GPL-3.0-only; the site uses Zensical's built-in theme.
+
+## Command diagram
+
+[`command-flow.svg`](command-flow.svg) is a hand-maintained vector diagram used
+in the main README. Edit the SVG directly; it is not produced by the screenshot
+script. Keep snapshots visually distinct from commands, center the `refresh`
+caption, and preserve the equal connector gaps and the output-to-preview turn.
+Inspect the rendered README at desktop width with both navigation columns, in
+light and dark mode, after changing it.

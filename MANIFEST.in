@@ -17,6 +17,7 @@ include zensical.toml
 recursive-include tests *.py
 include tests/browser/requirements.txt
 recursive-include docs *.md
+include docs/images/command-flow.svg
 include docs/images/ongoing.png
 include docs/images/papers.png
 include docs/images/ongoing-card.png

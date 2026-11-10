@@ -153,6 +153,7 @@ def main():
         for contract_file in (
             schema_path,
             "docs/curated-format.md",
+            "docs/images/command-flow.svg",
             ".github/release-notes/v0.1.0.txt",
             ".github/release-notes/v0.2.0.txt",
             "examples/demo/zensical.toml",

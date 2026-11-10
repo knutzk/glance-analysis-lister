@@ -31,7 +31,8 @@ means the current environment lacks a package dependency.
 
 Example rendering runs offline without CERN credentials. The light/dark switch
 beside search starts with your system preference and remembers manual changes.
-Page headings appear within the left navigation, leaving more room for content.
+On wide screens, page navigation appears on the left and the current page’s
+headings appear in a separate table of contents on the right.
 
 If an ignored `ROADMAP.md` exists in the repository root, the preview adds it to
 navigation automatically. It uses an ignored `.zensical-preview.yml` generated

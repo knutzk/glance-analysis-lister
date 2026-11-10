@@ -13,15 +13,22 @@ included synthetic example lets you try the package without CERN access.
 
 These screenshots show **fictional example records** rendered in a Zensical site.
 
-**Ongoing analyses:** searchable cards with affiliations, review progress and
-expandable details.
+<table class="gal-screenshot-gallery" role="presentation">
+  <tr>
+    <td width="50%" valign="top">
+      <p><strong>Ongoing analyses</strong></p>
+      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards."></a>
+      <p>Searchable cards with affiliations, review progress and expandable details.</p>
+    </td>
+    <td width="50%" valign="top">
+      <p><strong>Publications</strong></p>
+      <a href="docs/images/papers.png"><img src="docs/images/papers.png" width="360" alt="Synthetic paper page with search, date and publication-status filters, and four papers, one expanded."></a>
+      <p>Tables for papers, conference notes and public notes, with date filters and expandable details.</p>
+    </td>
+  </tr>
+</table>
 
-![Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards.](docs/images/ongoing.png)
-
-**Publications:** searchable tables for papers, conference notes (CONF) and public
-notes (PUB), with date filters and expandable record details.
-
-![Synthetic paper page with search, date and publication-status filters, and four papers, one expanded.](docs/images/papers.png)
+Select a screenshot to open it at full size.
 
 [Try the synthetic example](#install-and-try-without-credentials) or read about
 [page controls and site integration](docs/rendering.md).
@@ -134,17 +141,34 @@ for available options.
 
 ## How it fits together
 
-```text
-GLANCE → validated API snapshot → curated registry → prepared views
-                                                        ↓
-                                            Markdown, assets, reports
+The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps 1–3 in
+order**; previewing the result is a separate step.
+
+![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](docs/images/command-flow.svg)
+
+To run the same three stages yourself, execute these commands in the same
+directory, in order:
+
+```bash
+analysis-lister download-api --login
+analysis-lister build-registry
+analysis-lister render-group --group TOPQ --output-dir pages/topq
 ```
 
-The stages are separate: you can rebuild from a saved API snapshot, render an
-existing registry, or use prepared collections directly in Python. See
-[architecture](docs/architecture.md) for the code layout and the
-[documentation index](docs/README.md) for policies, citations, data contracts
-and other workflows.
+The default filenames connect the steps: `download-api` writes
+`glance_api_registry.json`; `build-registry` reads it and writes
+`glance_curated_registry.json`; `render-group` reads that registry. Only the
+download needs CERN access. Once you have a snapshot, you can start at the
+corresponding later step: rebuild after curation changes, or just render again
+after changing the group or publication policy.
+
+The combined command is
+`analysis-lister refresh --groups TOPQ --output-dir pages/topq --login`.
+Use the [local group preview](docs/site.md#preview-your-group-alongside-demo) to
+view the resulting pages. Reports remain outside the preview.
+
+Other commands handle [CSV exports, comparisons and citation maintenance](docs/workflows.md#where-the-other-commands-fit).
+For the internal layers and prepared Python views, see [architecture](docs/architecture.md).
 
 ## Project background
 

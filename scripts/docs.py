@@ -68,6 +68,7 @@ PUBLIC_FILES = (
     "docs/stylesheets/site.css",
     "docs/workflows.md",
     "docs/images/README.md",
+    "docs/images/command-flow.svg",
     "docs/images/ongoing.png",
     "docs/images/papers.png",
     "docs/images/ongoing-card.png",

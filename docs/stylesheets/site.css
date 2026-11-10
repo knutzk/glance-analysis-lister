@@ -5,6 +5,16 @@
 /* Contain the theme's translated title even before JavaScript initializes it. */
 .md-header__title { overflow: hidden; }
 
+/* Linked README thumbnails also render as two columns on GitHub. */
+.gal-screenshot-gallery {
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+}
+.gal-screenshot-gallery td { padding: 0 0.5rem; }
+.gal-screenshot-gallery p { margin: 0.5rem 0; }
+.gal-screenshot-gallery img { width: 360px; max-width: 100%; height: auto; }
+
 /* Separate captured views from the surrounding documentation. */
 .md-typeset img[src$="images/ongoing.png"],
 .md-typeset img[src$="images/papers.png"],
@@ -34,4 +44,9 @@
 
 @media (max-width: 600px) {
   .gal-doc-example { padding: 0.4rem; }
+  .gal-screenshot-gallery,
+  .gal-screenshot-gallery tbody,
+  .gal-screenshot-gallery tr,
+  .gal-screenshot-gallery td { display: block; width: 100%; }
+  .gal-screenshot-gallery td { padding: 0; margin-bottom: 1rem; }
 }
