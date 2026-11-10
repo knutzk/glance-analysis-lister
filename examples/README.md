@@ -19,24 +19,32 @@ while the preview is running, then continue with the
 Starting fresh? Use Python 3.13 and Git in a macOS or Linux shell:
 
 ```bash
+# Get the project
 git clone https://github.com/knutzk/glance-analysis-lister.git
 cd glance-analysis-lister
+
+# Create an environment and install the package with Zensical
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
+# Create editable demo configuration and policy copies
 mkdir -p examples/demo/work
+cp examples/demo/zensical.toml examples/demo/work/zensical.toml
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
+# Generate pages from the synthetic records
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
 
+# Add the landing page and stylesheet
 cp examples/demo/index.md examples/demo/work/pages/index.md
 cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+# Start the local preview
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 Both guides use **the same `.venv` and `requirements-docs.txt`**. These requirements
@@ -56,8 +64,10 @@ editable `examples/demo/work/demo-policy.toml`. The policy copy initially select
 matching `DEMO`, so there is no missing-policy warning. Rerunning the setup's
 policy-copy command replaces any edits with the tracked example policy.
 
-The standalone demo configuration, [`demo/zensical.toml`](demo/zensical.toml),
+The configuration template, [`demo/zensical.toml`](demo/zensical.toml),
 lives beside its landing page and publication policy in `examples/demo/`.
+The setup copies it to `examples/demo/work/zensical.toml`; edit and serve that
+local copy. Repeating the configuration-copy command resets its navigation.
 The root `zensical.toml` configures the package documentation site.
 Run the commands above from the repository root. Use a Git checkout or unpacked source
 distribution for this guide; the installed package alone does not supply the
@@ -69,17 +79,17 @@ To reopen an already-generated demo, activate the same environment and serve it:
 
 ```bash
 source .venv/bin/activate
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 To build static HTML from those generated files instead:
 
 ```bash
-python -m zensical build -f examples/demo/zensical.toml --clean --strict
+python -m zensical build -f examples/demo/work/zensical.toml --clean --strict
 ```
 
-Generated pages, the editable policy and built HTML stay in the ignored
-`examples/demo/work/` directory, outside the maintained demo sources.
+Generated pages, editable configuration and policy, and built HTML stay in
+the ignored `examples/demo/work/` directory, outside the maintained demo sources.
 
 The configuration enables instant navigation and light/dark mode, using the
 copied browser assets and site stylesheet. Run only one demo build or preview at
@@ -100,6 +110,10 @@ Generation writes into `examples/demo/work/pages/`; it does not change the track
 policy. Edit the policy copy, not the generated Markdown, which is replaced
 when you rerun `render-group`. Restarting Zensical only serves the existing pages.
 For your own site, follow [browser asset integration](../docs/rendering.md#enable-browser-assets).
+
+To add real CERN ATLAS pages alongside Demo in this same site, follow the
+[CERN data walkthrough](../docs/cern-demo.md).
+It uses the same local configuration, environment and preview URL.
 
 ## Tutorial: change publication selection
 

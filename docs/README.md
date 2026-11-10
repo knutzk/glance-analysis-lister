@@ -7,6 +7,7 @@ Start with the synthetic example if you do not have CERN access.
 | Guide | What you will learn |
 | --- | --- |
 | [Synthetic example](../examples/README.md) | Generate and preview a complete demo, then change its publication policy. |
+| [CERN data in the demo](cern-demo.md) | Add your group's real pages alongside the synthetic examples in the same site. |
 | [Commands and recovery](workflows.md) | Download, refresh, compare snapshots, export CSVs and recover failed runs. |
 | [Command-line reference](cli-reference.md) | Look up every command, option and default. |
 | [Troubleshooting](troubleshooting.md) | Diagnose installation, access, validation and page problems; resume failed work. |

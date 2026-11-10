@@ -1,24 +1,31 @@
 # GLANCE analysis lister
 
-GLANCE analysis lister turns ATLAS records into searchable pages for a physics
-group: ongoing analyses, papers, conference notes and public notes. Group members
-can follow reviews, find publications and explore the details of each record.
+GLANCE is the system the ATLAS experiment at CERN uses to track analyses,
+papers, conference notes and public notes. **GLANCE analysis lister turns those
+individual records into a searchable overview of a group's work.** This Python
+package retrieves and curates GLANCE data, then generates pages that bring
+ongoing analyses, review progress and publication history together, with filters
+and expandable details to help readers find what matters.
 
-GLANCE is the system the ATLAS experiment at CERN uses to track this work.
-Downloading its records requires authorised CERN access. Once saved, the data
-can be curated and rendered offline without authentication or a database. The
-included synthetic example lets you try the package without CERN access.
+Use it to prepare coordination meetings, follow analysis reviews, find relevant
+publications or maintain an overview on your group's internal website. Physics
+and performance groups can choose which records to include and display the
+results in a Markdown or Zensical site. Try the included demonstrator without
+credentials, then add your group's real data with authorised CERN access.
 
-## What the pages look like
+[Try the demo](#install-and-try-without-credentials) · [Documentation](docs/README.md)
 
-These screenshots show **fictional example records** rendered in a Zensical site.
+<!-- Once GitHub Pages is published, point Documentation above to
+https://knutzk.github.io/glance-analysis-lister/docs/ -->
+
+## Explore the pages
 
 <table class="gal-screenshot-gallery" role="presentation">
   <tr>
     <td width="50%" valign="top">
       <p><strong>Ongoing analyses</strong></p>
-      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards."></a>
-      <p>Searchable cards with affiliations, review progress and expandable details.</p>
+      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards, all collapsed."></a>
+      <p>Searchable analysis cards with affiliations and review progress. All cards are collapsed in this screenshot; each can be expanded to show details.</p>
     </td>
     <td width="50%" valign="top">
       <p><strong>Publications</strong></p>
@@ -28,179 +35,88 @@ These screenshots show **fictional example records** rendered in a Zensical site
   </tr>
 </table>
 
+These screenshots show **fictional example records** rendered in a Zensical site.
 Select a screenshot to open it at full size.
-
-[Try the synthetic example](#install-and-try-without-credentials) or read about
-[page controls and site integration](docs/rendering.md).
 
 ## Install and try without credentials
 
-Start a searchable demo website with independently invented records. Use Python
-3.13 and Git in a macOS or Linux shell. Package metadata permits Python 3.13 or
-newer; see the [tested environment scope](docs/development.md#supported-validation-scope).
-
-The demo needs **`requirements-docs.txt`**, which installs both the package and
-Zensical in the same environment. A package-only `pip install .` does not install
-the site preview. These are the same requirements used in the example guide.
+Use Python 3.13 and Git in a macOS or Linux shell. These commands install the
+package and Zensical, generate fictional records and start a local website.
+Installation needs internet access; the demo itself needs no CERN account.
 
 ```bash
+# Get the project
 git clone https://github.com/knutzk/glance-analysis-lister.git
 cd glance-analysis-lister
+
+# Create an environment and install the package with Zensical
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
+# Create editable demo configuration and policy copies
 mkdir -p examples/demo/work
+cp examples/demo/zensical.toml examples/demo/work/zensical.toml
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
+# Generate pages from the synthetic records
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
 
+# Add the landing page and stylesheet
 cp examples/demo/index.md examples/demo/work/pages/index.md
 cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+# Start the local preview
+python -m zensical serve -f examples/demo/work/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
-**Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
-navigation to open **Ongoing analyses**, search for `Tracking`, and expand a card.
-Try **Papers**, **Conference notes** and **Public notes** next. Stop the server
-with **Ctrl+C**.
+Open this address in your browser:
 
-Run all commands from the cloned repository root. The standalone demo's
-configuration, landing page and policy live in [`examples/demo/`](examples/demo/);
-the root `zensical.toml` configures the full package documentation site.
-The commands above create an editable policy copy, render the four pages,
-copy the landing page and stylesheet,
-and start Zensical. Installation needs internet access; rendering and preview
-use only local synthetic data.
-
-Already have this checkout and `.venv`? Activate it and start with the requirements
-install above. The setup's `cp` command replaces the editable policy with the
-example policy; to keep an experiment, use the tutorial's render command instead.
-To reopen an already-generated demo, run only these from the repository root:
-
-```bash
-source .venv/bin/activate
-python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
+```text
+http://127.0.0.1:8001/
 ```
 
-The setup produces:
+Suggestions for exploring the demo:
 
-| Output | Contents |
-| --- | --- |
-| `examples/demo/work/pages/index.md` | Demo landing page and suggested interactions. |
-| `examples/demo/work/pages/ongoing.md` | Four invented ongoing analyses at different review stages. |
-| `examples/demo/work/pages/papers.md` | Four invented papers: two with DOIs and two without. |
-| `examples/demo/work/pages/confnotes.md`, `examples/demo/work/pages/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
-| `examples/demo/work/pages/assets/` | Browser styles and interaction scripts. |
-| `examples/demo/work/pages/view-report.json` | Selection decisions, provenance and diagnostics. |
-| `examples/demo/work/demo-policy.toml` | Editable copy of the DEMO publication policy. |
+- Select **Ongoing analyses**, search for `Tracking` and expand a card.
+- Open **Papers** and try the publication filters.
 
-Continue with the [policy tutorial](examples/README.md#tutorial-change-publication-selection)
-to change what appears in the running demo. It uses this same environment and
-these generated files. For your own site, see
-[browser asset integration](docs/rendering.md#enable-browser-assets).
+Stop the server with **Ctrl+C** when you are finished.
 
-## Refresh pages from GLANCE
+## Go further
 
-With an authorised CERN account, run this from the repository that will use the
-pages. `--login` opens browser sign-in:
+[Documentation overview](docs/README.md)
 
-```bash
-analysis-lister refresh --groups TOPQ --output-dir docs/analyses --login
-```
+Explore page controls, configuration, troubleshooting and the Python interface,
+or continue with one of these guides:
 
-This downloads the accessible records, builds a curated registry and renders the
-four group pages. Omit `--login` on later runs to reuse stored credentials.
-Snapshots default to `glance_api_registry.json` and
-`glance_curated_registry.json` in the calling directory. Keep real snapshots,
-cookies, diagnostic reports and pages containing non-public records private.
+- [Reopen or build the demo](examples/README.md#reopen-or-build-the-demo): reuse your setup while keeping configuration and policy edits.
+- [Add CERN data to the same demo](docs/cern-demo.md): show your group's real pages alongside the synthetic examples.
+- [Change publication selection](examples/README.md#tutorial-change-publication-selection): edit a policy and see the results in the running site.
+- [Integrate the pages into your website](docs/rendering.md#integrate-into-a-consuming-site): use the generated Markdown and browser assets in a group site.
+- [Understand the command workflow](docs/workflows.md#how-the-commands-connect): download once, curate and render offline, or combine the stages with `refresh`.
 
-To view real group pages alongside **Demo** in this checkout's documentation
-site, use the documentation environment from the quick start and render your
-saved registry into a group directory:
-
-```bash
-analysis-lister render-group --group TOPQ \
-  --snapshot glance_curated_registry.json --output-dir pages/topq
-python scripts/docs.py serve --group-pages TOPQ=pages/topq
-```
-
-Open <http://127.0.0.1:8000/glance-analysis-lister/> and select **TOPQ (local data)**.
-See [local group previews](docs/site.md#preview-your-group-alongside-demo) for
-refreshing directly into that directory, adding more groups and keeping the
-generated data local.
-
-If a stage fails, completed stages remain. See
-[commands, downloads and recovery](docs/workflows.md) to resume from saved data,
-choose destinations or refresh several groups. Use `analysis-lister COMMAND --help`
-for available options.
-
-## How it fits together
-
-The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps 1–3 in
-order**; previewing the result is a separate step.
-
-![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](docs/images/command-flow.svg)
-
-To run the same three stages yourself, execute these commands in the same
-directory, in order:
-
-```bash
-analysis-lister download-api --login
-analysis-lister build-registry
-analysis-lister render-group --group TOPQ --output-dir pages/topq
-```
-
-The default filenames connect the steps: `download-api` writes
-`glance_api_registry.json`; `build-registry` reads it and writes
-`glance_curated_registry.json`; `render-group` reads that registry. Only the
-download needs CERN access. Once you have a snapshot, you can start at the
-corresponding later step: rebuild after curation changes, or just render again
-after changing the group or publication policy.
-
-The combined command is
-`analysis-lister refresh --groups TOPQ --output-dir pages/topq --login`.
-Use the [local group preview](docs/site.md#preview-your-group-alongside-demo) to
-view the resulting pages. Reports remain outside the preview.
-
-Other commands handle [CSV exports, comparisons and citation maintenance](docs/workflows.md#where-the-other-commands-fit).
-For the internal layers and prepared Python views, see [architecture](docs/architecture.md).
-
-## Project background
+## About the project
 
 GLANCE analysis lister grew out of the need for a clear, regularly updated
-overview of ongoing analyses and recent publications. It brings information
-from individual GLANCE records together into searchable group pages.
+overview of ongoing analyses and recent publications during TOPQ subgroup
+coordination. Bringing the relevant GLANCE records together in one website
+made it easier to follow the group's work and prepare discussions.
 
-Initially developed for TOPQ subgroup coordination, its output was subsequently
-adopted on the internal TOPQ group website. The project has since become a
-general package for ATLAS physics and performance groups, with configurable
-group selection and publication policies for Markdown/Zensical websites.
-See [rendering and policies](docs/rendering.md).
+The resulting pages proved useful beyond the original subgroup and were adopted
+on the internal TOPQ group website. The project has since become a general
+package for ATLAS physics and performance groups, with configurable group
+selection and publication policies for Markdown and Zensical websites.
 
-## Project status and contributing
-
-The declared package version is **0.2.0**; this checkout includes unreleased
-changes, and no v1.0 candidate has been qualified. See [compatibility](docs/compatibility.md) for the
-defined interface scope and change policy, and
-[upgrading](docs/upgrading.md) before replacing a working installation.
-Offline and browser checks use
-synthetic data; live CERN authentication needs separate validation.
-
-See [development and validation](docs/development.md) for setup and checks.
-Use independently invented fixtures when contributing. To edit or preview these
-guides, follow the [local site guide](docs/site.md).
-
-## AI assistance disclosure
+See [compatibility](docs/compatibility.md) for the defined interface scope and
+change policy, and [upgrading](docs/upgrading.md) before replacing a working
+installation. To contribute, see [development and validation](docs/development.md).
 
 Parts of this codebase were developed with AI assistance from Codex (OpenAI)
 and Claude (Anthropic). All output was reviewed and validated by the author.
-
-## Licence
 
 Copyright © 2024–2026 Knut Zoch. Licensed under
 [GNU GPL version 3](LICENCE), `GPL-3.0-only`.

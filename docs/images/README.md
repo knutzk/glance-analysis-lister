@@ -35,8 +35,8 @@ GPL-3.0-only; the site uses Zensical's built-in theme.
 ## Command diagram
 
 [`command-flow.svg`](command-flow.svg) is a hand-maintained vector diagram used
-in the main README. Edit the SVG directly; it is not produced by the screenshot
+in the [command workflow guide](../workflows.md#how-the-commands-connect). Edit the SVG directly; it is not produced by the screenshot
 script. Keep snapshots visually distinct from commands, center the `refresh`
 caption, and preserve the equal connector gaps and the output-to-preview turn.
-Inspect the rendered README at desktop width with both navigation columns, in
+Inspect the rendered workflow guide at desktop width with both navigation columns, in
 light and dark mode, after changing it.

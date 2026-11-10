@@ -14,12 +14,14 @@ import socket
 import subprocess
 import sys
 import time
+import tomllib
 from contextlib import contextmanager
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
 from urllib.error import URLError
+from urllib.parse import urljoin
 from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
@@ -251,6 +253,67 @@ def check_local_group_preview(work, driver):
         assert "Local group reload sentinel." not in html.read_text()
 
 
+def check_demonstrator_group(work, driver):
+    """Follow the CERN guide's navigation/render handoff with invented data only."""
+    section = (work / "docs/cern-demo.md").read_text()
+    commands = bash_blocks(section)
+    render = commands[1][1].copy()
+    assert render[:2] == ["analysis-lister", "render-group"]
+    assert render[render.index("--group") + 1] == "TOPQ"
+    # Exercise the real documented destination, but never download/read CERN data.
+    render[render.index("--group") + 1] = "DEMO"
+    render[render.index("--snapshot") + 1] = "examples/synthetic_registry.json"
+    render.extend(["--curation-config", POLICY])
+    run_commands(work, [render])
+    assert commands[2][0] == quickstart_commands(work)[-1]
+
+    config = work / "examples/demo/work/zensical.toml"
+    nav = re.search(r"```toml\n(.*?)```", section, re.S).group(1).strip()
+    tomllib.loads(nav)
+    config.write_text(
+        re.sub(
+            r"nav = \[.*?\n\]", lambda _: nav, config.read_text(), count=1, flags=re.S
+        )
+    )
+    tomllib.loads(config.read_text())
+    original = work / "examples/demo/zensical.toml"
+    assert "TOPQ" not in original.read_text(), "Only the local copy may change"
+    with preview(work) as base:
+        with urlopen(base, timeout=5) as response:
+            html = response.read().decode()
+        assert "TOPQ (CERN data)" in html
+        links = {
+            urljoin(base, link["href"])
+            for link in BeautifulSoup(html, "html.parser").select("a[href]")
+        }
+        assert {base + "papers/", base + "topq/papers/"} <= links, links
+        browse(base, driver, page_prefix="topq/", start_page="topq/papers/")
+        ongoing = work / "examples/demo/work/pages/topq/ongoing.md"
+        ongoing.write_text(
+            ongoing.read_text() + "\nStandalone group reload sentinel.\n"
+        )
+        wait_for_preview_text(
+            base + "topq/ongoing/", "Standalone group reload sentinel."
+        )
+    check_outputs(work, 12)
+    run_commands(
+        work,
+        [
+            [
+                "python",
+                "-m",
+                "zensical",
+                "build",
+                "-f",
+                "examples/demo/work/zensical.toml",
+                "--clean",
+                "--strict",
+            ]
+        ],
+    )
+    assert (work / "examples/demo/work/site/topq/papers/index.html").is_file()
+
+
 def check_demo(work, driver):
     # The same allowlist used for documentation keeps private inputs out of tests.
     public = runpy.run_path(str(ROOT / "scripts/docs.py"))["PUBLIC_FILES"]
@@ -322,6 +385,7 @@ def check_demo(work, driver):
     )
     run_commands(work, bash_blocks(build_section)[1])
     assert (work / "examples/demo/work/site/index.html").is_file()
+    check_demonstrator_group(work, driver)
 
     # Local roadmap preview must not require edits to the tracked config or leak
     # into a subsequent public build. Use invented text, never a local roadmap.
@@ -351,6 +415,8 @@ def check_demo(work, driver):
     assert 'href="ROADMAP/' not in (work / "site/index.html").read_text()
     assert not list((work / "site-src").rglob("view-report.json"))
     assert not (work / "site-src/.github").exists()
+    assert not (work / "site/examples/demo/work").exists()
+    assert not (work / "site-src/examples/demo/work").exists()
     for version in ("v0.1.0", "v0.2.0"):
         original = (work / f".github/release-notes/{version}.txt").read_bytes()
         staged = (work / f"site-src/docs/release-notes/{version}.md").read_bytes()
