@@ -8,6 +8,17 @@ Keep the same checkout and environment, and run all commands from the repository
 root with its `.venv` activated. The synthetic **Demo** stays available.
 Stop Zensical with **Ctrl+C** before changing its navigation.
 
+**TOPQ is an example choice, not a requirement.** Use your own ATLAS physics or
+performance group instead. For example, to use HIGP throughout this guide:
+
+- Replace `TOPQ` with `HIGP` in `--group`, `--groups` and the navigation label.
+- Replace the `topq` output subdirectory and navigation paths with `higp`.
+
+The directory name is your choice; the navigation paths must match it. Download
+and registry construction are shared across groups, so those commands stay the
+same. Check the publication policy for your chosen group; use
+`--curation-config PATH` with `render-group` or `refresh` to supply your own.
+
 ## Download the records
 
 With an authorised CERN account, first download the accessible records:
