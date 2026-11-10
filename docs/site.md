@@ -71,7 +71,12 @@ diagnostic reports. Uploading the artifact does not deploy a public site.
 
 ## Add or configure content
 
-[`zensical.toml`](../zensical.toml) defines navigation, colours and styles.
+The root [`zensical.toml`](../zensical.toml) defines navigation, colours and styles
+for the package documentation site. The standalone demo has its own configuration,
+landing page and policy under [`examples/demo/`](../examples/demo/index.md); its
+[`zensical.toml`](../examples/demo/zensical.toml) reads the generated `examples/demo/work/pages/`
+files and builds `examples/demo/work/site/`. Both sites share `requirements-docs.txt` and
+`docs/stylesheets/site.css`.
 [`scripts/docs.py`](../scripts/docs.py) lists the public inputs copied into
 `site-src/`. Add a new guide to both the input list and navigation, then restart
 the preview. The explicit list excludes private snapshots, generated analysis

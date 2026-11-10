@@ -86,7 +86,7 @@ summary is unavailable. It does not print record details:
 import json
 from pathlib import Path
 
-report = json.loads(Path("pages/demo/view-report.json").read_text())
+report = json.loads(Path("examples/demo/work/pages/view-report.json").read_text())
 if (
     not isinstance(report, dict)
     or report.get("schema") != "glance-group-view-report"

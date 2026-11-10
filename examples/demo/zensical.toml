@@ -5,8 +5,9 @@
 site_name = "GLANCE analysis lister · synthetic demo"
 site_description = "Explore independently invented analysis and publication records"
 site_url = "http://127.0.0.1:8001/"
-docs_dir = "pages/demo"
-site_dir = "site-demo"
+# Zensical resolves these paths relative to this configuration file.
+docs_dir = "work/pages"
+site_dir = "work/site"
 extra_css = [
   "assets/gal-common.css",
   "assets/gal-ongoing.css",

@@ -117,7 +117,7 @@ this checkout, use the public fixture and its policy:
 analysis-lister render-group --group DEMO \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/publication-curation.toml \
-  --output-dir pages/demo
+  --output-dir examples/demo/work/pages
 ```
 
 This produces four ongoing analyses and twelve archived publications, with no

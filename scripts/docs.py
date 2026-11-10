@@ -29,7 +29,7 @@ PUBLIC_FILES = (
     "LICENCE",
     *(f".github/release-notes/{version}.txt" for version in RELEASE_VERSIONS),
     "zensical.toml",
-    "zensical-demo.toml",
+    "examples/demo/zensical.toml",
     "scripts/docs.py",
     "publication-curation.toml",
     "analysis_lister/registry/schemas/curated-v2.schema.json",

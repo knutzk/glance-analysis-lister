@@ -43,17 +43,18 @@ python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-docs.txt
 
-mkdir -p pages
-cp examples/demo/publication-curation.toml pages/demo-policy.toml
+mkdir -p examples/demo/work
+cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
 analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
-  --curation-config pages/demo-policy.toml --output-dir pages/demo
+  --curation-config examples/demo/work/demo-policy.toml \
+  --output-dir examples/demo/work/pages
 
-cp examples/demo/index.md pages/demo/index.md
-cp docs/stylesheets/site.css pages/demo/assets/site.css
+cp examples/demo/index.md examples/demo/work/pages/index.md
+cp docs/stylesheets/site.css examples/demo/work/pages/assets/site.css
 
-python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 **Open <http://127.0.0.1:8001/>.** The landing page explains the example; use the
@@ -61,9 +62,11 @@ navigation to open **Ongoing analyses**, search for `Tracking`, and expand a car
 Try **Papers**, **Conference notes** and **Public notes** next. Stop the server
 with **Ctrl+C**.
 
-Run all commands from the cloned repository root, which contains `examples/`
-and [`zensical-demo.toml`](zensical-demo.toml). The commands above create an
-editable policy copy, render the four pages, copy the landing page and stylesheet,
+Run all commands from the cloned repository root. The standalone demo's
+configuration, landing page and policy live in [`examples/demo/`](examples/demo/);
+the root `zensical.toml` configures the full package documentation site.
+The commands above create an editable policy copy, render the four pages,
+copy the landing page and stylesheet,
 and start Zensical. Installation needs internet access; rendering and preview
 use only local synthetic data.
 
@@ -74,20 +77,20 @@ To reopen an already-generated demo, run only these from the repository root:
 
 ```bash
 source .venv/bin/activate
-python -m zensical serve -f zensical-demo.toml --dev-addr 127.0.0.1:8001
+python -m zensical serve -f examples/demo/zensical.toml --dev-addr 127.0.0.1:8001
 ```
 
 The setup produces:
 
 | Output | Contents |
 | --- | --- |
-| `pages/demo/index.md` | Demo landing page and suggested interactions. |
-| `pages/demo/ongoing.md` | Four invented ongoing analyses at different review stages. |
-| `pages/demo/papers.md` | Four invented papers: two with DOIs and two without. |
-| `pages/demo/confnotes.md`, `pages/demo/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
-| `pages/demo/assets/` | Browser styles and interaction scripts. |
-| `pages/demo/view-report.json` | Selection decisions, provenance and diagnostics. |
-| `pages/demo-policy.toml` | Editable copy of the DEMO publication policy. |
+| `examples/demo/work/pages/index.md` | Demo landing page and suggested interactions. |
+| `examples/demo/work/pages/ongoing.md` | Four invented ongoing analyses at different review stages. |
+| `examples/demo/work/pages/papers.md` | Four invented papers: two with DOIs and two without. |
+| `examples/demo/work/pages/confnotes.md`, `examples/demo/work/pages/pubnotes.md` | Four invented notes per page; three non-superseded notes shown initially. |
+| `examples/demo/work/pages/assets/` | Browser styles and interaction scripts. |
+| `examples/demo/work/pages/view-report.json` | Selection decisions, provenance and diagnostics. |
+| `examples/demo/work/demo-policy.toml` | Editable copy of the DEMO publication policy. |
 
 Continue with the [policy tutorial](examples/README.md#tutorial-change-publication-selection)
 to change what appears in the running demo. It uses this same environment and

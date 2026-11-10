@@ -40,17 +40,19 @@ def wait_for_preview_text(url, text):
 
 
 def check_outputs(work, publications):
-    report = json.loads((work / "pages/demo/view-report.json").read_text())
+    report = json.loads(
+        (work / "examples/demo/work/pages/view-report.json").read_text()
+    )
     assert report["counts"]["ongoing_analyses"] == 4
     assert report["counts"]["archive_publications"] == publications
     assert report["counts"]["warning_issues"] == 0
-    assert (work / "pages/demo/index.md").read_bytes() == (
+    assert (work / "examples/demo/work/pages/index.md").read_bytes() == (
         work / "examples/demo/index.md"
     ).read_bytes()
-    assert (work / "pages/demo/assets/site.css").read_bytes() == (
+    assert (work / "examples/demo/work/pages/assets/site.css").read_bytes() == (
         work / "docs/stylesheets/site.css"
     ).read_bytes()
-    assert (work / "pages/demo-policy.toml").is_file()
+    assert (work / "examples/demo/work/demo-policy.toml").is_file()
 
 
 def bash_blocks(text):
@@ -156,11 +158,13 @@ def check_demo(work, driver):
         shutil.copyfile(ROOT / name, destination)
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
-    assert not (work / "pages").exists()
+    assert not (work / "examples/demo/work").exists()
     run_commands(work, quickstart_commands(work)[:-1])
     with preview(work) as base:
         check_outputs(work, 12)
-        assert (work / "pages/demo-policy.toml").read_text() == original_policy
+        assert (
+            work / "examples/demo/work/demo-policy.toml"
+        ).read_text() == original_policy
         with urlopen(base, timeout=5) as response:
             homepage = BeautifulSoup(response.read(), "html.parser")
         assert homepage.h1.get_text().strip().startswith("Interactive demo")
@@ -176,7 +180,7 @@ def check_demo(work, driver):
     tutorial = bash_blocks(tutorial_text)
     assert len(tutorial) == 3
     run_commands(work, tutorial[0])
-    policy = work / "pages/demo-policy.toml"
+    policy = work / "examples/demo/work/demo-policy.toml"
     edited = policy.read_text().replace('groups = ["DEMO"]', "groups = []")
     assert edited != original_policy
     policy.write_text(edited)
@@ -197,7 +201,7 @@ def check_demo(work, driver):
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
     # Invalid policy edits must not replace previously rendered pages.
-    previous = (work / "pages/demo/papers.md").read_bytes()
+    previous = (work / "examples/demo/work/pages/papers.md").read_bytes()
     policy.write_text("[invalid TOML")
     invalid = subprocess.run(
         executable(tutorial[1][0]),
@@ -206,7 +210,7 @@ def check_demo(work, driver):
         text=True,
     )
     assert invalid.returncode != 0
-    assert (work / "pages/demo/papers.md").read_bytes() == previous
+    assert (work / "examples/demo/work/pages/papers.md").read_bytes() == previous
     policy.write_text(original_policy)
     build_section = (
         (work / "examples/README.md")
@@ -215,7 +219,7 @@ def check_demo(work, driver):
         .split("\n## ", 1)[0]
     )
     run_commands(work, bash_blocks(build_section)[1])
-    assert (work / "site-demo/index.html").is_file()
+    assert (work / "examples/demo/work/site/index.html").is_file()
 
     # Local roadmap preview must not require edits to the tracked config or leak
     # into a subsequent public build. Use invented text, never a local roadmap.
