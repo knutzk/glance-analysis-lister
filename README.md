@@ -1,24 +1,11 @@
 # GLANCE analysis lister
 
-GLANCE analysis lister turns ATLAS records into searchable pages for a physics
-group: ongoing analyses, papers, conference notes and public notes. Group members
-can follow reviews, find publications and explore the details of each record.
-
-GLANCE is the system the ATLAS experiment at CERN uses to track this work.
-Downloading its records requires authorised CERN access. Once saved, the data
-can be curated and rendered offline without authentication or a database. The
-included synthetic example lets you try the package without CERN access.
-
-## What the pages look like
-
-These screenshots show **fictional example records** rendered in a Zensical site.
-
 <table class="gal-screenshot-gallery" role="presentation">
   <tr>
     <td width="50%" valign="top">
       <p><strong>Ongoing analyses</strong></p>
-      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards."></a>
-      <p>Searchable cards with affiliations, review progress and expandable details.</p>
+      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards, all collapsed."></a>
+      <p>Searchable analysis cards with affiliations and review progress. All cards are collapsed in this screenshot; each can be expanded to show details.</p>
     </td>
     <td width="50%" valign="top">
       <p><strong>Publications</strong></p>
@@ -28,10 +15,32 @@ These screenshots show **fictional example records** rendered in a Zensical site
   </tr>
 </table>
 
+These screenshots show **fictional example records** rendered in a Zensical site.
 Select a screenshot to open it at full size.
 
-[Try the synthetic example](#install-and-try-without-credentials) or read about
-[page controls and site integration](docs/rendering.md).
+GLANCE analysis lister turns ATLAS records into searchable pages for a physics
+group: ongoing analyses, papers, conference notes and public notes. Group members
+can follow reviews, find publications and explore the details of each record.
+
+GLANCE is the system the ATLAS experiment at CERN uses to track this work.
+Downloading its records requires authorised CERN access. Once saved, the data
+can be curated and rendered offline without authentication or a database. The
+included synthetic example lets you try the package without CERN access.
+
+GLANCE analysis lister grew out of the need for a clear, regularly updated
+overview of ongoing analyses and recent publications. It brings information
+from individual GLANCE records together into searchable group pages.
+
+Initially developed for TOPQ subgroup coordination, its output was subsequently
+adopted on the internal TOPQ group website. The project has since become a
+general package for ATLAS physics and performance groups, with configurable
+group selection and publication policies for Markdown/Zensical websites.
+See [rendering and policies](docs/rendering.md).
+
+[Documentation](docs/README.md) · [Try the synthetic demo](#install-and-try-without-credentials)
+
+<!-- Once GitHub Pages is published, point Documentation above to
+https://knutzk.github.io/glance-analysis-lister/docs/ -->
 
 ## Install and try without credentials
 
@@ -206,23 +215,10 @@ preview command to view updates.
 Other commands handle [CSV exports, comparisons and citation maintenance](docs/workflows.md#where-the-other-commands-fit).
 For the internal layers and prepared Python views, see [architecture](docs/architecture.md).
 
-## Project background
+## Project information
 
-GLANCE analysis lister grew out of the need for a clear, regularly updated
-overview of ongoing analyses and recent publications. It brings information
-from individual GLANCE records together into searchable group pages.
-
-Initially developed for TOPQ subgroup coordination, its output was subsequently
-adopted on the internal TOPQ group website. The project has since become a
-general package for ATLAS physics and performance groups, with configurable
-group selection and publication policies for Markdown/Zensical websites.
-See [rendering and policies](docs/rendering.md).
-
-## Project status and contributing
-
-The declared package version is **0.2.0**; this checkout includes unreleased
-changes, and no v1.0 candidate has been qualified. See [compatibility](docs/compatibility.md) for the
-defined interface scope and change policy, and
+See [compatibility](docs/compatibility.md) for the defined interface scope and
+change policy, and
 [upgrading](docs/upgrading.md) before replacing a working installation.
 Offline and browser checks use
 synthetic data; live CERN authentication needs separate validation.
@@ -231,12 +227,8 @@ See [development and validation](docs/development.md) for setup and checks.
 Use independently invented fixtures when contributing. To edit or preview these
 guides, follow the [local site guide](docs/site.md).
 
-## AI assistance disclosure
-
 Parts of this codebase were developed with AI assistance from Codex (OpenAI)
 and Claude (Anthropic). All output was reviewed and validated by the author.
-
-## Licence
 
 Copyright © 2024–2026 Knut Zoch. Licensed under
 [GNU GPL version 3](LICENCE), `GPL-3.0-only`.
