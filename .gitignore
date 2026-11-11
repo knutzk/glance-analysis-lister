@@ -39,6 +39,7 @@ dist/
 /.cache/
 /coverage-report/
 /public-api-report/
+/browser-report/
 /.python-version
 .DS_Store
 /.zensical-preview.yml

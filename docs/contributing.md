@@ -24,6 +24,14 @@ Reinstall after changing dependencies or package metadata. The
 [synthetic demo](../examples/README.md) provides a complete offline example for
 trying changes without CERN access.
 
+### Dependency maintenance
+
+Review dependency security alerts and update affected dependencies manually.
+Scheduled version-update PRs and automatic security-fix PRs are not enabled.
+Preserve intentional pins, including `stare`, until the relevant integration
+checks pass with the proposed version. Use the checks below for each update;
+record the tested environment rather than inferring support for other versions.
+
 ## Find the right part of the code
 
 | Area | Responsibility |
@@ -165,7 +173,15 @@ light/dark themes, saved links, instant navigation and no-JavaScript content.
 The demo check also exercises the documented setup and local group previews.
 They use invented data and do not establish live CERN access.
 
-For performance-sensitive changes, run the separate synthetic benchmark:
+On failure, browser checks save a screenshot, console messages, session details
+and the ChromeDriver log under `browser-report/` (override with
+`BROWSER_DIAGNOSTICS_DIR`). A browser that fails to start may only provide a driver
+log and traceback. CI uploads these diagnostics and stage logs as
+**browser-failure-diagnostics**, retained for 14 days. Checks still fail normally;
+there are no automatic retries. New commits cancel older CI runs for the same PR.
+
+For material selection, filtering or rendering changes and each exact release
+candidate, run the existing synthetic benchmark:
 
 ```bash
 python tests/browser/check_performance.py --driver /path/to/chromedriver \
@@ -174,7 +190,9 @@ python tests/browser/check_performance.py --driver /path/to/chromedriver \
 
 The default workload has 1,000 records per category. Its provisional review limits
 are 30 seconds per fresh render and 500 ms per filter action, not a public speed
-guarantee. Run it alone, record the environment and retain failed samples.
+guarantee. Run it alone, without coverage instrumentation. Retain the report with
+the tested commit, dirty state, environment, workload and outcomes, including
+failed samples. Previous results do not qualify a new release candidate.
 The manual **Synthetic performance** workflow provides an Ubuntu comparison.
 
 ### Documentation changes
@@ -337,7 +355,14 @@ python3.13 -m venv /tmp/glance-release-check
 Inspect both distributions and build the documentation from an unpacked source
 archive. The archive includes the guides and examples; the wheel includes runtime
 schemas, assets, dictionaries, policies, certificates and licences. Neither may
-contain private data. Test the [upgrade procedure](upgrading.md) and the actual
+contain private data. The distribution validator rejects known private/local paths
+in both archives, including cookies, generated snapshots and pages, local guidance,
+diagnostics and experimental Events files. JSON is restricted to maintained public
+data locations. This checks paths, not scientific provenance: synthetic fixtures
+and public dictionary changes still need review. Public-site isolation is covered
+by the documentation allowlist and demo regressions.
+
+Test the [upgrade procedure](upgrading.md) and the actual
 consuming site's theme and navigation before replacing a working installation.
 
 Record the candidate commit, artifact hashes, dependency and browser versions,
