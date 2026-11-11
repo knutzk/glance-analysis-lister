@@ -178,6 +178,47 @@ guides and synthetic examples. To inspect it under the configured URL prefix,
 extract it into `preview/glance-analysis-lister/` and run
 `python -m http.server 8000 --bind 127.0.0.1 --directory preview`.
 
+## Open a pull request
+
+Keep the change small enough to review together. Use the PR template to explain
+the problem and resulting behaviour, checks performed and their limitations,
+and any interface impact or recovery steps. Use public or invented examples.
+
+Assess documented Python methods and prepared attributes, CLI behaviour and
+generated URLs separately from internal workflow files. Generated snapshots,
+curated registries and diagnostic reports are not stable external JSON APIs.
+When saved inputs become unsupported, explain the error and rebuild/recovery
+path; preserve user-maintained citation entries and provenance. See the
+[upgrade policy](upgrading.md#what-can-change). Any compatibility exception must
+name the affected interface, reason and action users need to take. A label never
+waives validation or replaces this explanation.
+
+Use a small set of labels; a PR can have more than one:
+
+| Label | Meaning |
+| --- | --- |
+| `bug` | Fixes incorrect behaviour. |
+| `enhancement` | Adds or improves a capability. |
+| `documentation` | Changes guides, examples' instructions or review guidance. |
+| `accessibility` | Removes a barrier affecting people with disabilities. |
+| `breaking-change` | Requires an action from users of a supported interface. |
+| `dependencies` | Changes third-party dependency requirements or versions. |
+| `ci` | Changes GitHub Actions or label automation. |
+| `performance` | Changes or measures runtime or browser responsiveness. |
+
+The **Label pull requests** workflow adds only `documentation` and `ci`, based on
+paths in `.github/labeler.yml`. Maintainers assess the other labels, including
+breaking changes; file paths cannot establish compatibility. Automatic labels
+are additive: existing manual labels survive updates. Remove stale area labels
+manually if their changes disappear from a PR.
+
+The workflow uses `pull_request_target` so it can label fork PRs. It reads the
+trusted base configuration through GitHub's API without checking out or running
+PR code. Its token can read repository contents and update PR labels, but cannot
+create repository labels; the configured labels must already exist. Automation
+starts once the workflow and configuration are merged into the base branch.
+It is review assistance, not a required validation check.
+
 ## Prepare a release
 
 Choose the exact commit and package version together. Review user-visible and

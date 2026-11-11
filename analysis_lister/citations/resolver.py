@@ -42,15 +42,20 @@ def snapshot_dois(path: Path):
         raise ValueError("Snapshot must be an object")
     result = set()
     malformed = 0
-    if data.get("schema") in {"glance-api-registry", "glance-curated-registry"}:
-        from ..registry.publication_dois import paper_dois
+    schema = data.get("schema")
+    if schema in {"glance-api-registry", "glance-curated-registry"}:
+        from ..registry.publication_dois import curated_paper_dois, paper_dois
+
+        read_dois = (
+            paper_dois if schema == "glance-api-registry" else curated_paper_dois
+        )
 
         if not isinstance(data.get("papers"), list):
             raise ValueError("Snapshot requires a papers list")
         for paper in data["papers"]:
             if not isinstance(paper, dict):
                 raise ValueError("Invalid paper record")
-            dois, invalid = paper_dois(paper)
+            dois, invalid = read_dois(paper)
             result.update(dois)
             malformed += invalid
     else:

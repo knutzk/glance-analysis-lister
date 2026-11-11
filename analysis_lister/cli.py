@@ -263,7 +263,9 @@ def parser():
     )
     inputs = resolve.add_mutually_exclusive_group(required=True)
     inputs.add_argument(
-        "--snapshot", type=Path, help="Resolve DOIs found in this registry."
+        "--snapshot",
+        type=Path,
+        help="Read DOI inputs from a saved API snapshot or curated registry.",
     )
     inputs.add_argument(
         "--doi", action="append", help="DOI or doi.org URL; repeat for multiple DOIs."

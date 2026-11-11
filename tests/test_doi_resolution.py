@@ -364,12 +364,12 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(summary["resolved"], 1)
         self.assertEqual(summary["deferred"], 1)
 
-    def test_snapshot_reads_authoritative_links_and_ignores_stale_derived_dois(self):
+    def test_api_snapshot_reads_source_links_and_ignores_stale_derived_dois(self):
         snapshot = self.root / "registry.json"
         snapshot.write_text(
             json.dumps(
                 {
-                    "schema": "glance-curated-registry",
+                    "schema": "glance-api-registry",
                     "papers": [
                         {
                             "publicationPhase": {

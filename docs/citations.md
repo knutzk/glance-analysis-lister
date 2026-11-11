@@ -149,11 +149,15 @@ analysis-lister resolve-dois --snapshot glance_api_registry.json \
   --method inspire --doi-cache data/doi-metadata.json
 ```
 
-Use the saved **API snapshot** for `--snapshot`. The current resolver reads the
-source journal-publication URLs; it does not read the embedded `gal_dois` entries
-in a normal curated registry. If you only have curated data, supply its DOIs with
-repeated `--doi` arguments instead. Existing entries are skipped by default;
-`--refresh-existing` revisits non-manual entries, and `--limit 10` limits attempts.
+`--snapshot` accepts either a saved **API snapshot** or **curated registry**. API
+snapshots supply the source journal-publication URLs; curated registries supply
+the retained `publicationPhase.gal_dois[].doi` values. For the latter, use
+`--snapshot glance_curated_registry.json` with the same options above. The file's
+format selects the field to read: the resolver does not guess DOIs from citation
+text or fall back to other fields. Malformed individual DOI values are skipped
+with a warning while valid values are processed. Existing entries are skipped
+by default; `--refresh-existing` revisits non-manual entries, and `--limit 10`
+limits attempts.
 
 INSPIRE requests use a separate session without GLANCE credentials, with verified
 TLS, bounded retries and rate limiting. Ambiguous associations remain unresolved
