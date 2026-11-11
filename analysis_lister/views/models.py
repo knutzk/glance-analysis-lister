@@ -100,6 +100,7 @@ class PublicationDetails:
     cds_url: str | None
     conf_note: NoteDetails | None
     pub_note: NoteDetails | None
+    cite_as: tuple[str, ...] = ()
 
     @classmethod
     def from_evidence(cls, value):
@@ -120,6 +121,7 @@ class PublicationDetails:
             value["cds_url"],
             NoteDetails.from_evidence(value["conf_note"]),
             NoteDetails.from_evidence(value["pub_note"]),
+            tuple(value.get("cite_as", ())),
         )
 
 

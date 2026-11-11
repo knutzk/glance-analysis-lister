@@ -388,13 +388,13 @@ assert not any(name.startswith("analysis_lister.glance") for name in sys.modules
             )
         self.assertEqual(bundled.read_bytes(), before)
 
-    def test_unused_api_title_and_creation_values_are_dropped(self):
+    def test_paper_full_title_is_retained_and_unused_creation_values_are_dropped(self):
         self.api["papers"][0]["fullTitle"] = "An API paper title"
         self.api["analyses"][0]["creationDate"] = "2098-12-01"
         result = registry.curate(self.api)
         self.assertNotIn("fullTitle", result["analyses"][0])
         self.assertNotIn("creationDate", result["pubnotes"][0])
-        self.assertNotIn("fullTitle", result["papers"][0])
+        self.assertEqual(result["papers"][0]["fullTitle"], "An API paper title")
         self.assertNotIn("creationDate", result["analyses"][0])
 
     def test_failed_inputs_and_overwriting_source_are_rejected(self):

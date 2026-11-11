@@ -70,6 +70,12 @@ results.
 | Papers | GLANCE, arXiv, citations/DOIs and publication dates | **Published** (has a DOI) and **Under review** (no DOI). |
 | CONF/PUB notes | Public identifiers, GLANCE, CERN Document Server (CDS) links and release dates | Non-superseded and superseded notes; defaults to non-superseded. Explicit superseding records are linked in the details. |
 
+Expanded paper details include a **Cite as** block with ATLAS Collaboration,
+the final TeX title (falling back to the full or short title), journal reference,
+arXiv reference and DOI. Later DOI entries stay on separate bracketed lines,
+with their own saved citations. Select and copy the text directly; it remains
+readable without JavaScript. Missing bibliographic fields are omitted.
+
 All publication pages search identifiers, subgroups, titles, citations, keywords
 and people. Paper search also includes DOI strings; note search includes CDS URLs.
 

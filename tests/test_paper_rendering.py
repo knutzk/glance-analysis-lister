@@ -214,7 +214,7 @@ class PaperRenderingTests(unittest.TestCase):
         self.assertFalse(soup.find_all("script"))
         self.assertIn('Invented <script> "quoted" | title', rows[0].get_text())
         self.assertIn("Synthetic <citation> | text", rows[0].get_text())
-        self.assertNotIn(
+        self.assertIn(
             "Synthetic <citation> | text",
             detail.select_one(".gal-publication-details__body").get_text(),
         )

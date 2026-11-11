@@ -159,6 +159,10 @@ class RegistryFieldTests(unittest.TestCase):
                     }
                 )
                 if resource == "papers":
+                    record["fullTitle"] = "Invented full title"
+                    record.setdefault("publicationPhase", {})["finalTitleTex"] = (
+                        r"Invented $X \to Y$ title"
+                    )
                     for phase, events in PAPER_MILESTONES.items():
                         for field, _ in events:
                             record.setdefault(phase, {})[field] = "2099-02-01"

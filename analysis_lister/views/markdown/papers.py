@@ -65,7 +65,18 @@ def paper_details(row):
             prefix = escape(label) + ": " if label and label != url else ""
             out += f"<li>{prefix}{html_link(url, url)}</li>"
         out += "</ul>"
-    return out + "</div></div>"
+    out += "</div></div>"
+    if row.details.cite_as:
+        out += '<div class="gal-paper-citation-panel">'
+        out += '<p class="gal-card__label">Cite as:</p>'
+        out += '<blockquote class="gal-paper-citation"><p>'
+        lines = [escape(line) for line in row.details.cite_as]
+        lines[0] = f"<strong>{lines[0]}</strong>"
+        if len(lines) > 1:
+            lines[1] = f"<em>{lines[1]}</em>"
+        out += "<br>\n".join(lines)
+        out += "</p></blockquote></div>"
+    return out
 
 
 def record_button(label, url):

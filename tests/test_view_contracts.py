@@ -143,6 +143,9 @@ assert not {"requests", "stare", "selenium"}.intersection(sys.modules)
                     row.title = "Changed"
         for row in view.archive:
             self.assertIsInstance(row.date, (str, type(None)))
+            self.assertIsInstance(row.details.cite_as, tuple)
+            self.assertTrue(all(isinstance(line, str) for line in row.details.cite_as))
+            self.assertEqual(bool(row.details.cite_as), row.resource == "papers")
             for link in (*row.details.publication_records, *row.details.links):
                 self.assertIsInstance(link.label, str)
                 self.assertIsInstance(link.url, (str, type(None)))

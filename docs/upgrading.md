@@ -5,6 +5,15 @@ a separate output directory. Keep the old environment and site until you have
 checked the candidate. Keep custom policies and citation stores outside the Python
 environment so reinstalling the package cannot replace your edits.
 
+## Restoring full paper citations
+
+Paper details again include a **Cite as** block. To recover final TeX and full
+titles omitted by earlier curated snapshots, rebuild the registry from your
+saved API snapshot with `build-registry`, then rerun `render-group`. Keep the
+same explicit `--doi-cache` when using a custom citation store. No download is
+needed. Older curated snapshots remain readable and use the short title (or
+native identifier) when the fuller titles are unavailable.
+
 ## Preserve the inputs
 
 Record the installed package version and resolved dependencies:

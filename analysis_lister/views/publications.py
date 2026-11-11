@@ -11,6 +11,7 @@ from .common import group_membership, iso_date
 from .curation import archive_curation
 from .models import Decision, PublicationDetails, PublicationRow
 from .notes import note_cds_record, note_expansion
+from .paper_citations import paper_citation
 from .publication_states import last_paper_milestone, publication_state
 
 
@@ -177,6 +178,9 @@ def publication_details(record, resource, related=None):
         sources[
             "conf_note_expansion" if resource == "confnotes" else "pub_note_expansion"
         ] = asdict(conf_details)
+    citation = paper_citation(record) if resource == "papers" else None
+    if citation is not None:
+        sources["paper_citation"] = asdict(citation)
     milestone = last_paper_milestone(record) if resource == "papers" else None
     if milestone is not None:
         sources["last_paper_milestone"] = asdict(milestone)
@@ -185,6 +189,7 @@ def publication_details(record, resource, related=None):
         {
             "last_milestone": milestone.value if milestone else None,
             "publication_records": publication_records,
+            "cite_as": citation.value if citation else [],
             "contacts": sources["gal_analysisContacts"],
             "editors": sources["gal_contactEditors"],
             "board": sources["phase1.gal_editorialBoard"],
@@ -331,6 +336,7 @@ def prepare_publications(registry, profile, analyses):
                         label,
                         title,
                         *citations,
+                        *details.value["cite_as"],
                         *metadata_decisions["people"].value,
                         *(
                             [entry.get("doi") or "" for entry in dois]
