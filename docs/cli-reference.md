@@ -140,16 +140,18 @@ exactly one input form. Manual entries are never replaced automatically.
 
 | Option | Default / requirement | Meaning |
 | --- | --- | --- |
-| `--snapshot PATH` | One input form required | Read DOIs from source journal-publication URLs in a saved API snapshot. |
+| `--snapshot PATH` | One input form required | Read DOI inputs from a saved API snapshot or curated registry. |
 | `--doi DOI` | One input form required | Bare DOI or doi.org URL; repeat for multiple DOIs. |
 | `--doi-cache PATH` | Required | Writable store to update; must not overwrite the snapshot. |
 | `--method infer\|inspire\|auto` | `infer` | Offline JHEP inference, public INSPIRE lookup, or inference followed by lookup. |
 | `--refresh-existing` | Off | Revisit existing non-manual entries. |
 | `--limit N` | No limit | Positive maximum number of eligible entries to attempt. |
 
-The current resolver does not extract the embedded `gal_dois` entries from a
-normal curated registry. Use the original API snapshot or repeated `--doi` values
-when resolving citations.
+API snapshots supply DOIs from source journal-publication URLs; curated registries
+supply the retained `publicationPhase.gal_dois[].doi` values. The input format
+selects which field is read; citation text and other fields are not fallbacks.
+Malformed individual DOI values are skipped with a warning while valid values
+are processed. Resolution leaves the input snapshot unchanged.
 
 `inspire` and `auto` may access the public network; they do not use GLANCE
 credentials. Successful resolutions are saved incrementally. Rebuild and render

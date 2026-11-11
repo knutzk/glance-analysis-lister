@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Extract API paper DOIs and embed cached citations without network access."""
+"""Extract paper DOIs by stored format and embed cached citations offline."""
 
 import re
 from urllib.parse import unquote, urlsplit
@@ -45,6 +45,34 @@ def paper_dois(paper):
             else:
                 if doi not in result:
                     result.append(doi)
+    return result, malformed
+
+
+def curated_paper_dois(paper):
+    """Read retained DOI values, without guessing from citation text or URLs."""
+    phase = paper.get("publicationPhase")
+    if phase is None:
+        return [], 0
+    if not isinstance(phase, dict):
+        raise ValueError(
+            "Curated paper publication phase must be an object; "
+            "rebuild from a saved API snapshot"
+        )
+    entries = phase.get("gal_dois", [])
+    if not isinstance(entries, list):
+        raise ValueError(
+            "Curated paper gal_dois must be a list; rebuild from a saved API snapshot"
+        )
+    result = []
+    malformed = 0
+    for entry in entries:
+        try:
+            doi = normalize_doi(entry.get("doi") if isinstance(entry, dict) else None)
+        except ValueError:
+            malformed += 1
+        else:
+            if doi not in result:
+                result.append(doi)
     return result, malformed
 
 

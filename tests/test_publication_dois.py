@@ -147,11 +147,15 @@ class PublicationDoiTests(unittest.TestCase):
         entries, _ = enrich_paper(record, {})
         self.assertEqual([entry["doi"] for entry in entries], [ORIGINAL, CORRECTION])
 
-    def test_resolver_reads_source_urls_in_both_new_formats(self):
+    def test_resolver_uses_the_doi_field_for_each_snapshot_format(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "snapshot.json"
-            for schema in ("glance-api-registry", "glance-curated-registry"):
-                record = paper("https://doi.org/" + ORIGINAL)
-                record["publicationPhase"]["gal_dois"] = [{"doi": CORRECTION}]
-                path.write_text(json.dumps({"schema": schema, "papers": [record]}))
-                self.assertEqual(snapshot_dois(path), {ORIGINAL})
+            for schema, expected in (
+                ("glance-api-registry", ORIGINAL),
+                ("glance-curated-registry", CORRECTION),
+            ):
+                with self.subTest(schema=schema):
+                    record = paper("https://doi.org/" + ORIGINAL)
+                    record["publicationPhase"]["gal_dois"] = [{"doi": CORRECTION}]
+                    path.write_text(json.dumps({"schema": schema, "papers": [record]}))
+                    self.assertEqual(snapshot_dois(path), {expected})
