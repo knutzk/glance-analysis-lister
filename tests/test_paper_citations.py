@@ -6,12 +6,14 @@
 import copy
 import unittest
 
+from attrs import evolve
 from bs4 import BeautifulSoup
 from view_fixtures import api_fixture, publication, snapshot
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.registry.enrichment import curate
 from analysis_lister.views.markdown.pages import papers_page
+from analysis_lister.views.models import PublicationDetails
 from analysis_lister.views.paper_citations import arxiv_reference
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile
@@ -112,6 +114,57 @@ class PaperCitationTests(unittest.TestCase):
                 "[Invented correction, DOI: 10.9999/correction]",
             ),
         )
+
+    def test_sparse_doi_entries_keep_available_references_without_empty_lines(self):
+        paper = publication(1)
+        paper["publicationPhase"]["gal_dois"] = [
+            {"citation": "Invented original reference"},
+            {},
+            {"citation": "Invented correction reference", "doi": None},
+            {"url": "https://doi.org/10.9999/addendum"},
+        ]
+        view = self.view(paper)
+        expected = (
+            "ATLAS Collaboration",
+            "Synthetic publication",
+            "Invented original reference",
+            "[Invented correction reference]",
+            "[DOI: https://doi.org/10.9999/addendum]",
+        )
+        self.assertEqual(view.archive[0].details.cite_as, expected)
+        block = BeautifulSoup(papers_page(view), "html.parser").select_one(
+            ".gal-paper-citation"
+        )
+        self.assertEqual(tuple(block.stripped_strings), expected)
+        self.assertNotIn("[]", block.text)
+
+    def test_older_prepared_details_without_citations_still_render(self):
+        view = self.view(publication(1))
+        row = view.archive[0]
+        evidence = dict(row.provenance["details"]["value"])
+        del evidence["cite_as"]
+        older = evolve(row, details=PublicationDetails.from_evidence(evidence))
+        self.assertEqual(older.details.cite_as, ())
+        soup = BeautifulSoup(
+            papers_page(evolve(view, publications=(older,))), "html.parser"
+        )
+        self.assertIsNone(soup.select_one(".gal-paper-citation-panel"))
+        self.assertNotIn("Cite as:", soup.text)
+        self.assertIn("Synthetic publication", soup.text)
+        self.assertIn("Synthetic citation", soup.text)
+
+    def test_custom_single_line_citation_remains_copy_ready_and_escaped(self):
+        view = self.view(publication(1))
+        row = view.archive[0]
+        citation = 'Invented <reference> & "complete citation"'
+        custom = evolve(row, details=evolve(row.details, cite_as=(citation,)))
+        soup = BeautifulSoup(
+            papers_page(evolve(view, publications=(custom,))), "html.parser"
+        )
+        block = soup.select_one(".gal-paper-citation")
+        self.assertEqual(tuple(block.stripped_strings), (citation,))
+        self.assertIsNone(block.find("reference"))
+        self.assertIsNone(block.find("br"))
 
     def test_arxiv_identifiers_only_come_from_recognized_paths_and_hosts(self):
         for url, expected in (
