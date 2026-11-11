@@ -9,6 +9,7 @@ at the transport boundary; authentication storage and network are never used.
 
 import json
 import unittest
+from importlib.metadata import version
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -22,8 +23,12 @@ from analysis_lister.downloaders.api import (
     download_registry,
     publish_registry,
 )
+from analysis_lister.registry import CuratedRegistry
+from analysis_lister.registry.builder import build_registry
 from analysis_lister.registry.enrichment import curate
 from analysis_lister.registry.schema import validate_api_registry, validate_registry
+from analysis_lister.views.prepare import prepare_group
+from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
 
 ENDPOINTS = {
     "/searchAnalysis": "analyses",
@@ -65,7 +70,7 @@ def response_records(count=3):
                     "state": "Expression of interest (EOI) meeting data",
                     "eoiMeetings": [
                         {
-                            "date": "2099-01-02T12:30:00+00:00",
+                            "date": "2099-01-02",
                             "title": "Invented meeting",
                             "link": {
                                 "label": "Agenda",
@@ -73,7 +78,7 @@ def response_records(count=3):
                             },
                         }
                     ],
-                    "preApprovalMeetings": [{"date": "2099-01-03T12:30:00+00:00"}],
+                    "preApprovalMeetings": [{"date": "2099-01-03"}],
                 },
             }
         )
@@ -84,7 +89,10 @@ def response_records(count=3):
                 "status": "Publication Phase Finished",
                 "phase1": {"draftReleasedDate": "2099-01-04"},
                 "publicationPhase": {
-                    "publishedOnlineDate": "2099-02-01T12:30:00+00:00"
+                    "arXivSubmissionDate": "2099-01-10T09:15",
+                    "firstRefereeReportDate": "2099-01-20T10:45",
+                    "firstProofDate": "2099-01-25T11:30",
+                    "publishedOnlineDate": "2099-02-01T12:30",
                 },
             }
         )
@@ -172,7 +180,9 @@ class StareIntegrationTests(unittest.TestCase):
             ),
             Glance(settings=settings, token="invented-offline-token") as client,
         ):
-            result = collect_registry(client, page_size=2, client_version="0.6.1")
+            result = collect_registry(
+                client, page_size=2, client_version=version("stare")
+            )
         self.assertEqual(
             [name for name, _ in requests],
             ["analyses"] * 2 + ["papers"] * 2 + ["confnotes"] * 2 + ["pubnotes"] * 2,
@@ -193,12 +203,9 @@ class StareIntegrationTests(unittest.TestCase):
         self.assertEqual(
             phase["eoiMeetings"][0]["link"]["url"], "https://example.test/meeting"
         )
-        self.assertIsInstance(phase["eoiMeetings"][0]["date"], str)
-        self.assertTrue(
-            result["papers"][0]["publicationPhase"]["publishedOnlineDate"].startswith(
-                "2099-02-01T"
-            )
-        )
+        self.assertEqual(phase["eoiMeetings"][0]["date"], "2099-01-02")
+        for field, value in records["papers"][0]["publicationPhase"].items():
+            self.assertEqual(result["papers"][0]["publicationPhase"][field], value)
         self.assertEqual(
             result["confnotes"][0]["temporaryReferenceCode"], "CONF-DEMO-2099-01"
         )
@@ -218,6 +225,32 @@ class StareIntegrationTests(unittest.TestCase):
             destination = Path(directory) / "registry.json"
             publish_registry(result, destination)
             self.assertEqual(json.loads(destination.read_text()), result)
+            curated_path = Path(directory) / "curated.json"
+            with (
+                patch("requests.get", side_effect=AssertionError("no network")),
+                patch("httpx.Client.send", side_effect=AssertionError("no network")),
+            ):
+                build_registry(destination, curated_path)
+                loaded = CuratedRegistry.from_json(curated_path)
+                for field, value in records["papers"][0]["publicationPhase"].items():
+                    if field != "finalJournalPublicationUrls":
+                        self.assertEqual(
+                            loaded.records("papers")[0]["publicationPhase"][field],
+                            value,
+                        )
+                view = prepare_group(
+                    loaded,
+                    GroupProfile(
+                        "DEMO", publication_policy=PublicationPolicy(groups=("DEMO",))
+                    ),
+                )
+                papers = [row for row in view.archive if row.resource == "papers"]
+                self.assertEqual(len(papers), 3)
+                self.assertEqual(papers[0].date, "2099-02-01")
+                self.assertEqual(
+                    papers[0].details.last_milestone,
+                    ("Submission · Published online", "2099-02-01"),
+                )
 
     def test_real_model_validation_failure_does_not_publish_or_expose_payload(self):
         records = response_records(1)

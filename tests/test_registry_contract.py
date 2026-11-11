@@ -16,6 +16,12 @@ from analysis_lister.registry.fields import RECORD_FIELDS
 from analysis_lister.registry.schema import RESOURCES, validate_registry
 
 FIXTURES = Path(__file__).parent / "fixtures/curated"
+PAPER_TIMESTAMP_FIELDS = (
+    "arXivSubmissionDate",
+    "firstRefereeReportDate",
+    "firstProofDate",
+    "publishedOnlineDate",
+)
 
 
 def baseline():
@@ -75,6 +81,79 @@ class RegistryContractTests(unittest.TestCase):
         reader = CuratedRegistry(data)
         self.assertEqual(reader.records("papers")[0], paper)
         self.assertEqual(reader.metadata["futureMetadata"], data["futureMetadata"])
+
+    def test_paper_timestamps_preserve_source_precision_and_historical_values(self):
+        validator = Draft202012Validator(schema(), format_checker=FormatChecker())
+        for value in (
+            "2099-03-05T14:30",
+            "2000-02-29T00:00",
+            "2400-02-29T23:59",
+            "2096-02-29T12:30",
+            "0001-01-01T00:00",
+            "9999-12-31T23:59",
+            "2099-03-05",
+            "2099-03-05T23:30:00-05:00",
+            None,
+            "",
+        ):
+            with self.subTest(value=value):
+                data = baseline()
+                phase = data["papers"][0]["publicationPhase"]
+                phase.update(dict.fromkeys(PAPER_TIMESTAMP_FIELDS, value))
+                before = copy.deepcopy(data)
+                validator.validate(data)
+                loaded = CuratedRegistry(data)
+                self.assertEqual(loaded.records("papers")[0], before["papers"][0])
+                self.assertEqual(data, before)
+
+    def test_invalid_local_paper_timestamps_fail_in_standalone_and_package_validation(
+        self,
+    ):
+        validator = Draft202012Validator(schema(), format_checker=FormatChecker())
+        for field in PAPER_TIMESTAMP_FIELDS:
+            for value in (
+                "2099-02-29T12:30",
+                "2100-02-29T12:30",
+                "1900-02-29T12:30",
+                "2000-02-30T12:30",
+                "2099-04-31T12:30",
+                "2099-13-01T12:30",
+                "2099-01-00T12:30",
+                "0000-01-01T12:30",
+                "2099-01-01T24:00",
+                "2099-01-01T12:60",
+                "2099-1-01T12:30",
+                "2099-01-01 12:30",
+                "2099-01-01T12:30:00",
+                "2099-01-01T12:30.5",
+                "2099-01-01T12:30\n",
+                "2099-01-01T12:30junk",
+            ):
+                with self.subTest(field=field, value=value):
+                    data = baseline()
+                    data["papers"][0]["publicationPhase"][field] = value
+                    self.assertFalse(validator.is_valid(data))
+                    with self.assertRaisesRegex(ValueError, field):
+                        validate_registry(data)
+
+    def test_local_minute_timestamps_are_limited_to_four_paper_fields(self):
+        for path in (
+            ("fetched_at",),
+            ("papers", 0, "publicationPhase", "startDate"),
+            ("papers", 0, "publicationPhase", "journalAcceptanceDate"),
+            ("analyses", 0, "phase0", "startDate"),
+            ("confnotes", 0, "phase1", "releaseDate"),
+            ("pubnotes", 0, "phase1", "releaseDate"),
+        ):
+            with self.subTest(path=path):
+                data = baseline()
+                data["pubnotes"][0]["phase1"] = {}
+                parent = data
+                for key in path[:-1]:
+                    parent = parent[key]
+                parent[path[-1]] = "2099-03-05T14:30"
+                with self.assertRaisesRegex(ValueError, path[-1]):
+                    validate_registry(data)
 
     def test_empty_collections_and_missing_optional_fields_are_valid(self):
         data = baseline()
