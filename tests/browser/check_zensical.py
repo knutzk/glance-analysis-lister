@@ -222,10 +222,17 @@ def browse(
         driver.execute_script("window.integrationDocument = 'preserved';")
         for page in (*PAGES, "ongoing", "papers"):
             url = base + f"{page_prefix}{page}/"
+            # Resolve relative hrefs in one browser query instead of fetching
+            # every navigation/sidebar link through a separate WebDriver call.
+            # Keep document order, Selenium visibility checks and a real click.
             link = next(
                 e
-                for e in driver.find_elements(By.CSS_SELECTOR, "a[href]")
-                if e.get_attribute("href") == url and e.is_displayed()
+                for e in driver.execute_script(
+                    "return [...document.querySelectorAll('a[href]')]"
+                    ".filter(a => a.href === arguments[0])",
+                    url,
+                )
+                if e.is_displayed()
             )
             previous = driver.find_element(By.CSS_SELECTOR, ".md-content__inner")
             link.click()

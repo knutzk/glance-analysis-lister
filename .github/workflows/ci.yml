@@ -169,10 +169,8 @@ jobs:
           printf 'Chrome %s; ChromeDriver %s\n' "$chrome_version" "$driver_version"
           test "${chrome_version%.*}" = "${driver_version%.*}"
           printf 'CHROME_BINARY=%s\nCHROMEDRIVER=%s\n' "$chrome" "$driver" >> "$GITHUB_ENV"
-          # Use the runner's installed Chrome with its Ubuntu sandbox policy.
-          # Keep startup stderr visible if the browser cannot launch.
-          timeout 30 "$chrome" --headless=new --no-first-run \
-            --user-data-dir="$RUNNER_TEMP/chrome-smoke" --dump-dom about:blank
+          # Tests launch this Chrome with its Ubuntu sandbox policy. The first
+          # real session checks startup and retains ChromeDriver diagnostics.
       - name: Check standalone views and Zensical integration
         run: |
           exec > >(tee "$BROWSER_DIAGNOSTICS_DIR/views.log") 2>&1
