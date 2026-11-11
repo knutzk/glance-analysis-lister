@@ -17,6 +17,10 @@ TOPQ or any other group; the same saved data can supply several groups' pages.
 For a first run, use the CERN demo guide. This page explains the inputs and how
 to maintain them.
 
+## From GLANCE to a website
+
+[![Authenticated GLANCE retrieval produces an API snapshot. Offline curation adds citation and identifier data; group configuration then shapes prepared views. Rendering creates pages and assets for a website builder.](images/data-flow.svg)](images/data-flow.svg)
+
 ## The files you maintain
 
 | Input or output | What it contains | What you control |
@@ -34,7 +38,7 @@ to maintain them.
 The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps
 1–3 in order**; previewing the result is a separate step.
 
-![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](images/command-flow.svg)
+[![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](images/command-flow.svg)](images/command-flow.svg)
 
 The default filenames connect the stages: `download-api` writes
 `glance_api_registry.json`; `build-registry` reads it and writes

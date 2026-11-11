@@ -194,9 +194,12 @@ GPL-3.0-only; the site uses Zensical's built-in theme.
 [`command-flow.svg`](images/command-flow.svg) is a hand-maintained vector diagram used
 in the [command workflow guide](data.md#how-the-commands-connect). Edit the SVG directly; it is not produced by the screenshot
 script. Keep snapshots visually distinct from commands, center the `refresh`
-caption, and preserve the equal connector gaps and the output-to-preview turn.
+caption, and preserve equal gaps within the command row and matching gaps between
+the source, refresh frame, output and preview. Keep the output-to-preview turn.
 Inspect the rendered workflow guide at desktop width with both navigation columns, in
-light and dark mode, after changing it.
+light and dark mode, after changing it. Command names use monospace type; step
+numbers sit above them so the saved-file handoffs remain legible. The image links
+to its full-size SVG for small screens.
 
 ## Citation diagram
 
@@ -210,3 +213,21 @@ Check the embedded figure in light and dark mode, including a manual site-theme
 override, and at desktop and mobile widths. Its image link opens the SVG at full
 size. New public figures need entries in both `scripts/docs.py`'s explicit staging
 list and `MANIFEST.in` so site builds and source archives include them.
+
+## Data-flow diagram
+
+[`data-flow.svg`](images/data-flow.svg) illustrates
+[how GLANCE data becomes a website](data.md#from-glance-to-a-website). Edit the SVG
+directly, keeping saved files distinct from in-memory views. Preserve the network
+boundary, the enrichment and group-configuration inputs, and the separation
+between rendered files and the consuming website. Check the embedded figure in
+both themes and at desktop and mobile widths, as for the citation diagram.
+
+## Selection diagram
+
+[`selection-flow.svg`](images/selection-flow.svg) illustrates the
+[three selection decisions](selection.md#three-decisions). Keep analysis membership
+separate from publication policy, and retain the review cross-connection through
+explicit analysis links. Distinguish lifecycle placement from browser filtering.
+Use consistent numbered headings, with path names outside the first boxes. Check
+both themes, desktop/mobile layouts and the full-size link after editing the SVG.

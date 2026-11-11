@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="926" viewBox="0 0 800 926" role="img" aria-labelledby="title description">
+  <!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+  <!-- SPDX-License-Identifier: GPL-3.0-only -->
+  <title id="title">What determines whether a record appears?</title>
+  <desc id="description">For a selected group, analyses and publications follow separate paths from the curated registry. Analyses require leading or additional main-group affiliation and a recognised ongoing state; uncertain analyses are listed separately and closed or completed analyses are excluded. Publications require a publication-policy match and lifecycle evidence: submitted or published papers, or released notes. Group, subgroup and keyword criteria combine with OR; a missing policy falls back to the identifier group token, while an explicitly empty policy selects none. A highlighted cross-connection routes the review state of linked publications before submission or release into the analysis lifecycle: eligible analyses remain ongoing during publication review. The publication record does not enter the publication tables until its lifecycle qualifies. Linked publications can inform analysis progress even if the publication policy excludes them. Generated pages then apply browser filters. Analysis cards use search and subgroups; publications use search, dates and status. Superseded notes are initially hidden. Browser filters cannot add excluded records to generated pages.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L8 4L0 8Z" class="arrow-head"/>
+    </marker>
+    <marker id="review-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L8 4L0 8Z" class="review-head"/>
+    </marker>
+  </defs>
+  <style>
+    svg { color-scheme: light dark; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: #233846; }
+    .canvas { fill: #fff; }
+    .heading { font-size: 19px; font-weight: 600; }
+    .body { font-size: 17px; }
+    .small { font-size: 15px; fill: #526573; }
+    .eyebrow { font-size: 12px; font-weight: 650; letter-spacing: 1.2px; fill: #526573; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 18px; }
+    .center { text-anchor: middle; }
+    .file { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .stage { fill: #f0f8f7; stroke: #229e95; stroke-width: 1.5; }
+    .step { fill: #fff; stroke: #b7d8d3; stroke-width: 1; }
+    .optional { fill: #f6f3fb; stroke: #baacd0; stroke-width: 1.2; }
+    .output { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; }
+    .note { fill: #e4f4f2; }
+    .link { fill: #087c74; }
+    .connector { fill: none; stroke: #657780; stroke-width: 1.6; marker-end: url(#arrow); }
+    .arrow-head { fill: #657780; }
+    .review { fill: #f6f3fb; stroke: #baacd0; stroke-width: 1.2; }
+    .review-connector { fill: none; stroke: #8062a7; stroke-width: 2.5; marker-end: url(#review-arrow); }
+    .review-head { fill: #8062a7; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e3edf1; }
+      .canvas { fill: #141b20; }
+      .small, .eyebrow { fill: #b5c5ce; }
+      .file, .output { fill: #1d2931; stroke: #7e939f; }
+      .stage { fill: #173430; stroke: #52beb2; }
+      .step { fill: #1c292d; stroke: #41645f; }
+      .optional { fill: #292438; stroke: #8e80a8; }
+      .note { fill: #173430; }
+      .link { fill: #75dbcd; }
+      .connector { stroke: #a4b6bf; }
+      .arrow-head { fill: #a4b6bf; }
+      .review { fill: #292438; stroke: #8e80a8; }
+      .review-connector { stroke: #c0a0e8; }
+      .review-head { fill: #c0a0e8; }
+    }
+  </style>
+  <rect class="canvas" width="800" height="926" rx="20"/>
+  <g id="registry">
+    <rect class="file" x="32" y="24" width="736" height="76" rx="12"/>
+    <text class="heading center" x="400" y="55">Curated registry</text>
+    <text class="body center" x="400" y="81">Two selection paths, connected by explicit analysis links.</text>
+  </g>
+  <text class="heading" x="54" y="137">Ongoing analyses</text>
+  <text class="heading" x="446" y="137">Publications</text>
+  <path class="connector" d="M400 100V150H204V179"/>
+  <path class="connector" d="M400 150H596V179"/>
+
+  <g id="analysis-membership">
+    <rect class="optional" x="32" y="180" width="344" height="136" rx="20"/>
+    <text class="heading" x="54" y="212">1 · Group membership</text>
+    <text class="body" x="54" y="245">Leading or additional</text>
+    <text class="body" x="54" y="271">main-group affiliation</text>
+    <text class="small" x="54" y="298">Independent of publication policy</text>
+  </g>
+  <g id="publication-policy">
+    <rect class="optional" x="424" y="180" width="344" height="136" rx="20"/>
+    <text class="heading" x="446" y="212">1 · Publication policy</text>
+    <text class="body" x="446" y="245">Group OR subgroup OR keyword</text>
+    <text class="small" x="446" y="271">Missing policy: identifier-group fallback</text>
+    <text class="small" x="446" y="298">Empty policy: selects none</text>
+  </g>
+  <path class="connector" d="M204 316V359"/>
+  <path class="connector" d="M596 316V359"/>
+
+  <g id="analysis-lifecycle">
+    <rect class="stage" x="32" y="360" width="344" height="228" rx="20"/>
+    <text class="heading" x="54" y="392">2 · Lifecycle</text>
+    <rect class="review" x="52" y="408" width="304" height="62" rx="12"/>
+    <text class="body center" x="204" y="434">Linked publication review</text>
+    <text class="small center" x="204" y="456">keeps eligible analyses ongoing</text>
+    <text class="body" x="54" y="505">Recognised ongoing → include</text>
+    <text class="small" x="54" y="533">Uncertain → separate review list</text>
+    <text class="small" x="54" y="560">Closed/completed → leave out</text>
+  </g>
+  <g id="publication-lifecycle">
+    <rect class="stage" x="424" y="360" width="344" height="228" rx="20"/>
+    <text class="heading" x="446" y="392">2 · Lifecycle</text>
+    <rect class="review" x="444" y="408" width="304" height="62" rx="12"/>
+    <text class="body center" x="596" y="434">Still in review</text>
+    <text class="small center" x="596" y="456">Before submission / release</text>
+    <text class="body" x="446" y="505">Papers: submitted or published</text>
+    <text class="body" x="446" y="533">Notes: released</text>
+    <text class="small" x="446" y="560">Continue to publication tables</text>
+  </g>
+  <path class="review-connector" d="M444 439H358"/>
+
+  <g transform="translate(0 68)">
+  <path class="connector" d="M204 520V563"/>
+  <path class="connector" d="M596 520V563"/>
+
+  <g id="analysis-page">
+    <rect class="file" x="32" y="564" width="344" height="80" rx="12"/>
+    <text class="heading" x="54" y="596">Ongoing-analysis page</text>
+    <text class="body" x="54" y="623">Cards + separate uncertain list</text>
+  </g>
+  <g id="publication-pages">
+    <rect class="file" x="424" y="564" width="344" height="80" rx="12"/>
+    <text class="heading" x="446" y="596">Publication tables</text>
+    <text class="body" x="446" y="623">Papers · conference notes · public notes</text>
+  </g>
+  <path class="connector" d="M204 644V717"/>
+  <path class="connector" d="M596 644V717"/>
+  <path d="M32 681H184M224 681H300M500 681H576M616 681H768" fill="none" stroke="#8799a5" stroke-width="1" stroke-dasharray="4 5"/>
+  <text class="eyebrow center" x="400" y="685">IN THE BROWSER</text>
+
+  <g id="analysis-filters">
+    <rect class="output" x="32" y="718" width="344" height="116" rx="18"/>
+    <text class="heading" x="54" y="750">3 · Card filters</text>
+    <text class="body" x="54" y="779">Search + subgroup selection</text>
+    <text class="small" x="54" y="808">Narrow the generated ongoing cards.</text>
+  </g>
+  <g id="publication-filters">
+    <rect class="output" x="424" y="718" width="344" height="116" rx="18"/>
+    <text class="heading" x="446" y="750">3 · Table filters</text>
+    <text class="body" x="446" y="779">Search + dates + status</text>
+    <text class="small" x="446" y="808">Superseded notes start hidden.</text>
+  </g>
+
+  </g>
+</svg>

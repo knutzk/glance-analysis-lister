@@ -14,6 +14,8 @@ filter does not change the registry or the policy.
 
 ## Three decisions
 
+[![Analyses use group membership; publications use publication policy. Lifecycle rules determine placement, with pre-submission or release review feeding the linked analysis. Browser filters then narrow the generated records.](images/selection-flow.svg)](images/selection-flow.svg)
+
 Three decisions determine what a reader sees:
 
 1. **Group and policy selection:** ongoing analyses use main-group affiliation;
