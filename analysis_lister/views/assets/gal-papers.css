@@ -35,3 +35,6 @@
 .gal-papers .gal-paper-detail-row > td { white-space: normal; padding: .65rem .75rem; background: var(--md-default-bg-color, #fff); }
 .gal-papers [data-gal-item] > td:nth-child(2) { width: 100%; white-space: normal; min-width: 12rem; }
 .gal-papers caption { text-align: left; color: var(--gal-muted); padding: .5rem 0; }
+
+.gal-publication-details__body .gal-paper-citation { margin: .4rem 0; padding-inline-start: .7rem; border-inline-start: 3px solid var(--gal-border); color: inherit; overflow-wrap: anywhere; }
+.gal-publication-details__body .gal-paper-citation p { margin: 0; }

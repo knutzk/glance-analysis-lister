@@ -148,6 +148,7 @@ For publications, these `details` attributes support custom display code:
 | --- | --- |
 | `publication_records`, `links` | Tuples of link objects with `label: str` and `url: str \| None`. A missing URL is a readable label, not a link to follow. |
 | `contacts`, `editors`, `board`, `board_chairs` | Tuples of recorded names. |
+| `cite_as` | Tuple of plain-text citation lines for papers; empty for notes. Includes title, available references and aligned DOI entries. |
 | `last_milestone` | `(label, date)` tuple, or `None`. |
 | `cds_url` | CDS URL string, or `None`. |
 | `conf_note`, `pub_note` | Note detail object for the corresponding resource, otherwise `None`. |

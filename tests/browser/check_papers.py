@@ -49,6 +49,10 @@ def run_checks(work_dir):
             "gal_triggers": ["Trigger A" if n < 2 else "Trigger B"],
             "gal_statisticalTools": ["Tool A" if n % 2 == 0 else "Tool B"],
         }
+    papers[0]["publicationPhase"]["finalTitleTex"] = r"Invented $X \to Y$ measurement"
+    papers[0]["publicationPhase"]["arXivUrls"] = [
+        {"url": "https://arxiv.org/abs/9901.12345"}
+    ]
     view = prepare_group(
         CuratedRegistry(snapshot(analysis(1), papers=tuple(papers))),
         GroupProfile("DEMO"),
@@ -154,6 +158,25 @@ def run_checks(work_dir):
         )
         expand_all.click()
         assert expand_all.text == "Collapse all"
+        citations = driver.find_elements(By.CSS_SELECTOR, ".gal-paper-citation")
+        assert len(citations) == 4
+        assert all(block.is_displayed() for block in citations)
+        complete = next(
+            block for block in citations if "arXiv:9901.12345" in block.text
+        )
+        assert complete.text.splitlines() == [
+            "ATLAS Collaboration",
+            r"Invented $X \to Y$ measurement",
+            "Synthetic citation, arXiv:9901.12345",
+            "DOI: 10.9999/synthetic",
+        ]
+        selected = driver.execute_script(
+            "const range = document.createRange(); range.selectNodeContents(arguments[0]); "
+            "const selection = window.getSelection(); selection.removeAllRanges(); "
+            "selection.addRange(range); return selection.toString();",
+            complete,
+        )
+        assert selected == complete.text
         assert (
             len(
                 [
@@ -247,8 +270,12 @@ def run_checks(work_dir):
         assert not driver.find_element(
             By.CSS_SELECTOR, "[data-gal-controls]"
         ).is_displayed()
+        assert all(
+            block.is_displayed()
+            for block in driver.find_elements(By.CSS_SELECTOR, ".gal-paper-citation")
+        )
         print(
-            "Paper browser checks passed: independent initialization, filters, search, unpaginated rows, row disclosure, document replacement and no-JavaScript fallback."
+            "Paper browser checks passed: copy-ready citations, independent initialization, filters, search, unpaginated rows, row disclosure, document replacement and no-JavaScript fallback."
         )
 
 

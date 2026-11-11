@@ -93,8 +93,11 @@ timezones as stored.
 
 Titles, statuses, journal codes and collision metadata retain source wording,
 including numeric-looking strings and units. DOI, URL and citation values stay
-together in each `gal_dois` entry. `gal_publicationProvenance` records identifier
-evidence; neither it nor URL validation establishes that a linked page is reachable.
+together in each `gal_dois` entry. Papers also retain `fullTitle` and
+`publicationPhase.finalTitleTex` for the copy-ready citation. Both are optional
+strings or null; missing, null and empty values remain distinct in storage.
+`gal_publicationProvenance` records identifier evidence; neither it nor URL
+validation establishes that a linked page is reachable.
 
 ### Current format rules
 

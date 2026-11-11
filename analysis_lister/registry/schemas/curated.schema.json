@@ -519,6 +519,9 @@
           "items": {
             "$ref": "#/$defs/doi"
           }
+        },
+        "finalTitleTex": {
+          "$ref": "#/$defs/text"
         }
       }
     },
@@ -668,6 +671,9 @@
             },
             "publicationPhase": {
               "$ref": "#/$defs/publicationPhase"
+            },
+            "fullTitle": {
+              "$ref": "#/$defs/text"
             }
           },
           "required": [

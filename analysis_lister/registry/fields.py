@@ -87,7 +87,7 @@ RECORD_FIELDS = {
     },
     "papers": {
         **PUBLICATION,
-        **leaves("referenceCode", "gal_figuresUrl"),
+        **leaves("referenceCode", "gal_figuresUrl", "fullTitle"),
         "phase1": {
             **PEOPLE,
             **leaves(
@@ -122,6 +122,7 @@ RECORD_FIELDS = {
                 "firstRefereeReportDate",
                 "journalAcceptanceDate",
                 "finalSubmissionJournal",
+                "finalTitleTex",
                 "firstProofDate",
                 "publishedOnlineDate",
             ),
