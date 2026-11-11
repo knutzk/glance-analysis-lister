@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 # Documentation and site integration; not a runtime package dependency.
 -e .
 zensical==0.0.58

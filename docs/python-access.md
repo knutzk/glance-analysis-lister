@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+
 # Use saved records in Python
 
 Use the Python API when you want to inspect saved records or build your own

@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+
 # Synthetic example
 
 Run a complete local site without CERN access, or explore the same records in

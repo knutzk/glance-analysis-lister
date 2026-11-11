@@ -1,2 +1,5 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
 # Share the documentation site's pinned Zensical version.
 -r ../../requirements-docs.txt

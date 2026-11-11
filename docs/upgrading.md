@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+
 # Upgrading and compatibility
 
 Test the candidate package alongside the working version, using saved data and
