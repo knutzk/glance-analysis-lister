@@ -128,8 +128,8 @@ For a pushed `v*` tag, all three jobs must succeed before the release job create
 a **draft GitHub release** with the verified wheel, source archive and matching
 notes. The distribution artifact used between jobs is retained for 7 days.
 Tag checks reject mismatched versions or missing notes. The draft still requires
-review before publication. The workflow does not publish to a package index or
-deploy documentation to GitHub Pages.
+review before publication. The separate Publish documentation workflow deploys
+the development site from `main` to GitHub Pages.
 
 ## Documentation versions
 

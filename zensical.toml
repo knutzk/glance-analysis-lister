@@ -4,7 +4,7 @@
 [project]
 site_name = "GLANCE analysis lister · development"
 site_description = "Analysis and publication pages from ATLAS GLANCE records"
-site_url = "https://knutzk.github.io/glance-analysis-lister/"
+site_url = "https://knutzoch.org/glance-analysis-lister/"
 repo_url = "https://github.com/knutzk/glance-analysis-lister"
 # scripts/docs.py selects public inputs and preserves their repository paths.
 docs_dir = "site-src"
