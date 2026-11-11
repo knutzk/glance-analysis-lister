@@ -14,8 +14,8 @@ results in a Markdown or Zensical site. Try the included demonstrator without
 credentials, then add your group's real data with authorised CERN access.
 
 [Try the demo locally](#install-and-try-without-credentials) ·
-[Browse the demo](https://knutzoch.org/glance-analysis-lister/examples/demo/) ·
-[Documentation](https://knutzoch.org/glance-analysis-lister/docs/)
+[Browse the demo](https://knutzk.github.io/glance-analysis-lister/examples/demo/) ·
+[Documentation](https://knutzk.github.io/glance-analysis-lister/docs/)
 
 ## Explore the pages
 
