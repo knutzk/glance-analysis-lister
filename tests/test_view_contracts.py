@@ -121,3 +121,38 @@ assert not {"requests", "stare", "selenium"}.intersection(sys.modules)
             if note:
                 self.assertIsInstance(note, NoteDetails)
             self.assertIsInstance(row.provenance["details"]["value"], dict)
+
+    def test_documented_display_values_can_be_consumed_without_internal_models(self):
+        registry = CuratedRegistry.from_json(
+            Path(__file__).resolve().parents[1] / "examples/synthetic_registry.json"
+        )
+        view = prepare_group(registry, GroupProfile("DEMO"))
+        for row in (*view.ongoing, *view.archive):
+            with self.subTest(reference=row.reference):
+                self.assertIsInstance(row.title, str)
+                self.assertIsInstance(row.metadata["text"], str)
+                for field in ("subgroups", "keywords", "triggers", "statistical_tools"):
+                    self.assertIsInstance(row.metadata[field], list)
+                    self.assertTrue(
+                        all(isinstance(value, str) for value in row.metadata[field])
+                    )
+                self.assertIsInstance(
+                    row.metadata["leading_subgroup"], (str, type(None))
+                )
+                with self.assertRaises(FrozenInstanceError):
+                    row.title = "Changed"
+        for row in view.archive:
+            self.assertIsInstance(row.date, (str, type(None)))
+            for link in (*row.details.publication_records, *row.details.links):
+                self.assertIsInstance(link.label, str)
+                self.assertIsInstance(link.url, (str, type(None)))
+            for note in (row.details.conf_note, row.details.pub_note):
+                if note is None:
+                    continue
+                self.assertIsInstance(note.superseded, bool)
+                for role in note.people:
+                    self.assertIsInstance(role.label, str)
+                    self.assertIsInstance(role.names, tuple)
+                for tag in note.tags:
+                    self.assertIsInstance(tag.label, str)
+                    self.assertIsInstance(tag.values, tuple)

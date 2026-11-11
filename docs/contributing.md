@@ -219,6 +219,75 @@ create repository labels; the configured labels must already exist. Automation
 starts once the workflow and configuration are merged into the base branch.
 It is review assistance, not a required validation check.
 
+## Review public-interface changes
+
+The supported boundaries are documented below. Keep behavioral checks even when
+the structural comparison finds no changes:
+
+| Interface inventory | Existing behavioral checks |
+| --- | --- |
+| [Python imports and reader methods](python-access.md#available-imports): `CuratedRegistry` construction, `from_json`, `records`, `get`, `resolve_link`, `metadata`; `validate_registry`, `RESOURCES`, `SCHEMA`. | `test_curated_reader.py`: copying, validation, errors, native identifiers and offline reading. |
+| [Profile/policy constructors and preparation](python-access.md#profiles-and-policy-loading): `GroupProfile`, `PublicationPolicy`, `load_publication_policy`, `prepare_group`. | `test_view_contracts.py`, `test_view_preparation.py`: no I/O, immutable records, types and selection. |
+| [Prepared values](python-access.md#read-prepared-collections): group collections, analysis/publication rows, detail/link/note/role/tag attributes and documented metadata keys. | `test_view_contracts.py`: directly consume documented values; `test_view_preparation.py`: lifecycle, membership, relationships and ordering. |
+| [CLI reference](cli-reference.md): all eight commands and their documented options/defaults, help/version, exit `0`/`1`/`2`, stdout/stderr roles. | `test_workflow_cli.py`, `test_console.py`, `test_download_errors.py`, `test_curated_doi_handoff.py`, `test_refresh_recovery.py`. |
+| [Publication policy fields](selection.md#publication-policies): title, groups, subgroups, keywords; OR semantics; missing versus empty policy; independent ongoing membership. | `test_publication_curation.py`, `test_view_contracts.py`. |
+| [Generated files](website.md) and [record/filter URLs](pages.md): four Markdown filenames, `gal-*` assets, native record fragments, search/subgroup/sort and publication-filter meanings. | `test_generated_contract.py`; browser `check_ongoing.py`, `check_papers.py`, `check_notes.py`, `check_zensical.py` for persistence, history, anchors and site integration. |
+
+### Advisory Python comparison
+
+`scripts/public_api.toml` inventories the documented Python imports, calls and
+attributes. `scripts/check_public_api.py` uses Python's runtime signature
+inspection, including `attrs`-generated constructors, bound classmethods and
+re-exports. Implementation module locations for prepared results can change;
+their undocumented constructors and internal fields are not checked. No extra
+analysis dependency is needed.
+
+In a full Git checkout with development dependencies installed:
+
+```bash
+git fetch origin
+# Compare the local working tree with an explicit baseline.
+python scripts/check_public_api.py --base origin/main --output public-api-report
+# Compare two named revisions; replace BASELINE and CANDIDATE with chosen refs.
+python scripts/check_public_api.py --base BASELINE --candidate CANDIDATE --output public-api-report
+```
+
+Read `public-api-report/summary.md`; `base.json` and `candidate.json` contain the
+supporting structural evidence. These are internal diagnostic files, not new
+public JSON APIs. By default findings do not fail the command. `--fail-on-change`
+is available for controlled local checks. Import/dependency failures are tool
+errors, not evidence that an API was removed.
+
+The **Public API advisory** workflow compares the explicit PR base and head SHAs
+and uploads that report. Its job is advisory and must not be made required yet.
+The manual workflow accepts an explicit supported baseline and candidate for
+release review. Record why that baseline applies; this does not retrospectively
+promise compatibility with every historical 0.x release.
+
+The checker reads each revision's inventory, so deleting an entry does not hide
+a removal. When a baseline predates the inventory, it uses the candidate's scope
+for both revisions and says so in the report; review that initial scope manually.
+Optional additions and implementation refactors can pass, while removed methods,
+attributes, changed defaults and incompatible argument forms require review.
+It probes calling conventions without running the functions. It does not prove
+return types, exception behavior, selection semantics or nested metadata types;
+the behavioral tests above cover those separately. Both revisions use the same
+installed dependencies; dependency changes and dynamic wrappers need human review.
+
+### Intentional changes
+
+For an intentional incompatibility, name the exact supported interface in the
+PR, explain the reason and required user action, and use `breaking-change`.
+Update documentation, focused behavioral tests and release/upgrade notes
+together. Review the report rather than deleting scope entries or treating a
+label as a waiver. Promote checks to required status only after reviewing false
+positives and intentional-change handling on actual PRs.
+
+Generated snapshots, diagnostic keys, renderer internals and undocumented
+constructors remain outside the stable interface inventory. Their changes need
+validation and clear rebuild/recovery guidance. Preserve user-maintained citation
+entries and provenance separately; they are not disposable generated inputs.
+
 ## Prepare a release
 
 Choose the exact commit and package version together. Review user-visible and
