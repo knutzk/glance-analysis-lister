@@ -24,6 +24,14 @@ Reinstall after changing dependencies or package metadata. The
 [synthetic demo](../examples/README.md) provides a complete offline example for
 trying changes without CERN access.
 
+### Dependency maintenance
+
+Review dependency security alerts and update affected dependencies manually.
+Scheduled version-update PRs and automatic security-fix PRs are not enabled.
+Preserve intentional pins, including `stare`, until the relevant integration
+checks pass with the proposed version. Use the checks below for each update;
+record the tested environment rather than inferring support for other versions.
+
 ## Find the right part of the code
 
 | Area | Responsibility |
