@@ -171,18 +171,29 @@ jobs:
           printf 'CHROME_BINARY=%s\nCHROMEDRIVER=%s\n' "$chrome" "$driver" >> "$GITHUB_ENV"
           # Tests launch this Chrome with its Ubuntu sandbox policy. The first
           # real session checks startup and retains ChromeDriver diagnostics.
-      - name: Check standalone views and Zensical integration
-        run: |
-          exec > >(tee "$BROWSER_DIAGNOSTICS_DIR/views.log") 2>&1
-          python tests/browser/check_ongoing.py --driver "$CHROMEDRIVER"
-          python tests/browser/check_papers.py --driver "$CHROMEDRIVER"
-          python tests/browser/check_notes.py --resource confnotes --driver "$CHROMEDRIVER"
-          python tests/browser/check_notes.py --resource pubnotes --driver "$CHROMEDRIVER"
-          python tests/browser/check_zensical.py --driver "$CHROMEDRIVER"
-      - name: Check the documented demo and policy tutorial
+      - name: Check browser suites concurrently
         shell: bash
         run: |
-          python tests/browser/check_demo.py --driver "$CHROMEDRIVER" 2>&1 | tee "$BROWSER_DIAGNOSTICS_DIR/demo.log"
+          # Two groups on this runner; each suite owns its temporary sites/profiles.
+          (
+            python tests/browser/check_ongoing.py --driver "$CHROMEDRIVER"
+            python tests/browser/check_papers.py --driver "$CHROMEDRIVER"
+            python tests/browser/check_notes.py --resource confnotes --driver "$CHROMEDRIVER"
+            python tests/browser/check_notes.py --resource pubnotes --driver "$CHROMEDRIVER"
+            python tests/browser/check_zensical.py --driver "$CHROMEDRIVER"
+          ) 2>&1 | tee "$BROWSER_DIAGNOSTICS_DIR/views.log" &
+          views_pid=$!
+
+          # Wait for both pipelines, retaining their logs and either failure.
+          demo_status=0
+          python tests/browser/check_demo.py --driver "$CHROMEDRIVER" 2>&1 | tee "$BROWSER_DIAGNOSTICS_DIR/demo.log" || demo_status=$?
+          views_status=0
+          wait "$views_pid" || views_status=$?
+          printf 'Browser groups finished: views=%s demo=%s\n' "$views_status" "$demo_status"
+          if [ "$views_status" -ne 0 ]; then
+            exit "$views_status"
+          fi
+          exit "$demo_status"
       - name: Save browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v7
