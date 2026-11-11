@@ -37,6 +37,7 @@ dist/
 /examples/demo/work/
 /examples/demo/.cache/
 /.cache/
+/coverage-report/
 /.python-version
 .DS_Store
 /.zensical-preview.yml

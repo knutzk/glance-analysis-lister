@@ -55,7 +55,54 @@ jobs:
           ruff check .
           ruff format --check .
       - name: Run offline regression tests
-        run: python -m unittest discover -s tests -v
+        id: offline_tests
+        run: |
+          python -m coverage erase
+          python -m coverage run -m unittest discover -s tests -v
+      - name: Report offline Python coverage
+        if: ${{ always() && steps.offline_tests.outcome != 'skipped' }}
+        env:
+          OFFLINE_TEST_OUTCOME: ${{ steps.offline_tests.outcome }}
+        run: |
+          python -m coverage combine
+          python -m coverage report
+          python -m coverage html
+          python -m coverage xml
+          python -m coverage json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          totals = json.loads(Path("coverage-report/coverage.json").read_text())["totals"]
+          lines = totals["covered_lines"] / totals["num_statements"] * 100
+          branches = totals["covered_branches"] / totals["num_branches"] * 100
+          outcome = os.environ["OFFLINE_TEST_OUTCOME"]
+          summary = (
+              "### Offline Python coverage\n\n"
+              f"Tests: **{outcome}**. Failed runs provide partial coverage only.\n\n"
+              "| Measure | Coverage |\n| --- | --- |\n"
+              f"| Lines | {lines:.2f}% ({totals['covered_lines']}/{totals['num_statements']}) |\n"
+              f"| Branches | {branches:.2f}% ({totals['covered_branches']}/{totals['num_branches']}) |\n\n"
+              "Scope: maintained `analysis_lister` Python, including child Python processes. "
+              "Excludes experimental Events code, browser JavaScript, browser/site checks "
+              "and live CERN access. No percentage gate is enforced.\n\n"
+              "Download the **python-coverage** artifact for HTML, XML and JSON reports.\n"
+          )
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as stream:
+              stream.write(summary)
+          PY
+      - name: Save Python coverage reports
+        if: ${{ always() && steps.offline_tests.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-coverage
+          path: |
+            coverage-report/html/
+            coverage-report/coverage.xml
+            coverage-report/coverage.json
+          if-no-files-found: error
+          retention-days: 14
       # With no --wheel/--sdist flags, build creates the wheel from the sdist.
       - name: Build source distribution and rebuild wheel from it
         run: python -m build
