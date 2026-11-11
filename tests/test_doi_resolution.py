@@ -9,7 +9,7 @@ import unittest
 from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import requests
 
@@ -364,6 +364,133 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(summary["resolved"], 1)
         self.assertEqual(summary["deferred"], 1)
 
+    def test_unresolved_results_preserve_citations_and_allow_later_retries(self):
+        ambiguous = payload()
+        ambiguous["metadata"]["dois"] = [
+            {"value": doi, "material": "publication"}
+            for doi in (DOI, "10.9999/ambiguous")
+        ]
+        success = "10.9999/next"
+        manual = "10.9999/manual"
+        previous = record("Previous citation", source="inspire", material="erratum")
+        for result, reason in (
+            (None, "no citation resolved"),
+            ({}, "Invalid INSPIRE metadata response"),
+            (ambiguous, "Ambiguous DOI-to-publication association"),
+        ):
+            for refreshing in (False, True):
+                with self.subTest(reason=reason, refreshing=refreshing):
+                    initial = {manual: record("Keep this manual citation")}
+                    if refreshing:
+                        initial[DOI] = previous
+                    save_store(self.path, initial)
+                    with (
+                        patch(
+                            "analysis_lister.citations.resolver.InspireClient"
+                        ) as client,
+                        self.assertLogs("analysis_lister", level="WARNING") as logs,
+                    ):
+                        client.return_value.fetch.side_effect = [
+                            result,
+                            payload(success),
+                        ]
+                        summary = resolve_dois(
+                            [DOI, manual, success],
+                            self.path,
+                            method="inspire",
+                            refresh=refreshing,
+                        )
+                    self.assertEqual(
+                        summary,
+                        {
+                            "resolved": 1,
+                            "existing": 0,
+                            "locked": 1,
+                            "unresolved": 1,
+                            "failed": 0,
+                            "deferred": 0,
+                        },
+                    )
+                    self.assertEqual(
+                        client.return_value.fetch.call_args_list,
+                        [call(DOI), call(success)],
+                    )
+                    client.return_value.close.assert_called_once_with()
+                    self.assertIn(reason, "\n".join(logs.output))
+                    self.assertIn("remains retryable", "\n".join(logs.output))
+                    stored = load_store(self.path)
+                    self.assertEqual(
+                        {doi: value for doi, value in stored.items() if doi != success},
+                        initial,
+                    )
+                    self.assertEqual(stored[success]["citation"], record()["citation"])
+
+                    with patch(
+                        "analysis_lister.citations.resolver.InspireClient"
+                    ) as client:
+                        client.return_value.fetch.return_value = payload()
+                        retry = resolve_dois(
+                            [DOI], self.path, method="inspire", refresh=refreshing
+                        )
+                    client.return_value.fetch.assert_called_once_with(DOI)
+                    client.return_value.close.assert_called_once_with()
+                    self.assertEqual(
+                        retry,
+                        {
+                            "resolved": 1,
+                            "existing": 0,
+                            "locked": 0,
+                            "unresolved": 0,
+                            "failed": 0,
+                            "deferred": 0,
+                        },
+                    )
+                    retried = load_store(self.path)
+                    self.assertEqual(retried[DOI]["citation"], record()["citation"])
+                    self.assertEqual(retried[DOI]["material"], "publication")
+                    for doi in (manual, success):
+                        self.assertEqual(retried[doi], stored[doi])
+
+    def test_unresolved_inference_leaves_no_placeholder_or_network_request(self):
+        initial = {"10.9999/manual": record()}
+        save_store(self.path, initial)
+        before = self.path.read_bytes()
+        with (
+            patch("analysis_lister.citations.resolver.InspireClient") as client,
+            self.assertLogs("analysis_lister", level="WARNING") as logs,
+        ):
+            summary = resolve_dois([DOI], self.path, method="infer")
+        client.assert_not_called()
+        self.assertEqual(
+            summary,
+            {
+                "resolved": 0,
+                "existing": 0,
+                "locked": 0,
+                "unresolved": 1,
+                "failed": 0,
+                "deferred": 0,
+            },
+        )
+        self.assertIn("no citation resolved", "\n".join(logs.output))
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_auto_closes_the_http_session_when_the_only_lookup_is_not_found(self):
+        with (
+            patch("analysis_lister.citations.inspire.requests.Session") as session,
+            self.assertLogs("analysis_lister", level="WARNING"),
+        ):
+            session.return_value.get.return_value = response(404)
+            summary = resolve_dois([DOI], self.path, method="auto")
+        session.return_value.get.assert_called_once_with(
+            "https://inspirehep.net/api/doi/" + DOI, timeout=(10, 30), verify=True
+        )
+        session.return_value.close.assert_called_once_with()
+        self.assertEqual(summary["unresolved"], 1)
+        self.assertEqual(summary["resolved"], 0)
+        self.assertEqual(summary["failed"], 0)
+        self.assertEqual(load_store(self.path), {})
+
     def test_api_snapshot_reads_source_links_and_ignores_stale_derived_dois(self):
         snapshot = self.root / "registry.json"
         snapshot.write_text(
@@ -560,6 +687,78 @@ class InspireTests(unittest.TestCase):
         self.assertIs(session.return_value.get.call_args.kwargs["verify"], True)
         client.close()
         session.return_value.close.assert_called_once()
+
+    def test_connection_failures_back_off_and_succeed_on_the_last_attempt(self):
+        for error_type in (requests.Timeout, requests.ConnectionError):
+            with (
+                self.subTest(error=error_type.__name__),
+                patch("analysis_lister.citations.inspire.requests.Session") as session,
+                patch("analysis_lister.citations.inspire.time.sleep") as sleep,
+                patch(
+                    "analysis_lister.citations.inspire.time.monotonic",
+                    side_effect=range(20),
+                ),
+            ):
+                session.return_value.get.side_effect = [
+                    error_type("first failure"),
+                    error_type("second failure"),
+                    response(),
+                ]
+                client = InspireClient()
+                try:
+                    self.assertEqual(client.fetch(DOI), payload())
+                finally:
+                    client.close()
+                self.assertEqual(
+                    session.return_value.get.call_args_list,
+                    [
+                        call(
+                            "https://inspirehep.net/api/doi/" + DOI,
+                            timeout=(10, 30),
+                            verify=True,
+                        )
+                    ]
+                    * 3,
+                )
+                # The advancing clock removes pacing waits from the backoff check.
+                self.assertEqual(
+                    [args.args[0] for args in sleep.call_args_list if args.args[0]],
+                    [1, 2],
+                )
+                session.return_value.close.assert_called_once_with()
+
+    def test_connection_retries_stop_after_three_attempts_and_raise_the_last_error(
+        self,
+    ):
+        for error_type in (requests.Timeout, requests.ConnectionError):
+            with (
+                self.subTest(error=error_type.__name__),
+                patch("analysis_lister.citations.inspire.requests.Session") as session,
+                patch("analysis_lister.citations.inspire.time.sleep") as sleep,
+                patch(
+                    "analysis_lister.citations.inspire.time.monotonic",
+                    side_effect=range(20),
+                ),
+            ):
+                last_error = error_type("last failure")
+                session.return_value.get.side_effect = [
+                    error_type("first failure"),
+                    error_type("second failure"),
+                    last_error,
+                ]
+                client = InspireClient()
+                try:
+                    with self.assertRaises(error_type) as raised:
+                        client.fetch(DOI)
+                finally:
+                    client.close()
+                self.assertIs(raised.exception, last_error)
+                self.assertEqual(session.return_value.get.call_count, 3)
+                self.assertEqual(
+                    [args.args[0] for args in sleep.call_args_list if args.args[0]],
+                    [1, 2],
+                )
+                session.return_value.close.assert_called_once_with()
 
     @patch("analysis_lister.citations.inspire.time.sleep")
     @patch("analysis_lister.citations.inspire.requests.Session")
