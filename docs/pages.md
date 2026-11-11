@@ -123,4 +123,4 @@ undated publication does not pass a Before date bound. A record still missing
 may have been excluded by group membership, publication policy or lifecycle
 rules before rendering. The diagnostic report explains those decisions.
 
-[Selection rules](selection.md) · [Warnings and recovery](problems.md) · [URL reference](output-reference.md#filter-parameters)
+[Selection rules](selection.md) · [Warnings and recovery](problems.md) · [URL reference](file-reference.md#filter-parameters)

@@ -46,7 +46,7 @@ diagnostic causes are warnings; missing optional display fields are not.
 
 Reports use schema version 2. They also record source timestamps, the input hash,
 effective policy, rule identifiers, controls and derivation evidence. See
-[provenance](output-reference.md#profile-and-generator-hashes) for profile and generator
+[provenance](file-reference.md#trace-the-inputs-and-code) for profile and generator
 hashes.
 
 ### Example: a missing link does not exclude a published paper
@@ -140,7 +140,7 @@ transport; the HTML certificate handling does not configure that client.
 | Symptom | Check and remedy |
 | --- | --- |
 | Expected a supported API or curated registry | Check which file you passed: `build-registry` reads API JSON; `render-group` reads curated v2 JSON. CSVs and diagnostic reports are neither. |
-| A schema error names a field path | Inspect that field's type against the [curated contract](curated-format.md). Use a small invented reproducer when reporting it. Do not change a version number to force acceptance. |
+| A schema error names a field path | Inspect that field's type against the [curated contract](file-reference.md). Use a small invented reproducer when reporting it. Do not change a version number to force acceptance. |
 | API response validation failed | The client could not parse a response or a record lacked its native identifier. Check client/API compatibility; the command does not skip malformed records or publish a partial snapshot. |
 | A reader rejects an older or future schema version | Use a compatible package or rebuild from a supported saved API snapshot. There is currently no automatic schema migration. |
 | Counts disagree, identifiers repeat or API pagination is incomplete | Treat the candidate as invalid. Pagination errors name the resource and reason: an empty/invalid count, changing total, incomplete page or duplicate. Check source completeness, then retry the complete download; `--allow-count-drop` cannot bypass these checks. |
@@ -201,7 +201,7 @@ Keep these directories separate. A partially saved HTML set is not sufficient
 for replay. Do not delete the interruption marker to make an incomplete batch
 appear complete.
 
-These recovery paths have [synthetic failure-injection coverage](development.md#recovery-checks).
+These recovery paths have [synthetic failure-injection coverage](contributing.md#check-a-change).
 Handled exceptions and Ctrl+C can run cleanup; a force-killed process or power
 loss cannot. A leftover JSON temporary file is not a validated replacement for
 the destination. Atomic replacement alone is not a power-loss durability or
@@ -232,12 +232,12 @@ be read-only or replaced during an upgrade.
 | Only three of four synthetic notes appear | The fourth is superseded and initially hidden. Enable the superseded status filter. |
 | A filter reappears after reload | Filters and sorting persist in the URL. Use the page's Reset control. |
 | Records are readable but controls do nothing | Load the [browser assets](website.md#enable-browser-assets), with common files first. Check browser network errors and asset paths relative to the site's docs directory. |
-| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-analysis-lister/`; see the [site guide](documentation.md). |
+| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-analysis-lister/`; see the [site guide](contributing.md#documentation-changes). |
 | Editing a generated page has no lasting effect | Edit the original Markdown or synthetic fixture. The documentation helper regenerates `site-src/` and `site/`; restart after renderer-code changes. |
 
 Selection and derivation details are explained in the
 [diagnostic report guide](#read-the-diagnostic-report). For integration changes, the
-[browser checks](development.md#browser-and-site-checks) exercise asset loading,
+[browser checks](contributing.md#browser-and-site-checks) exercise asset loading,
 instant navigation and URL persistence with synthetic records.
 
 ## Validation and recovery
@@ -278,4 +278,4 @@ time including authentication and publication, and the checks that passed. API
 count-drop overrides are stated explicitly. Offline HTML replay uses the same
 summary without authentication or network access.
 
-[Report contract for automation](output-reference.md#supported-report-summary)
+[Report contract for automation](file-reference.md#inspect-a-diagnostic-report)

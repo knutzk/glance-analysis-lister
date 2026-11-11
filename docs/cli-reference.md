@@ -4,7 +4,7 @@
 
 Run `analysis-lister COMMAND`, or `python -m analysis_lister COMMAND`.
 This reference describes the current CLI, including unreleased changes. The
-[compatibility policy](compatibility.md) defines its supported scope and change
+[compatibility policy](upgrading.md) defines its supported scope and change
 rules. Use `analysis-lister COMMAND --help` to check your installed version.
 For worked sequences, see [data workflows](data.md) and
 [recovery guidance](problems.md#resume-an-interrupted-workflow).

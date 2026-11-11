@@ -1,29 +1,14 @@
-# Python access
+# Use saved records in Python
 
-[Documentation index](README.md)
+Use the Python API when you want to inspect saved records or build your own
+presentation from the package's selected collections. Reading and preparation
+work offline: they do not download data or write pages. Use the CLI to retrieve
+GLANCE data, build a registry or render the standard website output.
 
-The supported Python integration surface consists of the imports and result
-attributes documented here. Use the CLI for downloading, building registries and
-writing generated files. Other Python helpers are implementation details.
-
-This defines the current 0.x API scope, not a v1.0 compatibility guarantee.
-Pin the package version in a consuming application and review changes before
-upgrading. The [curated v2 contract](curated-format.md) governs stored data
-independently of the Python API.
-
-## Supported imports
-
-| Import path | Names | Purpose |
-| --- | --- | --- |
-| `analysis_lister.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA`, `SCHEMA_VERSION` | Read and validate stored curated data. |
-| `analysis_lister.views.profiles` | `GroupProfile`, `PublicationPolicy` | Describe a group's presentation and publication selection. |
-| `analysis_lister.views.curation` | `load_publication_policy` | Read a policy from TOML. |
-| `analysis_lister.views.prepare` | `prepare_group` | Produce collections without rendering or network access. |
-
-`RESOURCES` is `("analyses", "papers", "confnotes", "pubnotes")`.
-`SCHEMA` is `"glance-curated-registry"`; `SCHEMA_VERSION` is `2`.
-`validate_registry(data)` validates a decoded JSON object without changing it,
-returns `None` on success, and raises `ValueError` for invalid curated data.
+The first example reads stored records as they are. The second applies a group
+policy and lifecycle rules to prepare the values used by the generated pages.
+Run them from the repository root with the package installed; both use invented
+data from the public demo.
 
 ## Read records
 
@@ -47,6 +32,20 @@ DEMO-2099-03
 DEMO-2099-04
 ```
 
+### Available imports
+
+| Import path | Names | Purpose |
+| --- | --- | --- |
+| `analysis_lister.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA`, `SCHEMA_VERSION` | Read and validate stored curated data. |
+| `analysis_lister.views.profiles` | `GroupProfile`, `PublicationPolicy` | Describe a group's presentation and publication selection. |
+| `analysis_lister.views.curation` | `load_publication_policy` | Read a policy from TOML. |
+| `analysis_lister.views.prepare` | `prepare_group` | Produce collections without rendering or network access. |
+
+`RESOURCES` is `("analyses", "papers", "confnotes", "pubnotes")`.
+`SCHEMA` is `"glance-curated-registry"`; `SCHEMA_VERSION` is `2`.
+`validate_registry(data)` validates a decoded JSON object without changing it,
+returns `None` on success, and raises `ValueError` for invalid curated data.
+
 ### Reader reference
 
 | Call or attribute | Result |
@@ -68,8 +67,9 @@ fetch missing targets or guess their identity.
 Malformed JSON raises `json.JSONDecodeError` (a `ValueError` subclass), invalid
 curated data raises `ValueError`, and filesystem errors propagate as `OSError`
 subclasses. Match exception types, not exact message wording. Reading never
-enriches records, applies group policies or makes network requests. See the
-[curated contract](curated-format.md) for missing/null/empty distinctions.
+enriches records, applies group policies or makes network requests. See [stored values](file-reference.md#missing-values-people-and-dates)
+for the
+difference between missing, null and empty values.
 
 ## Prepare a group view
 
@@ -85,6 +85,11 @@ for publication in view.archive:
     for link in publication.details.publication_records:
         print(publication.label, link.label, link.url)
 ```
+
+The archive is ready for a custom publication display. Use `view.ongoing` for
+analysis cards, or read the registry directly when you need stored fields rather
+than selected display values. For a TOML policy, pass the result of
+`load_publication_policy(path, "DEMO")` instead of constructing it in Python.
 
 ### Profiles and policy loading
 
@@ -159,3 +164,11 @@ part of this API scope. Persist the curated registry and prepare again instead.
 evidence for diagnostics. Their structure and reason strings are not part of
 the supported Python interface. The [diagnostic report](problems.md#read-the-diagnostic-report) is the
 human-facing explanation of those decisions.
+
+## Use the documented interface
+
+The imports and result attributes above define the current Python integration
+scope. Pin the package version in a consuming application and follow the
+[upgrade guide](upgrading.md) before replacing it. Internal helpers and constructors
+are not public APIs; use the CLI for file-writing workflows. Stored JSON follows
+its own current format rules, independently of Python imports.

@@ -27,21 +27,13 @@ Commands assume the repository root unless the guide says otherwise.
 
 ## Look up a precise detail
 
-The **Reference** section collects supported options and contracts for integrations:
+- [Commands and options](cli-reference.md): command syntax, defaults and flags.
+- [Saved data and generated files](file-reference.md): stored values, filenames, links and report summaries.
+- [Using Python](python-access.md): read records or prepare collections for your own presentation.
+- [Upgrading and compatibility](upgrading.md): compare versions safely and find the relevant release history.
 
-- [Commands and options](cli-reference.md)
-- [Curated data format](curated-format.md)
-- [Generated files, URLs and report fields](output-reference.md)
-- [Python API](python-access.md)
-- [Compatibility](compatibility.md) and [upgrading](upgrading.md)
-- [Glossary](glossary.md)
+## Contribute a change
 
-## Extend or maintain the project
-
-Start with the architecture to find the right layer, or follow the field example
-to trace a concrete change from source data to a rendered page.
-
-- [Architecture](architecture.md) and [field walkthrough](contributing-field.md)
-- [Development and testing](development.md)
-- [Maintaining the documentation](documentation.md)
-- [Preparing releases](releases.md)
+The [contributor guide](contributing.md) covers the code layout, development
+setup, appropriate checks and release preparation. Use the topic guides above
+for the behaviour a contribution should preserve or improve.

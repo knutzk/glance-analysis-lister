@@ -1,11 +1,9 @@
-# Upgrading an installation
-
-[Documentation index](README.md)
+# Upgrading and compatibility
 
 Test the candidate package alongside the working version, using saved data and
 a separate output directory. Keep the old environment and site until you have
-checked the candidate. The [compatibility guide](compatibility.md) distinguishes
-the Python API, CLI and stored-data contracts.
+checked the candidate. Keep custom policies and citation stores outside the Python
+environment so reinstalling the package cannot replace your edits.
 
 ## Preserve the inputs
 
@@ -85,23 +83,38 @@ Do not overwrite the old snapshot or attempt an undocumented reverse migration.
 Once the candidate is accepted, switch the consuming workflow to it and publish
 the matching pages and assets through your normal review process.
 
-## Migrate from the v0.1 workflow
+## What can change
 
-The 0.2 workflow replaces CSV-derived registries and legacy Python models with
-API snapshots, curated v2 data and prepared views. There is no converter for the
-old registry format. Obtain a supported API snapshot through an authorised
-download, or use an existing saved API snapshot, then build the registry offline.
-HTML CSV exports remain independent and cannot feed `build-registry`.
+Pin a package version or commit for a repeatable workflow. The current 0.x policy
+preserves documented commands, Python calls, configuration, generated names and
+URL meanings in patch releases. Bug fixes and bundled citation/policy updates
+can still change the resulting pages. Breaking interface changes require a minor
+release and migration instructions; a deprecation period is preferred but not
+guaranteed before v1.0. This is not a retrospective guarantee for every old release.
 
-| Previous integration | Current replacement |
+| Use | Boundary to rely on |
 | --- | --- |
-| CSV-derived registry and legacy model imports | `build-registry` from API JSON; the documented [reader and prepared-view API](python-access.md). |
-| Lookup dictionaries and group-specific download settings | Retrieve accessible records once; apply group membership and explicit TOML publication policies during preparation. |
-| Fixed or combined publication views | Separate `ongoing.md`, `papers.md`, `confnotes.md` and `pubnotes.md`; update site navigation and [enable assets](website.md#enable-browser-assets). |
-| Optional download dependencies | The `html` extra for HTML/CSV export; API retrieval is included in normal installation. |
-| Citation `locked` flag | Protect manual entries with `source = "manual"`; remove the obsolete flag and preserve citation provenance. |
-| Obsidian export | Removed; there is no replacement command. |
+| Shell automation | Documented CLI options and exit status. Results use stdout, diagnostics stderr; log wording and ordering are not a data protocol. |
+| Saved registries and reports | The current [file-format rules](file-reference.md). Package and JSON versions are independent; a package minor release does not waive the stored-format rules. |
+| Python integration | Only the imports and result attributes in the [Python guide](python-access.md). |
+| Website integration | Generated filenames, assets and emitted record/filter URLs. HTML layout, CSS classes and JavaScript internals are not extension APIs. |
+| Publication policies | Documented TOML fields and defaults, including the difference between missing and empty policies. Bundled contents may change. |
 
-Rewrite command invocations against the [current CLI reference](cli-reference.md);
-compatibility aliases for retired commands and options are not provided. The
-[release notes](releases.md#release-notes) give the detailed change history.
+Citation and identifier updates affect newly built registries; policy changes
+affect prepared views. Compare results with the same saved source data and keep
+the provenance. A copied URL retains its meaning, but the available records can
+change. The consuming website owns path prefixes and redirects.
+
+For v1.0 onward, the planned policy preserves supported interfaces across a major
+series: patches fix bugs; minor releases may add compatible features. Deprecations
+provide a replacement and migration guidance and remain supported for that major
+series; removal or incompatible reinterpretation requires a new major release.
+CLI/configuration warnings would remain visible with `--quiet`, and Python would
+use caller-located `DeprecationWarning`. No interface is currently deprecated
+under that policy. Urgent exceptions must explicitly state impact and recovery;
+they cannot silently redefine a stored field within its schema version.
+
+## Release history
+
+- [v0.2.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.2.0.txt)
+- [v0.1.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.1.0.txt)

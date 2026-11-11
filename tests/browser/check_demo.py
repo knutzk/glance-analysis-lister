@@ -397,15 +397,15 @@ def check_demo(work, driver):
             assert "Local roadmap preview" in response.read().decode()
         roadmap.write_text(roadmap.read_text() + "\nUpdated local planning text.\n")
         wait_for_preview_text(base + "ROADMAP/", "Updated local planning text.")
-        notes = work / ".github/release-notes/v0.2.0.txt"
-        original_notes = notes.read_bytes()
-        notes.write_bytes(
-            original_notes + b"\n\nSynthetic release-note reload check.\n"
+        guide = work / "docs/contributing.md"
+        original_guide = guide.read_bytes()
+        guide.write_bytes(
+            original_guide + b"\n\nSynthetic contributor-guide reload check.\n"
         )
         wait_for_preview_text(
-            base + "docs/release-notes/v0.2.0/", "Synthetic release-note reload check."
+            base + "docs/contributing/", "Synthetic contributor-guide reload check."
         )
-        notes.write_bytes(original_notes)
+        guide.write_bytes(original_guide)
     assert (work / "zensical.toml").read_bytes() == config_before
 
     # Build the documentation site with the complete demo under its real subpath.
@@ -417,17 +417,11 @@ def check_demo(work, driver):
     assert not (work / "site-src/.github").exists()
     assert not (work / "site/examples/demo/work").exists()
     assert not (work / "site-src/examples/demo/work").exists()
-    for version in ("v0.1.0", "v0.2.0"):
-        original = (work / f".github/release-notes/{version}.txt").read_bytes()
-        staged = (work / f"site-src/docs/release-notes/{version}.md").read_bytes()
-        assert staged.endswith(original), "Release notes must reuse the maintained text"
-        html = (work / f"site/docs/release-notes/{version}/index.html").read_text()
-        assert "Synthetic release-note reload check." not in html
-        assert (
-            BeautifulSoup(html, "html.parser")
-            .h1.get_text()
-            .startswith(f"{version} release notes")
-        )
+    assert not (work / "site/docs/release-notes").exists()
+    for page in ("file-reference", "python-access", "upgrading", "contributing"):
+        html = (work / f"site/docs/{page}/index.html").read_text()
+        assert BeautifulSoup(html, "html.parser").h1 is not None
+        assert "Synthetic contributor-guide reload check." not in html
     html = (work / "site/docs/pages/index.html").read_text()
     records = BeautifulSoup(html, "html.parser").select(
         ".gal-doc-example [data-gal-item]"
@@ -437,6 +431,15 @@ def check_demo(work, driver):
         "publication-papers-demo-demo-2099-01",
     }, "The page guide must retain both interactive examples without duplicate IDs"
     for removed in (
+        "architecture",
+        "contributing-field",
+        "development",
+        "documentation",
+        "releases",
+        "compatibility",
+        "glossary",
+        "curated-format",
+        "output-reference",
         "ongoing",
         "publications",
         "registry",

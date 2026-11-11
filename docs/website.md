@@ -12,7 +12,7 @@ result, then copy only the intended pages and assets into the site source.
 The diagnostic report is for your review and may contain private record details;
 it should remain outside the website's published content.
 
-[CERN demonstrator](cern-demo.md) · [Selection policies](selection.md) · [Output contract](output-reference.md)
+[CERN demonstrator](cern-demo.md) · [Selection policies](selection.md) · [Output contract](file-reference.md)
 
 ## What generation produces
 
@@ -63,6 +63,40 @@ These paths assume you have saved the API snapshot and chosen your own policy
 and [citation store](citations.md#choose-a-store). Run the commands in order and
 continue only if the build succeeds. The synthetic fixture is already curated;
 it is a rendering input, not an API input to `build-registry`.
+
+## Preview your group alongside Demo
+
+From the repository root, install `requirements-docs.txt` in your active
+environment. TOPQ is an example: substitute your group and directory consistently.
+To display TOPQ pages from an existing curated registry:
+
+```bash
+analysis-lister render-group --group TOPQ \
+  --snapshot glance_curated_registry.json --output-dir pages/topq
+python scripts/docs.py serve --group-pages TOPQ=pages/topq
+```
+
+Open <http://127.0.0.1:8000/glance-analysis-lister/>. **TOPQ (local data)** appears
+beside **Demo**, with ongoing analyses, papers, conference notes and public notes.
+The synthetic demo remains available. The group pages use the site's existing
+search, filtering, navigation and assets; no landing-page or asset copies are
+needed. Stop the preview with **Ctrl+C**.
+
+Use `--curation-config PATH` when rendering with your own publication policy.
+For fresh source data, follow the [CERN walkthrough](cern-demo.md).
+
+The preview reads already-rendered files. After regenerating them in another
+terminal, it reloads their changes. It does not download or render real data
+itself. To include more groups, repeat the option, for example
+`--group-pages TOPQ=pages/topq --group-pages HIGP=pages/higp`, after rendering
+each group into its own directory. Restart the server when changing the selection.
+
+Group previews bind only to loopback and keep their generated sources and HTML
+under the ignored `.cache/docs-group-preview/` directory. Only the four group
+Markdown files are copied: snapshots, diagnostic reports and other files in the
+render directory are excluded. The pages themselves contain your selected data;
+keep `pages/` and the preview cache private. Ordinary previews omit these sections,
+and public `build` commands reject `--group-pages` and use the public allowlist.
 
 ## Integrate into a consuming site
 
@@ -162,7 +196,7 @@ The Collapse button returns focus to the record heading. On narrow screens,
 Tab to an archive table's named scroll region and use the arrow keys to reach
 columns outside the viewport; its inset outline marks keyboard focus. Without
 JavaScript, filters are hidden and details are already open, including those of
-superseded notes. The [browser checks](development.md#browser-and-site-checks)
+superseded notes. The [browser checks](contributing.md#browser-and-site-checks)
 cover these behaviours in the default Zensical theme.
 
 ## Refresh group pages in one command

@@ -13,10 +13,9 @@ and performance groups can choose which records to include and display the
 results in a Markdown or Zensical site. Try the included demonstrator without
 credentials, then add your group's real data with authorised CERN access.
 
-[Try the demo](#install-and-try-without-credentials) · [Documentation](docs/README.md)
-
-<!-- Once GitHub Pages is published, point Documentation above to
-https://knutzk.github.io/glance-analysis-lister/docs/ -->
+[Try the demo locally](#install-and-try-without-credentials) ·
+[Browse the demo](https://knutzk.github.io/glance-analysis-lister/examples/demo/) ·
+[Documentation](https://knutzk.github.io/glance-analysis-lister/docs/)
 
 ## Explore the pages
 
@@ -111,9 +110,9 @@ on the internal TOPQ group website. The project has since become a general
 package for ATLAS physics and performance groups, with configurable group
 selection and publication policies for Markdown and Zensical websites.
 
-See [compatibility](docs/compatibility.md) for the defined interface scope and
-change policy, and [upgrading](docs/upgrading.md) before replacing a working
-installation. To contribute, see [development and validation](docs/development.md).
+See [compatibility and upgrading](docs/upgrading.md) for the interface scope,
+change policy and checks before replacing a working installation. To contribute,
+see [the contributor guide](docs/contributing.md).
 
 Parts of this codebase were developed with AI assistance from Codex (OpenAI)
 and Claude (Anthropic). All output was reviewed and validated by the author.
