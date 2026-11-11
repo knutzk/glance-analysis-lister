@@ -173,6 +173,16 @@ light/dark themes, saved links, instant navigation and no-JavaScript content.
 The demo check also exercises the documented setup and local group previews.
 They use invented data and do not establish live CERN access.
 
+The checks run sequentially in one CI browser job. Detailed filter combinations
+and keyboard traversal run on the minimal Zensical site and the built public
+documentation site, preserving coverage of both the default theme and project
+CSS. The standalone demo, demonstrator group and local group preview use focused
+hosting checks: all four pages and repeat navigation, initialization, keyboard
+access to search, search/reset/expansion, saved URLs and reloads, all package
+stylesheets, console errors, both narrow widths and light/dark layouts, and
+no-JavaScript content. Tutorial commands, policy edits, live reload, server
+shutdown and private/public build isolation still run in full.
+
 Each script prints wall-clock timings with `START`, `PASS` or `FAIL`, including
 major site/demo phases. Phase timings are nested inside script totals; do not add
 them together. CI streams Python output without buffering. Browser conditions
