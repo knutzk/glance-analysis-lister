@@ -206,6 +206,19 @@ Use a small set of labels; a PR can have more than one:
 | `ci` | Changes GitHub Actions or label automation. |
 | `performance` | Changes or measures runtime or browser responsiveness. |
 
+The **Label pull requests** workflow adds only `documentation` and `ci`, based on
+paths in `.github/labeler.yml`. Maintainers assess the other labels, including
+breaking changes; file paths cannot establish compatibility. Automatic labels
+are additive: existing manual labels survive updates. Remove stale area labels
+manually if their changes disappear from a PR.
+
+The workflow uses `pull_request_target` so it can label fork PRs. It reads the
+trusted base configuration through GitHub's API without checking out or running
+PR code. Its token can read repository contents and update PR labels, but cannot
+create repository labels; the configured labels must already exist. Automation
+starts once the workflow and configuration are merged into the base branch.
+It is review assistance, not a required validation check.
+
 ## Prepare a release
 
 Choose the exact commit and package version together. Review user-visible and
