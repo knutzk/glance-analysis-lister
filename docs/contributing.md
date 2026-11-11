@@ -91,6 +91,40 @@ For example, `python -m unittest discover -s tests -p 'test_registry_fields.py' 
 runs just the field-retention tests. Include the full checks and any limitations
 in the pull request, together with the problem and resulting behaviour.
 
+### Python test coverage
+
+CI measures line and branch coverage of the maintained Python package while
+running the offline suite, including its child Python processes. It publishes
+separate line/branch totals in the job summary and a `python-coverage` artifact
+with HTML, XML and JSON reports. Coverage currently informs review; no percentage
+threshold is enforced. A failing test run produces partial coverage only.
+
+To reproduce the report, use a clean checkout without local experimental tests
+and run from the repository root after installing the development dependencies:
+
+```bash
+python -m coverage erase
+python -m coverage run -m unittest discover -s tests -v
+python -m coverage combine
+python -m coverage report
+python -m coverage html
+python -m coverage xml
+python -m coverage json
+```
+
+Open `coverage-report/html/index.html` to inspect missing lines and branches.
+The report includes maintained package modules even if tests never import them;
+experimental Events modules are excluded. Tests and third-party dependencies
+are outside the measured source scope. The terminal report's percentage combines
+line and branch opportunities; the JSON report and CI summary also show them
+separately. Run these commands sequentially; erase old measurements before each
+fresh run so stale subprocess data cannot inflate the result.
+
+Python coverage does not measure browser JavaScript, the separate browser/site
+checks or live authentication. Execution alone does not prove correctness:
+prioritise missing failure/recovery paths and domain decisions when adding tests.
+Run performance benchmarks separately, without coverage instrumentation.
+
 ### Browser and site checks
 
 For changes to controls, assets or site integration, install Chrome, a matching
