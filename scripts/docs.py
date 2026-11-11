@@ -67,6 +67,7 @@ PUBLIC_FILES = (
     "docs/upgrading.md",
     "docs/stylesheets/site.css",
     "docs/images/command-flow.svg",
+    "docs/images/citation-flow.svg",
     "docs/images/ongoing.png",
     "docs/images/papers.png",
     "docs/images/ongoing-card.png",

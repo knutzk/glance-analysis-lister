@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="780" viewBox="0 0 800 780" role="img" aria-labelledby="title description">
+  <!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+  <!-- SPDX-License-Identifier: GPL-3.0-only -->
+  <title id="title">How citations reach a page</title>
+  <desc id="description">The saved GLANCE API snapshot supplies journal-publication links. Offline, build-registry extracts their DOIs and matches them to the selected citation store, bundled by default or maintained by the user. Optional store maintenance includes offline inference, public INSPIRE lookup, manual editing and formatting. The curated registry saves DOI and citation entries together. Offline, render-group reads those saved entries to generate a citation linked to its DOI, or displays the DOI when citation text is missing. After changing the store, rebuild the registry and render again.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L8 4L0 8Z" class="arrow-head"/>
+    </marker>
+  </defs>
+  <style>
+    svg { color-scheme: light dark; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: #233846; }
+    .canvas { fill: #fff; }
+    .heading { font-size: 19px; font-weight: 600; }
+    .body { font-size: 17px; }
+    .small { font-size: 15px; fill: #526573; }
+    .eyebrow { font-size: 12px; font-weight: 650; letter-spacing: 1.2px; fill: #526573; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 18px; }
+    .center { text-anchor: middle; }
+    .file { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .stage { fill: #f0f8f7; stroke: #229e95; stroke-width: 1.5; }
+    .step { fill: #fff; stroke: #b7d8d3; stroke-width: 1; }
+    .optional { fill: #f6f3fb; stroke: #baacd0; stroke-width: 1.2; }
+    .output { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; }
+    .note { fill: #e4f4f2; }
+    .link { fill: #087c74; }
+    .connector { fill: none; stroke: #657780; stroke-width: 1.6; marker-end: url(#arrow); }
+    .arrow-head { fill: #657780; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e3edf1; }
+      .canvas { fill: #141b20; }
+      .small, .eyebrow { fill: #b5c5ce; }
+      .file, .output { fill: #1d2931; stroke: #7e939f; }
+      .stage { fill: #173430; stroke: #52beb2; }
+      .step { fill: #1c292d; stroke: #41645f; }
+      .optional { fill: #292438; stroke: #8e80a8; }
+      .note { fill: #173430; }
+      .link { fill: #75dbcd; }
+      .connector { stroke: #a4b6bf; }
+      .arrow-head { fill: #a4b6bf; }
+    }
+  </style>
+  <rect class="canvas" width="800" height="780" rx="20"/>
+  <g transform="translate(0 -78)">
+  <g id="api-snapshot">
+    <rect class="file" x="32" y="102" width="400" height="100" rx="12"/>
+    <text class="eyebrow" x="54" y="127">SAVED INPUT</text>
+    <text class="heading" x="54" y="155">GLANCE API snapshot</text>
+    <text class="body" x="54" y="182">Journal-publication links</text>
+  </g>
+  <path class="connector" d="M232 202V245"/>
+
+  <g id="optional-maintenance">
+    <rect class="optional" x="488" y="102" width="280" height="214" rx="20"/>
+    <text class="eyebrow" x="508" y="127">OPTIONAL · YOUR OWN STORE</text>
+    <text class="heading" x="508" y="155">Add or correct entries</text>
+    <text class="body" x="508" y="187">Infer from DOI patterns</text>
+    <text class="body" x="508" y="213">Look up public INSPIRE data</text>
+    <text class="body" x="508" y="239">Edit manually · format text</text>
+    <text class="small" x="508" y="272">Only INSPIRE needs a network.</text>
+    <text class="small" x="508" y="295">Manual entries stay protected.</text>
+  </g>
+  <path class="connector" d="M628 316V365"/>
+
+  <g id="build-registry">
+    <rect class="stage" x="32" y="246" width="400" height="230" rx="22"/>
+    <text class="mono" x="54" y="277">build-registry</text>
+    <text class="small" x="410" y="277" text-anchor="end">offline</text>
+    <rect class="step" x="52" y="298" width="360" height="62" rx="14"/>
+    <text class="body center" x="232" y="335">Extract and normalise DOIs</text>
+    <path class="connector" d="M232 360V390"/>
+    <rect class="step" x="52" y="392" width="360" height="62" rx="14"/>
+    <text class="body center" x="232" y="429">Match each DOI to citation text</text>
+  </g>
+
+  <g id="citation-store">
+    <rect class="file" x="488" y="366" width="280" height="114" rx="12"/>
+    <text class="heading" x="508" y="394">Citation store</text>
+    <text class="body" x="508" y="422">Bundled or your own JSON</text>
+    <text class="small" x="508" y="451">Entries keyed by DOI</text>
+  </g>
+  <path class="connector" d="M488 423H414"/>
+  <path class="connector" d="M232 476V519"/>
+
+  <g id="curated-registry">
+    <rect class="file" x="32" y="520" width="400" height="94" rx="12"/>
+    <text class="heading" x="54" y="551">Curated registry</text>
+    <text class="body" x="54" y="579">DOIs + available citation text</text>
+    <text class="small" x="54" y="601">Each original or correction keeps its own entry.</text>
+  </g>
+  <path class="connector" d="M232 614V665"/>
+
+  <g id="render-group">
+    <rect class="stage" x="32" y="666" width="400" height="82" rx="22"/>
+    <text class="mono center" x="232" y="700">render-group</text>
+    <text class="small center" x="232" y="726">Reads the saved entries · offline</text>
+  </g>
+  <path class="connector" d="M432 707H486"/>
+  <g id="displayed-citation">
+    <rect class="output" x="488" y="646" width="280" height="122" rx="18"/>
+    <text class="eyebrow" x="508" y="671">PUBLICATION PAGE</text>
+    <text class="heading link" x="508" y="700">Citation linked to DOI</text>
+    <text class="small" x="508" y="731">No citation text?</text>
+    <text class="small" x="508" y="752">Display the DOI instead.</text>
+  </g>
+
+  <rect class="note" x="32" y="791" width="736" height="43" rx="12"/>
+  <text class="body center" x="400" y="819"><tspan font-weight="600">Changed the store?</tspan> Rebuild the registry, then render.</text>
+  </g>
+</svg>

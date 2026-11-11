@@ -197,3 +197,16 @@ script. Keep snapshots visually distinct from commands, center the `refresh`
 caption, and preserve the equal connector gaps and the output-to-preview turn.
 Inspect the rendered workflow guide at desktop width with both navigation columns, in
 light and dark mode, after changing it.
+
+## Citation diagram
+
+[`citation-flow.svg`](images/citation-flow.svg) is the maintained source for the
+[citation-flow figure](citations.md#how-citations-reach-the-pages). Edit the SVG
+directly. Keep saved data distinct from build/render steps and show citation-store
+maintenance separately. The figure must retain the rebuild-then-render handoff
+after store edits and the DOI fallback when citation text is missing.
+
+Check the embedded figure in light and dark mode, including a manual site-theme
+override, and at desktop and mobile widths. Its image link opens the SVG at full
+size. New public figures need entries in both `scripts/docs.py`'s explicit staging
+list and `MANIFEST.in` so site builds and source archives include them.

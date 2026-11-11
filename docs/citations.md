@@ -15,6 +15,8 @@ citation setup. You can maintain your own copy to fill gaps or correct entries.
 
 ## How citations reach the pages
 
+[![The saved GLANCE snapshot supplies DOIs; the citation store supplies reference text. Build the curated registry, then render the pages. After updating the store, repeat both steps.](images/citation-flow.svg)](images/citation-flow.svg)
+
 For citation handling, the package reads GLANCE's final journal-publication URLs
 from the saved API snapshot. It extracts and normalises DOIs from DOI resolver
 links or publisher URLs containing a DOI. Link labels are not used as citation
