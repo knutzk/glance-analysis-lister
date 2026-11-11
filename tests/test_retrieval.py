@@ -69,6 +69,78 @@ class RetrievalTests(unittest.TestCase):
             csv_batch.download_html_csvs(self.tasks, replay, saved, use_local_html=True)
         self.assertEqual(read_manifest(replay, self.tasks), manifest)
 
+    def test_cli_saved_html_replay_preserves_csv_bytes(self):
+        tasks = html.download_tasks()
+        for index, separator in enumerate(("\n", "\r\n", "\r", "\r\n\n\r")):
+            with self.subTest(separator=repr(separator)):
+                root = self.root / str(index)
+                destination, saved, replay = (
+                    root / "csv",
+                    root / "html",
+                    root / "replay",
+                )
+                responses = {
+                    task.url: (
+                        "<span>Showing 1 to 1 of 1 results</span><table><tr>"
+                        f"<th>{task.key}</th><th>Title</th></tr><tr>"
+                        f"<td>{task.prefix}DEMO-2099-01</td>"
+                        f"<td> Invented café{separator}title </td></tr></table>"
+                    )
+                    for task in tasks
+                }
+                with (
+                    patch.object(auth, "resolve_cookies", return_value={}),
+                    patch.object(
+                        html.http.DataFetcher,
+                        "fetch_html",
+                        side_effect=lambda url, *_, responses=responses: responses[url],
+                    ),
+                    patch("sys.stdout", io.StringIO()),
+                ):
+                    cli.main(
+                        [
+                            "download-html",
+                            "--csv-dir",
+                            str(destination),
+                            "--save-html",
+                            str(saved),
+                        ]
+                    )
+                before = {path.name: path.read_bytes() for path in saved.iterdir()}
+                for task in tasks:
+                    self.assertEqual(
+                        before[task.html_filename],
+                        (responses[task.url] + "\n").encode("utf-8"),
+                    )
+                with (
+                    patch.object(
+                        auth, "resolve_cookies", side_effect=AssertionError("login")
+                    ),
+                    patch.object(
+                        html.http.DataFetcher,
+                        "fetch_html",
+                        side_effect=AssertionError("network"),
+                    ),
+                    patch("sys.stdout", io.StringIO()),
+                ):
+                    cli.main(
+                        [
+                            "download-html",
+                            "--from-html",
+                            str(saved),
+                            "--csv-dir",
+                            str(replay),
+                        ]
+                    )
+                for task in tasks:
+                    self.assertEqual(
+                        (destination / task.csv_filename).read_bytes(),
+                        (replay / task.csv_filename).read_bytes(),
+                    )
+                self.assertEqual(
+                    {path.name: path.read_bytes() for path in saved.iterdir()}, before
+                )
+
     def test_replay_warns_on_legacy_manifest_and_writes_current_metadata(self):
         from analysis_lister.provenance import generator_metadata
 

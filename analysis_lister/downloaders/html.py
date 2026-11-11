@@ -42,7 +42,9 @@ class HTMLParser:
         if debug_path is not None:
             debug_path.parent.mkdir(parents=True, exist_ok=True)
             debug_path.write_text(
-                html + ("" if html.endswith("\n") else "\n"), encoding="utf-8"
+                html + ("" if html.endswith("\n") else "\n"),
+                encoding="utf-8",
+                newline="",
             )
             logger.debug(
                 "Full response including result counters saved to %s", debug_path
@@ -118,7 +120,10 @@ def staged_csv_files(
                 len(tasks),
             )
             if use_local_html:
-                html = (debug_dir / task.html_filename).read_text(encoding="utf-8")
+                # Preserve cell text exactly as the live parser received it.
+                html = (debug_dir / task.html_filename).read_text(
+                    encoding="utf-8", newline=""
+                )
             else:
                 html = http.DataFetcher.fetch_html(
                     task.url,
