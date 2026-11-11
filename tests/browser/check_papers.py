@@ -13,9 +13,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
-from selenium import webdriver
+from diagnostics import chrome
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -70,8 +69,8 @@ def run_checks(work_dir):
         f'<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details{{content-visibility:auto}}</style>{css}</head><body class="md-typeset">{markup}{js}</body></html>'
     )
     options = Options()
-    if chrome := os.environ.get("CHROME_BINARY"):
-        options.binary_location = chrome
+    if binary := os.environ.get("CHROME_BINARY"):
+        options.binary_location = binary
     for flag in (
         "--headless=new",
         "--no-first-run",
@@ -79,8 +78,7 @@ def run_checks(work_dir):
         "--window-size=1280,1000",
     ):
         options.add_argument(flag)
-    service = Service(str(args.driver), log_output=str(work_dir / "chromedriver.log"))
-    with webdriver.Chrome(service=service, options=options) as driver:
+    with chrome(options=options, driver_path=args.driver) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(path.as_uri())
 

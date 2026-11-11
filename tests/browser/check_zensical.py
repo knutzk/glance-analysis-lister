@@ -15,9 +15,8 @@ from threading import Thread
 from urllib.parse import parse_qs, urlsplit
 
 from accessibility import check_keyboard, check_layout_and_fallback
-from selenium import webdriver
+from diagnostics import chrome
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
@@ -191,13 +190,13 @@ def check_saved_links(driver, wait, base, page_prefix):
 
 def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
     options = Options()
-    if chrome := os.environ.get("CHROME_BINARY"):
-        options.binary_location = chrome
+    if binary := os.environ.get("CHROME_BINARY"):
+        options.binary_location = binary
     options.add_argument("--headless=new")
     options.add_argument("--window-size=1440,1200")
     options.add_argument("--disable-background-networking")
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
-    with webdriver.Chrome(options=options, service=Service(str(driver_path))) as driver:
+    with chrome(options=options, driver_path=driver_path) as driver:
         wait = WebDriverWait(driver, 15)
         driver.get(base + start_page)
         wait.until(

@@ -173,6 +173,13 @@ light/dark themes, saved links, instant navigation and no-JavaScript content.
 The demo check also exercises the documented setup and local group previews.
 They use invented data and do not establish live CERN access.
 
+On failure, browser checks save a screenshot, console messages, session details
+and the ChromeDriver log under `browser-report/` (override with
+`BROWSER_DIAGNOSTICS_DIR`). A browser that fails to start may only provide a driver
+log and traceback. CI uploads these diagnostics and stage logs as
+**browser-failure-diagnostics**, retained for 14 days. Checks still fail normally;
+there are no automatic retries. New commits cancel older CI runs for the same PR.
+
 For performance-sensitive changes, run the separate synthetic benchmark:
 
 ```bash

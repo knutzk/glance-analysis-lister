@@ -14,10 +14,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
+from diagnostics import chrome
 from performance_fixture import synthetic_registry
-from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select, WebDriverWait
@@ -93,8 +92,8 @@ def run_checks(work_dir):
     output = work_dir / "fixture.html"
     output.write_text(html)
     options = Options()
-    if chrome := os.environ.get("CHROME_BINARY"):
-        options.binary_location = chrome
+    if binary := os.environ.get("CHROME_BINARY"):
+        options.binary_location = binary
     for value in (
         "--headless=new",
         "--no-first-run",
@@ -105,8 +104,7 @@ def run_checks(work_dir):
         "--window-size=1280,1600",
     ):
         options.add_argument(value)
-    service = Service(str(args.driver), log_output=str(work_dir / "chromedriver.log"))
-    with webdriver.Chrome(options=options, service=service) as driver:
+    with chrome(options=options, driver_path=args.driver) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get(output.as_uri())
 
