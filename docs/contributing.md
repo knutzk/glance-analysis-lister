@@ -99,6 +99,25 @@ separate line/branch totals in the job summary and a `python-coverage` artifact
 with HTML, XML and JSON reports. Coverage currently informs review; no percentage
 threshold is enforced. A failing test run produces partial coverage only.
 
+After PR CI finishes, **PR coverage summary** creates or updates one bot comment
+with line and branch totals, their changes in percentage points, and a download
+link for the full HTML/XML/JSON report. Extract the download and open
+`html/index.html`; artifacts are retained for 14 days. PR CI tests the merge with
+its base, rather than the head commit in isolation.
+
+The comparison uses successful `main` CI for the exact base commit shown in the
+comment. Missing, expired or invalid baselines appear as unavailable; an older
+main result is never silently substituted. Failed tests or incomplete reports
+may show partial totals but no change. If main CI is still running, rerun PR CI
+after it finishes to obtain a comparison. Coverage informs review without a
+percentage gate and does not replace the test results.
+
+The publisher runs separately after CI, including for fork PRs, and updates only
+its own comment. It executes code from the trusted default branch, reads bounded
+JSON totals without extracting artifacts, and verifies the open PR's current
+head/repository before writing. Superseded runs cannot replace newer results.
+The workflow first becomes active after merging into the default branch.
+
 To reproduce the report, use a clean checkout without local experimental tests
 and run from the repository root after installing the development dependencies:
 
