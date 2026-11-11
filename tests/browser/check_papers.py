@@ -53,6 +53,16 @@ def run_checks(work_dir):
     papers[0]["publicationPhase"]["arXivUrls"] = [
         {"url": "https://arxiv.org/abs/9901.12345"}
     ]
+    papers[1]["publicationPhase"]["arXivUrls"] = [
+        {"url": "https://example.test/arxiv/2099.00001"}
+    ]
+    papers[1]["publicationPhase"]["gal_dois"] = [
+        {"doi": "10.9999/synthetic", "citation": "Invented Journal 123 (2099) 456"},
+        {
+            "doi": "10.9999/synthetic-erratum",
+            "citation": "Erratum: Invented Journal 124 (2099) 789",
+        },
+    ]
     view = prepare_group(
         CuratedRegistry(snapshot(analysis(1), papers=tuple(papers))),
         GroupProfile("DEMO"),
@@ -100,6 +110,41 @@ def run_checks(work_dir):
             count(4)
 
         count(4)
+
+        def check_link_layout():
+            for width in (640, 800, 1000):
+                driver.execute_script(
+                    "document.querySelector('.gal-archive').style.maxWidth = arguments[0] + 'px'",
+                    width,
+                )
+                dimensions = driver.execute_script("""
+                    const scroll = document.querySelector('.gal-table-scroll');
+                    const links = [...document.querySelectorAll('.gal-publication-records a')]
+                        .filter(a => a.href.includes('example.test/arxiv') || a.href.includes('10.9999/synthetic'));
+                    const erratum = links.find(a => a.textContent.startsWith('Erratum:'));
+                    const arxiv = links.find(a => a.textContent === 'arXiv');
+                    return {
+                        width: scroll.clientWidth, content: scroll.scrollWidth,
+                        height: scroll.clientHeight, contentHeight: scroll.scrollHeight,
+                        wrapped: erratum.getBoundingClientRect().top > arxiv.getBoundingClientRect().top,
+                        contained: links.every(a => {
+                            const cell = a.closest('td').getBoundingClientRect();
+                            const rect = a.getBoundingClientRect();
+                            return rect.left >= cell.left && rect.right <= cell.right
+                                && a.scrollWidth <= a.clientWidth + 1;
+                        })
+                    };
+                """)
+                assert dimensions["content"] <= dimensions["width"] + 1, dimensions
+                assert dimensions["contentHeight"] <= dimensions["height"] + 1, (
+                    dimensions
+                )
+                assert dimensions["wrapped"] and dimensions["contained"], dimensions
+            driver.execute_script(
+                "document.querySelector('.gal-archive').style.removeProperty('max-width')"
+            )
+
+        check_link_layout()
         assert not driver.find_elements(
             By.CSS_SELECTOR, '[data-gal-filter="publication_type"]'
         )
@@ -177,6 +222,7 @@ def run_checks(work_dir):
             complete,
         )
         assert selected == complete.text
+        check_link_layout()
         assert (
             len(
                 [
@@ -274,6 +320,7 @@ def run_checks(work_dir):
             block.is_displayed()
             for block in driver.find_elements(By.CSS_SELECTOR, ".gal-paper-citation")
         )
+        check_link_layout()
         print(
             "Paper browser checks passed: copy-ready citations, independent initialization, filters, search, unpaginated rows, row disclosure, document replacement and no-JavaScript fallback."
         )
