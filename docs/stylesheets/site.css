@@ -5,6 +5,18 @@
 /* Contain the theme's translated title even before JavaScript initializes it. */
 .md-header__title { overflow: hidden; }
 
+/* Embedded SVG colours follow the site toggle, including a manual override. */
+.md-typeset img[src$="images/command-flow.svg"],
+.md-typeset img[src$="images/citation-flow.svg"],
+.md-typeset img[src$="images/data-flow.svg"],
+.md-typeset img[src$="images/selection-flow.svg"] { color-scheme: light; }
+[data-md-color-scheme="slate"] .md-typeset img[src$="images/command-flow.svg"],
+[data-md-color-scheme="slate"] .md-typeset img[src$="images/citation-flow.svg"],
+[data-md-color-scheme="slate"] .md-typeset img[src$="images/data-flow.svg"],
+[data-md-color-scheme="slate"] .md-typeset img[src$="images/selection-flow.svg"] {
+  color-scheme: dark;
+}
+
 /* Linked README thumbnails also render as two columns on GitHub. */
 .gal-screenshot-gallery {
   width: 100%;

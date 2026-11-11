@@ -78,7 +78,7 @@ Both compared registries must be supported by the candidate and from the same
 endpoint. A new output path has no previous count-drop baseline: examine the
 comparison explicitly. Dictionary and curation changes can explain differences
 even when the API bytes are identical. Rerender with the candidate registry after
-reviewing them. [Provenance](provenance.md) identifies the inputs and code used.
+reviewing them. [Provenance](data.md#trace-your-output) identifies the inputs and code used.
 
 If the candidate fails, keep using the previous environment and generated site.
 Do not overwrite the old snapshot or attempt an undocumented reverse migration.
@@ -97,7 +97,7 @@ HTML CSV exports remain independent and cannot feed `build-registry`.
 | --- | --- |
 | CSV-derived registry and legacy model imports | `build-registry` from API JSON; the documented [reader and prepared-view API](python-access.md). |
 | Lookup dictionaries and group-specific download settings | Retrieve accessible records once; apply group membership and explicit TOML publication policies during preparation. |
-| Fixed or combined publication views | Separate `ongoing.md`, `papers.md`, `confnotes.md` and `pubnotes.md`; update site navigation and [enable assets](rendering.md#enable-browser-assets). |
+| Fixed or combined publication views | Separate `ongoing.md`, `papers.md`, `confnotes.md` and `pubnotes.md`; update site navigation and [enable assets](website.md#enable-browser-assets). |
 | Optional download dependencies | The `html` extra for HTML/CSV export; API retrieval is included in normal installation. |
 | Citation `locked` flag | Protect manual entries with `source = "manual"`; remove the obsolete flag and preserve citation provenance. |
 | Obsidian export | Removed; there is no replacement command. |

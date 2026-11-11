@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="850" viewBox="0 0 800 850" role="img" aria-labelledby="title description">
+  <!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
+  <!-- SPDX-License-Identifier: GPL-3.0-only -->
+  <title id="title">From GLANCE data to a group website</title>
+  <desc id="description">Authenticated GLANCE retrieval produces a validated API snapshot of all accessible records. All following data processing is offline. Curation combines the snapshot with citation and public-note identifier data to create a curated registry, retaining every record with adopted fields and enrichment. Group membership, publication policy and lifecycle rules determine the prepared group views, held in memory. Rendering writes Markdown pages, browser assets and a separate diagnostic report. A consuming site builder turns the pages and assets into HTML. One registry can supply several group websites; the diagnostic report stays outside the site.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L8 4L0 8Z" class="arrow-head"/>
+    </marker>
+  </defs>
+  <style>
+    svg { color-scheme: light dark; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: #233846; }
+    .canvas { fill: #fff; }
+    .heading { font-size: 19px; font-weight: 600; }
+    .body { font-size: 17px; }
+    .small { font-size: 15px; fill: #526573; }
+    .eyebrow { font-size: 12px; font-weight: 650; letter-spacing: 1.2px; fill: #526573; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 18px; }
+    .center { text-anchor: middle; }
+    .file { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .stage { fill: #f0f8f7; stroke: #229e95; stroke-width: 1.5; }
+    .step { fill: #fff; stroke: #b7d8d3; stroke-width: 1; }
+    .optional { fill: #f6f3fb; stroke: #baacd0; stroke-width: 1.2; }
+    .output { fill: #f8fafb; stroke: #8799a5; stroke-width: 1.4; }
+    .note { fill: #e4f4f2; }
+    .link { fill: #087c74; }
+    .connector { fill: none; stroke: #657780; stroke-width: 1.6; marker-end: url(#arrow); }
+    .arrow-head { fill: #657780; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e3edf1; }
+      .canvas { fill: #141b20; }
+      .small, .eyebrow { fill: #b5c5ce; }
+      .file, .output { fill: #1d2931; stroke: #7e939f; }
+      .stage { fill: #173430; stroke: #52beb2; }
+      .step { fill: #1c292d; stroke: #41645f; }
+      .optional { fill: #292438; stroke: #8e80a8; }
+      .note { fill: #173430; }
+      .link { fill: #75dbcd; }
+      .connector { stroke: #a4b6bf; }
+      .arrow-head { fill: #a4b6bf; }
+    }
+  </style>
+  <rect class="canvas" width="800" height="850" rx="20"/>
+  <g id="glance">
+    <rect class="output" x="32" y="24" width="400" height="62" rx="18"/>
+    <text class="heading center" x="232" y="62">ATLAS GLANCE</text>
+  </g>
+  <text class="eyebrow" x="488" y="47">CERN ACCESS</text>
+  <text class="body" x="488" y="73">Authenticated retrieval</text>
+  <path class="connector" d="M232 86V151"/>
+  <text class="small" x="52" y="110">Download + validate</text>
+  <path d="M32 127H210M254 127H768" fill="none" stroke="#8799a5" stroke-width="1" stroke-dasharray="4 5"/>
+  <text class="eyebrow" x="488" y="160">OFFLINE FROM HERE</text>
+  <text class="small" x="488" y="186">Work from saved inputs.</text>
+
+  <g id="api-snapshot">
+    <rect class="file" x="32" y="152" width="400" height="78" rx="12"/>
+    <text class="heading" x="54" y="183">API snapshot</text>
+    <text class="body" x="54" y="211">All accessible records + relationships</text>
+  </g>
+  <path class="connector" d="M232 230V273"/>
+  <g id="curation">
+    <rect class="stage" x="32" y="274" width="400" height="82" rx="22"/>
+    <text class="heading" x="54" y="307">Curate the data</text>
+    <text class="body" x="54" y="335">Keep adopted fields; enrich metadata</text>
+  </g>
+  <g id="enrichment-inputs">
+    <rect class="file" x="488" y="264" width="280" height="102" rx="12"/>
+    <text class="heading" x="508" y="295">Enrichment inputs</text>
+    <text class="body" x="508" y="322">Citation store</text>
+    <text class="body" x="508" y="348">Public-note identifiers</text>
+  </g>
+  <path class="connector" d="M488 315H434"/>
+  <path class="connector" d="M232 356V399"/>
+
+  <g id="curated-registry">
+    <rect class="file" x="32" y="400" width="400" height="100" rx="12"/>
+    <text class="heading" x="54" y="432">Curated registry</text>
+    <text class="body" x="54" y="459">Every record, with selected fields</text>
+    <text class="small" x="54" y="483">Identifiers, citations and provenance</text>
+  </g>
+  <text class="small" x="508" y="437">One registry can supply</text>
+  <text class="small" x="508" y="461">several group websites.</text>
+  <path class="connector" d="M232 500V559"/>
+  <text class="small" x="252" y="533">Prepare a group</text>
+
+  <g id="prepared-views">
+    <rect class="stage" x="32" y="560" width="400" height="100" rx="22"/>
+    <text class="heading" x="54" y="590">Prepared group views</text>
+    <text class="small" x="410" y="590" text-anchor="end">in memory</text>
+    <text class="body" x="54" y="618">Selected analyses + publications</text>
+    <text class="small" x="54" y="643">Lifecycle decisions and diagnostic evidence</text>
+  </g>
+  <g id="group-inputs">
+    <rect class="optional" x="488" y="560" width="280" height="100" rx="18"/>
+    <text class="heading" x="508" y="590">Group configuration</text>
+    <text class="body" x="508" y="618">Group → ongoing analyses</text>
+    <text class="body" x="508" y="644">Policy → publications</text>
+  </g>
+  <path class="connector" d="M488 610H434"/>
+  <path class="connector" d="M232 660V723"/>
+  <text class="small" x="252" y="695">Render</text>
+
+  <g id="rendered-pages">
+    <rect class="file" x="32" y="724" width="400" height="100" rx="12"/>
+    <text class="heading" x="54" y="756">Pages + browser assets</text>
+    <text class="body" x="54" y="783">4 Markdown pages · CSS / JavaScript</text>
+    <text class="small" x="54" y="807">Keep the diagnostic report outside the site.</text>
+  </g>
+  <path class="connector" d="M432 774H486"/>
+  <g id="website">
+    <rect class="output" x="488" y="724" width="280" height="100" rx="18"/>
+    <text class="heading" x="508" y="756">Group website</text>
+    <text class="body" x="508" y="783">Site builder → HTML</text>
+    <text class="small" x="508" y="807">For example, Zensical</text>
+  </g>
+</svg>

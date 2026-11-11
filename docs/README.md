@@ -1,36 +1,47 @@
-# Documentation overview
+# Find your guide
 
-These guides cover the package's user workflows and data contracts. Each row
-corresponds to one page in the **Documentation** navigation, in the same order.
-Start with the synthetic example if you do not have CERN access.
+Start with the demo to see what the package produces. Then use the topic guides
+to understand and control your own group's pages. You do not need to know a
+command name to choose where to go next.
 
-| Guide | What you will learn |
+## Try it first
+
+- [Synthetic demo](../examples/README.md): generate a complete site without CERN credentials, then change its publication policy.
+- [Add CERN data](cern-demo.md): display your own group's records alongside Demo in the same site.
+- [Explore the live demo](../examples/demo/index.md): try the generated pages in this documentation site.
+
+## Understand and use the package
+
+| Your question | Guide |
 | --- | --- |
-| [Synthetic example](../examples/README.md) | Generate and preview a complete demo, then change its publication policy. |
-| [CERN data in the demo](cern-demo.md) | Add your group's real pages alongside the synthetic examples in the same site. |
-| [Commands and recovery](workflows.md) | Download, refresh, compare snapshots, export CSVs and recover failed runs. |
-| [Command-line reference](cli-reference.md) | Look up every command, option and default. |
-| [Troubleshooting](troubleshooting.md) | Diagnose installation, access, validation and page problems; resume failed work. |
-| [Rendering and policies](rendering.md) | Select publications, generate group pages and enable browser assets. |
-| [Ongoing analyses](ongoing.md) | Read an analysis card, understand membership and use filters. |
-| [Publication tables](publications.md) | Read paper and note rows, filter by date/status and share a view. |
-| [Diagnostic reports](diagnostics.md) | Interpret warnings and distinguish an issue from exclusion. |
-| [Curation and identifiers](registry.md) | Follow field transformations and public-identifier derivation. |
-| [Curated v2 contract](curated-format.md) | Check field types, identity, missing values and compatibility rules. |
-| [Citations](citations.md) | Resolve and format citations, including corrections. |
-| [Provenance](provenance.md) | Trace generated files and understand reproducible output. |
-| [Python access](python-access.md) | Use the supported imports, reader methods and prepared result attributes. |
-| [Compatibility](compatibility.md) | Distinguish current interface contracts from unsettled v1.0 promises. |
-| [Upgrading](upgrading.md) | Evaluate a candidate alongside the working installation and migrate older workflows. |
-| [Glossary](glossary.md) | Understand ATLAS terminology, identifiers and the package's data layers. |
+| What comes from GLANCE, what is changed, and which files should I keep? | [Data and the curated registry](data.md) |
+| Which analyses and publications appear for my group, and how can I change that? | [Choosing records](selection.md) |
+| What do the cards, dates and statuses mean, and how do I search or share a view? | [Exploring the pages](pages.md) |
+| Where do journal references come from, and how can I correct or add one? | [Citations](citations.md) |
+| How do I put generated pages in my group's website and keep them updated? | [Building a group website](website.md) |
+| Why is a record missing, what does a warning mean, or how do I resume a failed update? | [Warnings and recovery](problems.md) |
 
-The [homepage](../README.md) provides installation and a quick start. Contributor
-material—architecture, a field walkthrough, validation, releases, site editing
-and screenshots—is grouped under **Development**.
+These guides introduce the data and decisions before the commands. They use
+saved snapshots wherever possible; only fresh GLANCE downloads need CERN access.
+Commands assume the repository root unless the guide says otherwise.
 
-The **Demo** navigation contains all four interactive pages from the
-[synthetic example](../examples/demo/index.md).
+## Look up a precise detail
 
-Commands assume the repository root unless a guide specifies another working
-directory. Live downloads require authorised CERN access; saved-data workflows
-run offline.
+The **Reference** section collects supported options and contracts for integrations:
+
+- [Commands and options](cli-reference.md)
+- [Curated data format](curated-format.md)
+- [Generated files, URLs and report fields](output-reference.md)
+- [Python API](python-access.md)
+- [Compatibility](compatibility.md) and [upgrading](upgrading.md)
+- [Glossary](glossary.md)
+
+## Extend or maintain the project
+
+Start with the architecture to find the right layer, or follow the field example
+to trace a concrete change from source data to a rendered page.
+
+- [Architecture](architecture.md) and [field walkthrough](contributing-field.md)
+- [Development and testing](development.md)
+- [Maintaining the documentation](documentation.md)
+- [Preparing releases](releases.md)

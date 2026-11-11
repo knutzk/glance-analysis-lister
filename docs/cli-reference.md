@@ -6,7 +6,8 @@ Run `analysis-lister COMMAND`, or `python -m analysis_lister COMMAND`.
 This reference describes the current CLI, including unreleased changes. The
 [compatibility policy](compatibility.md) defines its supported scope and change
 rules. Use `analysis-lister COMMAND --help` to check your installed version.
-For worked sequences, see [commands and recovery](workflows.md).
+For worked sequences, see [data workflows](data.md) and
+[recovery guidance](problems.md#resume-an-interrupted-workflow).
 
 `analysis-lister --version` prints `analysis-lister VERSION` to stdout and exits
 successfully without running a workflow. This top-level option reports installed
@@ -31,7 +32,7 @@ The shared defaults are checkout files for an editable installation, or installe
 data files for a wheel. Citation updates require an explicit writable store;
 there is no default that modifies installed data. Every explicit path selects
 only that file, and a missing store starts empty. See
-[citation maintenance](citations.md) and [policy fields](rendering.md#publication-policies).
+[citation maintenance](citations.md) and [policy fields](selection.md#publication-policies).
 Public-note identifiers are read from the packaged dictionary; there is no CLI
 override for that dictionary.
 
@@ -92,7 +93,7 @@ are retained and enriched. HTML CSV exports cannot be used as input.
 ## `render-group`
 
 Prepare views and render four pages, browser assets and `view-report.json` from
-a saved curated registry. Runs offline; see [generated output](rendering.md).
+a saved curated registry. Runs offline; see [generated output](website.md).
 
 | Option | Default / requirement | Meaning |
 | --- | --- | --- |
@@ -130,7 +131,7 @@ requires Chrome. Uses separate credentials from the API client.
 `--from-html` and `--save-html` cannot be combined. Saved HTML and CSV outputs
 must use separate directories. There is no HTML `--allow-count-drop` option;
 the exporter validates table contents and publishes them as a batch. See
-[HTML recovery](workflows.md#validation-and-recovery) before consuming an interrupted batch.
+[HTML recovery](problems.md#validation-and-recovery) before consuming an interrupted batch.
 
 ## `resolve-dois`
 
@@ -139,12 +140,16 @@ exactly one input form. Manual entries are never replaced automatically.
 
 | Option | Default / requirement | Meaning |
 | --- | --- | --- |
-| `--snapshot PATH` | One input form required | Read DOIs from an API snapshot or curated registry. |
+| `--snapshot PATH` | One input form required | Read DOIs from source journal-publication URLs in a saved API snapshot. |
 | `--doi DOI` | One input form required | Bare DOI or doi.org URL; repeat for multiple DOIs. |
 | `--doi-cache PATH` | Required | Writable store to update; must not overwrite the snapshot. |
 | `--method infer\|inspire\|auto` | `infer` | Offline JHEP inference, public INSPIRE lookup, or inference followed by lookup. |
 | `--refresh-existing` | Off | Revisit existing non-manual entries. |
 | `--limit N` | No limit | Positive maximum number of eligible entries to attempt. |
+
+The current resolver does not extract the embedded `gal_dois` entries from a
+normal curated registry. Use the original API snapshot or repeated `--doi` values
+when resolving citations.
 
 `inspire` and `auto` may access the public network; they do not use GLANCE
 credentials. Successful resolutions are saved incrementally. Rebuild and render
@@ -160,8 +165,8 @@ snapshots and pages are unchanged until rebuilt and rendered.
 
 Successful commands and help exit `0`. Argument-parsing errors exit `2`.
 Handled validation, filesystem and request failures exit `1`; inspect the error
-and [troubleshooting guidance](troubleshooting.md) before retrying.
+and [troubleshooting guidance](problems.md) before retrying.
 
 Results and output paths go to stdout; diagnostics, including missing-policy
-warnings, go to stderr. See [logs and summaries](workflows.md#logs-and-summaries)
+warnings, go to stderr. See [logs and summaries](problems.md#logs-and-summaries)
 for verbosity and download-completion details.

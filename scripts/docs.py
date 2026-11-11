@@ -49,27 +49,27 @@ PUBLIC_FILES = (
     "docs/architecture.md",
     "docs/cern-demo.md",
     "docs/citations.md",
+    "docs/data.md",
+    "docs/selection.md",
+    "docs/pages.md",
+    "docs/website.md",
+    "docs/problems.md",
+    "docs/output-reference.md",
+    "docs/documentation.md",
     "docs/cli-reference.md",
     "docs/compatibility.md",
     "docs/contributing-field.md",
     "docs/curated-format.md",
     "docs/development.md",
-    "docs/diagnostics.md",
     "docs/glossary.md",
-    "docs/provenance.md",
-    "docs/ongoing.md",
-    "docs/publications.md",
     "docs/python-access.md",
-    "docs/registry.md",
     "docs/releases.md",
-    "docs/rendering.md",
-    "docs/site.md",
-    "docs/troubleshooting.md",
     "docs/upgrading.md",
     "docs/stylesheets/site.css",
-    "docs/workflows.md",
-    "docs/images/README.md",
     "docs/images/command-flow.svg",
+    "docs/images/citation-flow.svg",
+    "docs/images/data-flow.svg",
+    "docs/images/selection-flow.svg",
     "docs/images/ongoing.png",
     "docs/images/papers.png",
     "docs/images/ongoing-card.png",
@@ -201,7 +201,7 @@ def stage(root=ROOT, *, include_roadmap=False, group_pages=()):
     policy = sources["examples/demo/publication-curation.toml"]
     sources.update(demo_pages(snapshot, policy))
     for name, fragment in example_fragments(snapshot, policy).items():
-        page = f"docs/{name}.md"
+        page = "docs/pages.md"
         text = sources[page].decode("utf-8")
         start, end = f"<!-- BEGIN LIVE {name} -->", f"<!-- END LIVE {name} -->"
         if text.count(start) != 1 or text.count(end) != 1:

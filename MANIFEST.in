@@ -18,6 +18,9 @@ recursive-include tests *.py
 include tests/browser/requirements.txt
 recursive-include docs *.md
 include docs/images/command-flow.svg
+include docs/images/citation-flow.svg
+include docs/images/data-flow.svg
+include docs/images/selection-flow.svg
 include docs/images/ongoing.png
 include docs/images/papers.png
 include docs/images/ongoing-card.png

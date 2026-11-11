@@ -428,13 +428,26 @@ def check_demo(work, driver):
             .h1.get_text()
             .startswith(f"{version} release notes")
         )
-    for guide in ("ongoing", "publications"):
-        html = (work / "site/docs" / guide / "index.html").read_text()
-        records = BeautifulSoup(html, "html.parser").select(
-            ".gal-doc-example [data-gal-item]"
-        )
-        assert len(records) == 1, "Explanatory guides should show one record"
-        assert records[0]["id"].endswith("demo-2099-01")
+    html = (work / "site/docs/pages/index.html").read_text()
+    records = BeautifulSoup(html, "html.parser").select(
+        ".gal-doc-example [data-gal-item]"
+    )
+    assert {record["id"] for record in records} == {
+        "analysis-demo-ana-demo-2099-01",
+        "publication-papers-demo-demo-2099-01",
+    }, "The page guide must retain both interactive examples without duplicate IDs"
+    for removed in (
+        "ongoing",
+        "publications",
+        "registry",
+        "rendering",
+        "workflows",
+        "diagnostics",
+        "provenance",
+        "troubleshooting",
+        "site",
+    ):
+        assert not (work / "site/docs" / removed).exists()
     served = work / "served"
     served.mkdir()
     (served / "glance-analysis-lister").symlink_to(

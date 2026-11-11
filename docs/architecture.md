@@ -21,7 +21,7 @@ The registry reader validates and returns copies. Loading a registry does not
 repeat enrichment, update citations or apply a publication policy. Rebuild from
 the API snapshot when curation inputs change; rerender the curated registry when
 only the group, policy or presentation changes. The
-[workflow guide](workflows.md#choose-where-to-start) gives the corresponding commands.
+[workflow guide](data.md#choose-where-to-start) gives the corresponding commands.
 
 HTML retrieval is a separate route to standalone CSV exports. Those exports are
 not inputs to registry construction. Citation resolution is also separate:
@@ -58,55 +58,17 @@ effects; `report.py` records the decisions and evidence.
 
 ## Independent records and relationships
 
-An analysis and its publications remain separate records. Analyses and papers
-use `referenceCode`; notes use `temporaryReferenceCode`. A final public note
-number is a display identifier, not a replacement for native identity. Equal
-titles or similar identifiers do not establish a relationship.
-The [data contract](curated-format.md) defines retained fields and preserves
-the distinction between missing, null and empty values.
+The user-facing relationship and identifier rules are explained in the data guide.
 
-Preparation follows explicit links in both directions. A publication's
-`relatedAnalysis` establishes its analysis association. An analysis-only
-outbound link can supply linked-publication context, with an informational
-diagnostic. If the publication points to a different analysis, preparation
-reports the conflict rather than assigning it to both. A missing target remains
-unresolved; it is not fabricated or silently matched by title.
-
-Publications can appear without a resolved analysis link when their own policy
-and lifecycle evidence qualifies them. Missing affiliations or search metadata
-may use the publication's explicit analysis link, with the derivation recorded.
-People remain those recorded on each resource in the current snapshot; they
-are not reconstructed as historical membership. See the
-[missing-link example](diagnostics.md#example-a-missing-link-does-not-exclude-a-published-paper)
-for the effect on a rendered paper.
+[Relationships between records](data.md#relationships-between-records)
 
 ## Selection, lifecycle and browser filters
 
-Three decisions determine what a reader sees:
+Membership, publication selection and lifecycle decisions belong to view preparation.
+Browser filtering operates on its rendered result. Keep these responsibilities
+separate when extending the package.
 
-1. **Group and policy selection:** ongoing analyses use main-group affiliation;
-   publications use the group's configured policy. Policy criteria combine with
-   OR, with distinct behaviour for missing and explicitly empty policies. The
-   [policy reference](rendering.md#publication-policies) defines those rules.
-2. **Lifecycle placement:** recognised ongoing analyses go on the ongoing page;
-   uncertain analyses are listed separately. Publication tables contain selected
-   submitted/published papers and released notes. A policy match alone does not
-   establish submission or release. Linked publications inform analysis progress
-   even when the publication policy excludes them from the archive.
-3. **Browser filtering:** search, dates and status narrow the generated records.
-   They do not change the registry, policy or diagnostic counts. Superseded
-   released notes are retained in the output but hidden by the default filter.
-
-For example, a submitted paper without a DOI can be included in the archive
-under its **Under review** filter, while its linked analysis has completed active
-review. That browser label tests for a DOI; it is not the lifecycle decision used
-to determine archive eligibility. See [publication tables](publications.md).
-
-Lifecycle rules use source statuses, recorded dates and explicit relationships.
-Milestone ticks are evaluated independently: a later recorded step does not fill
-in missing earlier dates. Unknown or contradictory evidence stays available in
-the [diagnostic report](diagnostics.md). The preparation layer records decisions;
-renderers display them without reclassifying source records.
+[Selection rules](selection.md)
 
 ## File replacement and recovery
 
@@ -122,8 +84,28 @@ Validation and replacement operate at different scopes:
 Atomic replacement prevents a reader from seeing a partially written individual
 file; it does not coordinate concurrent writers or guarantee a consistent set
 of files across stages. Run operations sharing destinations sequentially. Retry
-from the failed stage using the [recovery guide](troubleshooting.md#resume-an-interrupted-workflow).
+from the failed stage using the [recovery guide](problems.md#resume-an-interrupted-workflow).
 
 Generated files with identical bytes are left untouched, and unrelated output
-files are retained. The [provenance guide](provenance.md) explains the input,
+files are retained. The [provenance guide](data.md#trace-your-output) explains the input,
 profile and generator fingerprints and the conditions for reproducible output.
+
+## Curation implementation
+
+`registry/enrichment.py` contains transformation rules. Its `STRING_LIST_FIELDS`
+converts selected named-object collections to names or string lists. Added or
+reshaped fields use the `gal_` prefix; source keys are removed after enrichment.
+`registry/fields.py` then selects domain fields, including nested relationships,
+metadata and DOI/citation entries. DOI/citation pairs stay aligned with their
+corrections.
+
+New API fields are excluded until explicitly adopted into the data contract,
+independently of any view. The registry retains snapshot and build metadata,
+identifier evidence and dictionary hashes for provenance and safe replacement.
+For a worked example across these layers, see the
+[contributor field walkthrough](contributing-field.md).
+
+The bundled schema validates nested types and dates; separate checks enforce
+counts and unique identifiers. Only curated v2 is supported. See the contract's
+[compatibility policy](curated-format.md#compatibility-policy) for optional
+additions, breaking changes and frozen fixtures.

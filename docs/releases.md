@@ -122,7 +122,7 @@ logs to a public acceptance record.
 
 Pushes and pull requests run offline/package checks, browser tests and a strict
 documentation build. The documentation job uploads a review artifact for
-14 days; see [how to inspect it](site.md#inspect-a-ci-build).
+14 days; see [how to inspect it](documentation.md#inspect-a-ci-build).
 
 For a pushed `v*` tag, all three jobs must succeed before the release job creates
 a **draft GitHub release** with the verified wheel, source archive and matching

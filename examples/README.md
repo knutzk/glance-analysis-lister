@@ -57,7 +57,7 @@ Installation needs internet access; generation and preview use only local data.
 Stop the server with **Ctrl+C**. In a new terminal, change to the repository root
 and run `source .venv/bin/activate` before running the preview command again.
 Port 8001 allows the demo to run alongside the
-[documentation preview](../docs/site.md) on port 8000.
+[documentation preview](../docs/documentation.md) on port 8000.
 
 The setup commands create `examples/demo/work/pages/index.md`, the browser assets and an
 editable `examples/demo/work/demo-policy.toml`. The policy copy initially selects publications
@@ -109,7 +109,7 @@ a time. The tutorial's render command can update pages while the preview runs.
 Generation writes into `examples/demo/work/pages/`; it does not change the tracked fixture or
 policy. Edit the policy copy, not the generated Markdown, which is replaced
 when you rerun `render-group`. Restarting Zensical only serves the existing pages.
-For your own site, follow [browser asset integration](../docs/rendering.md#enable-browser-assets).
+For your own site, follow [browser asset integration](../docs/website.md#enable-browser-assets).
 
 To add real CERN ATLAS pages alongside Demo in this same site, follow the
 [CERN data walkthrough](../docs/cern-demo.md).
@@ -181,7 +181,7 @@ analysis-lister render-group --group DEMO \
 
 The bundled shared policies have no `DEMO` entry, so this command warns on stderr
 and selects publications by the `DEMO` token in their identifiers. See
-[publication policies](../docs/rendering.md#publication-policies) for the distinction
+[publication policies](../docs/selection.md#publication-policies) for the distinction
 between missing and explicitly empty configuration.
 
-The [README screenshots](../docs/images/README.md) use the same synthetic fixture.
+The [README screenshots](../docs/documentation.md#regenerate-screenshots) use the same synthetic fixture.

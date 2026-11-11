@@ -8,6 +8,17 @@ Keep the same checkout and environment, and run all commands from the repository
 root with its `.venv` activated. The synthetic **Demo** stays available.
 Stop Zensical with **Ctrl+C** before changing its navigation.
 
+**TOPQ is an example choice, not a requirement.** Use your own ATLAS physics or
+performance group instead. For example, to use HIGP throughout this guide:
+
+- Replace `TOPQ` with `HIGP` in `--group`, `--groups` and the navigation label.
+- Replace the `topq` output subdirectory and navigation paths with `higp`.
+
+The directory name is your choice; the navigation paths must match it. Download
+and registry construction are shared across groups, so those commands stay the
+same. Check the publication policy for your chosen group; use
+`--curation-config PATH` with `render-group` or `refresh` to supply your own.
+
 ## Download the records
 
 With an authorised CERN account, first download the accessible records:
@@ -32,7 +43,7 @@ analysis-lister render-group --group TOPQ \
 
 `build-registry` writes `glance_curated_registry.json`. If you already have that
 curated registry, start at `render-group`. The renderer uses the bundled TOPQ
-publication policy; see [publication policies](rendering.md#publication-policies)
+publication policy; see [publication policies](selection.md#publication-policies)
 to customise selection or use another group.
 
 ## Add TOPQ to the navigation
@@ -79,9 +90,10 @@ documentation build excludes this working directory.
 To update all three stages in one command, use
 `analysis-lister refresh --groups TOPQ --output-dir examples/demo/work/pages/topq --login`
 and omit `--login` when reusing stored credentials. See
-[how the commands connect](workflows.md#how-the-commands-connect) for saved-file
+[how the commands connect](data.md#how-the-commands-connect) for saved-file
 handoffs and rerunning individual stages.
 
-For an existing website, see [integration into a consuming site](rendering.md#integrate-into-a-consuming-site).
-For recovery or other command options, see [commands, downloads and recovery](workflows.md)
-and `analysis-lister COMMAND --help`.
+For an existing website, see [integration into a consuming site](website.md#integrate-into-a-consuming-site).
+For recovery or other command options, see [recovery guidance](problems.md#resume-an-interrupted-workflow)
+and the [command reference](cli-reference.md), or use
+`analysis-lister COMMAND --help`.
