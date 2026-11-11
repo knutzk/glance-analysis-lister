@@ -13,6 +13,8 @@ prune examples/demo/.cache
 include scripts/check_distribution.py
 include scripts/capture_screenshots.py
 include scripts/docs.py
+include scripts/check_public_api.py
+include scripts/public_api.toml
 include scripts/coverage_summary.py
 include zensical.toml
 recursive-include tests *.py

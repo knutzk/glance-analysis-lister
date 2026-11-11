@@ -38,6 +38,7 @@ dist/
 /examples/demo/.cache/
 /.cache/
 /coverage-report/
+/public-api-report/
 /.python-version
 .DS_Store
 /.zensical-preview.yml
