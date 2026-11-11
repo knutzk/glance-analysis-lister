@@ -16,6 +16,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
+from timing import timed
 
 from analysis_lister.registry import CuratedRegistry
 from analysis_lister.views.markdown.pages import confnotes_page, pubnotes_page
@@ -89,7 +90,7 @@ def run_checks(work_dir):
     with chrome(
         options=options, driver_path=args.driver, label=args.resource
     ) as driver:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 10, poll_frequency=0.1)
         driver.get(output.as_uri())
         wait.until(
             lambda d: d.find_element(
@@ -321,4 +322,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with timed("check_notes"):
+        main()

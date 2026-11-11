@@ -173,6 +173,11 @@ light/dark themes, saved links, instant navigation and no-JavaScript content.
 The demo check also exercises the documented setup and local group previews.
 They use invented data and do not establish live CERN access.
 
+Each script prints wall-clock timings with `START`, `PASS` or `FAIL`, including
+major site/demo phases. Phase timings are nested inside script totals; do not add
+them together. CI streams Python output without buffering. Browser conditions
+are polled every 100 ms while retaining their existing timeout limits.
+
 On failure, browser checks save a screenshot, console messages, session details
 and the ChromeDriver log under `browser-report/` (override with
 `BROWSER_DIAGNOSTICS_DIR`). A browser that fails to start may only provide a driver

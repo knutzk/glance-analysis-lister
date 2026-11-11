@@ -131,6 +131,7 @@ jobs:
 
   browser:
     env:
+      PYTHONUNBUFFERED: '1'
       BROWSER_DIAGNOSTICS_DIR: ${{ github.workspace }}/browser-report
     runs-on: ubuntu-latest
     timeout-minutes: 15

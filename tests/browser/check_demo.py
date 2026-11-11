@@ -26,6 +26,7 @@ from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
 from check_zensical import SiteHandler, browse
+from timing import timed
 
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = "examples/demo/publication-curation.toml"
@@ -153,6 +154,7 @@ def preview(work, *, documentation=False, group_pages=()):
                 )
 
 
+@timed("check_local_group_preview")
 def check_local_group_preview(work, driver):
     # TOPQ is a navigation label in this test; all records remain invented DEMO data.
     run_commands(
@@ -253,6 +255,7 @@ def check_local_group_preview(work, driver):
         assert "Local group reload sentinel." not in html.read_text()
 
 
+@timed("check_demonstrator_group")
 def check_demonstrator_group(work, driver):
     """Follow the CERN guide's navigation/render handoff with invented data only."""
     section = (work / "docs/cern-demo.md").read_text()
@@ -478,4 +481,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with timed("check_demo"):
+        main()

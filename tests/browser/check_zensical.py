@@ -20,6 +20,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
+from timing import timed
 
 from analysis_lister.views.build import render_group
 from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
@@ -33,6 +34,7 @@ class SiteHandler(SimpleHTTPRequestHandler):
         pass
 
 
+@timed("build synthetic site")
 def build_site(work, base):
     docs = work / "docs"
     docs.mkdir()
@@ -196,8 +198,11 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
     options.add_argument("--window-size=1440,1200")
     options.add_argument("--disable-background-networking")
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
-    with chrome(options=options, driver_path=driver_path) as driver:
-        wait = WebDriverWait(driver, 15)
+    with (
+        timed(f"browse {page_prefix or '/'}"),
+        chrome(options=options, driver_path=driver_path) as driver,
+    ):
+        wait = WebDriverWait(driver, 15, poll_frequency=0.1)
         driver.get(base + start_page)
         wait.until(
             lambda d: d.execute_script("return typeof document$ !== 'undefined'")
@@ -307,8 +312,10 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
             assert driver.execute_script(
                 "return [...document.styleSheets].some(s => s.href && s.href.endsWith('gal-common.css') && s.cssRules.length > 0)"
             )
-        check_saved_links(driver, wait, base, page_prefix)
-        check_layout_and_fallback(driver, wait, base, page_prefix)
+        with timed("saved links"):
+            check_saved_links(driver, wait, base, page_prefix)
+        with timed("layouts and static fallback"):
+            check_layout_and_fallback(driver, wait, base, page_prefix)
         errors = [
             entry for entry in driver.get_log("browser") if entry["level"] == "SEVERE"
         ]
@@ -343,4 +350,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with timed("check_zensical"):
+        main()
