@@ -109,6 +109,16 @@ def main():
         raise RuntimeError("Check must import the installed wheel, not the checkout")
 
     package = distribution("glance-analysis-lister")
+    ruff_configs = [
+        path
+        for path in package.files or []
+        if str(path).endswith("/share/glance-analysis-lister/ruff.toml")
+    ]
+    assert len(ruff_configs) == 1, "Wheel must install the Ruff configuration"
+    assert (
+        package.locate_file(ruff_configs[0]).read_bytes()
+        == (root / "ruff.toml").read_bytes()
+    )
     assert not any(
         str(path).startswith((".github/", "docs/", "examples/", "scripts/"))
         or str(path).endswith((".png", "zensical.toml"))
@@ -227,6 +237,7 @@ def main():
         )
         for contract_file in (
             schema_path,
+            "ruff.toml",
             "docs/file-reference.md",
             "docs/contributing.md",
             "docs/images/command-flow.svg",

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 include requirements*.txt
+include ruff.toml
 include .github/release-notes/v0.1.0.txt
 include .github/release-notes/v0.2.0.txt
 include .github/release-notes/v0.3.0.txt

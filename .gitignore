@@ -44,7 +44,7 @@ dist/
 .DS_Store
 /.zensical-preview.yml
 
-# Local event-list work, pending separate integration.
+# Retired local Events files; prevent accidental reintroduction.
 /analysis_lister/events.py
 /analysis_lister/event_labels.py
 /tests/test_events.py

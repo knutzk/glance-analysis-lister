@@ -30,7 +30,7 @@ include = ["analysis_lister*"]
 analysis_lister = ["_source_revision.txt", "registry/schemas/*.json", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
 
 [tool.setuptools.data-files]
-"share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml"]
+"share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml", "ruff.toml"]
 
 [tool.coverage.run]
 branch = true
@@ -39,8 +39,6 @@ relative_files = true
 parallel = true
 patch = ["subprocess"]
 data_file = "coverage-report/.coverage"
-# Local Events experiments are outside the maintained package.
-omit = ["*/analysis_lister/events.py", "*/analysis_lister/event_labels.py"]
 
 [tool.coverage.report]
 show_missing = true

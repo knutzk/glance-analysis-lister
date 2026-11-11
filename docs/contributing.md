@@ -72,6 +72,10 @@ ruff format --check .
 git diff --check
 ```
 
+The source archive includes `ruff.toml`. The wheel also installs a copy under
+`share/glance-analysis-lister/ruff.toml` in the Python environment; pass that file
+with Ruff's `--config` option when using the installed copy.
+
 Use `tests/view_fixtures.py` for invented records and add focused regressions
 that show the changed behaviour. Keep historical fixtures when they test inputs
 we still support, or use them to check that unsupported files fail clearly. Add
@@ -140,9 +144,9 @@ python -m coverage json
 ```
 
 Open `coverage-report/html/index.html` to inspect missing lines and branches.
-The report includes maintained package modules even if tests never import them;
-experimental Events modules are excluded. Tests and third-party dependencies
-are outside the measured source scope. The terminal report's percentage combines
+The report includes package modules even if tests never import them.
+Tests and third-party dependencies are outside the measured source scope.
+The terminal report's percentage combines
 line and branch opportunities; the JSON report and CI summary also show them
 separately. Run these commands sequentially; erase old measurements before each
 fresh run so stale subprocess data cannot inflate the result.
