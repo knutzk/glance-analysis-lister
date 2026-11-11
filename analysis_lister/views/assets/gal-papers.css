@@ -36,5 +36,11 @@
 .gal-papers [data-gal-item] > td:nth-child(2) { width: 100%; white-space: normal; min-width: 12rem; }
 .gal-papers caption { text-align: left; color: var(--gal-muted); padding: .5rem 0; }
 
-.gal-publication-details__body .gal-paper-citation { margin: .4rem 0; padding-inline-start: .7rem; border-inline-start: 3px solid var(--gal-border); color: inherit; overflow-wrap: anywhere; }
+.gal-publication-details__body .gal-paper-citation-panel { box-sizing: border-box; max-width: 85ch; margin-top: .8rem; padding: .65rem .85rem; border-inline-start: 3px solid var(--gal-accent); border-radius: 0 .3rem .3rem 0; background: color-mix(in srgb, var(--gal-accent) 5%, var(--md-default-bg-color, #fff)); }
+.gal-publication-details__body .gal-paper-citation-panel > .gal-card__label { margin: 0 0 .35rem; }
+.gal-publication-details__body .gal-paper-citation-panel .gal-paper-citation { margin: 0; padding: 0; border: 0; color: inherit; line-height: 1.7; overflow-wrap: anywhere; }
 .gal-publication-details__body .gal-paper-citation p { margin: 0; }
+.gal-publication-details__body .gal-paper-citation strong { font-weight: 600; }
+@media (max-width: 600px) {
+  .gal-publication-details__body .gal-paper-citation-panel { max-width: calc(100vw - 4rem); }
+}

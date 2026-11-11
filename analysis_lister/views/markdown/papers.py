@@ -67,10 +67,15 @@ def paper_details(row):
         out += "</ul>"
     out += "</div></div>"
     if row.details.cite_as:
+        out += '<div class="gal-paper-citation-panel">'
         out += '<p class="gal-card__label">Cite as:</p>'
         out += '<blockquote class="gal-paper-citation"><p>'
-        out += "<br>\n".join(escape(line) for line in row.details.cite_as)
-        out += "</p></blockquote>"
+        lines = [escape(line) for line in row.details.cite_as]
+        lines[0] = f"<strong>{lines[0]}</strong>"
+        if len(lines) > 1:
+            lines[1] = f"<em>{lines[1]}</em>"
+        out += "<br>\n".join(lines)
+        out += "</p></blockquote></div>"
     return out
 
 
