@@ -57,7 +57,7 @@ Installation needs internet access; generation and preview use only local data.
 Stop the server with **Ctrl+C**. In a new terminal, change to the repository root
 and run `source .venv/bin/activate` before running the preview command again.
 Port 8001 allows the demo to run alongside the
-[documentation preview](../docs/documentation.md) on port 8000.
+[documentation preview](../docs/contributing.md#documentation-changes) on port 8000.
 
 The setup commands create `examples/demo/work/pages/index.md`, the browser assets and an
 editable `examples/demo/work/demo-policy.toml`. The policy copy initially selects publications
@@ -184,4 +184,4 @@ and selects publications by the `DEMO` token in their identifiers. See
 [publication policies](../docs/selection.md#publication-policies) for the distinction
 between missing and explicitly empty configuration.
 
-The [README screenshots](../docs/documentation.md#regenerate-screenshots) use the same synthetic fixture.
+The [README screenshots](../README.md#explore-the-pages) use the same synthetic fixture.

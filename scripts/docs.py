@@ -28,14 +28,12 @@ GROUP_PAGES = {
     "Conference notes": "confnotes.md",
     "Public notes": "pubnotes.md",
 }
-RELEASE_VERSIONS = ("v0.2.0", "v0.1.0")
 if (ROOT / "analysis_lister/__init__.py").is_file():
     sys.path.insert(0, str(ROOT))
 # Never stage the whole checkout or docs tree: they may contain private outputs.
 PUBLIC_FILES = (
     "README.md",
     "LICENCE",
-    *(f".github/release-notes/{version}.txt" for version in RELEASE_VERSIONS),
     "zensical.toml",
     "examples/demo/zensical.toml",
     "scripts/docs.py",
@@ -46,7 +44,8 @@ PUBLIC_FILES = (
     "examples/demo/index.md",
     "examples/demo/publication-curation.toml",
     "docs/README.md",
-    "docs/architecture.md",
+    "docs/file-reference.md",
+    "docs/contributing.md",
     "docs/cern-demo.md",
     "docs/citations.md",
     "docs/data.md",
@@ -54,16 +53,8 @@ PUBLIC_FILES = (
     "docs/pages.md",
     "docs/website.md",
     "docs/problems.md",
-    "docs/output-reference.md",
-    "docs/documentation.md",
     "docs/cli-reference.md",
-    "docs/compatibility.md",
-    "docs/contributing-field.md",
-    "docs/curated-format.md",
-    "docs/development.md",
-    "docs/glossary.md",
     "docs/python-access.md",
-    "docs/releases.md",
     "docs/upgrading.md",
     "docs/stylesheets/site.css",
     "docs/images/command-flow.svg",
@@ -146,21 +137,6 @@ def stage(root=ROOT, *, include_roadmap=False, group_pages=()):
     """Stage public docs and explicitly selected local preview pages."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
-    for version in RELEASE_VERSIONS:
-        notes = sources.pop(f".github/release-notes/{version}.txt")
-        heading = (
-            f"# {version} release notes\n\n"
-            "These repository notes describe this version. Commands and validation\n"
-            "results below are historical; they do not qualify the current checkout.\n"
-            "See [release qualification](../releases.md) and "
-            "[upgrading](../upgrading.md).\n\n"
-        )
-        sources[f"docs/release-notes/{version}.md"] = heading.encode("utf-8") + notes
-        # Keep source links usable on GitHub; the site links to rendered notes.
-        sources["docs/releases.md"] = sources["docs/releases.md"].replace(
-            f"(../.github/release-notes/{version}.txt)".encode(),
-            f"(release-notes/{version}.md)".encode(),
-        )
     destination = root / "site-src"
     if include_roadmap or group_pages:
         config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]

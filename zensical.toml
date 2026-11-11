@@ -39,16 +39,9 @@ nav = [
   ] },
   { "Reference" = [
     { "Commands and options" = "docs/cli-reference.md" },
-    { "Curated data format" = "docs/curated-format.md" },
-    { "Files, URLs and reports" = "docs/output-reference.md" },
-    { "Python API" = "docs/python-access.md" },
-    { "Compatibility" = "docs/compatibility.md" },
-    { "Upgrading" = "docs/upgrading.md" },
-    { "Release notes" = [
-      { "v0.2.0" = "docs/release-notes/v0.2.0.md" },
-      { "v0.1.0 (historical)" = "docs/release-notes/v0.1.0.md" },
-    ] },
-    { "Glossary" = "docs/glossary.md" },
+    { "Saved data and generated files" = "docs/file-reference.md" },
+    { "Using Python" = "docs/python-access.md" },
+    { "Upgrading and compatibility" = "docs/upgrading.md" },
   ] },
   { "Demo" = [
     { "Overview" = "examples/demo/index.md" },
@@ -57,13 +50,7 @@ nav = [
     { "Conference notes" = "examples/demo/confnotes.md" },
     { "Public notes" = "examples/demo/pubnotes.md" },
   ] },
-  { "Contributing" = [
-    { "Architecture" = "docs/architecture.md" },
-    { "Field walkthrough" = "docs/contributing-field.md" },
-    { "Development and testing" = "docs/development.md" },
-    { "Documentation maintenance" = "docs/documentation.md" },
-    { "Preparing releases" = "docs/releases.md" },
-  ] },
+  { "Contributing" = "docs/contributing.md" },
 ]
 
 [project.theme]

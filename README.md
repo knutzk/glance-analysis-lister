@@ -110,9 +110,9 @@ on the internal TOPQ group website. The project has since become a general
 package for ATLAS physics and performance groups, with configurable group
 selection and publication policies for Markdown and Zensical websites.
 
-See [compatibility](docs/compatibility.md) for the defined interface scope and
-change policy, and [upgrading](docs/upgrading.md) before replacing a working
-installation. To contribute, see [development and validation](docs/development.md).
+See [compatibility and upgrading](docs/upgrading.md) for the interface scope,
+change policy and checks before replacing a working installation. To contribute,
+see [the contributor guide](docs/contributing.md).
 
 Parts of this codebase were developed with AI assistance from Codex (OpenAI)
 and Claude (Anthropic). All output was reviewed and validated by the author.

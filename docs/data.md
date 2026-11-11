@@ -2,7 +2,7 @@
 
 [Documentation overview](README.md)
 
-GLANCE records analyses, papers and notes as separate resources with their own
+ATLAS GLANCE records analyses, papers and notes as separate resources with their own
 identifiers, statuses, dates and links. The package saves those records locally
 so you can prepare group pages without contacting CERN every time.
 
@@ -20,6 +20,11 @@ to maintain them.
 ## From GLANCE to a website
 
 [![Authenticated GLANCE retrieval produces an API snapshot. Offline curation adds citation and identifier data; group configuration then shapes prepared views. Rendering creates pages and assets for a website builder.](images/data-flow.svg)](images/data-flow.svg)
+
+An analysis is a work record; a paper is a separate journal-publication record.
+CONF notes are conference notes and PUB notes are public notes. Their links can
+connect related work without making them interchangeable. A main group or
+subgroup is a recorded affiliation, not a separate dataset.
 
 ## The files you maintain
 
@@ -63,7 +68,7 @@ schema checks nested types and dates; additional checks enforce counts and
 unique identifiers. Unknown or contradictory source evidence is retained where
 the contract provides for it, not silently repaired. Only curated v2 is supported.
 
-[Data contract](curated-format.md) · [Extending curation](contributing-field.md)
+[Data contract](file-reference.md) · [Extending curation](contributing.md#find-the-right-part-of-the-code)
 
 ### Example: keywords before and after curation
 
@@ -93,7 +98,7 @@ The corresponding curated fragment is:
 The named objects become strings under a `gal_` field. The original `keywords`
 field is removed during field selection, and the view uses `gal_keywords` for
 search. These are fragments, not complete registries; the
-[curated contract](curated-format.md) defines the required container fields.
+[curated contract](file-reference.md) defines the required container fields.
 
 ### Relationships between records
 
@@ -101,7 +106,7 @@ An analysis and its publications remain separate records. Analyses and papers
 use `referenceCode`; notes use `temporaryReferenceCode`. A final public note
 number is a display identifier, not a replacement for native identity. Equal
 titles or similar identifiers do not establish a relationship.
-The [data contract](curated-format.md) defines retained fields and preserves
+The [data contract](file-reference.md) defines retained fields and preserves
 the distinction between missing, null and empty values.
 
 Preparation follows explicit links in both directions. A publication's
@@ -152,7 +157,7 @@ GLANCE records requires CERN access; rendering never refreshes the snapshot.
 | Update citations | [Maintain the citation store](citations.md) | Build with that store, then render. Only INSPIRE lookup needs public network access. |
 | Change group, publication policy, titles or renderer | [Render a saved curated registry](website.md#reuse-a-snapshot-offline) | Inspect the new pages and report. |
 | Understand changes between saved snapshots | [Compare snapshots](#compare-saved-snapshots) | Review the summary and, if needed, the detailed report. |
-| Inspect your group alongside the synthetic demo | [Local group preview](documentation.md#preview-your-group-alongside-demo) | Render to `pages/topq`, then explicitly select it in the local documentation preview. |
+| Inspect your group alongside the synthetic demo | [Local group preview](website.md#preview-your-group-alongside-demo) | Render to `pages/topq`, then explicitly select it in the local documentation preview. |
 | Add generated pages to an existing site | [Stage pages and enable assets](website.md#integrate-into-a-consuming-site) | Build and preview the consuming site. |
 
 ## Download and build a registry
@@ -180,7 +185,7 @@ dictionaries; it makes no network requests.
 `build-registry` reads `glance_api_registry.json` and writes
 `glance_curated_registry.json`. `render-group` reads the latter and writes the
 four Markdown pages, browser assets and report into `pages/topq/`.
-Then [preview the pages alongside Demo](documentation.md#preview-your-group-alongside-demo)
+Then [preview the pages alongside Demo](website.md#preview-your-group-alongside-demo)
 or integrate them into your consuming site. Neither rendering nor previewing
 downloads fresh records.
 
@@ -284,7 +289,7 @@ a changed hash does not by itself indicate an error.
 
 The exact headers and hash fields are documented in the output reference.
 
-[Output fingerprints](output-reference.md#generated-headers)
+[Output fingerprints](file-reference.md#trace-the-inputs-and-code)
 
 ### Reproducible output
 
