@@ -26,6 +26,7 @@ from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
 from check_zensical import SiteHandler, browse
+from timing import timed
 
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = "examples/demo/publication-curation.toml"
@@ -153,6 +154,7 @@ def preview(work, *, documentation=False, group_pages=()):
                 )
 
 
+@timed("check_local_group_preview")
 def check_local_group_preview(work, driver):
     # TOPQ is a navigation label in this test; all records remain invented DEMO data.
     run_commands(
@@ -207,6 +209,7 @@ def check_local_group_preview(work, driver):
             driver,
             page_prefix="local-groups/topq/",
             start_page="local-groups/topq/papers/",
+            exhaustive=False,
         )
         ongoing = group / "ongoing.md"
         ongoing.write_text(ongoing.read_text() + "\nLocal group reload sentinel.\n")
@@ -253,6 +256,7 @@ def check_local_group_preview(work, driver):
         assert "Local group reload sentinel." not in html.read_text()
 
 
+@timed("check_demonstrator_group")
 def check_demonstrator_group(work, driver):
     """Follow the CERN guide's navigation/render handoff with invented data only."""
     section = (work / "docs/cern-demo.md").read_text()
@@ -287,7 +291,13 @@ def check_demonstrator_group(work, driver):
             for link in BeautifulSoup(html, "html.parser").select("a[href]")
         }
         assert {base + "papers/", base + "topq/papers/"} <= links, links
-        browse(base, driver, page_prefix="topq/", start_page="topq/papers/")
+        browse(
+            base,
+            driver,
+            page_prefix="topq/",
+            start_page="topq/papers/",
+            exhaustive=False,
+        )
         ongoing = work / "examples/demo/work/pages/topq/ongoing.md"
         ongoing.write_text(
             ongoing.read_text() + "\nStandalone group reload sentinel.\n"
@@ -333,7 +343,7 @@ def check_demo(work, driver):
         with urlopen(base, timeout=5) as response:
             homepage = BeautifulSoup(response.read(), "html.parser")
         assert homepage.h1.get_text().strip().startswith("Interactive demo")
-        browse(base, driver, page_prefix="")
+        browse(base, driver, page_prefix="", exhaustive=False)
 
     # Follow the tutorial's literal commands, including its explicit reset.
     tutorial_text = (
@@ -454,11 +464,14 @@ def check_demo(work, driver):
         thread.start()
         try:
             base = f"http://127.0.0.1:{server.server_port}/glance-analysis-lister/"
+            # Keep the full suite on the real documentation theme and project CSS,
+            # in addition to the minimal host exercised by check_zensical.py.
             browse(
                 base,
                 driver,
                 page_prefix="examples/demo/",
                 start_page="examples/demo/",
+                exhaustive=True,
             )
         finally:
             server.shutdown()
@@ -478,4 +491,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with timed("check_demo"):
+        main()

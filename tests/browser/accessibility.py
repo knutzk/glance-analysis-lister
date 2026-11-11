@@ -127,8 +127,12 @@ def check_keyboard(driver, wait, page):
     assert_focus(driver, toggle)
 
 
-def check_layout_and_fallback(driver, wait, base, page_prefix):
-    """Use CSS viewport sizes, not OS window sizing, which may enforce a minimum."""
+def check_layout_and_fallback(driver, wait, base, page_prefix, *, keyboard=True):
+    """Check host layouts and static content at actual CSS viewport sizes.
+
+    Full suites additionally traverse and scroll regions with the keyboard.
+    Hosting checks keep all viewport, colour-scheme and static-content assertions.
+    """
     try:
         for width in (390, 320):
             driver.execute_cdp_cmd(
@@ -156,25 +160,28 @@ def check_layout_and_fallback(driver, wait, base, page_prefix):
                     assert driver.execute_script(
                         "return document.documentElement.scrollWidth <= innerWidth"
                     ), (page, width, scheme)
-                    search = root.find_element(By.CSS_SELECTOR, "[data-gal-search]")
-                    tab_to(driver, search)
-                    assert_focus(driver, search)
-                    for region in root.find_elements(
-                        By.CSS_SELECTOR, ".gal-table-scroll"
-                    ):
-                        tab_to(driver, region)
-                        assert_focus(driver, region)
-                        if driver.execute_script(
-                            "return arguments[0].scrollWidth > arguments[0].clientWidth",
-                            region,
+                    if keyboard:
+                        search = root.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+                        tab_to(driver, search)
+                        assert_focus(driver, search)
+                        for region in root.find_elements(
+                            By.CSS_SELECTOR, ".gal-table-scroll"
                         ):
-                            driver.execute_script("arguments[0].scrollLeft=0", region)
-                            press(driver, Keys.ARROW_RIGHT)
-                            wait.until(
-                                lambda _, region=region: driver.execute_script(
-                                    "return arguments[0].scrollLeft > 0", region
+                            tab_to(driver, region)
+                            assert_focus(driver, region)
+                            if driver.execute_script(
+                                "return arguments[0].scrollWidth > arguments[0].clientWidth",
+                                region,
+                            ):
+                                driver.execute_script(
+                                    "arguments[0].scrollLeft=0", region
                                 )
-                            )
+                                press(driver, Keys.ARROW_RIGHT)
+                                wait.until(
+                                    lambda _, region=region: driver.execute_script(
+                                        "return arguments[0].scrollLeft > 0", region
+                                    )
+                                )
                 driver.execute_cdp_cmd(
                     "Emulation.setScriptExecutionDisabled", {"value": True}
                 )

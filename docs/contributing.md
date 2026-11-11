@@ -173,6 +173,28 @@ light/dark themes, saved links, instant navigation and no-JavaScript content.
 The demo check also exercises the documented setup and local group previews.
 They use invented data and do not establish live CERN access.
 
+One CI browser job runs two groups concurrently on the same runner: the standalone
+checks followed by Zensical integration, alongside the complete demo/tutorial
+check. Each suite uses independent temporary sites and browser profiles. Both
+groups finish before CI reports success or failure, with separate `views.log`
+and `demo.log` output; either group's failure fails the job. The commands above
+remain available individually for local debugging.
+
+Detailed filter combinations and keyboard traversal run on the minimal Zensical
+site and the built public documentation site, preserving coverage of both the
+default theme and project CSS. The standalone demo, demonstrator group and local
+group preview use focused hosting checks: all four pages and repeat navigation,
+initialization, keyboard
+access to search, search/reset/expansion, saved URLs and reloads, all package
+stylesheets, console errors, both narrow widths and light/dark layouts, and
+no-JavaScript content. Tutorial commands, policy edits, live reload, server
+shutdown and private/public build isolation still run in full.
+
+Each script prints wall-clock timings with `START`, `PASS` or `FAIL`, including
+major site/demo phases. Phase timings are nested inside script totals; do not add
+them together. CI streams Python output without buffering. Browser conditions
+are polled every 100 ms while retaining their existing timeout limits.
+
 On failure, browser checks save a screenshot, console messages, session details
 and the ChromeDriver log under `browser-report/` (override with
 `BROWSER_DIAGNOSTICS_DIR`). A browser that fails to start may only provide a driver

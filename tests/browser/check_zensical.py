@@ -14,12 +14,18 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from urllib.parse import parse_qs, urlsplit
 
-from accessibility import check_keyboard, check_layout_and_fallback
+from accessibility import (
+    assert_focus,
+    check_keyboard,
+    check_layout_and_fallback,
+    tab_to,
+)
 from diagnostics import chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
+from timing import timed
 
 from analysis_lister.views.build import render_group
 from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
@@ -33,6 +39,7 @@ class SiteHandler(SimpleHTTPRequestHandler):
         pass
 
 
+@timed("build synthetic site")
 def build_site(work, base):
     docs = work / "docs"
     docs.mkdir()
@@ -188,7 +195,14 @@ def check_saved_links(driver, wait, base, page_prefix):
         assert actual.fragment == fragment
 
 
-def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
+def browse(
+    base, driver_path, *, page_prefix="analyses/", start_page="", exhaustive=True
+):
+    """Check each host; run detailed control/keyboard cases on representative sites.
+
+    Both modes cover all pages, revisits, saved links, layouts and static fallback.
+    The default also exercises filter combinations and every keyboard control.
+    """
     options = Options()
     if binary := os.environ.get("CHROME_BINARY"):
         options.binary_location = binary
@@ -196,8 +210,11 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
     options.add_argument("--window-size=1440,1200")
     options.add_argument("--disable-background-networking")
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
-    with chrome(options=options, driver_path=driver_path) as driver:
-        wait = WebDriverWait(driver, 15)
+    with (
+        timed(f"browse {'full' if exhaustive else 'hosting'} {page_prefix or '/'}"),
+        chrome(options=options, driver_path=driver_path) as driver,
+    ):
+        wait = WebDriverWait(driver, 15, poll_frequency=0.1)
         driver.get(base + start_page)
         wait.until(
             lambda d: d.execute_script("return typeof document$ !== 'undefined'")
@@ -205,10 +222,17 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
         driver.execute_script("window.integrationDocument = 'preserved';")
         for page in (*PAGES, "ongoing", "papers"):
             url = base + f"{page_prefix}{page}/"
+            # Resolve relative hrefs in one browser query instead of fetching
+            # every navigation/sidebar link through a separate WebDriver call.
+            # Keep document order, Selenium visibility checks and a real click.
             link = next(
                 e
-                for e in driver.find_elements(By.CSS_SELECTOR, "a[href]")
-                if e.get_attribute("href") == url and e.is_displayed()
+                for e in driver.execute_script(
+                    "return [...document.querySelectorAll('a[href]')]"
+                    ".filter(a => a.href === arguments[0])",
+                    url,
+                )
+                if e.is_displayed()
             )
             previous = driver.find_element(By.CSS_SELECTOR, ".md-content__inner")
             link.click()
@@ -239,8 +263,14 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
                     By.CSS_SELECTOR, counter
                 ).text.startswith(f"{default_count} of 4")
             )
-            check_filter_subsets(driver, wait, page)
-            check_keyboard(driver, wait, page)
+            if exhaustive:
+                check_filter_subsets(driver, wait, page)
+                check_keyboard(driver, wait, page)
+            else:
+                # Host navigation must still leave search reachable by keyboard,
+                # with a visible focus indicator under the host's stylesheet.
+                tab_to(driver, search)
+                assert_focus(driver, search)
             search.send_keys("no-synthetic-record-matches")
             wait.until(
                 lambda d, counter=counter: d.find_element(
@@ -303,18 +333,27 @@ def browse(base, driver_path, *, page_prefix="analyses/", start_page=""):
             wait.until(
                 lambda d, button=button: button.get_attribute("aria-pressed") == "false"
             )
-            # Confirm the package stylesheet loaded in the built theme.
+            # Check every package stylesheet, including resource-specific assets.
             assert driver.execute_script(
-                "return [...document.styleSheets].some(s => s.href && s.href.endsWith('gal-common.css') && s.cssRules.length > 0)"
+                "return arguments[0].every(name => [...document.styleSheets].some("
+                "s => s.href && s.href.endsWith('/gal-' + name + '.css') && "
+                "!s.disabled && s.cssRules.length > 0))",
+                ["common", "ongoing", "papers", "notes"],
+            ), "Missing or disabled package stylesheet"
+        with timed("saved links"):
+            check_saved_links(driver, wait, base, page_prefix)
+        with timed("layouts and static fallback"):
+            check_layout_and_fallback(
+                driver, wait, base, page_prefix, keyboard=exhaustive
             )
-        check_saved_links(driver, wait, base, page_prefix)
-        check_layout_and_fallback(driver, wait, base, page_prefix)
         errors = [
             entry for entry in driver.get_log("browser") if entry["level"] == "SEVERE"
         ]
         assert not errors, errors
         print(
-            "Zensical checks passed: four pages, filters and saved URLs, instant navigation, keyboard/focus, narrow light/dark layouts, static fallback and assets."
+            f"Zensical {'full' if exhaustive else 'hosting'} checks passed: "
+            "four pages and revisits, search and saved URLs, instant navigation, "
+            "focus, narrow light/dark layouts, static fallback and assets."
         )
 
 
@@ -343,4 +382,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with timed("check_zensical"):
+        main()
