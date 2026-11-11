@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+# SPDX-License-Identifier: GPL-3.0-only
+
+name: PR coverage summary
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+concurrency:
+  group: coverage-summary-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # This workflow runs with a write token, including for fork PRs. Only
+      # execute publisher code from the trusted default-branch workflow SHA.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: scripts/coverage_summary.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      # No PR checkout, dependency installation, cache restore or artifact
+      # extraction. The publisher reads bounded JSON totals as untrusted data.
+      - name: Update coverage comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python scripts/coverage_summary.py --run-id "$COVERAGE_RUN_ID"
