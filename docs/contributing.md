@@ -108,7 +108,7 @@ with HTML, XML and JSON reports. Coverage currently informs review; no percentag
 threshold is enforced. A failing test run produces partial coverage only.
 
 After PR CI finishes, **PR coverage summary** creates or updates one bot comment
-with line and branch totals, their changes in percentage points, and a download
+with line and branch totals, changes in covered counts, and a download
 link for the full HTML/XML/JSON report. Extract the download and open
 `html/index.html`; artifacts are retained for 14 days. PR CI tests the merge with
 its base, rather than the head commit in isolation.

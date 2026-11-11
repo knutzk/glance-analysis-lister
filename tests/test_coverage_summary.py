@@ -160,11 +160,27 @@ class CoverageSummaryTests(unittest.TestCase):
         publish(api, 20)
         method, path, body = api.writes[0]
         self.assertEqual((method, path), ("POST", "issues/12/comments"))
-        self.assertIn("90.00% (90/100) | 85.00% (85/100) | +5.00 pp", body)
-        self.assertIn("75.00% (30/40) | 80.00% (32/40) | -5.00 pp", body)
-        self.assertIn("actions/runs/20/artifacts/200", body)
-        self.assertIn(BASE[:12], body)
+        self.assertIn("90/100 (90.00%) | 85/100 (85.00%) | +5", body)
+        self.assertIn("30/40 (75.00%) | 32/40 (80.00%) | -2", body)
+        self.assertIn(
+            "[Full report](https://github.com/invented/package/actions/runs/20/artifacts/200)",
+            body,
+        )
+        self.assertIn(
+            f"[Baseline `{BASE[:12]}`](https://github.com/invented/package/commit/{BASE})",
+            body,
+        )
+        self.assertIn("[CI](https://github.com/invented/package/actions/runs/10)", body)
+        self.assertNotIn("Changes are", body)
+        self.assertNotIn("Scope:", body)
         self.assertNotIn("@everyone", body)
+
+    def test_count_changes_are_independent_of_denominator_changes(self):
+        api = FakeGitHub()
+        api.archives[200] = archive(lines=(90, 120), branches=(32, 50))
+        body = publish(api, 20, dry_run=True)
+        self.assertIn("90/120 (75.00%) | 85/100 (85.00%) | +5", body)
+        self.assertIn("32/50 (64.00%) | 32/40 (80.00%) | +0", body)
 
     def test_updates_only_our_bot_comment_and_dry_run_never_writes(self):
         for login, kind, expected in [
@@ -237,8 +253,8 @@ class CoverageSummaryTests(unittest.TestCase):
                 else:
                     api.baselines[0]["head_sha"] = "c" * 40
                 body = publish(api, 20, dry_run=True)
-                self.assertIn("90.00% (90/100) | N/A | N/A", body)
-                self.assertIn("No older baseline was substituted", body)
+                self.assertIn("90/100 (90.00%) | N/A | N/A", body)
+                self.assertIn(f"Baseline unavailable for [`{BASE[:12]}`]", body)
 
     def test_failed_tests_and_missing_pr_report_do_not_claim_improvement(self):
         for missing in (False, True):
@@ -248,16 +264,26 @@ class CoverageSummaryTests(unittest.TestCase):
                 api.artifacts[20] = []
             body = publish(api, 20, dry_run=True)
             self.assertIn("Incomplete / unavailable", body)
-            self.assertNotIn("+5.00 pp", body)
-            self.assertNotIn("-5.00 pp", body)
+            self.assertIn(
+                "| Lines | "
+                + ("N/A" if missing else "90/100 (90.00%)")
+                + " | 85/100 (85.00%) | N/A |",
+                body,
+            )
+            self.assertIn(
+                "| Branches | "
+                + ("N/A" if missing else "30/40 (75.00%)")
+                + " | 32/40 (80.00%) | N/A |",
+                body,
+            )
             self.assertIn("no change is calculated", body)
 
     def test_zero_denominators_are_not_invented_percentages(self):
         api = FakeGitHub()
         api.archives[200] = archive(lines=(0, 0), branches=(0, 0))
         body = publish(api, 20, dry_run=True)
-        self.assertIn("N/A (0/0)", body)
-        self.assertNotIn(" pp |", body)
+        self.assertIn("0/0 (N/A) | 85/100 (85.00%) | -85", body)
+        self.assertIn("0/0 (N/A) | 32/40 (80.00%) | -32", body)
 
     def test_rejects_bad_counts_missing_branch_data_and_duplicate_json(self):
         for counts in [(True, 100), (101, 100), (-1, 100), (1.5, 100), (1, 10**10)]:
