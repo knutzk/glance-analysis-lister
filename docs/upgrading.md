@@ -158,6 +158,6 @@ indefinite support for every previous file shape.
 
 ## Release history
 
-- [v0.3.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.3.0.txt) — prerelease
+- [v0.3.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.3.0.txt)
 - [v0.2.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.2.0.txt)
 - [v0.1.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.1.0.txt)
