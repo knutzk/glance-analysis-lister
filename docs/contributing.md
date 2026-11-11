@@ -180,7 +180,8 @@ log and traceback. CI uploads these diagnostics and stage logs as
 **browser-failure-diagnostics**, retained for 14 days. Checks still fail normally;
 there are no automatic retries. New commits cancel older CI runs for the same PR.
 
-For performance-sensitive changes, run the separate synthetic benchmark:
+For material selection, filtering or rendering changes and each exact release
+candidate, run the existing synthetic benchmark:
 
 ```bash
 python tests/browser/check_performance.py --driver /path/to/chromedriver \
@@ -189,7 +190,9 @@ python tests/browser/check_performance.py --driver /path/to/chromedriver \
 
 The default workload has 1,000 records per category. Its provisional review limits
 are 30 seconds per fresh render and 500 ms per filter action, not a public speed
-guarantee. Run it alone, record the environment and retain failed samples.
+guarantee. Run it alone, without coverage instrumentation. Retain the report with
+the tested commit, dirty state, environment, workload and outcomes, including
+failed samples. Previous results do not qualify a new release candidate.
 The manual **Synthetic performance** workflow provides an Ubuntu comparison.
 
 ### Documentation changes
