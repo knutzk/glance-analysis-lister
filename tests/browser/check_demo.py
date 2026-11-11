@@ -387,16 +387,9 @@ def check_demo(work, driver):
     assert (work / "examples/demo/work/site/index.html").is_file()
     check_demonstrator_group(work, driver)
 
-    # Local roadmap preview must not require edits to the tracked config or leak
-    # into a subsequent public build. Use invented text, never a local roadmap.
+    # Documentation previews reload source edits without changing tracked config.
     config_before = (work / "zensical.toml").read_bytes()
-    roadmap = work / "ROADMAP.md"
-    roadmap.write_text("# Local roadmap preview\n\n- [ ] Invented task\n")
     with preview(work, documentation=True) as base:
-        with urlopen(base + "ROADMAP/", timeout=5) as response:
-            assert "Local roadmap preview" in response.read().decode()
-        roadmap.write_text(roadmap.read_text() + "\nUpdated local planning text.\n")
-        wait_for_preview_text(base + "ROADMAP/", "Updated local planning text.")
         guide = work / "docs/contributing.md"
         original_guide = guide.read_bytes()
         guide.write_bytes(
@@ -410,9 +403,6 @@ def check_demo(work, driver):
 
     # Build the documentation site with the complete demo under its real subpath.
     subprocess.run([sys.executable, "scripts/docs.py", "build"], cwd=work, check=True)
-    assert not (work / "site-src/ROADMAP.md").exists()
-    assert not (work / "site/ROADMAP").exists()
-    assert 'href="ROADMAP/' not in (work / "site/index.html").read_text()
     assert not list((work / "site-src").rglob("view-report.json"))
     assert not (work / "site-src/.github").exists()
     assert not (work / "site/examples/demo/work").exists()

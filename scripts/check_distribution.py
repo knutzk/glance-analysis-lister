@@ -40,7 +40,6 @@ def check_public_paths(paths, artifact):
     """Reject known private/local outputs; this cannot establish data provenance."""
     forbidden_parts = {
         "AGENTS.md",
-        "ROADMAP.md",
         ".python-version",
         "cookies.json",
         ".cache",
@@ -233,6 +232,7 @@ def main():
             "docs/images/command-flow.svg",
             ".github/release-notes/v0.1.0.txt",
             ".github/release-notes/v0.2.0.txt",
+            ".github/release-notes/v0.3.0.txt",
             "examples/demo/zensical.toml",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",

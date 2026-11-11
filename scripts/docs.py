@@ -133,16 +133,13 @@ def write_changed(destination, content):
         destination.write_bytes(content)
 
 
-def stage(root=ROOT, *, include_roadmap=False, group_pages=()):
+def stage(root=ROOT, *, group_pages=()):
     """Stage public docs and explicitly selected local preview pages."""
     # Read all inputs before changing the staged copy (editors may replace files).
     sources = {name: (root / name).read_bytes() for name in PUBLIC_FILES}
     destination = root / "site-src"
-    if include_roadmap or group_pages:
+    if group_pages:
         config = tomllib.loads(sources["zensical.toml"].decode("utf-8"))["project"]
-    if include_roadmap:
-        sources["ROADMAP.md"] = (root / "ROADMAP.md").read_bytes()
-        config["nav"].append({"Roadmap": "ROADMAP.md"})
     if group_pages:
         destination = root / GROUP_PREVIEW / "site-src"
         config["docs_dir"] = (GROUP_PREVIEW / "site-src").as_posix()
@@ -166,7 +163,7 @@ def stage(root=ROOT, *, include_roadmap=False, group_pages=()):
                 },
             )
             position += 1
-    if include_roadmap or group_pages:
+    if group_pages:
         # JSON is valid YAML; Zensical accepts the same project settings in both.
         # Keep this generated config at the repository root for relative paths.
         write_changed(
@@ -271,9 +268,8 @@ def main():
         path = ROOT / directory
         if path.exists():
             shutil.rmtree(path)
-    include_roadmap = args.command == "serve" and (ROOT / "ROADMAP.md").is_file()
-    stage(include_roadmap=include_roadmap, group_pages=args.group_pages)
-    config = PREVIEW_CONFIG if include_roadmap or args.group_pages else "zensical.toml"
+    stage(group_pages=args.group_pages)
+    config = PREVIEW_CONFIG if args.group_pages else "zensical.toml"
     command = [sys.executable, "-m", "zensical", args.command, "-f", config]
     if args.command == "build":
         return subprocess.call([*command, "--clean", "--strict"], cwd=ROOT)
@@ -285,7 +281,7 @@ def main():
             while process.poll() is None:
                 time.sleep(0.5)
                 try:
-                    stage(include_roadmap=include_roadmap, group_pages=args.group_pages)
+                    stage(group_pages=args.group_pages)
                 except FileNotFoundError:
                     # Retry while an editor is replacing a source file.
                     continue
