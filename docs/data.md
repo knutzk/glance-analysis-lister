@@ -57,7 +57,7 @@ The workflows below also support existing consuming websites and explicit paths.
 ## What curation changes
 
 Curation retains independent records and their explicit relationships while
-selecting the fields defined by the curated-data contract. Named collections
+selecting the fields used by the package. Named collections
 such as keywords become lists of names; added or reshaped fields use the `gal_`
 prefix. Original keys replaced by these fields are removed. New API fields are
 not adopted automatically, and DOI/citation entries remain paired with their
@@ -66,9 +66,11 @@ original publication or correction.
 The registry is validated before it replaces the saved output. The bundled
 schema checks nested types and dates; additional checks enforce counts and
 unique identifiers. Unknown or contradictory source evidence is retained where
-the contract provides for it, not silently repaired. Only curated v2 is supported.
+the current format provides for it, not silently repaired. Saved snapshots record
+the generating code; a different or missing fingerprint warns without blocking
+valid data. This check does not replace structural validation.
 
-[Data contract](file-reference.md) · [Extending curation](contributing.md#find-the-right-part-of-the-code)
+[Stored data reference](file-reference.md) · [Extending curation](contributing.md#find-the-right-part-of-the-code)
 
 ### Example: keywords before and after curation
 
@@ -98,7 +100,7 @@ The corresponding curated fragment is:
 The named objects become strings under a `gal_` field. The original `keywords`
 field is removed during field selection, and the view uses `gal_keywords` for
 search. These are fragments, not complete registries; the
-[curated contract](file-reference.md) defines the required container fields.
+[stored data reference](file-reference.md) defines the required container fields.
 
 ### Relationships between records
 
@@ -106,7 +108,7 @@ An analysis and its publications remain separate records. Analyses and papers
 use `referenceCode`; notes use `temporaryReferenceCode`. A final public note
 number is a display identifier, not a replacement for native identity. Equal
 titles or similar identifiers do not establish a relationship.
-The [data contract](file-reference.md) defines retained fields and preserves
+The [stored data reference](file-reference.md) defines retained fields and preserves
 the distinction between missing, null and empty values.
 
 Preparation follows explicit links in both directions. A publication's

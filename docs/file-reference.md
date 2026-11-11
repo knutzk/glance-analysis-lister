@@ -10,7 +10,10 @@ Keep these inputs and reports privately; publish only the intended pages and ass
 
 The [data guide](data.md) explains this workflow. This reference describes the
 stored values, output names and URL parameters when you need to inspect a file
-or connect the package to another tool.
+or connect the package to another tool. Generated JSON supports the package's
+own workflow; it is not a stable external interchange API. An upgrade may require
+rebuilding generated data. Custom citation stores contain user-maintained work
+and are handled separately in the [upgrade guide](upgrading.md#preserve-the-inputs).
 
 ## What each file is for
 
@@ -88,21 +91,38 @@ evidence; neither it nor URL validation establishes that a linked page is reacha
 
 ### Current format rules
 
-The registry has `schema: "glance-curated-registry"` and integer
-`schema_version: 2`, independent of the package version. Only v2 is accepted;
-valid saved v2 files need no rewriting. Changing the number by hand is not a
-migration.
+The `schema` string identifies the file's purpose: `glance-api-registry` for
+source snapshots and `glance-curated-registry` for curated data. There is no
+package-specific JSON schema version number. Legacy `schema_version` fields
+are ignored; rewriting a curated registry omits them.
 
-Optional additions and unknown fields, including nested fields, are accepted.
-Status, journal and group codes remain open strings. Removing or renaming a field,
-narrowing its type, making it required or changing its meaning requires a new
-schema version. Changes to record retention also require compatibility review.
-Fields do not disappear merely because a view stops using them.
+Generated files include a top-level `generator` object:
 
-A future breaking format must define supported inputs and tested migrations
-without inventing missing history. Frozen synthetic fixtures remain readable;
-new features receive additional fixtures. These are the current rules, separate
-from package-release numbering.
+| Field | Purpose |
+| --- | --- |
+| `name` | `glance-analysis-lister`. |
+| `git_commit` | Source revision for tracing the generating code, or `unknown` if unavailable. |
+| `content_sha256` | Fingerprint of package Python files, validation schemas and browser assets. |
+
+When reading a snapshot, the package compares its fingerprint with the running
+code. Different, missing or unrecognised generator metadata produces a warning
+and execution continues if the data passes validation. Warnings go to stderr in
+the CLI, including with `--quiet`; Python callers receive a logging warning.
+Neither a different commit nor a different worktree path alone causes a warning
+when the code contents match. Documentation-only changes do not change the hash.
+
+This comparison detects different generating code; it does not prove that the
+file is incompatible. Regenerate with the current package if problems occur.
+Older or hand-authored files, including the synthetic demo, can lack metadata and
+still be used. Custom citation stores are exempt from generator checks because
+they contain user-maintained data.
+
+Structural validation remains independent: the wrong file type, malformed known
+fields, inconsistent counts or duplicate identities fail. Unknown additions are
+accepted, and status, journal and group codes remain open strings. Retained fields
+can evolve without a permanent external compatibility guarantee. If a saved
+registry no longer validates, follow the
+[rebuild guidance](upgrading.md#if-a-saved-file-is-no-longer-supported).
 
 The schema ships in the wheel and source archive. To inspect it programmatically:
 
@@ -176,7 +196,7 @@ precede browser filtering; analysis and diagnostic categories can overlap.
 
 | Summary field | Meaning |
 | --- | --- |
-| `schema`, `schema_version` | `"glance-group-view-report"` and integer `2`. |
+| `schema` | `"glance-group-view-report"`. |
 | `snapshot.filename`, `snapshot.sha256` | Input basename and SHA-256 of its exact bytes. |
 | `profile.group`, `profile_sha256` | Selected main group and hash of the effective profile. |
 | `generator.name` | `"glance-analysis-lister"`. |
@@ -188,16 +208,15 @@ precede browser filtering; analysis and diagnostic categories can overlap.
 | `counts.warning_issues`, `counts.informational_issues` | Numbers of issues, not records. |
 
 All counts are nonnegative integers; hashes are 64 lowercase hexadecimal
-characters. Within report v2, these summary names, types and meanings are stable;
-additions are allowed at every level. Consumers must check the schema/version,
-validate fields they use and ignore unknown fields. Reject a missing required
-summary field rather than defaulting it to zero. Removing or changing a summary
-field requires a new report version and upgrade guidance.
+characters. The table describes the report produced by the current package.
+Summary fields, detailed issues and rule traces can change between releases;
+the report is explanatory output, not a stable external JSON API. Its generator
+metadata identifies the code that produced it, without promising field stability.
 
-Detailed issues, rule traces, reason strings and other fields inside `profile`
-or `generator` can change within v2. Pin the package revision if reading them
-programmatically. JSON formatting and key order are not contractual. The
-[warnings guide](problems.md) explains how to interpret the evidence.
+If you inspect reports in a script, pin the package version and check the fields
+you use when upgrading. A missing warning count should not silently become zero.
+Regenerate reports with the pages after an upgrade; there is no report migration
+workflow. The [warnings guide](problems.md) explains how to interpret the evidence.
 
 ### Trace the inputs and code
 
@@ -208,7 +227,7 @@ registry content. No generation timestamp is added.
 
 The profile hash covers the group, title and selected policy, excluding unrelated
 TOML groups, comments and formatting. The generator hash covers package Python
-files and browser assets by relative name and content; matching checkouts and
+files, validation schemas and browser assets by relative name and content; matching checkouts and
 installed packages produce the same content hash. Dictionary inputs are covered
 by the snapshot and its curation provenance, since rendering does not reread them.
 

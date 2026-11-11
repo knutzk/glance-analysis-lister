@@ -36,15 +36,17 @@ DEMO-2099-04
 
 | Import path | Names | Purpose |
 | --- | --- | --- |
-| `analysis_lister.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA`, `SCHEMA_VERSION` | Read and validate stored curated data. |
+| `analysis_lister.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA` | Read and validate stored curated data. |
 | `analysis_lister.views.profiles` | `GroupProfile`, `PublicationPolicy` | Describe a group's presentation and publication selection. |
 | `analysis_lister.views.curation` | `load_publication_policy` | Read a policy from TOML. |
 | `analysis_lister.views.prepare` | `prepare_group` | Produce collections without rendering or network access. |
 
 `RESOURCES` is `("analyses", "papers", "confnotes", "pubnotes")`.
-`SCHEMA` is `"glance-curated-registry"`; `SCHEMA_VERSION` is `2`.
+`SCHEMA` is `"glance-curated-registry"`.
 `validate_registry(data)` validates a decoded JSON object without changing it,
 returns `None` on success, and raises `ValueError` for invalid curated data.
+Validation also logs a warning if generator metadata is absent or its code
+fingerprint differs. That warning does not reject valid data or change the input.
 
 ### Reader reference
 
@@ -117,7 +119,7 @@ still yield empty displayed collections because lifecycle rules exclude records.
 Prepared result objects use attributes, not dictionary indexing. Consume the
 documented attributes below; their constructors, other attributes, rule traces
 and renderer helpers are internal. Read additional record fields through
-`CuratedRegistry` when you need the stored contract rather than a display value.
+`CuratedRegistry` when you need the stored values rather than a display value.
 
 | `GroupView` attribute | Meaning |
 | --- | --- |
@@ -158,7 +160,9 @@ Profiles and result objects prevent attribute reassignment, but nested lists
 and dictionaries are mutable. Treat a prepared view as read-only; use
 `copy.deepcopy(view)` before modifying nested data. Do not use `attrs.asdict(view)`
 or pickle output as a durable interchange format: internal attributes are not
-part of this API scope. Persist the curated registry and prepare again instead.
+part of this API scope. Save the curated registry to prepare again with a
+compatible package, and keep its API snapshot so the registry can be rebuilt
+after an incompatible change.
 
 `controls`, `decisions` and provenance dictionaries expose internal UI/rule
 evidence for diagnostics. Their structure and reason strings are not part of
@@ -170,5 +174,8 @@ human-facing explanation of those decisions.
 The imports and result attributes above define the current Python integration
 scope. Pin the package version in a consuming application and follow the
 [upgrade guide](upgrading.md) before replacing it. Internal helpers and constructors
-are not public APIs; use the CLI for file-writing workflows. Stored JSON follows
-its own current format rules, independently of Python imports.
+are not public APIs; use the CLI for file-writing workflows. The reader methods
+provide access to stored records, but do not make every key in those dictionaries
+a stable Python attribute or an external JSON contract. Stored fields can change
+and registries may need rebuilding after an upgrade; the documented reader
+methods and prepared-result attributes are a separate interface.
