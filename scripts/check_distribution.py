@@ -13,8 +13,9 @@ import sys
 import tarfile
 from importlib.metadata import distribution
 from importlib.resources import files
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 import analysis_lister
 from analysis_lister.citations.store import default_store_path, load_store
@@ -35,6 +36,73 @@ from analysis_lister.views.curation import (
 )
 
 
+def check_public_paths(paths, artifact):
+    """Reject known private/local outputs; this cannot establish data provenance."""
+    forbidden_parts = {
+        "AGENTS.md",
+        "ROADMAP.md",
+        ".python-version",
+        "cookies.json",
+        ".cache",
+        ".venv",
+        "__pycache__",
+        ".git",
+        "debug",
+        "pages",
+        "obsidian_output",
+        "site",
+        "site-src",
+        "site-demo",
+        "analyses",
+        "coverage-report",
+        "public-api-report",
+        "browser-report",
+        ".html-download-in-progress",
+    }
+    forbidden_paths = {
+        "analysis_lister/events.py",
+        "analysis_lister/event_labels.py",
+        "tests/test_events.py",
+    }
+    public_json = {
+        "analysis_lister/registry/schemas/curated.schema.json",
+        "examples/synthetic_registry.json",
+        "json/doi_metadata.json",
+        "json/pubnote_identifiers.json",
+    }
+    rejected = []
+    for raw in paths:
+        path = PurePosixPath(str(raw))
+        name = path.as_posix()
+        allowed_json = (
+            name in public_json
+            or (
+                path.parent.as_posix() == "tests/fixtures/curated"
+                and path.suffix == ".json"
+            )
+            or name.endswith(
+                (
+                    "/share/glance-analysis-lister/doi_metadata.json",
+                    "/share/glance-analysis-lister/pubnote_identifiers.json",
+                )
+            )
+        )
+        if (
+            forbidden_parts.intersection(path.parts)
+            or name in forbidden_paths
+            or name == "examples/demo/work"
+            or name.startswith("examples/demo/work/")
+            or any(part.startswith(".refresh-") for part in path.parts)
+            or path.suffix.lower() in {".csv", ".log", ".html", ".htm", ".pyc"}
+            or (path.suffix.lower() == ".json" and not allowed_json)
+        ):
+            rejected.append(name)
+    if rejected:
+        raise AssertionError(
+            f"Forbidden private/local paths in {artifact}: {', '.join(sorted(rejected))}"
+        )
+
+
 def main():
     root = Path(__file__).resolve().parents[1]
     installed = Path(analysis_lister.__file__).resolve()
@@ -47,6 +115,11 @@ def main():
         or str(path).endswith((".png", "zensical.toml"))
         for path in package.files
     ), "Documentation and screenshots belong in the source archive, not the wheel"
+    wheels = list((root / "dist").glob("*.whl"))
+    assert len(wheels) == 1, "Expected one wheel"
+    # Inspect the archive, before pip adds legitimate __pycache__ entries.
+    with ZipFile(wheels[0]) as wheel:
+        check_public_paths(wheel.namelist(), "wheel")
     retired = (
         "analysis_lister/download.py",
         "analysis_lister/certs/",
@@ -139,6 +212,9 @@ def main():
         assert len(names) == 1, "Source distribution must contain LICENCE"
         assert archive.extractfile(names[0]).read() == licence
         prefix = names[0].removesuffix("LICENCE")
+        check_public_paths(
+            (name.removeprefix(prefix) for name in archive.getnames()), "source archive"
+        )
         assert not any(
             name.removeprefix(prefix).startswith(retired) for name in archive.getnames()
         ), "Retired modules must not ship in the source distribution"

@@ -352,7 +352,14 @@ python3.13 -m venv /tmp/glance-release-check
 Inspect both distributions and build the documentation from an unpacked source
 archive. The archive includes the guides and examples; the wheel includes runtime
 schemas, assets, dictionaries, policies, certificates and licences. Neither may
-contain private data. Test the [upgrade procedure](upgrading.md) and the actual
+contain private data. The distribution validator rejects known private/local paths
+in both archives, including cookies, generated snapshots and pages, local guidance,
+diagnostics and experimental Events files. JSON is restricted to maintained public
+data locations. This checks paths, not scientific provenance: synthetic fixtures
+and public dictionary changes still need review. Public-site isolation is covered
+by the documentation allowlist and demo regressions.
+
+Test the [upgrade procedure](upgrading.md) and the actual
 consuming site's theme and navigation before replacing a working installation.
 
 Record the candidate commit, artifact hashes, dependency and browser versions,
