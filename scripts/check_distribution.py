@@ -40,7 +40,6 @@ def check_public_paths(paths, artifact):
     """Reject known private/local outputs; this cannot establish data provenance."""
     forbidden_parts = {
         "AGENTS.md",
-        "ROADMAP.md",
         ".python-version",
         "cookies.json",
         ".cache",

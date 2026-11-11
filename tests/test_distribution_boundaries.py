@@ -12,7 +12,6 @@ class DistributionBoundaryTests(unittest.TestCase):
     def test_forbidden_sentinels_are_rejected(self):
         for name in (
             "AGENTS.md",
-            "ROADMAP.md",
             ".python-version",
             "cookies.json",
             "examples/cookies.json",
