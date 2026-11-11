@@ -1,0 +1,28 @@
+{
+  "schema": "glance-curated-registry",
+  "counts": {
+    "analyses": 0,
+    "papers": 1,
+    "confnotes": 0,
+    "pubnotes": 0
+  },
+  "analyses": [],
+  "papers": [
+    {
+      "referenceCode": "FIXTURE-2096-01",
+      "shortTitle": "Invented paper with local publication timestamps",
+      "status": "Publication Phase Finished",
+      "gal_analysisContacts": [],
+      "gal_contactEditors": [],
+      "publicationPhase": {
+        "arXivSubmissionDate": "2096-02-29T09:15",
+        "firstRefereeReportDate": "2096-03-10T10:45",
+        "journalAcceptanceDate": "2096-03-20",
+        "firstProofDate": "2096-03-25T11:30",
+        "publishedOnlineDate": "2096-04-01T12:30"
+      }
+    }
+  ],
+  "confnotes": [],
+  "pubnotes": []
+}

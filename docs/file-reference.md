@@ -78,11 +78,18 @@ Raw `analysisTeam` is prohibited. People describe snapshot membership, not a
 reconstructed historical membership.
 
 Milestones retain calendar dates (`YYYY-MM-DD`) or RFC 3339 timestamps with a
-timezone. Derived `gal_*MeetingDates` contain calendar dates only. Validation
+timezone. Four paper `publicationPhase` fields also accept the API's local
+minute-precision format (`YYYY-MM-DDTHH:MM`): `arXivSubmissionDate`,
+`firstRefereeReportDate`, `firstProofDate` and `publishedOnlineDate`. These values
+carry no timezone; none is inferred or added. Downloads through stare 0.7 use
+this format and calendar-only meeting dates. Previously saved snapshots retain
+their accepted date representations and do not need conversion.
+Derived `gal_*MeetingDates` contain calendar dates only. Validation
 checks that dates exist, but does not reorder milestones or infer missing events.
 `fetched_at` is an optional source timestamp or null; `gal_curation.built_at`
 records curation time and `contacts_as_of` the date used for current contacts.
-These are separate from milestone dates. Readers preserve timezones as stored.
+These are separate from milestone dates. Readers preserve source precision and
+timezones as stored.
 
 Titles, statuses, journal codes and collision metadata retain source wording,
 including numeric-looking strings and units. DOI, URL and citation values stay
@@ -138,9 +145,10 @@ schema_text = (
 
 External validators must enable `date` and `date-time` format checks. The package
 uses JSON Schema Draft 2020-12 with `jsonschema.FormatChecker` and
-`rfc3339-validator`, then checks counts and unique IDs in Python. A malformed
-known field fails with its path; dangling links and contradictory chronology
-are not structural errors.
+`rfc3339-validator`, then checks counts and unique IDs in Python. The four local
+paper timestamps use a schema pattern that validates calendar dates and times;
+no custom format checker is required. A malformed known field fails with its path;
+dangling links and contradictory chronology are not structural errors.
 
 ## Link to generated records
 
