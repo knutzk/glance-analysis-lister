@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Stable storage contract: fixtures are independent of curation and views."""
+"""Stored-data validation: historical sparse inputs, independent of curation and views."""
 
 import copy
 import json
@@ -25,7 +25,7 @@ def baseline():
 def schema():
     return json.loads(
         files("analysis_lister.registry")
-        .joinpath("schemas/curated-v2.schema.json")
+        .joinpath("schemas/curated.schema.json")
         .read_text()
     )
 
@@ -47,7 +47,7 @@ class RegistryContractTests(unittest.TestCase):
 
         check(contract)
 
-    def test_frozen_fixtures_load_without_migration_or_defaults(self):
+    def test_historical_sparse_fixtures_preserve_values_without_defaults(self):
         validator = Draft202012Validator(schema(), format_checker=FormatChecker())
         for path in sorted(FIXTURES.glob("*.json")):
             with self.subTest(fixture=path.name):
@@ -155,13 +155,16 @@ class RegistryContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "known type"):
             reader.resolve_link(link)
 
-    def test_versions_are_not_silently_coerced(self):
+    def test_legacy_version_fields_do_not_gate_structurally_valid_data(self):
         for version in (1, 3, "2", 2.0, True, None):
             with self.subTest(version=version):
                 data = baseline()
                 data["schema_version"] = version
-                with self.assertRaisesRegex(ValueError, "expected schema_version 2"):
+                with self.assertLogs(
+                    "analysis_lister.provenance", level="WARNING"
+                ) as logs:
                     validate_registry(data)
+                self.assertIn("generator metadata", logs.output[0])
 
     def test_projection_fields_are_covered_by_the_contract(self):
         contract = schema()

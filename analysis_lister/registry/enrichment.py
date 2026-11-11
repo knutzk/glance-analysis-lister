@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from time import perf_counter
 
+from ..provenance import generator_metadata
 from .fields import RECORD_FIELDS, count_fields, select_fields
 from .public_identifiers import enrich_public_identifiers, load_identifiers
 from .publication_dois import enrich_paper
@@ -17,7 +18,6 @@ from .schema import (
     PREFIX,
     RESOURCES,
     SCHEMA,
-    SCHEMA_VERSION,
     record_key,
     validate_api_registry as validate_api,
 )
@@ -212,8 +212,9 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
     reject_reserved_keys(api)
     as_of = datetime.fromisoformat(api["fetched_at"]).date()
     result = copy.deepcopy(api)
-    result["schema"] = SCHEMA
-    result["schema_version"] = SCHEMA_VERSION
+    for key in ("schema", "schema_version", "generator"):
+        result.pop(key, None)
+    result = {"schema": SCHEMA, "generator": generator_metadata(), **result}
     citations = citations if citations is not None else {}
     doi_stats = {
         "papers_with_dois": 0,

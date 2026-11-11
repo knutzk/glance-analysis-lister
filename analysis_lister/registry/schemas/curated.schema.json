@@ -1,16 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "SPDX-FileCopyrightText: 2024-2026 Knut Zoch; SPDX-License-Identifier: GPL-3.0-only",
-  "title": "GLANCE curated registry v2",
-  "description": "Stable domain contract. Optional additions are allowed at every object level unless a map explicitly constrains its values. No defaults are inserted. See docs/curated-format.md.",
+  "title": "GLANCE curated registry",
+  "description": "Current generated registry structure. Unknown additions are allowed; validation inserts no defaults. See docs/file-reference.md.",
   "type": "object",
   "properties": {
     "schema": {
       "const": "glance-curated-registry"
-    },
-    "schema_version": {
-      "type": "integer",
-      "const": 2
     },
     "counts": {
       "type": "object",
@@ -79,7 +75,6 @@
   },
   "required": [
     "schema",
-    "schema_version",
     "counts",
     "analyses",
     "papers",

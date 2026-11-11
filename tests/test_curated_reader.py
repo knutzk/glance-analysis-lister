@@ -99,12 +99,11 @@ class CuratedReaderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "supported curated"):
                 CuratedRegistry({"entries": {}})
             old = snapshot()
-            old["schema_version"] = 1
             for resource in old["counts"]:
                 for record in old[resource]:
                     for field in ("analysisContacts", "contactEditors"):
                         record[field] = record.pop("gal_" + field)
-            with self.assertRaisesRegex(ValueError, "supported curated"):
+            with self.assertRaisesRegex(ValueError, "missing required field"):
                 CuratedRegistry(old)
 
     def test_reader_import_does_not_import_construction_or_downloaders(self):

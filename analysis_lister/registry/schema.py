@@ -7,9 +7,10 @@ import json
 from functools import cache
 from importlib.resources import files
 
+from ..provenance import warn_generator_mismatch
+
 API_SCHEMA = "glance-api-registry"
 SCHEMA = "glance-curated-registry"
-SCHEMA_VERSION = 2
 PREFIX = "gal_"
 RESOURCES = ("analyses", "papers", "confnotes", "pubnotes")
 
@@ -35,7 +36,7 @@ def _curated_validator():
 
     schema = json.loads(
         files(__package__)
-        .joinpath("schemas/curated-v2.schema.json")
+        .joinpath("schemas/curated.schema.json")
         .read_text(encoding="utf-8")
     )
     # rfc3339-validator is an explicit dependency: date-time must not silently
@@ -46,20 +47,13 @@ def _curated_validator():
 
 
 def validate_registry(data):
-    """Validate v2 structure, then cross-record integrity, without changing data.
+    """Validate current structure and integrity, then warn on generator mismatch.
 
-    Unknown additions are accepted. Unsupported versions are never guessed or
-    silently interpreted as v2. Validation and reference lookup remain offline.
+    Unknown additions (including legacy version fields) are ignored. Validation
+    does not transform records and never makes network requests.
     """
     if not isinstance(data, dict) or data.get("schema") != SCHEMA:
         raise ValueError("Destination is not a supported curated registry")
-    if (
-        type(data.get("schema_version")) is not int
-        or data["schema_version"] != SCHEMA_VERSION
-    ):
-        raise ValueError(
-            "Destination is not a supported curated registry: expected schema_version 2"
-        )
     error = next(_curated_validator().iter_errors(data), None)
     if error is not None:
         path = "$" + "".join(
@@ -85,13 +79,14 @@ def validate_registry(data):
         if len(keys) != len(set(keys)) or data["counts"][resource] != len(keys):
             raise ValueError(f"{resource}: inconsistent counts or identifiers")
 
+    warn_generator_mismatch(data, label="Curated registry")
+
 
 def validate_api_registry(data):
     """Validate stored source-registry structure before using its counts."""
     if (
         not isinstance(data, dict)
         or data.get("schema") != API_SCHEMA
-        or data.get("schema_version") != 1
         or not isinstance(data.get("source"), dict)
         or data["source"].get("selection") != "all-accessible"
         or not isinstance(data.get("counts"), dict)
@@ -104,3 +99,5 @@ def validate_api_registry(data):
         keys = [record_key(record, name) for record in records]
         if len(set(keys)) != len(keys) or data["counts"].get(name) != len(keys):
             raise ValueError(f"{name}: inconsistent registry counts or identifiers")
+
+    warn_generator_mismatch(data, label="API snapshot")

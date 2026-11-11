@@ -25,7 +25,7 @@ class PreparedContractTests(unittest.TestCase):
     def test_public_preparation_works_without_io_or_renderer_imports(self):
         code = """
 import sys
-from analysis_lister.registry import CuratedRegistry, RESOURCES, SCHEMA, SCHEMA_VERSION, validate_registry
+from analysis_lister.registry import CuratedRegistry, RESOURCES, SCHEMA, validate_registry
 from analysis_lister.views.curation import load_publication_policy
 from analysis_lister.views.prepare import prepare_group
 from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
@@ -34,7 +34,7 @@ registry = CuratedRegistry.from_json("examples/synthetic_registry.json")
 policy = load_publication_policy("examples/demo/publication-curation.toml", "DEMO")
 before = {resource: registry.records(resource) for resource in RESOURCES}
 assert registry.metadata["schema"] == SCHEMA
-assert registry.metadata["schema_version"] == SCHEMA_VERSION
+assert "schema_version" not in registry.metadata
 validate_registry({**registry.metadata, **{key: list(value) for key, value in before.items()}})
 
 def reject_io(event, args):

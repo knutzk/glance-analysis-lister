@@ -20,6 +20,7 @@ from analysis_lister.downloaders.tables import (
     validate_table_completeness,
 )
 
+from ..provenance import generator_metadata
 from . import http
 from .manifest import CSV_REFRESH_MARKER, HTML_MANIFEST, make_manifest, read_manifest
 
@@ -97,6 +98,9 @@ def staged_csv_files(
     manifest = (
         read_manifest(debug_dir, tasks) if use_local_html else make_manifest(tasks)
     )
+    # A replay writes a new CSV batch with this code, preserving the fetch time.
+    manifest.pop("schema_version", None)
+    manifest["generator"] = generator_metadata()
     csv_dir.mkdir(parents=True, exist_ok=True)
     # Stage on the same filesystem so individual replacements are atomic.
     temporary = TemporaryDirectory(prefix=".refresh-", dir=csv_dir, delete=False)

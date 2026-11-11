@@ -159,6 +159,17 @@ class RenderReproducibilityTests(unittest.TestCase):
             (package / "_source_revision.txt").write_text("a" * 40)
             os.utime(package / "module.py", ns=(1_000_000_000, 1_000_000_000))
             self.assertEqual(original, generator_fingerprint(package))
+            (package / "events.py").write_text("ignored experiment")
+            (package / "README.md").write_text("documentation change")
+            self.assertEqual(original, generator_fingerprint(package))
+            schemas = package / "registry/schemas"
+            schemas.mkdir(parents=True)
+            schema = schemas / "curated.schema.json"
+            schema.write_text('{"type": "object"}')
+            with_schema = generator_fingerprint(package)
+            self.assertNotEqual(original, with_schema)
+            schema.write_text('{"type": "array"}')
+            self.assertNotEqual(with_schema, generator_fingerprint(package))
             (package / "module.py").write_text("edited source")
             changed = generator_fingerprint(package)
             self.assertNotEqual(original, changed)

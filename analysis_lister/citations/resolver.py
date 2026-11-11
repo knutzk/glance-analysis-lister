@@ -13,6 +13,7 @@ from pathlib import Path
 import requests
 
 from ..diagnostics import lookup_notice, lookup_report
+from ..provenance import warn_generator_mismatch
 from .inspire import InspireClient, inspire_citation
 from .store import load_store, normalize_doi, save_store
 
@@ -54,6 +55,7 @@ def snapshot_dois(path: Path):
             malformed += invalid
     else:
         raise ValueError("Unsupported DOI snapshot format")
+    warn_generator_mismatch(data, label="DOI input snapshot")
     if malformed:
         lookup_notice(
             logger,

@@ -7,7 +7,7 @@ import json
 import logging
 from pathlib import Path
 
-from ..provenance import generator_fingerprint, generator_revision, markdown_provenance
+from ..provenance import markdown_provenance
 from ..registry import CuratedRegistry
 from .assets import asset_documents
 from .markdown.pages import (
@@ -33,12 +33,7 @@ def render_group(snapshot, output_dir, profile):
     registry = CuratedRegistry(json.loads(raw))
     view = prepare_group(registry, profile)
     report = build_report(view, snapshot, raw)
-    revision = generator_revision()
-    report["generator"] = {
-        "name": "glance-analysis-lister",
-        "git_commit": revision,
-        "content_sha256": generator_fingerprint(),
-    }
+    revision = report["generator"]["git_commit"]
     counts = report["counts"]
     documents = {
         "ongoing.md": ongoing_page(view, revision=revision),

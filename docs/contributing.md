@@ -65,8 +65,19 @@ git diff --check
 ```
 
 Use `tests/view_fixtures.py` for invented records and add focused regressions
-that show the changed behaviour. Keep frozen compatibility fixtures unchanged;
-add fixtures for new features.
+that show the changed behaviour. Keep historical fixtures when they test inputs
+we still support, or use them to check that unsupported files fail clearly. Add
+fixtures for new formats and features; do not rewrite old evidence just to make
+a failing check pass. Generated JSON does not require indefinite backward
+compatibility or migration tooling.
+
+When changing a stored format, keep the validation schema aligned with the reader.
+Malformed or wrong-format inputs should fail with useful recovery instructions.
+Generator metadata is advisory: missing or different code fingerprints must warn
+without rejecting otherwise valid data. Do not reintroduce numeric schema-version
+gates. Keep the fingerprint independent of worktree locations and documentation.
+Explain when users need to rebuild from an API snapshot or obtain a fresh download. Treat custom citation stores
+separately: a format change must account for user edits and their provenance.
 
 | Change | Useful checks |
 | --- | --- |

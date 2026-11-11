@@ -234,9 +234,9 @@ class CuratedTests(unittest.TestCase):
                 ["Synthetic tool", "Other tool"],
             )
 
-    def test_old_schema_output_is_rejected_without_overwriting_it(self):
+    def test_wrong_format_output_is_rejected_without_overwriting_it(self):
         previous = registry.curate(self.api)
-        previous["schema_version"] = 1
+        previous["schema"] = "not-a-curated-registry"
         self.output.parent.mkdir(parents=True, exist_ok=True)
         self.output.write_text(json.dumps(previous))
         before = self.output.read_bytes()
