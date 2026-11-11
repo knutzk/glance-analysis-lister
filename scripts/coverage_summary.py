@@ -151,19 +151,14 @@ def percentage(pair):
 
 def cell(pair):
     value = percentage(pair)
-    return f"{value:.2f}% ({pair[0]}/{pair[1]})" if value is not None else "N/A (0/0)"
+    return f"{pair[0]}/{pair[1]} ({value:.2f}%)" if value is not None else "0/0 (N/A)"
 
 
 def render(api, run, base_sha, current, baseline, full, report_link, baseline_run):
     url = f"{api.web}/{api.repository}"
-    status = "Complete" if full and current else "Incomplete / unavailable"
     text = [
         MARKER,
         "### Python coverage",
-        "",
-        f"{status} report for PR head `{run['head_sha'][:12]}` "
-        f"([CI run]({url}/actions/runs/{run['id']}), attempt {run['run_attempt']}).",
-        "PR CI measures the merge with its base, including child Python processes.",
         "",
         "| Measure | PR | Main | Change |",
         "| --- | ---: | ---: | ---: |",
@@ -173,41 +168,30 @@ def render(api, run, base_sha, current, baseline, full, report_link, baseline_ru
         base_pair = getattr(baseline, field) if baseline else None
         delta = "N/A"
         if full and pr_pair and base_pair:
-            pr_value, base_value = percentage(pr_pair), percentage(base_pair)
-            if pr_value is not None and base_value is not None:
-                delta = f"{pr_value - base_value:+.2f} pp"
+            delta = f"{pr_pair[0] - base_pair[0]:+d}"
         text.append(
             f"| {name} | {cell(pr_pair) if pr_pair else 'N/A'} | "
             f"{cell(base_pair) if base_pair else 'N/A'} | {delta} |"
         )
-    text.extend(["", "Changes are percentage points (pp), not relative percentages."])
+    links = []
+    if report_link:
+        links.append(f"[Full report]({report_link})")
+    links.append(f"[CI `{run['head_sha'][:12]}`]({url}/actions/runs/{run['id']})")
     if baseline:
-        text.append(
-            f"Main baseline: [`{base_sha[:12]}`]({url}/commit/{base_sha}) "
-            f"([successful CI]({url}/actions/runs/{baseline_run['id']}))."
+        links.append(
+            f"[Baseline `{base_sha[:12]}`]({url}/commit/{base_sha}) "
+            f"([CI]({url}/actions/runs/{baseline_run['id']}))"
         )
-    else:
+    text.extend(["", " · ".join(links)])
+    if not baseline:
         text.append(
-            f"No usable successful main report for `{base_sha[:12]}`; "
-            "comparison is unavailable. No older baseline was substituted."
+            f"\nBaseline unavailable for [`{base_sha[:12]}`]({url}/commit/{base_sha}); "
+            "no comparison."
         )
     if not full or not current:
         text.append(
-            "Tests/report generation did not complete successfully, or the artifact is "
-            "missing/expired/invalid. Available totals may be partial; no change is calculated."
+            "\nIncomplete / unavailable report: totals may be partial; no change is calculated."
         )
-    if report_link:
-        text.append(
-            f"[Download full report]({report_link}) (HTML, XML and JSON; "
-            "extract and open `html/index.html`; retained for 14 days)."
-        )
-    text.extend(
-        [
-            "",
-            "Scope: maintained Python package only. Excludes experimental Events, browser "
-            "JavaScript, browser/site checks and live CERN access. No coverage gate is enforced.",
-        ]
-    )
     return "\n".join(text) + "\n"
 
 

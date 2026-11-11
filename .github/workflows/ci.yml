@@ -87,15 +87,14 @@ jobs:
           outcome = os.environ["OFFLINE_TEST_OUTCOME"]
           summary = (
               "### Offline Python coverage\n\n"
-              f"Tests: **{outcome}**. Failed runs provide partial coverage only.\n\n"
+              f"Tests: **{outcome}**.\n\n"
               "| Measure | Coverage |\n| --- | --- |\n"
-              f"| Lines | {lines:.2f}% ({totals['covered_lines']}/{totals['num_statements']}) |\n"
-              f"| Branches | {branches:.2f}% ({totals['covered_branches']}/{totals['num_branches']}) |\n\n"
-              "Scope: maintained `analysis_lister` Python, including child Python processes. "
-              "Excludes experimental Events code, browser JavaScript, browser/site checks "
-              "and live CERN access. No percentage gate is enforced.\n\n"
-              "Download the **python-coverage** artifact for HTML, XML and JSON reports.\n"
+              f"| Lines | {totals['covered_lines']}/{totals['num_statements']} ({lines:.2f}%) |\n"
+              f"| Branches | {totals['covered_branches']}/{totals['num_branches']} ({branches:.2f}%) |\n\n"
+              "Full report: **python-coverage** artifact.\n"
           )
+          if outcome != "success":
+              summary += "\nIncomplete test run; totals may be partial.\n"
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as stream:
               stream.write(summary)
           PY
