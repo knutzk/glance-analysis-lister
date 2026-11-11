@@ -178,6 +178,34 @@ guides and synthetic examples. To inspect it under the configured URL prefix,
 extract it into `preview/glance-analysis-lister/` and run
 `python -m http.server 8000 --bind 127.0.0.1 --directory preview`.
 
+## Open a pull request
+
+Keep the change small enough to review together. Use the PR template to explain
+the problem and resulting behaviour, checks performed and their limitations,
+and any interface impact or recovery steps. Use public or invented examples.
+
+Assess documented Python methods and prepared attributes, CLI behaviour and
+generated URLs separately from internal workflow files. Generated snapshots,
+curated registries and diagnostic reports are not stable external JSON APIs.
+When saved inputs become unsupported, explain the error and rebuild/recovery
+path; preserve user-maintained citation entries and provenance. See the
+[upgrade policy](upgrading.md#what-can-change). Any compatibility exception must
+name the affected interface, reason and action users need to take. A label never
+waives validation or replaces this explanation.
+
+Use a small set of labels; a PR can have more than one:
+
+| Label | Meaning |
+| --- | --- |
+| `bug` | Fixes incorrect behaviour. |
+| `enhancement` | Adds or improves a capability. |
+| `documentation` | Changes guides, examples' instructions or review guidance. |
+| `accessibility` | Removes a barrier affecting people with disabilities. |
+| `breaking-change` | Requires an action from users of a supported interface. |
+| `dependencies` | Changes third-party dependency requirements or versions. |
+| `ci` | Changes GitHub Actions or label automation. |
+| `performance` | Changes or measures runtime or browser responsiveness. |
+
 ## Prepare a release
 
 Choose the exact commit and package version together. Review user-visible and
