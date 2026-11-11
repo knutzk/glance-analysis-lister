@@ -9,7 +9,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from test_api import client_for
 
@@ -272,3 +272,123 @@ class DownloadReportingTests(unittest.TestCase):
             cli.main(self.html_command())
         self.assertIn("incomplete HTML batch", "\n".join(logs.output))
         self.assertNotIn("output preserved", "\n".join(logs.output))
+
+    def test_output_read_errors_do_not_mask_the_download_failure_or_claim_safety(self):
+        destination = self.root / "api.json"
+        destination.write_bytes(b"previous synthetic output\n")
+        before = destination.read_bytes()
+        open_file = Path.open
+        for fail_after_operation in (False, True):
+            failure = ValueError("original download failure")
+            operation = Mock(side_effect=failure)
+
+            def unreadable(
+                path,
+                *args,
+                operation=operation,
+                fail_after_operation=fail_after_operation,
+                **kwargs,
+            ):
+                if path == destination and operation.called == fail_after_operation:
+                    raise PermissionError("synthetic-sensitive-read-error")
+                return open_file(path, *args, **kwargs)
+
+            with (
+                self.subTest(fail_after_operation=fail_after_operation),
+                patch.object(Path, "open", unreadable),
+                self.assertLogs("analysis_lister", level="ERROR") as logs,
+                self.assertRaises(ValueError) as raised,
+            ):
+                run_download(
+                    operation,
+                    kind="API",
+                    destination=destination,
+                    files=[destination],
+                    validation="unused",
+                    recovery_dir=self.root,
+                    recovery_pattern=".api.json.*.tmp",
+                )
+            self.assertIs(raised.exception, failure)
+            operation.assert_called_once_with()
+            text = "\n".join(logs.output)
+            self.assertIn("could not verify all output files", text)
+            self.assertNotIn("output preserved", text)
+            self.assertNotIn("no new download output", text)
+            self.assertNotIn("synthetic-sensitive-read-error", text)
+            self.assertEqual(destination.read_bytes(), before)
+
+    def test_unreadable_interruption_marker_preserves_the_original_failure(self):
+        self.csv_dir.mkdir()
+        destination = self.csv_dir / "analyses.csv"
+        destination.write_bytes(b"previous synthetic CSV\n")
+        before = destination.read_bytes()
+        marker = self.csv_dir / CSV_REFRESH_MARKER
+        marker.touch()
+        exists = Path.exists
+        failure = ValueError("original download failure")
+
+        def unreadable(path, *args, **kwargs):
+            if path == marker:
+                raise PermissionError("synthetic-sensitive-marker-error")
+            return exists(path, *args, **kwargs)
+
+        with (
+            patch.object(Path, "exists", unreadable),
+            self.assertLogs("analysis_lister", level="ERROR") as logs,
+            self.assertRaises(ValueError) as raised,
+        ):
+            run_download(
+                Mock(side_effect=failure),
+                kind="HTML",
+                destination=self.csv_dir,
+                files=[destination],
+                validation="unused",
+                marker=marker,
+                recovery_dir=self.csv_dir,
+                recovery_pattern=".refresh-*/previous/*",
+                saved_html=self.saved,
+            )
+        self.assertIs(raised.exception, failure)
+        text = "\n".join(logs.output)
+        self.assertIn("unable to inspect the HTML interruption marker", text)
+        self.assertIn("verify the batch before use", text)
+        self.assertIn(f"Saved diagnostic HTML may be partial: {self.saved}", text)
+        self.assertNotIn("output preserved", text)
+        self.assertNotIn("no new download output", text)
+        self.assertNotIn("synthetic-sensitive-marker-error", text)
+        self.assertTrue(marker.exists())
+        self.assertEqual(destination.read_bytes(), before)
+
+    def test_recovery_scan_errors_do_not_mask_the_original_failure(self):
+        destination = self.root / "api.json"
+        recovery = self.root / ".api.json.retained.tmp"
+        recovery.write_bytes(b"retained synthetic recovery data\n")
+        before = recovery.read_bytes()
+        failure = ValueError("original download failure")
+
+        def interrupted_scan(path, pattern):
+            self.assertEqual((path, pattern), (self.root, ".api.json.*.tmp"))
+            yield recovery
+            raise OSError("synthetic-sensitive-scan-error")
+
+        with (
+            patch.object(Path, "glob", interrupted_scan),
+            self.assertLogs("analysis_lister", level="ERROR") as logs,
+            self.assertRaises(ValueError) as raised,
+        ):
+            run_download(
+                Mock(side_effect=failure),
+                kind="API",
+                destination=destination,
+                files=[destination],
+                validation="unused",
+                recovery_dir=self.root,
+                recovery_pattern=".api.json.*.tmp",
+            )
+        self.assertIs(raised.exception, failure)
+        text = "\n".join(logs.output)
+        self.assertIn(f"Recovery files: unable to inspect {self.root}", text)
+        self.assertNotIn("Recovery files: none found", text)
+        self.assertNotIn("synthetic-sensitive-scan-error", text)
+        self.assertEqual(recovery.read_bytes(), before)
+        self.assertFalse(destination.exists())

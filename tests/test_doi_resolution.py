@@ -7,6 +7,7 @@ import io
 import json
 import unittest
 from contextlib import chdir
+from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, call, patch
@@ -153,6 +154,42 @@ class CitationStoreTests(unittest.TestCase):
             self.path.write_text(text)
             with self.subTest(text=text), self.assertRaises(ValueError):
                 load_store(self.path)
+
+    def test_invalid_records_cannot_replace_an_existing_citation_store(self):
+        save_store(self.path, {DOI: record("Keep this manual citation γ")})
+        before = self.path.read_bytes()
+        invalid = [None, 42, [], "", "   ", {}, record(unrecognized="value")]
+        for field in ("citation", "source", "resolved_at", "source_url", "inspire_id"):
+            invalid.extend(record(**{field: value}) for value in ("", " ", None, 42))
+        invalid.extend(record(material=value) for value in ("unsupported", None, []))
+        for entry in invalid:
+            with self.subTest(entry=entry):
+                candidate = {
+                    DOI: record("Replacement must not be saved", material="unknown"),
+                    "10.9999/invalid": entry,
+                }
+                original_candidate = deepcopy(candidate)
+                with self.assertRaises(ValueError):
+                    save_store(self.path, candidate)
+                self.assertEqual(self.path.read_bytes(), before)
+                self.assertEqual(candidate, original_candidate)
+                self.assertEqual(list(self.path.parent.iterdir()), [self.path])
+
+    def test_duplicate_normalized_dois_cannot_replace_an_existing_citation_store(self):
+        save_store(self.path, {DOI: record("Keep this manual correction")})
+        before = self.path.read_bytes()
+        for alias in (DOI.upper(), "doi:" + DOI, "https://doi.org/" + DOI):
+            with self.subTest(alias=alias):
+                candidate = {
+                    DOI: record("First conflicting citation"),
+                    alias: record("Second conflicting citation"),
+                }
+                original_candidate = deepcopy(candidate)
+                with self.assertRaisesRegex(ValueError, "Duplicate normalized DOI"):
+                    save_store(self.path, candidate)
+                self.assertEqual(self.path.read_bytes(), before)
+                self.assertEqual(candidate, original_candidate)
+                self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 
 
 class ResolutionTests(unittest.TestCase):
