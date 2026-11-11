@@ -1,0 +1,13 @@
+# v0.3.0 — prerelease
+
+- Adds hosted documentation, a complete synthetic demo and local previews of group pages alongside the demo.
+- Upgrades to stare 0.7, including support for timezone-free GLANCE paper timestamps.
+- Fixes DOI resolution from curated registries and preserves CSV cell line endings during saved-HTML replay.
+- Improves filtering performance, keyboard/accessibility behavior and download/recovery guidance.
+- Adds coverage summaries on PRs, advisory public-API checks, browser failure diagnostics and package-content checks.
+
+## Upgrading from 0.2.0
+
+Generated snapshots now record generator identity instead of numeric schema versions. Structural validation remains strict; missing or differing generator metadata warns rather than rejecting valid data. Legacy schema-version fields are ignored. Rebuild unsupported inputs using the documented workflow, and preserve custom citation entries and provenance.
+
+Python 3.13+ remains required. This is a development prerelease; documented support limits still apply.
