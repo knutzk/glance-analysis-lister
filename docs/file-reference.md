@@ -37,7 +37,7 @@ plus matching nonnegative integer `counts`. All four arrays are required; empty
 arrays with zero counts are valid storage. Download completeness and count-drop
 protection are separate checks.
 
-The bundled [JSON Schema](../analysis_lister/registry/schemas/curated-v2.schema.json)
+The bundled [JSON Schema](../analysis_lister/registry/schemas/curated.schema.json)
 defines the retained fields and their types. Use `CuratedRegistry.from_json(path)`
 to validate and read a file, or `validate_registry(data)` to validate a decoded
 object. Both check nested types, dates, counts and identifier uniqueness. Reading
@@ -111,7 +111,7 @@ from importlib.resources import files
 
 schema_text = (
     files("analysis_lister.registry")
-    .joinpath("schemas/curated-v2.schema.json")
+    .joinpath("schemas/curated.schema.json")
     .read_text(encoding="utf-8")
 )
 ```

@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Persist the domain fields covered by the curated registry contract.
+"""Persist the domain fields covered by the curated registry.
 
 Selections apply after enrichment. None keeps a leaf value; a dictionary selects
 nested fields, including fields within list items. Missing keys and nulls remain
-missing or null. The bundled v2 JSON Schema defines their stored types.
-Field retention is a data-contract decision, independent of individual views.
+missing or null. The bundled JSON Schema defines their stored types.
+Keep retention and validation aligned, independently of individual views.
 """
 
 

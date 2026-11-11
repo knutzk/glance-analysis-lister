@@ -3,6 +3,7 @@
 
 """Independently invented records shared by unit and browser checks."""
 
+from analysis_lister.provenance import generator_metadata
 from analysis_lister.registry.enrichment import curate
 from analysis_lister.registry.schema import RESOURCES
 
@@ -26,7 +27,7 @@ def api_fixture():
     }
     source = {
         "schema": "glance-api-registry",
-        "schema_version": 1,
+        "generator": generator_metadata(),
         "fetched_at": "2099-01-10T12:00:00+00:00",
         "source": {
             "selection": "all-accessible",

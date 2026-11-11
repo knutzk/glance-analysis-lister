@@ -122,10 +122,10 @@ def main():
     assert policy_path.read_bytes() == (root / "publication-curation.toml").read_bytes()
     assert load_publication_policy(policy_path, "TOPQ") is not None
 
-    schema_path = "analysis_lister/registry/schemas/curated-v2.schema.json"
+    schema_path = "analysis_lister/registry/schemas/curated.schema.json"
     assert (
         files("analysis_lister.registry")
-        .joinpath("schemas/curated-v2.schema.json")
+        .joinpath("schemas/curated.schema.json")
         .read_bytes()
         == (root / schema_path).read_bytes()
     )
@@ -262,7 +262,6 @@ def main():
         resources = ("analyses", "papers", "confnotes", "pubnotes")
         raw = {
             "schema": "glance-api-registry",
-            "schema_version": 1,
             "fetched_at": "2099-01-01T00:00:00+00:00",
             "source": {
                 "selection": "all-accessible",

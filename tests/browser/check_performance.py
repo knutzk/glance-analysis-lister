@@ -284,7 +284,6 @@ def main():
             if timing["max"] > args.filter_limit:
                 failures.append(f"{page}/{action}")
     report = {
-        "schema_version": 1,
         "measured_at": datetime.now(UTC).isoformat(),
         "generator_revision": generator_revision(),
         "generator_sha256": generator_fingerprint(),

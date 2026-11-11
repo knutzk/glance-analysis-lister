@@ -48,8 +48,7 @@ class GeneratedContractTests(unittest.TestCase):
                 report = json.loads((output / "view-report.json").read_text())
                 with self.subTest(with_warning=with_warning):
                     self.assertEqual(report["schema"], "glance-group-view-report")
-                    self.assertIs(type(report["schema_version"]), int)
-                    self.assertEqual(report["schema_version"], 2)
+                    self.assertNotIn("schema_version", report)
                     self.assertEqual(report["snapshot"]["filename"], "synthetic.json")
                     self.assertEqual(
                         report["snapshot"]["sha256"], sha256(raw).hexdigest()

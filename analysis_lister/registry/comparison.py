@@ -7,6 +7,7 @@ import json
 from hashlib import sha256
 from pathlib import Path
 
+from ..provenance import generator_metadata
 from ..storage import atomic_write_text
 from .schema import (
     API_SCHEMA,
@@ -87,7 +88,7 @@ def compare_snapshots(before, after):
         }
     return {
         "schema": "glance-snapshot-comparison",
-        "schema_version": 1,
+        "generator": generator_metadata(),
         "snapshot_schema": before["schema"],
         "scope": "records only; container timestamps and build metadata excluded; list order is significant",
         "resources": resources,

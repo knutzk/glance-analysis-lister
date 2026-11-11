@@ -69,11 +69,40 @@ class RetrievalTests(unittest.TestCase):
             csv_batch.download_html_csvs(self.tasks, replay, saved, use_local_html=True)
         self.assertEqual(read_manifest(replay, self.tasks), manifest)
 
+    def test_replay_warns_on_legacy_manifest_and_writes_current_metadata(self):
+        from analysis_lister.provenance import generator_metadata
+
+        saved = self.root / "saved"
+        saved.mkdir()
+        for task in self.tasks:
+            (saved / task.html_filename).write_text(HTML)
+        manifest = make_manifest(self.tasks)
+        manifest.pop("generator")
+        manifest["schema_version"] = 1
+        source = saved / HTML_MANIFEST
+        source.write_text(json.dumps(manifest))
+        before = source.read_bytes()
+        with (
+            self.assertLogs("analysis_lister.provenance", level="WARNING"),
+            patch.object(
+                html.http.DataFetcher,
+                "fetch_html",
+                side_effect=AssertionError("network"),
+            ),
+        ):
+            csv_batch.download_html_csvs(
+                self.tasks, self.root / "csv", saved, use_local_html=True
+            )
+        result = read_manifest(self.root / "csv", self.tasks)
+        self.assertNotIn("schema_version", result)
+        self.assertEqual(result["generator"], generator_metadata())
+        self.assertEqual(result["fetched_at"], manifest["fetched_at"])
+        self.assertEqual(source.read_bytes(), before)
+
     def test_filtered_or_malformed_manifests_are_rejected(self):
         for change in (
             {"selection": "filtered"},
             {"selection": {}},
-            {"schema_version": 0},
             {"tables": {}},
             {"schema": "unknown"},
         ):

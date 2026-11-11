@@ -4,12 +4,11 @@
 """Curated registry access; construction is available from registry.builder."""
 
 from .reader import CuratedRegistry
-from .schema import RESOURCES, SCHEMA, SCHEMA_VERSION, validate_registry
+from .schema import RESOURCES, SCHEMA, validate_registry
 
 __all__ = [
     "CuratedRegistry",
     "RESOURCES",
     "SCHEMA",
-    "SCHEMA_VERSION",
     "validate_registry",
 ]

@@ -53,5 +53,5 @@ dist/
 /ROADMAP.md
 
 # Public schema and independently invented compatibility fixtures.
-!/analysis_lister/registry/schemas/curated-v2.schema.json
+!/analysis_lister/registry/schemas/curated.schema.json
 !/tests/fixtures/curated/*.json

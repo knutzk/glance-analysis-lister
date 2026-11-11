@@ -14,6 +14,7 @@ from importlib.metadata import version
 from pathlib import Path
 from time import perf_counter
 
+from ..provenance import generator_metadata
 from ..registry.schema import (
     API_SCHEMA as SCHEMA,
     RESOURCES,
@@ -157,7 +158,7 @@ def collect_registry(client, *, page_size=DEFAULT_PAGE_SIZE, client_version=None
         )
     return {
         "schema": SCHEMA,
-        "schema_version": 1,
+        "generator": generator_metadata(),
         "fetched_at": datetime.now(UTC).isoformat(),
         "source": {
             "client": "stare",

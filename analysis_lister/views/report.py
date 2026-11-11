@@ -9,7 +9,7 @@ from pathlib import Path
 
 from attrs import asdict
 
-from ..provenance import json_fingerprint
+from ..provenance import generator_metadata, json_fingerprint
 from ..registry.reader import LINK_RESOURCES
 from .curation import archive_curation_statement
 from .diagnostics import diagnostic_entry, group_diagnostics
@@ -74,7 +74,7 @@ def build_report(view, snapshot, raw):
     ]
     report = {
         "schema": "glance-group-view-report",
-        "schema_version": 2,
+        "generator": generator_metadata(),
         "snapshot": {
             "filename": Path(snapshot).name,
             "sha256": sha256(raw).hexdigest(),
