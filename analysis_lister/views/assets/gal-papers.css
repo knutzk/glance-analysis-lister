@@ -11,7 +11,8 @@
 .gal-papers tbody tr:focus-within { background: color-mix(in srgb, var(--gal-accent) 13%, transparent); }
 .gal-papers a.gal-publication-link { display: inline-block; padding: .12rem .4rem; border: 1px solid var(--gal-accent); border-radius: 0; color: var(--gal-accent); font-size: .6rem; line-height: 1.4; text-decoration: none; }
 .gal-papers a.gal-publication-link:hover { background: color-mix(in srgb, var(--gal-accent) 12%, transparent); }
-.gal-publication-records { display: inline-flex; align-items: center; gap: .2rem; }
+.gal-publication-records { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .2rem; width: 12rem; white-space: normal; }
+.gal-publication-records a.gal-publication-link { min-width: 0; max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
 .gal-papers--interactive [data-gal-item] { cursor: pointer; }
 .gal-papers [data-gal-paper-toggle]:focus-visible { outline: 2px solid var(--gal-accent); outline-offset: 2px; }
 .gal-publication-details__body { overflow-wrap: anywhere; }
