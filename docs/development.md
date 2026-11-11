@@ -124,7 +124,7 @@ python -m unittest discover -s tests -p 'test_refresh*.py' -v
 python -m unittest discover -s tests -p 'test_*storage.py' -v
 ```
 
-See the [recovery table](troubleshooting.md#resume-an-interrupted-workflow) for
+See the [recovery table](problems.md#resume-an-interrupted-workflow) for
 operator actions. These tests do not simulate machine power loss, filesystem
 corruption or simultaneous writers, and do not establish live login or network
 reliability.
@@ -191,9 +191,9 @@ the same browser interaction and accessibility checks as the synthetic demo.
 
 The offline, browser and documentation CI jobs must pass before the release job
 creates a draft release from a tag. The documentation job also supplies an
-[HTML artifact for review](site.md#inspect-a-ci-build). All test data is invented;
+[HTML artifact for review](documentation.md#inspect-a-ci-build). All test data is invented;
 these checks do not establish live CERN authentication. To preview the
-documentation itself, use the [local site guide](site.md).
+documentation itself, use the [local site guide](documentation.md).
 
 ## Performance measurements
 

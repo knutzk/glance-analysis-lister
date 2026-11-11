@@ -188,8 +188,6 @@ changes to the pages. If your group uses a custom publication policy, pass its
 store or output files sequentially. The standalone demo reloads regenerated
 pages; an existing website needs its normal build/publication step afterwards.
 
-<a id="doi-extraction-and-correction-ordering"></a>
-
 ## Original papers and corrections
 
 A paper's final journal links may include an original article and its
@@ -222,4 +220,4 @@ it does not add a paper to a registry or change any generated page.
 
 For options, see the [citation command reference](cli-reference.md#resolve-dois).
 If a change does not appear, check the store path, rebuild and render sequence in
-[troubleshooting](troubleshooting.md#citation-updates-do-not-reach-the-pages).
+[troubleshooting](problems.md#citation-updates-do-not-reach-the-pages).

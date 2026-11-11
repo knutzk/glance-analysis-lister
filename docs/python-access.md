@@ -98,7 +98,7 @@ for publication in view.archive:
 Invalid profile or policy values raise `ValueError`. Loading a nonexistent policy
 file raises `FileNotFoundError`; this differs from a missing group table in a
 valid file. Malformed TOML raises `tomllib.TOMLDecodeError`, a `ValueError`
-subclass. See [policy fields](rendering.md#publication-policies) for file syntax.
+subclass. See [policy fields](selection.md#publication-policies) for file syntax.
 
 `None` means the identifier-token fallback for publication selection;
 `PublicationPolicy()` is an explicitly empty policy that selects no publications.
@@ -157,5 +157,5 @@ part of this API scope. Persist the curated registry and prepare again instead.
 
 `controls`, `decisions` and provenance dictionaries expose internal UI/rule
 evidence for diagnostics. Their structure and reason strings are not part of
-the supported Python interface. The [diagnostic report](diagnostics.md) is the
+the supported Python interface. The [diagnostic report](problems.md#read-the-diagnostic-report) is the
 human-facing explanation of those decisions.

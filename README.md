@@ -96,8 +96,8 @@ or continue with one of these guides:
 - [Reopen or build the demo](examples/README.md#reopen-or-build-the-demo): reuse your setup while keeping configuration and policy edits.
 - [Add CERN data to the same demo](docs/cern-demo.md): show your group's real pages alongside the synthetic examples.
 - [Change publication selection](examples/README.md#tutorial-change-publication-selection): edit a policy and see the results in the running site.
-- [Integrate the pages into your website](docs/rendering.md#integrate-into-a-consuming-site): use the generated Markdown and browser assets in a group site.
-- [Understand the command workflow](docs/workflows.md#how-the-commands-connect): download once, curate and render offline, or combine the stages with `refresh`.
+- [Integrate the pages into your website](docs/website.md#integrate-into-a-consuming-site): use the generated Markdown and browser assets in a group site.
+- [Understand the command workflow](docs/data.md#how-the-commands-connect): download once, curate and render offline, or combine the stages with `refresh`.
 
 ## About the project
 

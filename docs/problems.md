@@ -1,13 +1,95 @@
-# Troubleshooting
+# Understanding warnings and fixing problems
 
-[Documentation index](README.md)
+[Documentation overview](README.md)
+
+A missing paper, an uncertain analysis state and a failed download need different
+responses. Start with what you observed: a browser filter may hide an included
+record; the report may explain a selection decision; a command error may mean
+that the requested update never completed.
+
+Warnings do not automatically exclude records or make rendering fail. Inspect
+the result and its evidence before changing a policy or retrying a download.
+
+## Where to look first
+
+| What you see | Start here |
+| --- | --- |
+| A record is missing or has an unexpected status | Reset page filters, then read the diagnostic report and selection rules. |
+| A command exits with an error | Read stderr and the matching installation, access or validation section below. |
+| Pages still show old citations | Check the selected store, rebuild the registry and render again. |
+| An update stopped partway through | Identify the last completed stage before retrying; use the recovery steps below. |
+| Pages look unstyled or filters do nothing | Check asset integration in the consuming website. |
+
+## Read the diagnostic report
+
+`render-group` writes `view-report.json` and prints its path to stdout. Generated pages do not
+link to it. The report includes selected records and their directly linked
+context, so keep it private alongside the source snapshots.
+
+Diagnostics cover uncertain states, missing or conflicting relationships, and
+missing public note identifiers. Each entry identifies the record, says whether
+it appears on the page, and explains the effect on classification, progress,
+affiliations or identifiers. An issue does not necessarily exclude a record:
+a published paper can remain included despite a missing analysis link.
+
+One-way publication links are informational when the outbound link works. Other
+diagnostic causes are warnings; missing optional display fields are not.
+`--quiet` suppresses informational logs, but the report retains those entries.
+
+| Field | Meaning |
+| --- | --- |
+| `diagnostic_groups` | Issues grouped by cause, with issue counts, distinct-record counts and affected entries. |
+| `counts.warning_issues`, `counts.informational_issues` | Numbers of issues, not distinct records. |
+| `counts.records_with_diagnostics` | Number of distinct records with issues, including informational cases. |
+| `records_with_diagnostics` | Diagnostic entries, one per affected record. |
+| `analyses_needing_review` | Analyses needing review; may overlap with the diagnostic record list. |
+
+Reports use schema version 2. They also record source timestamps, the input hash,
+effective policy, rule identifiers, controls and derivation evidence. See
+[provenance](output-reference.md#profile-and-generator-hashes) for profile and generator
+hashes.
+
+### Example: a missing link does not exclude a published paper
+
+Take the invented paper `DEMO-2099-01` from the synthetic fixture and give it a
+`relatedAnalysis` link to `ANA-DEMO-2099-99`, which is absent from that snapshot.
+The paper still has its own DEMO affiliation, publication date and DOI.
+
+This shortened excerpt from its generated diagnostic entry shows the result
+(unrelated fields and issue details are omitted):
+
+```json
+{
+  "resource": "papers",
+  "reference": "DEMO-2099-01",
+  "state": "published",
+  "placement": "Included in publication archive",
+  "issues": [
+    {
+      "code": "missing_analysis",
+      "level": "warning",
+      "reason": "unresolved relatedAnalysis"
+    }
+  ]
+}
+```
+
+Read `placement` first to see the actual page result. Then read the issue:
+linked-analysis metadata is unavailable, but the paper's own fields still
+support inclusion. Check the source relationship or snapshot completeness;
+do not infer that the paper is unpublished or should be removed.
+
+In this example, `counts.records_with_diagnostics` and `counts.warning_issues`
+are both 1. The archive still contains all twelve synthetic publications.
+
+## Read command errors
 
 Start with the failing command and its error. Add `--verbose --color never` when
-you need more detail. Errors go to stderr; see [logging](workflows.md#logs-and-summaries)
+you need more detail. Errors go to stderr; see [logging](#logs-and-summaries)
 before redirecting output. Logs and reports may contain record identifiers, so
 remove private information before sharing a reproducer.
 
-## Installation and missing modules
+### Installation and missing modules
 
 | Symptom | Check and remedy |
 | --- | --- |
@@ -20,7 +102,7 @@ remove private information before sharing a reproducer.
 `python -m pip check` identifies inconsistent installed dependencies. Development
 and documentation dependencies are separate from an ordinary package install.
 
-## Authentication and connectivity
+### Authentication and connectivity
 
 API downloads and `refresh` use stare's credentials. If reuse fails, retry the
 same command with `--login` and complete browser SSO using an account authorised
@@ -53,7 +135,7 @@ An override must point to a trusted PEM bundle suitable for the connection.
 Keep certificate and hostname verification enabled. The API client uses stare's
 transport; the HTML certificate handling does not configure that client.
 
-## Schema, counts and destination errors
+### Schema, counts and destination errors
 
 | Symptom | Check and remedy |
 | --- | --- |
@@ -65,7 +147,7 @@ transport; the HTML certificate handling does not configure that client.
 | A resource count dropped by more than 20% | Compare the previous and candidate counts, account permissions and endpoint. Only retry with `--allow-count-drop` when the reduction is understood. |
 | Endpoint differs from the existing destination | Use a new destination for a different source. Retain the previous snapshot for comparison. |
 | An output would overwrite an input | Choose distinct paths for snapshots, dictionaries, policies and generated output. `refresh` checks these before authentication. |
-| A policy is rejected | Check the [accepted fields and types](rendering.md#publication-policies). Every group table is validated, including groups not requested in this run. |
+| A policy is rejected | Check the [accepted fields and types](selection.md#publication-policies). Every group table is validated, including groups not requested in this run. |
 
 The count-drop guard compares with an existing destination. Writing to a new
 path provides no historical baseline. Preserve the original files when
@@ -102,7 +184,7 @@ data and do not authenticate or download again.
 JSON candidates are validated before atomic replacement. Rendered files are
 replaced individually, so a failed render can leave a mixture of old and new
 files; rerender the same destination after fixing the error. There is no
-workflow-wide rollback. See [storage and recovery guarantees](workflows.md#validation-and-recovery)
+workflow-wide rollback. See [storage and recovery guarantees](#validation-and-recovery)
 for what a failure summary establishes about existing bytes.
 
 For HTML export, `.html-download-in-progress` marks an incomplete batch. Do not
@@ -149,11 +231,51 @@ be read-only or replaced during an upgrade.
 | No publications after editing a policy | An explicitly empty policy selects none. A missing group table instead warns and uses the internal identifier fallback. |
 | Only three of four synthetic notes appear | The fourth is superseded and initially hidden. Enable the superseded status filter. |
 | A filter reappears after reload | Filters and sorting persist in the URL. Use the page's Reset control. |
-| Records are readable but controls do nothing | Load the [browser assets](rendering.md#enable-browser-assets), with common files first. Check browser network errors and asset paths relative to the site's docs directory. |
-| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-analysis-lister/`; see the [site guide](site.md). |
+| Records are readable but controls do nothing | Load the [browser assets](website.md#enable-browser-assets), with common files first. Check browser network errors and asset paths relative to the site's docs directory. |
+| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-analysis-lister/`; see the [site guide](documentation.md). |
 | Editing a generated page has no lasting effect | Edit the original Markdown or synthetic fixture. The documentation helper regenerates `site-src/` and `site/`; restart after renderer-code changes. |
 
 Selection and derivation details are explained in the
-[diagnostic report guide](diagnostics.md). For integration changes, the
+[diagnostic report guide](#read-the-diagnostic-report). For integration changes, the
 [browser checks](development.md#browser-and-site-checks) exercise asset loading,
 instant navigation and URL persistence with synthetic records.
+
+## Validation and recovery
+
+API downloads and registry builds reject a per-resource count drop greater than
+20%. Use `--allow-count-drop` only for an understood reduction; it does not bypass
+schema validation. Validated JSON candidates replace the output atomically, and
+registry output cannot overwrite its input. Run operations that write the same
+files sequentially.
+
+For symptoms and commands to resume at the failed stage, see
+[troubleshooting](#resume-an-interrupted-workflow). Rendered
+files are replaced individually. HTML publication uses batch rollback; retain
+the reported backups and recovery paths if rollback fails, and do not consume
+an export while `.html-download-in-progress` exists.
+
+Download failures compare output bytes with their pre-download state before
+claiming preservation. If the check fails or bytes changed, the command says so.
+An HTML interruption marker takes precedence: the batch is reported as incomplete
+and staging/recovery paths are listed. Debug HTML may be partial. Preserved bytes
+do not prove that the pre-existing data was valid or complete.
+
+## Logs and summaries
+
+Diagnostics, including missing publication-policy warnings, go to stderr;
+results and output paths go to stdout. Summaries
+are flushed immediately to preserve order in combined redirected logs.
+
+Downloads and builds log configuration, paths and processing stages. API progress
+includes sorting, page counts and timings; build progress includes resource counts
+and identifier/DOI summaries. `--verbose` adds request offsets and limits.
+`--quiet` retains warnings and final results. `--color auto|always|never` controls
+colour. Logs omit credentials, authentication URL parameters and raw records,
+though warnings may name records that need attention.
+
+Both download commands finish with paths, per-resource and total counts, elapsed
+time including authentication and publication, and the checks that passed. API
+count-drop overrides are stated explicitly. Offline HTML replay uses the same
+summary without authentication or network access.
+
+[Report contract for automation](output-reference.md#supported-report-summary)

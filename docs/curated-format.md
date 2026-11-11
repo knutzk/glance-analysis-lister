@@ -44,7 +44,7 @@ v2 registries need no rewriting.
 The four resource arrays (`analyses`, `papers`, `confnotes`, `pubnotes`) and their
 nonnegative integer `counts` are required. Empty arrays with zero counts are valid
 storage. Download completeness and count-drop protection are
-[separate checks](workflows.md#validation-and-recovery).
+[separate checks](problems.md#validation-and-recovery).
 
 Analyses and papers use `referenceCode`; notes use `temporaryReferenceCode`.
 Native identifiers are nonempty and unique within their resource. Public note

@@ -24,24 +24,30 @@ extra_javascript = [
 ]
 nav = [
   { "Home" = "README.md" },
-  { "Documentation" = [
-    { "Overview" = "docs/README.md" },
-    { "Synthetic example" = "examples/README.md" },
-    { "CERN data in the demo" = "docs/cern-demo.md" },
-    { "Commands and recovery" = "docs/workflows.md" },
-    { "Command-line reference" = "docs/cli-reference.md" },
-    { "Troubleshooting" = "docs/troubleshooting.md" },
-    { "Rendering and policies" = "docs/rendering.md" },
-    { "Ongoing analyses" = "docs/ongoing.md" },
-    { "Publication tables" = "docs/publications.md" },
-    { "Diagnostic reports" = "docs/diagnostics.md" },
-    { "Curation and identifiers" = "docs/registry.md" },
-    { "Curated v2 contract" = "docs/curated-format.md" },
+  { "Getting started" = [
+    { "Find your guide" = "docs/README.md" },
+    { "Try the synthetic demo" = "examples/README.md" },
+    { "Add CERN data" = "docs/cern-demo.md" },
+  ] },
+  { "Using the package" = [
+    { "Data and registry" = "docs/data.md" },
+    { "Choosing records" = "docs/selection.md" },
+    { "Exploring pages" = "docs/pages.md" },
     { "Citations" = "docs/citations.md" },
-    { "Provenance" = "docs/provenance.md" },
-    { "Python access" = "docs/python-access.md" },
+    { "Group websites" = "docs/website.md" },
+    { "Warnings and recovery" = "docs/problems.md" },
+  ] },
+  { "Reference" = [
+    { "Commands and options" = "docs/cli-reference.md" },
+    { "Curated data format" = "docs/curated-format.md" },
+    { "Files, URLs and reports" = "docs/output-reference.md" },
+    { "Python API" = "docs/python-access.md" },
     { "Compatibility" = "docs/compatibility.md" },
     { "Upgrading" = "docs/upgrading.md" },
+    { "Release notes" = [
+      { "v0.2.0" = "docs/release-notes/v0.2.0.md" },
+      { "v0.1.0 (historical)" = "docs/release-notes/v0.1.0.md" },
+    ] },
     { "Glossary" = "docs/glossary.md" },
   ] },
   { "Demo" = [
@@ -51,17 +57,12 @@ nav = [
     { "Conference notes" = "examples/demo/confnotes.md" },
     { "Public notes" = "examples/demo/pubnotes.md" },
   ] },
-  { "Development" = [
+  { "Contributing" = [
     { "Architecture" = "docs/architecture.md" },
     { "Field walkthrough" = "docs/contributing-field.md" },
-    { "Validation" = "docs/development.md" },
-    { "Releases" = "docs/releases.md" },
-    { "Release notes" = [
-      { "v0.2.0" = "docs/release-notes/v0.2.0.md" },
-      { "v0.1.0 (historical)" = "docs/release-notes/v0.1.0.md" },
-    ] },
-    { "Local documentation site" = "docs/site.md" },
-    { "Screenshots" = "docs/images/README.md" },
+    { "Development and testing" = "docs/development.md" },
+    { "Documentation maintenance" = "docs/documentation.md" },
+    { "Preparing releases" = "docs/releases.md" },
   ] },
 ]
 
