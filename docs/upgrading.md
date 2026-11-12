@@ -5,9 +5,9 @@ a separate output directory. Keep the old environment and site until you have
 checked the candidate. Keep custom policies and citation stores outside the Python
 environment so reinstalling the package cannot replace your edits.
 
-## Unreleased: GROVE field and browser names
+## Upgrading to v0.5.0: GROVE field and browser names
 
-The development version replaces the remaining `gal` namespace with `grove`.
+Version 0.5.0 replaces the remaining `gal` namespace with `grove`.
 This is a breaking change after v0.4.0, with no aliases or automatic conversion:
 
 | Surface | Previous name | Current name |
@@ -73,7 +73,7 @@ For a source checkout, update the Git remote to
 
 In the published v0.4.0 release, snapshot filenames stayed unchanged and earlier
 supported snapshots remained readable, with an advisory generator warning.
-The unreleased namespace change above supersedes that compatibility. v0.4.0 also retained
+The v0.5.0 namespace change above supersedes that compatibility. v0.4.0 also retained
 the optional paper `fullTitle` and `publicationPhase.finalTitleTex` fields for
 complete citations. Keep the previous snapshots and environment for rollback
 and reproducibility. Rebuild from a saved API snapshot and render into a
@@ -242,6 +242,7 @@ indefinite support for every previous file shape.
 
 ## Release history
 
+- [v0.5.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.5.0.txt)
 - [v0.4.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.4.0.txt)
 - [v0.3.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.3.0.txt)
 - [v0.2.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.2.0.txt)

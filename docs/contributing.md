@@ -407,7 +407,7 @@ GitHub publication; review the notes and candidate before pushing. The tag must
 match package metadata and have nonempty notes. After the package, browser and
 documentation jobs pass, CI publishes a **regular GitHub release** containing the
 tested distributions and notes. It then starts PyPI validation when publishing is
-enabled; the upload waits for the owner's approval as described below. A failed
+enabled; successful validation uploads automatically as described below. A failed
 required CI job prevents GitHub publication. The separate Pages workflow publishes
 the development documentation from `main`.
 
@@ -433,19 +433,21 @@ Both paths download the existing release assets, verify their SHA-256 digests,
 package name and version, and check metadata and the rendered description.
 The upload uses those same wheel and source archive bytes, without rebuilding.
 
-The `pypi` environment requires approval by `knutzk`. Open the
-[publisher's Actions run](https://github.com/knutzk/glance-grove/actions/workflows/publish-pypi.yml),
-review the validation summary, then choose **Review deployments → pypi → Approve
-and deploy**. Automation agents must provide the run link and leave this action
-to the owner. Keep the required reviewer and environment protections in place.
-`PYPI_PUBLISHING_ENABLED=true` enables this flow; setting it to `false` disables
-uploads without preventing GitHub release publication.
+The `pypi` environment has no required reviewer: successful validation proceeds
+straight to upload without a separate deployment approval. Keep Trusted Publishing,
+the allowed `main` branch and `v*` tags, and the existing asset validation in place.
+Review and authorise the release before pushing its tag: tag CI now publishes both
+GitHub and PyPI artifacts automatically. Follow the
+[publisher's Actions runs](https://github.com/knutzk/glance-grove/actions/workflows/publish-pypi.yml)
+for validation and upload results. `PYPI_PUBLISHING_ENABLED=true` enables this flow;
+setting it to `false` disables uploads without preventing GitHub publication.
 
 For validation only, run the publisher on `main` with `release_tag` set to a
 published release and `publish=false` (the default). If GitHub publication
 succeeds but dispatch fails, dispatch the publisher on `main` for the same tag
-with `publish=true`; it still requires owner approval. Do not recreate the
-release, replace its assets or move its tag. Inspect any partial PyPI upload
+with `publish=true`; this requests an automatic upload without further approval.
+Do not recreate the release, replace its assets or move its tag. Inspect any
+partial PyPI upload
 before retrying; an existing PyPI file cannot be overwritten. After upload,
 verify the PyPI files against the tested hashes and check a clean installation.
 

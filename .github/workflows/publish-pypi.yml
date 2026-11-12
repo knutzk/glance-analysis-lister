@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Published GitHub release tag (for example v0.4.0)
+        description: Published GitHub release tag (for example v0.5.0)
         required: true
         type: string
       publish:
@@ -52,7 +52,7 @@ jobs:
           PUBLISHING_ENABLED: ${{ vars.PYPI_PUBLISHING_ENABLED }}
         run: |
           if [ "$PUBLISH_REQUESTED" = true ] && [ "$PUBLISHING_ENABLED" != true ]; then
-            echo 'PyPI publishing is disabled. Explicitly enable it for an approved release.' >&2
+            echo 'PyPI publishing is disabled. Enable it only for an authorised release.' >&2
             exit 1
           fi
       - name: Download and verify published release distributions
@@ -73,12 +73,12 @@ jobs:
       - name: Report disabled publishing
         if: vars.PYPI_PUBLISHING_ENABLED != 'true'
         run: echo 'Validation completed; PyPI uploads are disabled.' >> "$GITHUB_STEP_SUMMARY"
-      - name: Link to owner approval
+      - name: Report automated upload
         if: >-
           vars.PYPI_PUBLISHING_ENABLED == 'true' &&
           (github.event_name == 'release' || inputs.publish)
         run: |
-          echo "Approve this upload in [this workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID): **Review deployments → pypi → Approve and deploy**. Approval belongs to the repository owner, not an automation agent." >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated release assets will upload automatically in [this workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID); no deployment approval is required." >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     if: >-
@@ -88,8 +88,8 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Preserve the required owner review for both release and dispatch triggers.
-    # Automation prepares the upload; only the owner approves this deployment.
+    # Trusted Publishing remains scoped to this environment and its branch/tag rules.
+    # No required reviewer: successful validation proceeds directly to upload.
     environment:
       name: pypi
       url: https://pypi.org/project/glance-grove/

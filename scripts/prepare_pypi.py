@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Validate published GitHub release assets for a separate, approved PyPI upload.
+"""Validate published GitHub release assets for an automated PyPI upload.
 
 This script only downloads and validates files; it never uploads to an index.
 """
@@ -139,7 +139,7 @@ def main():
         "The wheel and source archive match GitHub's recorded SHA-256 digests. "
         "No rebuild or metadata rewrite was performed.\n\n"
         f"```text\n{hashes}```\n\n"
-        "Preparation does not publish. An upload requires the separate gated job.\n"
+        "Preparation does not publish. The workflow uploads these files automatically when publishing is enabled and requested.\n"
     )
     print(summary)
     if destination := os.environ.get("GITHUB_STEP_SUMMARY"):

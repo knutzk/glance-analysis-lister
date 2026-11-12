@@ -263,6 +263,7 @@ def main():
             ".github/release-notes/v0.2.0.txt",
             ".github/release-notes/v0.3.0.txt",
             ".github/release-notes/v0.4.0.txt",
+            ".github/release-notes/v0.5.0.txt",
             "examples/demo/zensical.toml",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",

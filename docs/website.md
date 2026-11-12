@@ -3,7 +3,7 @@
 When upgrading from v0.4.0 or earlier, replace the generated pages and assets
 together and update all `gal-*` asset references and custom selectors to
 `grove-*`. There are no old-name aliases; see the
-[namespace upgrade](upgrading.md#unreleased-grove-field-and-browser-names).
+[namespace upgrade](upgrading.md#upgrading-to-v050-grove-field-and-browser-names).
 
 [Documentation overview](README.md)
 

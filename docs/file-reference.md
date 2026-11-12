@@ -6,7 +6,7 @@ curation. Rendering also writes a diagnostic report to explain the result.
 Keep these inputs and reports privately; publish only the intended pages and assets.
 
 Current curated fields use the `grove_` namespace. Files containing retired
-`gal_` fields are rejected; follow the [rebuild guidance](upgrading.md#unreleased-grove-field-and-browser-names)
+`gal_` fields are rejected; follow the [rebuild guidance](upgrading.md#upgrading-to-v050-grove-field-and-browser-names)
 when upgrading from v0.4.0 or earlier.
 
 The [data guide](data.md) explains this workflow. This reference describes the
