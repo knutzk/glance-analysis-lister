@@ -23,12 +23,12 @@ credentials, then add your group's real data with authorised CERN access.
   <tr>
     <td width="50%" valign="top">
       <p><strong>Ongoing analyses</strong></p>
-      <a href="docs/images/ongoing.png"><img src="docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards, all collapsed."></a>
+      <a href="https://knutzk.github.io/glance-analysis-lister/docs/images/ongoing.png"><img src="https://knutzk.github.io/glance-analysis-lister/docs/images/ongoing.png" width="360" alt="Synthetic ongoing-analysis page with search, subgroup and review-stage controls, and four analysis cards, all collapsed."></a>
       <p>Searchable analysis cards with affiliations and review progress. All cards are collapsed in this screenshot; each can be expanded to show details.</p>
     </td>
     <td width="50%" valign="top">
       <p><strong>Publications</strong></p>
-      <a href="docs/images/papers.png"><img src="docs/images/papers.png" width="360" alt="Synthetic paper page with search, date and publication-status filters, and four papers, one expanded."></a>
+      <a href="https://knutzk.github.io/glance-analysis-lister/docs/images/papers.png"><img src="https://knutzk.github.io/glance-analysis-lister/docs/images/papers.png" width="360" alt="Synthetic paper page with search, date and publication-status filters, and four papers, one expanded."></a>
       <p>Tables for papers, conference notes and public notes, with date filters and expandable details.</p>
     </td>
   </tr>
@@ -87,16 +87,16 @@ Stop the server with **Ctrl+C** when you are finished.
 
 ## Go further
 
-[Documentation overview](docs/README.md)
+[Documentation overview](https://knutzk.github.io/glance-analysis-lister/docs/)
 
 Explore page controls, configuration, troubleshooting and the Python interface,
 or continue with one of these guides:
 
-- [Reopen or build the demo](examples/README.md#reopen-or-build-the-demo): reuse your setup while keeping configuration and policy edits.
-- [Add CERN data to the same demo](docs/cern-demo.md): show your group's real pages alongside the synthetic examples.
-- [Change publication selection](examples/README.md#tutorial-change-publication-selection): edit a policy and see the results in the running site.
-- [Integrate the pages into your website](docs/website.md#integrate-into-a-consuming-site): use the generated Markdown and browser assets in a group site.
-- [Understand the command workflow](docs/data.md#how-the-commands-connect): download once, curate and render offline, or combine the stages with `refresh`.
+- [Reopen or build the demo](https://knutzk.github.io/glance-analysis-lister/examples/#reopen-or-build-the-demo): reuse your setup while keeping configuration and policy edits.
+- [Add CERN data to the same demo](https://knutzk.github.io/glance-analysis-lister/docs/cern-demo/): show your group's real pages alongside the synthetic examples.
+- [Change publication selection](https://knutzk.github.io/glance-analysis-lister/examples/#tutorial-change-publication-selection): edit a policy and see the results in the running site.
+- [Integrate the pages into your website](https://knutzk.github.io/glance-analysis-lister/docs/website/#integrate-into-a-consuming-site): use the generated Markdown and browser assets in a group site.
+- [Understand the command workflow](https://knutzk.github.io/glance-analysis-lister/docs/data/#how-the-commands-connect): download once, curate and render offline, or combine the stages with `refresh`.
 
 ## About the project
 
@@ -110,14 +110,14 @@ on the internal TOPQ group website. The project has since become a general
 package for ATLAS physics and performance groups, with configurable group
 selection and publication policies for Markdown and Zensical websites.
 
-See [compatibility and upgrading](docs/upgrading.md) for the interface scope,
+See [compatibility and upgrading](https://knutzk.github.io/glance-analysis-lister/docs/upgrading/) for the interface scope,
 change policy and checks before replacing a working installation. To contribute,
-see [the contributor guide](docs/contributing.md).
+see [the contributor guide](https://knutzk.github.io/glance-analysis-lister/docs/contributing/).
 
 Parts of this codebase were developed with AI assistance from Codex (OpenAI)
 and Claude (Anthropic). All output was reviewed and validated by the author.
 
 Copyright © 2024–2026 Knut Zoch. Licensed under
-[GNU GPL version 3](LICENCE), `GPL-3.0-only`.
+[GNU GPL version 3](https://github.com/knutzk/glance-analysis-lister/blob/main/LICENCE), `GPL-3.0-only`.
 
 Maintainer: [Knut Zoch](https://github.com/knutzk).

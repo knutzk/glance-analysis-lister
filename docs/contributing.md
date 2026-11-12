@@ -365,6 +365,7 @@ the wheel from it:
 
 ```bash
 python -m build
+python -m twine check --strict dist/*
 ```
 
 Use a fresh output directory so the artifacts belong to this candidate. Install
@@ -403,7 +404,7 @@ checks; record only non-sensitive outcomes.
 A pushed `vVERSION` tag must match package metadata and have nonempty notes.
 After the package, browser and documentation jobs pass, CI creates a **draft
 GitHub release** containing the tested distributions and notes. Review it before
-publication; CI does not upload to a package index. The separate Pages workflow
+publication; tag CI does not upload to a package index. The separate Pages workflow
 publishes the development documentation from `main`.
 
 There is one development documentation site. Release tags and source archives
@@ -411,3 +412,7 @@ retain the matching guides and demo; there is no hosted version selector.
 The pinned Zensical version does not lock every dependency or guarantee identical
 HTML when rebuilding later. Short-lived CI artifacts are review aids, not a
 permanent release archive.
+
+### Publish to PyPI
+
+PyPI publishing is manual for now and will be automated in the future.

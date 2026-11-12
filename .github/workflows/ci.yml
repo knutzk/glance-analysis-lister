@@ -112,6 +112,8 @@ jobs:
       # With no --wheel/--sdist flags, build creates the wheel from the sdist.
       - name: Build source distribution and rebuild wheel from it
         run: python -m build
+      - name: Validate PyPI metadata and description
+        run: python -m twine check --strict dist/*
       - name: Verify installed wheel in a clean environment
         shell: bash
         run: |
