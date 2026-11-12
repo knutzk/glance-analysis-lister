@@ -27,9 +27,11 @@ The repository is https://github.com/knutzk/glance-grove and documentation is at
 https://knutzk.github.io/glance-grove/. Update Git remotes and documentation links;
 the old GitHub Pages address does not automatically redirect.
 
-The curated data schema, snapshot filenames and generated group-page URLs are
-unchanged. Structurally valid saved snapshots remain readable, with advisory
-warnings for the old generator identity. Rebuild from a saved API snapshot with
+Snapshot filenames and generated group-page URLs are unchanged. Existing
+supported curated snapshots remain readable, with advisory warnings for the old
+generator identity. Newly built snapshots retain the optional paper `fullTitle`
+and `publicationPhase.finalTitleTex` fields; keep the previous snapshots for
+rollback because older versions may reject these fields. Rebuild from a saved API snapshot with
 `grove build-registry` to recover full paper titles omitted by older curated
 snapshots, then render into a separate output directory with `grove render-group`.
 No fresh CERN download is needed. Preserve custom citation stores and policies

@@ -25,10 +25,13 @@ Use `grove --version` or `python -m grove --version` to check the candidate.
 For a source checkout, update the Git remote to
 `https://github.com/knutzk/glance-grove.git` after the repository rename.
 
-Saved snapshot filenames and the curated data schema have not changed. Valid
-saved snapshots still load; their old generator identity may produce a warning.
-Rebuild from a saved API snapshot and render into a separate directory to record
-the new generator identity. This needs no fresh CERN download. Preserve custom
+Saved snapshot filenames have not changed. Supported saved snapshots still load;
+their old generator identity may produce a warning. Newly built snapshots retain
+the optional paper `fullTitle` and `publicationPhase.finalTitleTex` fields for
+complete citations. Keep the previous snapshots for rollback: older versions
+may reject these fields. Rebuild from a saved API snapshot and render into a
+separate directory to record the new generator identity and retained titles.
+This needs no fresh CERN download. Preserve custom
 stores and policies and pass their paths explicitly as before. Bundled data in
 an installed wheel now lives under `share/glance-grove/`.
 
