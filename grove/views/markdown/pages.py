@@ -15,7 +15,7 @@ from .papers import paper_table
 
 def curation_box(body):
     return (
-        '<aside class="gal-archive-scope" aria-label="How this list is curated">\n'
+        '<aside class="grove-archive-scope" aria-label="How this list is curated">\n'
         "<h2>How this list is curated</h2>\n" + body + "</aside>\n\n"
     )
 
@@ -55,7 +55,7 @@ def provenance(view, revision=None):
             generator += " (modified checkout)"
     return (
         "---\n\n"
-        f'GLANCE data extracted: <code class="gal-snapshot-date">{fetched}</code>. '
+        f'GLANCE data extracted: <code class="grove-snapshot-date">{fetched}</code>. '
         + generator
         + ".\n\n"
     )

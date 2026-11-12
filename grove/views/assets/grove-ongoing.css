@@ -1,0 +1,115 @@
+/* SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+ * SPDX-License-Identifier: GPL-3.0-only */
+.grove-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+.grove-card:target { outline: 2px solid var(--grove-accent); outline-offset: 3px; }
+.grove-card__badges { display: flex; flex-wrap: wrap; gap: .35rem; }
+.grove-card .grove-tags { margin: .35rem 0 .8rem; padding: 0; list-style: none; }
+.grove-card__details summary { cursor: pointer; font-weight: 600; }
+@media print {
+  .grove-cards { display: block; }
+  .grove-card { break-inside: avoid; margin-bottom: 1rem; }
+}
+.grove-collection .grove-card ol.grove-progress { display: flex; align-items: stretch; gap: .3rem; list-style: none; padding: 0 0 .25rem; margin: 0 0 .65rem; overflow-x: auto; }
+.grove-card .grove-progress__step { position: relative; display: flex; align-items: center; gap: .25rem; flex: 1 0 auto; margin: 0; padding: .35rem .6rem; border: 1px solid var(--grove-border); border-radius: .25rem; font-size: .6rem; white-space: nowrap; }
+.grove-card .grove-progress__step:not(:last-child) { margin-right: .6rem; }
+.grove-progress__step:not(:last-child)::after { content: "→"; position: absolute; right: -.85rem; color: var(--grove-muted); }
+.grove-card .grove-progress__step--reached { border-color: var(--grove-accent); background: color-mix(in srgb, var(--grove-accent) 13%, transparent); }
+.grove-progress__marker { color: var(--grove-muted); }
+.grove-progress__step--reached .grove-progress__marker { color: var(--grove-accent); font-weight: 700; }
+.grove-card__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .6rem; }
+.grove-card__columns > div { min-width: 0; }
+.grove-card .grove-card__fields { margin: 0 0 .5rem; }
+.grove-card .grove-card__fields dd { font-size: .7rem; margin: .1rem 0 .4rem; }
+.grove-card .grove-card__columns p { margin-top: .2rem; margin-bottom: .4rem; }
+.grove-card .grove-card__columns ul { margin-top: .2rem; margin-bottom: .4rem; }
+.grove-card .grove-card__columns li { margin-bottom: .1rem; }
+.grove-card .grove-tags li { display: inline-block; border: 1px solid var(--grove-border); border-radius: 1rem; line-height: 1.4; margin: 0; font-size: .6rem; padding: .12rem .4rem; }
+.grove-card .grove-badge { font-size: .6rem; padding: .12rem .4rem; }
+@media (max-width: 600px) {
+  .grove-card__columns { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+}
+.grove-card details.grove-card__details { margin: .25rem 0 0; padding: .4rem 0 0; border: 0; border-top: 1px solid var(--grove-border); border-radius: 0; background: transparent; box-shadow: none; }
+.grove-card details.grove-card__details > summary { margin: 0; padding: .25rem .4rem .25rem 1.5rem; font-size: .65rem; background: transparent; }
+.grove-ongoing .grove-filters { padding: .65rem .8rem; }
+.grove-ongoing .grove-filters > label { margin-bottom: .25rem; font-size: .7rem; }
+.grove-ongoing .grove-filters input[type="search"] { padding: .35rem .5rem; font-size: .68rem; max-width: 30rem; box-shadow: none; }
+.grove-ongoing .grove-filter-help { font-size: .62rem; margin: .35rem 0; }
+.grove-card .grove-card__reference { margin: 0 0 .35rem; font-weight: 650; letter-spacing: .03em; margin-bottom: .2rem; flex-shrink: 0; white-space: nowrap; font-size: .68rem; }
+.grove-card__header > .grove-card__affiliations { flex-shrink: 0; justify-content: flex-end; max-width: 45%; margin-left: auto; }
+@media (max-width: 600px) {
+  .grove-card .grove-card__header { flex-wrap: wrap; }
+  .grove-card__header > .grove-card__affiliations { max-width: 100%; }
+}
+.grove-card__keyword-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.grove-card .grove-card__header h2 { margin: 0 0 .8rem; line-height: 1.4; font-weight: 600; align-items: baseline; gap: .5rem; min-width: 0; flex: 1; margin-bottom: .3rem; font-size: .8rem; display: block; }
+.grove-card .grove-card__header { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; margin-bottom: .6rem; }
+.grove-card .grove-progress { margin-bottom: 0; }
+.grove-card [data-grove-card-toggle]:focus-visible { outline: 2px solid var(--grove-accent); outline-offset: 3px; border-radius: .2rem; }
+.grove-card__details { border-top: 1px solid var(--grove-border); padding-top: .7rem; font-size: .8rem; margin-top: .6rem; }
+.grove-card .grove-card__details { font: inherit; }
+.grove-card .grove-card__details :is(ul, li, a) { font-family: inherit; font-size: inherit; line-height: inherit; }
+.grove-card--expandable:focus-within { border-color: var(--grove-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--grove-accent) 18%, transparent); }
+@media (hover: hover) {
+  .grove-card--expandable:hover { transform: translateY(-2px); border-color: var(--grove-accent); box-shadow: 0 5px 14px #0003; }
+}
+.grove-card__expand-indicator { flex: 0 0 auto; color: var(--grove-accent); transition: transform .15s ease; }
+.grove-card__header[aria-expanded="true"] .grove-card__expand-indicator { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .grove-card--expandable { transition: none; }
+  .grove-card__expand-indicator { transition: none; }
+  .grove-card--expandable:hover { transform: none; }
+}
+.grove-card { min-width: 0; border: 2px solid color-mix(in srgb, var(--md-default-fg-color, #253041) 40%, transparent); border-top: 3px solid var(--grove-accent); border-radius: .65rem; background: var(--md-default-bg-color, #fff); box-shadow: 0 2px 5px #0002; scroll-margin-top: 5rem; overflow-wrap: anywhere; padding: .75rem; font-size: .7rem; container-name: grove-analysis; container-type: inline-size; }
+@container grove-analysis (max-width: 42rem) {
+  .grove-collection .grove-card ol.grove-progress { flex-direction: column; gap: .3rem; overflow: visible; }
+  .grove-card .grove-progress__step { flex: none; white-space: normal; }
+  .grove-card .grove-progress__step:not(:last-child) { margin-right: 0; margin-bottom: .6rem; }
+  .grove-progress__step:not(:last-child)::after { content: "↓"; right: auto; left: .65rem; top: 100%; }
+}
+@container grove-analysis (max-width: 42rem) {
+  .grove-card .grove-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem .5rem; }
+  .grove-card .grove-card__header h2 { grid-column: 1; grid-row: 1; margin-bottom: 0; }
+  .grove-card__header > .grove-card__affiliations { grid-column: 1 / -1; grid-row: 2; max-width: 100%; margin: 0; justify-content: flex-start; }
+  .grove-card__expand-indicator { grid-column: 2; grid-row: 1; align-self: start; }
+}
+.grove-card__permalink { flex: 0 0 auto; font-size: .75rem; padding: .1rem .25rem; color: var(--grove-muted); text-decoration: none; }
+.grove-card__permalink:hover { color: var(--grove-accent); text-decoration: underline; }
+@container grove-analysis (max-width: 42rem) {
+  .grove-card__permalink { grid-column: 2; grid-row: 1; }
+}
+.grove-card__title-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: .3rem .5rem; flex: 1; min-width: 0; }
+.grove-card__glance-links { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+.grove-card a.grove-glance-button { display: inline-block; padding: .15rem .4rem; border: 1px solid var(--grove-accent); border-radius: 0; color: var(--grove-accent); font-size: .6rem; line-height: 1.4; white-space: nowrap; text-decoration: none; }
+.grove-card a.grove-glance-button:hover { background: color-mix(in srgb, var(--grove-accent) 12%, transparent); }
+@container grove-analysis (max-width: 42rem) {
+  .grove-card__title-line { grid-column: 1; grid-row: 1; }
+  .grove-card .grove-card__title-line h2 { grid-column: auto; grid-row: auto; }
+}
+.grove-card .grove-card__title-line h2 { flex: 0 1 auto; }
+.grove-card__title-line .grove-card__permalink { align-self: baseline; }
+.grove-card h2 .grove-card__permalink { display: inline; padding: 0; font: inherit; color: inherit; }
+.grove-card--expandable { transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease; cursor: auto; }
+/* Keep long collections responsive when filters reveal offscreen cards. Chrome
+ * replaces the initial height estimate with each card's measured height. Limit
+ * this to interactive screen views: static fallback and printing stay complete. */
+@media screen {
+  .grove-card--expandable { content-visibility: auto; contain-intrinsic-block-size: auto 20rem; }
+}
+.grove-card--expandable:hover { border-color: var(--grove-accent); transform: none; box-shadow: 0 2px 5px #0002; }
+.grove-card__actions { display: flex; align-items: center; gap: .15rem; flex: 0 0 auto; font-size: .8rem; font-weight: 600; }
+.grove-card__actions .grove-card__permalink { font: inherit; padding: .2rem .3rem; }
+.grove-card__toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; padding: .2rem; border: 1px solid transparent; border-radius: .3rem; color: var(--grove-accent); background: transparent; font: inherit; cursor: pointer; }
+.grove-card__toggle:hover { border-color: var(--grove-accent); background: color-mix(in srgb, var(--grove-accent) 12%, transparent); }
+@container grove-analysis (max-width: 42rem) {
+  .grove-card__actions { grid-column: 2; grid-row: 1; }
+}
+.grove-card--expandable:not(.grove-card--open) { cursor: pointer; }
+.grove-card__collapse { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .6rem; border: 1px solid var(--grove-border); border-radius: .3rem; color: var(--grove-accent); background: transparent; font: inherit; cursor: pointer; }
+.grove-card__collapse:hover { border-color: var(--grove-accent); background: color-mix(in srgb, var(--grove-accent) 12%, transparent); }
+@media (hover: hover) {
+  .grove-card--expandable:not(.grove-card--open):hover { box-shadow: 0 5px 14px #0003; }
+}
+.grove-card__collapse-row { display: flex; margin-top: .6rem; padding-top: .5rem; border-top: 1px solid var(--grove-border); justify-content: flex-start; }
+.grove-card .grove-badge--leading { color: inherit; border-color: var(--grove-border); border-inline-start: 3px solid var(--grove-accent); background: color-mix(in srgb, var(--md-default-fg-color, #253041) 5%, var(--md-default-bg-color, #fff)); font-weight: 700; }
+.grove-ongoing .grove-filter-action-buttons { display: flex; gap: .4rem; margin-left: auto; align-items: center; }
+.grove-ongoing .grove-filter-action-buttons .grove-reset { margin-left: 0; }

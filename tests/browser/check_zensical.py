@@ -61,9 +61,9 @@ def build_site(work, base):
         "nav:\n  - Home: index.md\n"
         + "".join(f"  - {page}: analyses/{page}.md\n" for page in PAGES)
         + "extra_css:\n"
-        + "".join(f"  - analyses/assets/gal-{name}.css\n" for name in assets)
+        + "".join(f"  - analyses/assets/grove-{name}.css\n" for name in assets)
         + "extra_javascript:\n"
-        + "".join(f"  - analyses/assets/gal-{name}.js\n" for name in assets)
+        + "".join(f"  - analyses/assets/grove-{name}.js\n" for name in assets)
     )
     (work / "mkdocs.yml").write_text(config)
     subprocess.run(
@@ -74,9 +74,9 @@ def build_site(work, base):
 def check_filter_subsets(driver, wait, page):
     """Exercise nonempty intersections and note supersession in the public demo."""
     notes = page in {"confnotes", "pubnotes"}
-    counter = "[data-gal-note-count]" if notes else "[data-gal-count]"
-    reset = "[data-gal-note-reset]" if notes else "[data-gal-reset]"
-    search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+    counter = "[data-grove-note-count]" if notes else "[data-grove-count]"
+    reset = "[data-grove-note-reset]" if notes else "[data-grove-reset]"
+    search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
 
     def count(expected):
         wait.until(
@@ -94,7 +94,7 @@ def check_filter_subsets(driver, wait, page):
             "input.value = arguments[1];"
             "input.dispatchEvent(new Event('input', {bubbles: true}));"
             "input.dispatchEvent(new Event('change', {bubbles: true}));",
-            f"[data-gal-date-{bound}]",
+            f"[data-grove-date-{bound}]",
             value,
         )
 
@@ -102,17 +102,17 @@ def check_filter_subsets(driver, wait, page):
     count(2)
     if page == "ongoing":
         click(reset)
-        click('[data-gal-value="DEMO-Tracking"]')
+        click('[data-grove-value="DEMO-Tracking"]')
         count(2)
-        click('[data-gal-value="DEMO-Calorimetry"]')
+        click('[data-grove-value="DEMO-Calorimetry"]')
         count(3)  # OR across subgroups; the shared analysis is counted once.
         search.send_keys("Calibration")
         count(1)  # Search must also match.
     elif page == "papers":
-        click('[data-gal-value="published"]')
+        click('[data-grove-value="published"]')
         count(1)
         click(reset)
-        click('[data-gal-value="under-review"]')
+        click('[data-grove-value="under-review"]')
         count(2)
         search.send_keys("Tracking")
         count(1)
@@ -121,9 +121,9 @@ def check_filter_subsets(driver, wait, page):
         count(1)  # The older published paper; undated submissions are excluded.
     else:
         click(reset)
-        click('[data-gal-note-supersession="superseded"]')
+        click('[data-grove-note-supersession="superseded"]')
         count(4)
-        click('[data-gal-note-supersession="non-superseded"]')
+        click('[data-grove-note-supersession="non-superseded"]')
         count(1)
         search.send_keys("Simulation")
         count(1)
@@ -166,8 +166,8 @@ def check_saved_links(driver, wait, base, page_prefix):
     )
     for page, query, fragment, expected in bookmarks:
         notes = page in {"confnotes", "pubnotes"}
-        counter = "[data-gal-note-count]" if notes else "[data-gal-count]"
-        reset = "[data-gal-note-reset]" if notes else "[data-gal-reset]"
+        counter = "[data-grove-note-count]" if notes else "[data-grove-count]"
+        reset = "[data-grove-note-reset]" if notes else "[data-grove-reset]"
         driver.get(base + f"{page_prefix}{page}/?{query}&source=bookmark#{fragment}")
         for reload in (False, True):
             if reload:
@@ -242,7 +242,7 @@ def browse(
                 lambda d: next(
                     (
                         e
-                        for e in d.find_elements(By.CSS_SELECTOR, "[data-gal-search]")
+                        for e in d.find_elements(By.CSS_SELECTOR, "[data-grove-search]")
                         if e.is_displayed()
                     ),
                     False,
@@ -253,9 +253,9 @@ def browse(
                 == "preserved"
             ), "Navigation reloaded the document"
             counter = (
-                "[data-gal-note-count]"
+                "[data-grove-note-count]"
                 if page in {"confnotes", "pubnotes"}
-                else "[data-gal-count]"
+                else "[data-grove-count]"
             )
             default_count = 3 if page in {"confnotes", "pubnotes"} else 4
             wait.until(
@@ -282,7 +282,7 @@ def browse(
             )
             if page == "ongoing":
                 Select(
-                    driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                    driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
                 ).select_by_value("reference")
                 assert "sort=reference" in driver.current_url
             driver.refresh()
@@ -292,24 +292,24 @@ def browse(
                 ).text.startswith("0 of 4")
             )
             assert (
-                driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
-                    "value"
-                )
+                driver.find_element(
+                    By.CSS_SELECTOR, "[data-grove-search]"
+                ).get_attribute("value")
                 == "no-synthetic-record-matches"
             )
             if page == "ongoing":
                 assert (
                     Select(
-                        driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                        driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
                     ).first_selected_option.get_attribute("value")
                     == "reference"
                 )
             # A deliberate reload starts a new document; subsequent link clicks must preserve it.
             driver.execute_script("window.integrationDocument = 'preserved';")
             reset = (
-                "[data-gal-note-reset]"
+                "[data-grove-note-reset]"
                 if page in {"confnotes", "pubnotes"}
-                else "[data-gal-reset]"
+                else "[data-grove-reset]"
             )
             driver.find_element(By.CSS_SELECTOR, reset).click()
             assert "q=" not in driver.current_url
@@ -320,9 +320,9 @@ def browse(
                 ).text.startswith(f"{default_count} of 4")
             )
             expand = (
-                "[data-gal-expand-all]"
+                "[data-grove-expand-all]"
                 if page == "ongoing"
-                else "[data-gal-archive-expand-all]"
+                else "[data-grove-archive-expand-all]"
             )
             button = driver.find_element(By.CSS_SELECTOR, expand)
             button.click()
@@ -336,7 +336,7 @@ def browse(
             # Check every package stylesheet, including resource-specific assets.
             assert driver.execute_script(
                 "return arguments[0].every(name => [...document.styleSheets].some("
-                "s => s.href && s.href.endsWith('/gal-' + name + '.css') && "
+                "s => s.href && s.href.endsWith('/grove-' + name + '.css') && "
                 "!s.disabled && s.cssRules.length > 0))",
                 ["common", "ongoing", "papers", "notes"],
             ), "Missing or disabled package stylesheet"

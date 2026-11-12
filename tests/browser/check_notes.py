@@ -42,12 +42,12 @@ def run_checks(work_dir):
     ]
     for n, note in enumerate(notes):
         note["phase1"]["releaseDate"] = f"2099-{n + 1:02}-01" if n < 3 else None
-        note["gal_groups"]["leadingSubgroup"] = (
+        note["grove_groups"]["leadingSubgroup"] = (
             "DEMO-Alpha" if n == 0 else "DEMO-Beta" if n < 3 else "OTHER-Outside"
         )
-        note["gal_groups"]["subgroups"] = ["DEMO-Alpha"] if n == 1 else []
+        note["grove_groups"]["subgroups"] = ["DEMO-Alpha"] if n == 1 else []
         note["phase1"]["draftCdsUrl"] = f"https://cds.cern.ch/record/20990000000{n}"
-    notes[0]["gal_contactEditors"] = ["Invented Editor"]
+    notes[0]["grove_contactEditors"] = ["Invented Editor"]
     notes[2]["supersededBy"] = [{"type": "Paper", "referenceCode": "DEMO-2099-77"}]
     view = prepare_group(
         CuratedRegistry(snapshot(analysis(1), **{args.resource: tuple(notes)})),
@@ -57,21 +57,26 @@ def run_checks(work_dir):
         BeautifulSoup(
             (confnotes_page if args.resource == "confnotes" else pubnotes_page)(view),
             "html.parser",
-        ).select_one("[data-gal-notes]")
+        ).select_one("[data-grove-notes]")
     )
     assets = ROOT / "grove/views/assets"
     css = "".join(
         f'<link rel="stylesheet" href="{(assets / name).as_uri()}">'
         for name in (
-            "gal-common.css",
-            "gal-ongoing.css",
-            "gal-papers.css",
-            "gal-notes.css",
+            "grove-common.css",
+            "grove-ongoing.css",
+            "grove-papers.css",
+            "grove-notes.css",
         )
     )
     js = "".join(
         f'<script src="{(assets / name).as_uri()}"></script>'
-        for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js", "gal-notes.js")
+        for name in (
+            "grove-common.js",
+            "grove-ongoing.js",
+            "grove-papers.js",
+            "grove-notes.js",
+        )
     )
     output = work_dir / "fixture.html"
     output.write_text(
@@ -94,14 +99,14 @@ def run_checks(work_dir):
         driver.get(output.as_uri())
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-note-controls]"
+                By.CSS_SELECTOR, "[data-grove-note-controls]"
             ).is_displayed()
         )
 
         def visible():
             return [
                 r
-                for r in driver.find_elements(By.CSS_SELECTOR, "[data-gal-note]")
+                for r in driver.find_elements(By.CSS_SELECTOR, "[data-grove-note]")
                 if r.is_displayed()
             ]
 
@@ -109,13 +114,13 @@ def run_checks(work_dir):
             wait.until(
                 lambda d: (
                     len(visible()) == n
-                    and d.find_element(By.CSS_SELECTOR, "[data-gal-note-count]").text
+                    and d.find_element(By.CSS_SELECTOR, "[data-grove-note-count]").text
                     == f"{n} of 4 notes"
                 )
             )
 
         def search_for(value):
-            search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+            search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
             search.clear()
             search.send_keys(value)
 
@@ -125,12 +130,12 @@ def run_checks(work_dir):
         assert "q=209900000000" in driver.current_url
         search_for("Invented Editor")
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-note-reset]").click()
         count(3)
 
         def month(bound, value):
             driver.execute_script(
-                "const input=document.querySelector('[data-gal-date-'+arguments[0]+']');input.value=arguments[1];input.dispatchEvent(new Event('change',{bubbles:true}))",
+                "const input=document.querySelector('[data-grove-date-'+arguments[0]+']');input.value=arguments[1];input.dispatchEvent(new Event('change',{bubbles:true}))",
                 bound,
                 value,
             )
@@ -146,26 +151,26 @@ def run_checks(work_dir):
         driver.refresh()
         count(1)
         assert (
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-date-after]").get_attribute(
-                "value"
-            )
+            driver.find_element(
+                By.CSS_SELECTOR, "[data-grove-date-after]"
+            ).get_attribute("value")
             == "2099-02"
         )
         assert (
             driver.find_element(
-                By.CSS_SELECTOR, "[data-gal-date-before]"
+                By.CSS_SELECTOR, "[data-grove-date-before]"
             ).get_attribute("value")
             == "2099-02"
         )
         month("after", "2099-03")
         count(0)
         assert driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
+            By.CSS_SELECTOR, "[data-grove-archive-expand-all]"
         ).get_attribute("disabled")
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-note-reset]").click()
         count(3)
         expand_all = driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
+            By.CSS_SELECTOR, "[data-grove-archive-expand-all]"
         )
         expand_all.click()
         assert expand_all.text == "Collapse all"
@@ -174,7 +179,7 @@ def run_checks(work_dir):
                 [
                     panel
                     for panel in driver.find_elements(
-                        By.CSS_SELECTOR, "[data-gal-note-details]"
+                        By.CSS_SELECTOR, "[data-grove-note-details]"
                     )
                     if panel.is_displayed()
                 ]
@@ -186,30 +191,30 @@ def run_checks(work_dir):
         assert not any(
             panel.is_displayed()
             for panel in driver.find_elements(
-                By.CSS_SELECTOR, "[data-gal-note-details]"
+                By.CSS_SELECTOR, "[data-grove-note-details]"
             )
         )
         assert not driver.find_elements(
             By.CSS_SELECTOR,
-            "[data-gal-filter='subgroups'], [data-gal-pagination], [data-gal-disclosure]",
+            "[data-grove-filter='subgroups'], [data-grove-pagination], [data-grove-disclosure]",
         )
         assert not driver.find_elements(
-            By.CSS_SELECTOR, '[data-gal-value="OTHER-Outside"]'
+            By.CSS_SELECTOR, '[data-grove-value="OTHER-Outside"]'
         )
         assert all(
             len(row.find_elements(By.CSS_SELECTOR, "td, th")) == 3 for row in visible()
         )
         assert driver.execute_script(
-            "return Array.from(document.querySelectorAll('.gal-notes tbody tr[data-gal-note] > *')).every(e=>getComputedStyle(e).whiteSpace==='nowrap')"
+            "return Array.from(document.querySelectorAll('.grove-notes tbody tr[data-grove-note] > *')).every(e=>getComputedStyle(e).whiteSpace==='nowrap')"
         )
         driver.execute_script(
-            "window.GALOngoing.initialize();window.GALPapers.initialize();window.GALNotes.initialize();window.GALNotes.initialize()"
+            "window.GROVEOngoing.initialize();window.GROVEPapers.initialize();window.GROVENotes.initialize();window.GROVENotes.initialize()"
         )
         current = driver.find_element(
-            By.CSS_SELECTOR, '[data-gal-note-supersession="non-superseded"]'
+            By.CSS_SELECTOR, '[data-grove-note-supersession="non-superseded"]'
         )
         superseded = driver.find_element(
-            By.CSS_SELECTOR, '[data-gal-note-supersession="superseded"]'
+            By.CSS_SELECTOR, '[data-grove-note-supersession="superseded"]'
         )
         superseded.click()
         count(4)
@@ -218,38 +223,38 @@ def run_checks(work_dir):
         assert "supersession=superseded" in driver.current_url
         driver.refresh()
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-note-reset]").click()
         count(3)
         row = next(
             row
             for row in visible()
-            if "OTHER-Outside" in row.get_attribute("data-gal-search-text")
+            if "OTHER-Outside" in row.get_attribute("data-grove-search-text")
         )
-        toggle = row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]")
+        toggle = row.find_element(By.CSS_SELECTOR, "[data-grove-note-toggle]")
         panel_id = toggle.get_attribute("aria-controls")
         toggle.send_keys(Keys.ENTER)
         panel = driver.find_element(By.ID, panel_id)
         assert panel.is_displayed()
         panel.find_element(By.CSS_SELECTOR, "dd").click()
         assert panel.is_displayed()
-        row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]").click()
+        row.find_element(By.CSS_SELECTOR, "[data-grove-note-toggle]").click()
         assert not panel.is_displayed()
-        row.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]").send_keys(
+        row.find_element(By.CSS_SELECTOR, "[data-grove-note-toggle]").send_keys(
             Keys.ENTER
         )
         assert panel.is_displayed()
         assert driver.execute_script(
-            "return getComputedStyle(arguments[0]).backgroundColor===getComputedStyle(document.querySelector('.gal-note-detail-row > td')).backgroundColor",
+            "return getComputedStyle(arguments[0]).backgroundColor===getComputedStyle(document.querySelector('.grove-note-detail-row > td')).backgroundColor",
             panel,
         )
 
         search_for("DEMO-Alpha")
         count(2)
         assert not panel.is_displayed()
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-note-reset]").click()
         count(3)
         assert panel.is_displayed()
-        panel.find_element(By.CSS_SELECTOR, "[data-gal-note-collapse]").send_keys(
+        panel.find_element(By.CSS_SELECTOR, "[data-grove-note-collapse]").send_keys(
             Keys.SPACE
         )
         assert not panel.is_displayed()
@@ -265,19 +270,19 @@ def run_checks(work_dir):
         count(2)
         assert "q=DEMO-Alpha" in driver.current_url
         assert (
-            sum("gal-note--stripe" in row.get_attribute("class") for row in visible())
+            sum("grove-note--stripe" in row.get_attribute("class") for row in visible())
             == 1
         )
         search_for("DEMO-Beta")
         count(1)
         driver.refresh()
         count(1)
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-note-reset]").click()
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-note-reset]").click()
         count(3)
         row = next(
             row
             for row in visible()
-            if "OTHER-Outside" in row.get_attribute("data-gal-search-text")
+            if "OTHER-Outside" in row.get_attribute("data-grove-search-text")
         )
         before = row.value_of_css_property("background-color")
         ActionChains(driver).move_to_element(row).perform()
@@ -290,23 +295,23 @@ def run_checks(work_dir):
         driver.refresh()
         count(4)
         assert not driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-note-controls]"
+            By.CSS_SELECTOR, "[data-grove-note-controls]"
         ).is_displayed()
         assert all(
             p.is_displayed()
-            for p in driver.find_elements(By.CSS_SELECTOR, "[data-gal-note-details]")
+            for p in driver.find_elements(By.CSS_SELECTOR, "[data-grove-note-details]")
         )
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
         driver.get(output.as_uri())
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-note-controls]"
+                By.CSS_SELECTOR, "[data-grove-note-controls]"
             ).is_displayed()
         )
         driver.execute_script(
-            "const root=document.querySelector('[data-gal-notes]');const copy=root.cloneNode(true);copy.querySelector('[data-gal-note-controls]').remove();root.replaceWith(copy)"
+            "const root=document.querySelector('[data-grove-notes]');const copy=root.cloneNode(true);copy.querySelector('[data-grove-note-controls]').remove();root.replaceWith(copy)"
         )
-        toggle = driver.find_element(By.CSS_SELECTOR, "[data-gal-note-toggle]")
+        toggle = driver.find_element(By.CSS_SELECTOR, "[data-grove-note-toggle]")
         toggle.send_keys(Keys.ENTER)
         assert driver.find_element(
             By.ID, toggle.get_attribute("aria-controls")
@@ -317,7 +322,7 @@ def run_checks(work_dir):
 
 
 def main():
-    with TemporaryDirectory(prefix="gal-notes-browser-") as directory:
+    with TemporaryDirectory(prefix="grove-notes-browser-") as directory:
         run_checks(Path(directory))
 
 

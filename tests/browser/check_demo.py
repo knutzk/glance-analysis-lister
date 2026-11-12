@@ -368,10 +368,10 @@ def check_demo(work, driver):
         for page in ("papers", "confnotes", "pubnotes"):
             with urlopen(base + page + "/", timeout=5) as response:
                 html = BeautifulSoup(response.read(), "html.parser")
-            assert not html.select("[data-gal-item], [data-gal-note]")
+            assert not html.select("[data-grove-item], [data-grove-note]")
         run_commands(work, tutorial[2])
         check_outputs(work, 12)
-        wait_for_preview_text(base + "papers/", "data-gal-item")
+        wait_for_preview_text(base + "papers/", "data-grove-item")
     assert policy.read_text() == original_policy
     assert (work / POLICY).read_text() == original_policy
     assert (work / "examples/synthetic_registry.json").read_bytes() == fixture
@@ -424,7 +424,7 @@ def check_demo(work, driver):
         assert "Synthetic contributor-guide reload check." not in html
     html = (work / "site/docs/pages/index.html").read_text()
     records = BeautifulSoup(html, "html.parser").select(
-        ".gal-doc-example [data-gal-item]"
+        ".grove-doc-example [data-grove-item]"
     )
     assert {record["id"] for record in records} == {
         "analysis-demo-ana-demo-2099-01",

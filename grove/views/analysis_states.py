@@ -23,7 +23,7 @@ def analysis_state(record, linked_states):
         "phase0.state": phase.get("state"),
         "phase0.pgcOrSgcSignOffDate": phase.get("pgcOrSgcSignOffDate"),
         "phase0.editorialBoardFormedDate": phase.get("editorialBoardFormedDate"),
-        "phase0.gal_editorialBoard": phase.get("gal_editorialBoard", []),
+        "phase0.grove_editorialBoard": phase.get("grove_editorialBoard", []),
         "linked_publication_states": linked_states,
     }
     state, reason = "unknown", "source does not establish an ongoing or completed state"
@@ -69,7 +69,7 @@ def analysis_state(record, linked_states):
         elif status == "Phase 0 Active":
             if iso_date(phase.get("pgcOrSgcSignOffDate")):
                 state, reason = "preapproved", "phase-0 sign-off date is recorded"
-            elif phase.get("gal_editorialBoard") or iso_date(
+            elif phase.get("grove_editorialBoard") or iso_date(
                 phase.get("editorialBoardFormedDate")
             ):
                 state, reason = (
@@ -88,12 +88,12 @@ def last_milestone(record):
     phase = record.get("phase0") or {}
     fields = [
         ("startDate", "Phase 0 started"),
-        ("gal_eoiMeetingDates", "Expression of interest"),
-        ("gal_editorialBoardRequestMeetingDates", "Editorial board requested"),
+        ("grove_eoiMeetingDates", "Expression of interest"),
+        ("grove_editorialBoardRequestMeetingDates", "Editorial board requested"),
         ("editorialBoardFormedDate", "Editorial board formed"),
-        ("gal_preApprovalMeetingDates", "Pre-approval meeting"),
+        ("grove_preApprovalMeetingDates", "Pre-approval meeting"),
         ("pgcOrSgcSignOffDate", "Pre-approval sign-off"),
-        ("gal_approvalMeetingDates", "Approval meeting"),
+        ("grove_approvalMeetingDates", "Approval meeting"),
     ]
     inputs, candidates = {}, []
     for priority, (field, label) in enumerate(fields):
@@ -140,7 +140,7 @@ def approval_progress(record, publications):
         [
             {
                 "label": "EdBoard assignment",
-                "reached": bool(board_date or phase.get("gal_editorialBoard")),
+                "reached": bool(board_date or phase.get("grove_editorialBoard")),
                 "date": board_date,
             },
             {
@@ -165,7 +165,7 @@ def approval_progress(record, publications):
         "independent recorded milestones; board membership also establishes assignment; linked publication PGC approval establishes approval sign-off; linked paper phase1.draftReleasedDate and phase2.draft2ReleasedDate establish the respective ATLAS circulations; no inference from status or other milestones",
         {
             "phase0.editorialBoardFormedDate": phase.get("editorialBoardFormedDate"),
-            "phase0.gal_editorialBoard": phase.get("gal_editorialBoard"),
+            "phase0.grove_editorialBoard": phase.get("grove_editorialBoard"),
             "phase0.pgcOrSgcSignOffDate": phase.get("pgcOrSgcSignOffDate"),
             "linked_publications": publications,
         },

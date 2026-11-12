@@ -177,7 +177,7 @@ class DiagnosticReportTests(unittest.TestCase):
     def test_unresolved_note_has_both_state_and_identifier_causes(self):
         note = publication(1, resource="pubnotes", status="Phase 1 Finished")
         del note["finalReferenceCode"]
-        note["gal_publicationProvenance"] = {
+        note["grove_publicationProvenance"] = {
             "source": "unresolved",
             "reason": "No unambiguous public identifier",
         }

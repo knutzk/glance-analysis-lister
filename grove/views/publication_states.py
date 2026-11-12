@@ -34,7 +34,7 @@ def publication_state(record, resource):
         inputs.update(
             {
                 "finalReferenceCode": record.get("finalReferenceCode"),
-                "gal_finalReferenceCode": record.get("gal_finalReferenceCode"),
+                "grove_finalReferenceCode": record.get("grove_finalReferenceCode"),
                 "phase1.releaseDate": phase.get("releaseDate"),
                 "phase1.publicWebPageUrlForFiguresAndTables": phase.get(
                     "publicWebPageUrlForFiguresAndTables"

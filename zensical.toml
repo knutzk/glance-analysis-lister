@@ -7,17 +7,17 @@ repo_url = "https://github.com/knutzk/glance-grove"
 docs_dir = "site-src"
 site_dir = "site"
 extra_css = [
-  "docs/assets/gal-common.css",
-  "docs/assets/gal-ongoing.css",
-  "docs/assets/gal-papers.css",
-  "docs/assets/gal-notes.css",
+  "docs/assets/grove-common.css",
+  "docs/assets/grove-ongoing.css",
+  "docs/assets/grove-papers.css",
+  "docs/assets/grove-notes.css",
   "docs/stylesheets/site.css",
 ]
 extra_javascript = [
-  "docs/assets/gal-common.js",
-  "docs/assets/gal-ongoing.js",
-  "docs/assets/gal-papers.js",
-  "docs/assets/gal-notes.js",
+  "docs/assets/grove-common.js",
+  "docs/assets/grove-ongoing.js",
+  "docs/assets/grove-papers.js",
+  "docs/assets/grove-notes.js",
 ]
 nav = [
   { "Home" = "README.md" },

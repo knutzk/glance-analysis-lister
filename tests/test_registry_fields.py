@@ -101,7 +101,7 @@ class RegistryFieldTests(unittest.TestCase):
         self.assertEqual(
             result["papers"][0]["publicationPhase"],
             {
-                "gal_dois": [
+                "grove_dois": [
                     {
                         "doi": "10.9999/demo",
                         "url": "https://doi.org/10.9999/demo",
@@ -110,7 +110,7 @@ class RegistryFieldTests(unittest.TestCase):
                 ],
             },
         )
-        self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
+        self.assertEqual(result["grove_curation"]["doi_statistics"]["resolved"], 1)
 
     def test_projection_preserves_missing_null_and_string_list_values(self):
         record = {
@@ -140,9 +140,9 @@ class RegistryFieldTests(unittest.TestCase):
                 record["unusedFutureField"] = "discard me"
                 record.setdefault("metadata", {}).update(
                     {
-                        "gal_keywords": ["Invented keyword"],
-                        "gal_triggers": ["Invented trigger"],
-                        "gal_statisticalTools": ["Invented tool"],
+                        "grove_keywords": ["Invented keyword"],
+                        "grove_triggers": ["Invented trigger"],
+                        "grove_statisticalTools": ["Invented tool"],
                         "mvaMlTools": [{"name": "Invented ML tool", "id": 123}],
                         "collisions": [
                             {
@@ -204,5 +204,5 @@ class RegistryFieldTests(unittest.TestCase):
                 ],
             )
         self.assertEqual(
-            trimmed["confnotes"][0]["gal_finalReferenceCode"], "ATLAS-CONF-2099-001"
+            trimmed["confnotes"][0]["grove_finalReferenceCode"], "ATLAS-CONF-2099-001"
         )

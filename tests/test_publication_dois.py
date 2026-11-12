@@ -113,7 +113,7 @@ class PublicationDoiTests(unittest.TestCase):
         }
         entries, invalid = enrich_paper(record, citations)
         self.assertEqual(invalid, 0)
-        self.assertEqual(record["publicationPhase"]["gal_dois"], entries)
+        self.assertEqual(record["publicationPhase"]["grove_dois"], entries)
         self.assertNotIn("dois", record["publicationPhase"])
         self.assertEqual([entry["doi"] for entry in entries], [ORIGINAL, CORRECTION])
         self.assertEqual(
@@ -156,6 +156,6 @@ class PublicationDoiTests(unittest.TestCase):
             ):
                 with self.subTest(schema=schema):
                     record = paper("https://doi.org/" + ORIGINAL)
-                    record["publicationPhase"]["gal_dois"] = [{"doi": CORRECTION}]
+                    record["publicationPhase"]["grove_dois"] = [{"doi": CORRECTION}]
                     path.write_text(json.dumps({"schema": schema, "papers": [record]}))
                     self.assertEqual(snapshot_dois(path), {expected})

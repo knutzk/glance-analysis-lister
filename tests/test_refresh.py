@@ -75,7 +75,7 @@ class RefreshTests(unittest.TestCase):
                         "confnotes.md",
                         "pubnotes.md",
                         "view-report.json",
-                        "assets/gal-common.js",
+                        "assets/grove-common.js",
                     ):
                         self.assertTrue((directory / name).is_file(), name)
                     self.assertIn(

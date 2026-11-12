@@ -23,7 +23,7 @@ class SoftwarePubNoteTests(unittest.TestCase):
             status="Phase 1 Finished",
         )
         note["finalReferenceCode"] = None
-        note["gal_finalReferenceCode"] = "ATL-SOFT-PUB-2099-001"
+        note["grove_finalReferenceCode"] = "ATL-SOFT-PUB-2099-001"
         record["relatedPublications"] = [
             {"type": "PUB note", "referenceCode": note["temporaryReferenceCode"]}
         ]

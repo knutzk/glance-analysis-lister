@@ -104,7 +104,7 @@ def build_registry(
         "smaller" if output_size <= input_size else "larger",
         100 * abs(input_size - output_size) / input_size,
     )
-    for resource, counts in candidate["gal_curation"][
+    for resource, counts in candidate["grove_curation"][
         "public_identifier_statistics"
     ].items():
         logger.info(
@@ -112,7 +112,7 @@ def build_registry(
             resource,
             ", ".join(f"{source}={count}" for source, count in sorted(counts.items())),
         )
-    doi = candidate["gal_curation"]["doi_statistics"]
+    doi = candidate["grove_curation"]["doi_statistics"]
     logger.info(
         "DOI summary: %d papers with DOIs; %d resolved citations; %d unresolved; %d malformed links",
         doi["papers_with_dois"],

@@ -102,7 +102,7 @@ class CuratedReaderTests(unittest.TestCase):
             for resource in old["counts"]:
                 for record in old[resource]:
                     for field in ("analysisContacts", "contactEditors"):
-                        record[field] = record.pop("gal_" + field)
+                        record[field] = record.pop("grove_" + field)
             with self.assertRaisesRegex(ValueError, "missing required field"):
                 CuratedRegistry(old)
 

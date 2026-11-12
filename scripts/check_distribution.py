@@ -161,6 +161,9 @@ def main():
         "grove/views/markdown/filtering.py",
         "grove/views/markdown/publication_filtering.py",
     )
+    assert not any(path.name.startswith("gal-") for path in package.files), (
+        "Retired browser asset names must not ship in the wheel"
+    )
     assert not any(str(path).startswith(retired) for path in package.files), (
         "Retired modules must not ship in the wheel"
     )
@@ -219,7 +222,15 @@ def main():
         == (root / schema_path).read_bytes()
     )
     for fixture in (root / "tests/fixtures/curated").glob("*.json"):
-        CuratedRegistry.from_json(fixture)
+        if fixture.name.startswith("grove-"):
+            CuratedRegistry.from_json(fixture)
+        else:
+            try:
+                CuratedRegistry.from_json(fixture)
+            except ValueError as error:
+                assert "unsupported gal_" in str(error)
+            else:
+                raise AssertionError(f"Retired fixture was accepted: {fixture.name}")
 
     archives = list((root / "dist").glob("*.tar.gz"))
     assert len(archives) == 1, "Expected one source distribution"
@@ -255,6 +266,9 @@ def main():
             "examples/demo/zensical.toml",
             "examples/demo/index.md",
             "examples/demo/publication-curation.toml",
+            "tests/fixtures/curated/grove-baseline.json",
+            "tests/fixtures/curated/grove-milestones.json",
+            "tests/fixtures/curated/grove-local-paper-timestamps.json",
             "tests/fixtures/curated/v2-baseline.json",
             "tests/fixtures/curated/v2-milestones.json",
         ):
@@ -419,11 +433,11 @@ def main():
         assert reader.get("analyses", "ANA-DEMO-2099-01") is not None
         curated = json.loads(curated_path.read_text())
         assert curated["schema"] == "glance-curated-registry"
-        assert curated["analyses"][0]["gal_contactEditors"] == ["Invented Editor"]
-        assert curated["analyses"][0]["metadata"]["gal_keywords"] == ["Synthetic"]
+        assert curated["analyses"][0]["grove_contactEditors"] == ["Invented Editor"]
+        assert curated["analyses"][0]["metadata"]["grove_keywords"] == ["Synthetic"]
         assert "analysisTeam" not in curated["analyses"][0]
         assert (
-            curated["papers"][0]["publicationPhase"]["gal_dois"][0]["citation"]
+            curated["papers"][0]["publicationPhase"]["grove_dois"][0]["citation"]
             == "JHEP 07 (2099) 999"
         )
         group_output = work / "group-pages"
@@ -444,19 +458,19 @@ def main():
         assert not (group_output / "index.md").exists()
         assert not (group_output / "publications.md").exists()
         assert (group_output / "ongoing.md").is_file()
-        assert "gal-papers" in (group_output / "papers.md").read_text()
+        assert "grove-papers" in (group_output / "papers.md").read_text()
         assert (group_output / "confnotes.md").is_file()
         assert (group_output / "pubnotes.md").is_file()
-        assert "data-gal-item" in (group_output / "ongoing.md").read_text()
+        assert "data-grove-item" in (group_output / "ongoing.md").read_text()
         for name in (
-            "gal-common.js",
-            "gal-ongoing.js",
-            "gal-common.css",
-            "gal-ongoing.css",
-            "gal-papers.js",
-            "gal-papers.css",
-            "gal-notes.js",
-            "gal-notes.css",
+            "grove-common.js",
+            "grove-ongoing.js",
+            "grove-common.css",
+            "grove-ongoing.css",
+            "grove-papers.js",
+            "grove-papers.css",
+            "grove-notes.js",
+            "grove-notes.css",
         ):
             assert (group_output / "assets" / name).read_text() == asset_provenance(
                 (root / "grove/views/assets" / name).read_text(),

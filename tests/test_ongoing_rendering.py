@@ -26,13 +26,13 @@ class ApprovalProgressTests(unittest.TestCase):
         from grove.views.analysis_states import approval_progress
 
         record = analysis(1)
-        record["phase0"] = {"gal_approvalMeetingDates": ["2099-01-04"]}
+        record["phase0"] = {"grove_approvalMeetingDates": ["2099-01-04"]}
         self.assertFalse(
             any(step["reached"] for step in approval_progress(record, []).value)
         )
         record["phase0"].update(
             {
-                "gal_editorialBoard": ["Demo Person"],
+                "grove_editorialBoard": ["Demo Person"],
                 "pgcOrSgcSignOffDate": "2099-01-03T12:00:00Z",
             }
         )
@@ -60,7 +60,7 @@ class ApprovalProgressTests(unittest.TestCase):
             CuratedRegistry(snapshot(analysis(1))), GroupProfile("DEMO")
         )
         markup = BeautifulSoup(ongoing_page(view), "html.parser")
-        self.assertEqual(len(markup.select(".gal-progress__step")), 5)
+        self.assertEqual(len(markup.select(".grove-progress__step")), 5)
         self.assertNotIn("Internal-note editors", markup.get_text())
         trace = next(item for item in view.decisions if item["resource"] == "analyses")
         self.assertIn("approval_progress", trace)
@@ -71,8 +71,8 @@ class ApprovalProgressTests(unittest.TestCase):
 class CirculationCardTests(unittest.TestCase):
     def test_linked_paper_circulations_and_chair_labels(self):
         value = analysis(1)
-        value["phase0"]["gal_editorialBoard"] = ["Invented Chair", "Invented Member"]
-        value["phase0"]["gal_editorialBoardChairs"] = ["Invented Chair"]
+        value["phase0"]["grove_editorialBoard"] = ["Invented Chair", "Invented Member"]
+        value["phase0"]["grove_editorialBoardChairs"] = ["Invented Chair"]
         paper = publication(
             1, related=value["referenceCode"], status="Phase 2 Active", date=None
         )
@@ -84,7 +84,7 @@ class CirculationCardTests(unittest.TestCase):
         self.assertTrue(view.ongoing[0].progress[3]["reached"])
         self.assertFalse(view.ongoing[0].progress[4]["reached"])
         markup = BeautifulSoup(ongoing_page(view), "html.parser")
-        card = markup.select_one(".gal-card")
+        card = markup.select_one(".grove-card")
         self.assertIn("Invented Chair (chair)", card.get_text())
         self.assertNotIn("Invented Member (chair)", card.get_text())
         self.assertNotIn("derived from analysis identifier", card.get_text())
@@ -155,7 +155,7 @@ class PageFooterTests(unittest.TestCase):
 class SubgroupButtonTests(unittest.TestCase):
     def test_namespace_buttons_include_additional_assignments_only_for_own_group(self):
         value = analysis(1)
-        value["gal_groups"].update(
+        value["grove_groups"].update(
             {"leadingSubgroup": "OTHER-Alpha", "subgroups": ["DEMO-Beta"]}
         )
         view = prepare_group(CuratedRegistry(snapshot(value)), GroupProfile("DEMO"))
@@ -169,8 +169,8 @@ class SubgroupButtonTests(unittest.TestCase):
             soup = BeautifulSoup(page, "html.parser")
             self.assertEqual(
                 [
-                    b["data-gal-value"]
-                    for b in soup.select('[data-gal-filter="subgroups"] button')
+                    b["data-grove-value"]
+                    for b in soup.select('[data-grove-filter="subgroups"] button')
                 ],
                 ["DEMO-Beta"],
             )
@@ -191,11 +191,11 @@ class SubgroupButtonTests(unittest.TestCase):
 class PageSubgroupChoicesTests(unittest.TestCase):
     def test_choices_require_matches_in_each_page_collection(self):
         active = analysis(1)
-        active["gal_groups"].update(
+        active["grove_groups"].update(
             {"leadingSubgroup": "DEMO-Active", "subgroups": ["DEMO-Additional"]}
         )
         historical = publication(1)
-        historical["gal_groups"].update(
+        historical["grove_groups"].update(
             {"leadingSubgroup": "DEMO-Historical", "subgroups": []}
         )
         view = prepare_group(
@@ -207,12 +207,14 @@ class PageSubgroupChoicesTests(unittest.TestCase):
             (papers_page(view), []),
         ):
             soup = BeautifulSoup(page, "html.parser")
-            buttons = soup.select('[data-gal-filter="subgroups"] button')
-            self.assertEqual([button["data-gal-value"] for button in buttons], expected)
+            buttons = soup.select('[data-grove-filter="subgroups"] button')
+            self.assertEqual(
+                [button["data-grove-value"] for button in buttons], expected
+            )
             if expected:
                 self.assertLess(
-                    page.index('data-gal-filter="subgroups"'),
-                    page.index('class="gal-filter-actions"'),
+                    page.index('data-grove-filter="subgroups"'),
+                    page.index('class="grove-filter-actions"'),
                 )
 
 
@@ -220,21 +222,26 @@ class OngoingTextSearchTests(unittest.TestCase):
     def test_keywords_and_triggers_are_searchable_without_dropdowns(self):
         record = analysis(1)
         record["metadata"].update(
-            {"gal_keywords": ["Invented keyword"], "gal_triggers": ["Invented trigger"]}
+            {
+                "grove_keywords": ["Invented keyword"],
+                "grove_triggers": ["Invented trigger"],
+            }
         )
         view = prepare_group(CuratedRegistry(snapshot(record)), GroupProfile("DEMO"))
         soup = BeautifulSoup(ongoing_page(view), "html.parser")
         self.assertFalse(
-            soup.select('[data-gal-filter="keywords"], [data-gal-filter="triggers"]')
+            soup.select(
+                '[data-grove-filter="keywords"], [data-grove-filter="triggers"]'
+            )
         )
-        metadata = json.loads(soup.select_one(".gal-card")["data-gal-metadata"])
+        metadata = json.loads(soup.select_one(".grove-card")["data-grove-metadata"])
         self.assertIn("Invented keyword", metadata["text"])
         self.assertIn("Invented trigger", metadata["text"])
         self.assertIsNotNone(
-            soup.select_one(".gal-filter-action-buttons [data-gal-expand-all]")
+            soup.select_one(".grove-filter-action-buttons [data-grove-expand-all]")
         )
         self.assertIsNotNone(
-            soup.select_one(".gal-filter-action-buttons [data-gal-reset]")
+            soup.select_one(".grove-filter-action-buttons [data-grove-reset]")
         )
 
 
@@ -249,8 +256,10 @@ class FoldedMilestoneTests(unittest.TestCase):
         view = prepare_group(
             CuratedRegistry(snapshot(value, papers=(paper,))), GroupProfile("DEMO")
         )
-        card = BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-card")
-        folded = card.select_one(".gal-card__details")
+        card = BeautifulSoup(ongoing_page(view), "html.parser").select_one(
+            ".grove-card"
+        )
+        folded = card.select_one(".grove-card__details")
         self.assertIn("Phase 2 · ATLAS circulation 2 · 2099-03-01", folded.get_text())
         labels = [label.text for label in folded.select("dt")]
         self.assertEqual(
@@ -258,7 +267,9 @@ class FoldedMilestoneTests(unittest.TestCase):
         )
         self.assertEqual(labels[0], "Last phase-0 milestone")
         self.assertFalse(
-            card.select(".gal-card__fields:not(.gal-card__details .gal-card__fields)")
+            card.select(
+                ".grove-card__fields:not(.grove-card__details .grove-card__fields)"
+            )
         )
         self.assertEqual(
             view.ongoing[0].paper_milestones[0]["milestone"]["rule"],
@@ -302,14 +313,14 @@ class CardNavigationTests(unittest.TestCase):
             CuratedRegistry(snapshot(analysis(1))), GroupProfile("DEMO")
         )
         soup = BeautifulSoup(ongoing_page(view), "html.parser")
-        card = soup.select_one(".gal-card")
-        link = card.select_one(".gal-card__permalink")
+        card = soup.select_one(".grove-card")
+        link = card.select_one(".grove-card__permalink")
         self.assertEqual(link["href"], "#" + card["id"])
         self.assertTrue(link["aria-label"])
-        self.assertEqual(soup.select_one("[data-gal-expand-all]").text, "Expand all")
+        self.assertEqual(soup.select_one("[data-grove-expand-all]").text, "Expand all")
         self.assertFalse(
             BeautifulSoup(papers_page(view), "html.parser").select(
-                "[data-gal-expand-all]"
+                "[data-grove-expand-all]"
             )
         )
 
@@ -333,15 +344,15 @@ class PaperReviewOrderTests(unittest.TestCase):
         orders = [row.metadata["stage_order"] for row in view.ongoing]
         self.assertEqual(orders, [8, 24, 0])
         self.assertGreater(orders[1], orders[0])
-        cards = BeautifulSoup(ongoing_page(view), "html.parser").select(".gal-card")
+        cards = BeautifulSoup(ongoing_page(view), "html.parser").select(".grove-card")
         for card in cards:
             visible_key = sum(
                 1 << i
-                for i, step in enumerate(card.select(".gal-progress__step"))
-                if "gal-progress__step--reached" in step.get("class", [])
+                for i, step in enumerate(card.select(".grove-progress__step"))
+                if "grove-progress__step--reached" in step.get("class", [])
             )
             self.assertEqual(
-                json.loads(card["data-gal-metadata"])["stage_order"], visible_key
+                json.loads(card["data-grove-metadata"])["stage_order"], visible_key
             )
         traces = [t for t in view.decisions if t["resource"] == "analyses"]
         self.assertTrue(
@@ -379,20 +390,20 @@ class CardGlanceButtonTests(unittest.TestCase):
             CuratedRegistry(snapshot(value, papers=(paper,))), GroupProfile("DEMO")
         )
         page = ongoing_page(view)
-        card = BeautifulSoup(page, "html.parser").select_one(".gal-card")
+        card = BeautifulSoup(page, "html.parser").select_one(".grove-card")
         self.assertEqual(card.select_one("h2").text, value["shortTitle"])
-        buttons = card.select(".gal-card__title-line .gal-glance-button")
+        buttons = card.select(".grove-card__title-line .grove-glance-button")
         self.assertEqual(
             [button.text for button in buttons],
             [value["referenceCode"], paper["referenceCode"]],
         )
         self.assertTrue(
             all(
-                button.find_parent(class_="gal-card__details") is None
+                button.find_parent(class_="grove-card__details") is None
                 for button in buttons
             )
         )
-        self.assertFalse(card.select(".gal-card__details a[href*=atlas-glance]"))
+        self.assertFalse(card.select(".grove-card__details a[href*=atlas-glance]"))
         self.assertIn("Click a collapsed card for more information and links", page)
 
 

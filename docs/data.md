@@ -58,7 +58,7 @@ The workflows below also support existing consuming websites and explicit paths.
 
 Curation retains independent records and their explicit relationships while
 selecting the fields used by the package. Named collections
-such as keywords become lists of names; added or reshaped fields use the `gal_`
+such as keywords become lists of names; added or reshaped fields use the `grove_`
 prefix. Original keys replaced by these fields are removed. New API fields are
 not adopted automatically, and DOI/citation entries remain paired with their
 original publication or correction.
@@ -92,13 +92,13 @@ The corresponding curated fragment is:
 ```json
 {
   "metadata": {
-    "gal_keywords": ["Invented keyword", "Second keyword"]
+    "grove_keywords": ["Invented keyword", "Second keyword"]
   }
 }
 ```
 
-The named objects become strings under a `gal_` field. The original `keywords`
-field is removed during field selection, and the view uses `gal_keywords` for
+The named objects become strings under a `grove_` field. The original `keywords`
+field is removed during field selection, and the view uses `grove_keywords` for
 search. These are fragments, not complete registries; the
 [stored data reference](file-reference.md) defines the required container fields.
 
@@ -144,7 +144,7 @@ private analysis identifiers, titles or people. There is no runtime updater or
 CDS request.
 
 Release evidence without an identifier produces a diagnostic, not a guessed
-number. Derivations are recorded in `gal_publicationProvenance`; curated metadata
+number. Derivations are recorded in `grove_publicationProvenance`; curated metadata
 records the dictionary hash and source counts.
 
 ## Choose where to start

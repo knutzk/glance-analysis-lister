@@ -9,17 +9,17 @@ site_url = "http://127.0.0.1:8001/"
 docs_dir = "pages"
 site_dir = "site"
 extra_css = [
-  "assets/gal-common.css",
-  "assets/gal-ongoing.css",
-  "assets/gal-papers.css",
-  "assets/gal-notes.css",
+  "assets/grove-common.css",
+  "assets/grove-ongoing.css",
+  "assets/grove-papers.css",
+  "assets/grove-notes.css",
   "assets/site.css",
 ]
 extra_javascript = [
-  "assets/gal-common.js",
-  "assets/gal-ongoing.js",
-  "assets/gal-papers.js",
-  "assets/gal-notes.js",
+  "assets/grove-common.js",
+  "assets/grove-ongoing.js",
+  "assets/grove-papers.js",
+  "assets/grove-notes.js",
 ]
 nav = [
   { "Demo" = [

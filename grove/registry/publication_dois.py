@@ -58,10 +58,10 @@ def curated_paper_dois(paper):
             "Curated paper publication phase must be an object; "
             "rebuild from a saved API snapshot"
         )
-    entries = phase.get("gal_dois", [])
+    entries = phase.get("grove_dois", [])
     if not isinstance(entries, list):
         raise ValueError(
-            "Curated paper gal_dois must be a list; rebuild from a saved API snapshot"
+            "Curated paper grove_dois must be a list; rebuild from a saved API snapshot"
         )
     result = []
     malformed = 0
@@ -92,5 +92,5 @@ def enrich_paper(paper, citations):
             entry.update(citation_record(citations[doi]))
         entries.append(entry)
     if paper.get("publicationPhase") is not None:
-        paper["publicationPhase"]["gal_dois"] = entries
+        paper["publicationPhase"]["grove_dois"] = entries
     return entries, malformed

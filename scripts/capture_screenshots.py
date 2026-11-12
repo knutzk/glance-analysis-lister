@@ -45,7 +45,7 @@ def capture(base, driver_path):
             driver.get(base + f"analyses/{page}/")
             wait.until(
                 lambda d: d.find_element(
-                    By.CSS_SELECTOR, "[data-gal-count]"
+                    By.CSS_SELECTOR, "[data-grove-count]"
                 ).text.startswith("4 of 4")
             )
             record = (
@@ -54,9 +54,9 @@ def capture(base, driver_path):
                 else "#publication-papers-demo-demo-2099-01"
             )
             toggle = (
-                "[data-gal-card-toggle]"
+                "[data-grove-card-toggle]"
                 if page == "ongoing"
-                else "[data-gal-paper-toggle]"
+                else "[data-grove-paper-toggle]"
             )
             # The gallery shows all four analysis cards and one paper's details.
             # Expanded analysis details are captured separately below.
@@ -74,7 +74,7 @@ def capture(base, driver_path):
                 "const done = arguments[0]; document.fonts.ready.then(() => "
                 "requestAnimationFrame(() => requestAnimationFrame(done)));"
             )
-            collection = driver.find_element(By.CSS_SELECTOR, ".gal-collection")
+            collection = driver.find_element(By.CSS_SELECTOR, ".grove-collection")
             pages.append(
                 (
                     page,
@@ -137,7 +137,7 @@ def capture(base, driver_path):
             selector, filename = (
                 (record, "ongoing-card")
                 if page == "ongoing"
-                else (".gal-table-scroll", "publication-row")
+                else (".grove-table-scroll", "publication-row")
             )
             if page == "papers":
                 # Keep the explanatory capture focused on the documented paper.

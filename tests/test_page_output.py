@@ -67,7 +67,7 @@ class PageOutputTests(unittest.TestCase):
                 self.assertNotIn("view-report.json", page.read_text())
                 self.assertNotIn("[Group overview]", page.read_text())
                 box = BeautifulSoup(content, "html.parser").select_one(
-                    ".gal-archive-scope"
+                    ".grove-archive-scope"
                 )
                 self.assertEqual(box.h2.get_text(), "How this list is curated")
                 self.assertNotIn("use Collapse at the bottom", content)
@@ -76,7 +76,7 @@ class PageOutputTests(unittest.TestCase):
                     self.assertEqual(len(box.select("li")), 3)
                 if page.name != "ongoing.md":
                     scope = BeautifulSoup(page.read_text(), "html.parser").select_one(
-                        ".gal-archive-scope"
+                        ".grove-archive-scope"
                     )
                     self.assertIsNotNone(scope)
                     self.assertIn("spearheaded by DEMO", scope.get_text())
@@ -96,7 +96,7 @@ class PageOutputTests(unittest.TestCase):
         )
         view = prepare_group(registry, GroupProfile("DEMO", publication_policy=policy))
         scope = BeautifulSoup(archive_curation_intro(view), "html.parser").select_one(
-            ".gal-archive-scope"
+            ".grove-archive-scope"
         )
         self.assertIn("spearheaded by DEMO", scope.get_text())
         self.assertNotIn("Display title", scope.get_text())

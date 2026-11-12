@@ -68,7 +68,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
         phase = json.loads(self.curated.read_text())["papers"][0]["publicationPhase"]
         self.assertNotIn("finalJournalPublicationUrls", phase)
         self.assertEqual(
-            {entry["doi"] for entry in phase["gal_dois"]},
+            {entry["doi"] for entry in phase["grove_dois"]},
             {ORIGINAL, CORRECTION, UNRESOLVED},
         )
         before = self.curated.read_bytes()
@@ -110,7 +110,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
         build_registry(self.api, self.curated, doi_cache=self.store)
         phase = json.loads(self.curated.read_text())["papers"][0]["publicationPhase"]
         self.assertEqual(
-            [(entry["doi"], entry["citation"]) for entry in phase["gal_dois"]],
+            [(entry["doi"], entry["citation"]) for entry in phase["grove_dois"]],
             [
                 (doi, entries[doi]["citation"])
                 for doi in (ORIGINAL, CORRECTION, UNRESOLVED)
@@ -121,7 +121,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
         self,
     ):
         data = json.loads(self.curated.read_text())
-        data["papers"][0]["publicationPhase"]["gal_dois"] = [
+        data["papers"][0]["publicationPhase"]["grove_dois"] = [
             {
                 "doi": ORIGINAL.upper(),
                 "url": "https://doi.org/" + UNRESOLVED,
@@ -151,7 +151,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
             {},
             {"publicationPhase": None},
             {"publicationPhase": {}},
-            {"publicationPhase": {"gal_dois": []}},
+            {"publicationPhase": {"grove_dois": []}},
             {
                 "publicationPhase": {
                     "finalJournalPublicationUrls": [
@@ -161,7 +161,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
             },
             {
                 "publicationPhase": {
-                    "gal_dois": [],
+                    "grove_dois": [],
                     "finalJournalPublicationUrls": [
                         {"url": "https://doi.org/" + ORIGINAL}
                     ],
@@ -181,7 +181,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
             "invented-private-value",
             False,
             0,
-            *({"gal_dois": value} for value in (None, {}, "", False, 0)),
+            *({"grove_dois": value} for value in (None, {}, "", False, 0)),
         ):
             with self.subTest(phase=phase):
                 data["papers"][0]["publicationPhase"] = phase
@@ -192,7 +192,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
 
     def test_cli_rejects_invalid_curated_collection_without_touching_citations(self):
         data = json.loads(self.curated.read_text())
-        data["papers"][0]["publicationPhase"]["gal_dois"] = "invented-private-value"
+        data["papers"][0]["publicationPhase"]["grove_dois"] = "invented-private-value"
         self.curated.write_text(json.dumps(data))
         store_before, snapshot_before = (
             self.store.read_bytes(),

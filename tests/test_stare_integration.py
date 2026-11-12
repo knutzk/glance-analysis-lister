@@ -216,10 +216,10 @@ class StareIntegrationTests(unittest.TestCase):
         curated = curate(result)
         validate_registry(curated)
         self.assertEqual(
-            curated["analyses"][0]["gal_contactEditors"], ["Invented Editor"]
+            curated["analyses"][0]["grove_contactEditors"], ["Invented Editor"]
         )
         self.assertEqual(
-            curated["analyses"][0]["phase0"]["gal_eoiMeetingDates"], ["2099-01-02"]
+            curated["analyses"][0]["phase0"]["grove_eoiMeetingDates"], ["2099-01-02"]
         )
         with TemporaryDirectory() as directory:
             destination = Path(directory) / "registry.json"

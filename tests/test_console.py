@@ -190,7 +190,7 @@ with configure_logging(color="never"):
                         mode,
                         "format-citations",
                         "--doi-cache",
-                        "/tmp/gal-console-empty-citations.json",
+                        "/tmp/grove-console-empty-citations.json",
                     ]
                 )
                 self.assertEqual("\033[" in output.getvalue(), mode == "always")

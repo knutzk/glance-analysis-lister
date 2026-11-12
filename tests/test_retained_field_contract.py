@@ -141,12 +141,12 @@ class RetainedFieldContractTests(unittest.TestCase):
                                 ]
                             }
                             record["metadata"] = {
-                                "gal_keywords": ["Synthetic"],
-                                "gal_triggers": ["Invented trigger"],
-                                "gal_statisticalTools": ["Invented tool"],
+                                "grove_keywords": ["Synthetic"],
+                                "grove_triggers": ["Invented trigger"],
+                                "grove_statisticalTools": ["Invented tool"],
                             }
                             if resource == "analyses":
-                                record["phase0"]["gal_editorialBoardChairs"] = [
+                                record["phase0"]["grove_editorialBoardChairs"] = [
                                     "Invented Chair"
                                 ]
                             elif resource == "papers":
@@ -161,7 +161,7 @@ class RetainedFieldContractTests(unittest.TestCase):
                                     },
                                     {},
                                 ]
-                                record["phase1"]["gal_editorialBoardChairs"] = [
+                                record["phase1"]["grove_editorialBoardChairs"] = [
                                     "Invented Chair"
                                 ]
                                 if record["referenceCode"] == "DEMO-2099-01":

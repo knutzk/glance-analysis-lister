@@ -41,32 +41,32 @@ def note_expansion(record, resource):
     metadata = record.get("metadata") or {}
     paths = {
         "Analysis contacts": (
-            "gal_analysisContacts",
-            record.get("gal_analysisContacts") or [],
+            "grove_analysisContacts",
+            record.get("grove_analysisContacts") or [],
         ),
         "Contact editors": (
-            "gal_contactEditors",
-            record.get("gal_contactEditors") or [],
+            "grove_contactEditors",
+            record.get("grove_contactEditors") or [],
         ),
         "Editorial board": (
-            "phase1.gal_editorialBoard",
-            phase.get("gal_editorialBoard") or [],
+            "phase1.grove_editorialBoard",
+            phase.get("grove_editorialBoard") or [],
         ),
         "Editorial-board chairs": (
-            "phase1.gal_editorialBoardChairs",
-            phase.get("gal_editorialBoardChairs") or [],
+            "phase1.grove_editorialBoardChairs",
+            phase.get("grove_editorialBoardChairs") or [],
         ),
         "Ex-officio editorial board": (
-            "phase1.gal_editorialBoardExOfficio",
-            phase.get("gal_editorialBoardExOfficio") or [],
+            "phase1.grove_editorialBoardExOfficio",
+            phase.get("grove_editorialBoardExOfficio") or [],
         ),
         "First sign-off responsible": (
-            "phase1.gal_firstSignOffResponsible",
-            phase.get("gal_firstSignOffResponsible") or [],
+            "phase1.grove_firstSignOffResponsible",
+            phase.get("grove_firstSignOffResponsible") or [],
         ),
         "Second sign-off responsible": (
-            "phase1.gal_secondSignOffResponsible",
-            phase.get("gal_secondSignOffResponsible") or [],
+            "phase1.grove_secondSignOffResponsible",
+            phase.get("grove_secondSignOffResponsible") or [],
         ),
     }
 
@@ -77,9 +77,9 @@ def note_expansion(record, resource):
             **{
                 label: ("phase1." + field, phase.get(field) or [])
                 for label, field in (
-                    ("Readers", "gal_readers"),
-                    ("First readers", "gal_firstReaders"),
-                    ("Second readers", "gal_secondReaders"),
+                    ("Readers", "grove_readers"),
+                    ("First readers", "grove_firstReaders"),
+                    ("Second readers", "grove_secondReaders"),
                 )
             },
         }

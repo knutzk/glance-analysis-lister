@@ -36,12 +36,12 @@ class PublicationRenderingTests(unittest.TestCase):
                 if resource == "papers"
                 else "Phase 1 Finished",
             )
-            record["gal_contactEditors"] = ["Invented Editor"]
-            record["gal_groups"]["subgroups"] = ["DEMO-Searchable"]
-            record["metadata"] = {"gal_keywords": ["Invented keyword"]}
+            record["grove_contactEditors"] = ["Invented Editor"]
+            record["grove_groups"]["subgroups"] = ["DEMO-Searchable"]
+            record["metadata"] = {"grove_keywords": ["Invented keyword"]}
             record.setdefault("phase1", {}).update(
                 {
-                    "gal_readers": ["Invented Reader"],
+                    "grove_readers": ["Invented Reader"],
                     "draftCdsUrl": "https://cds.cern.ch/record/209900000001",
                 }
             )
@@ -73,9 +73,11 @@ class PublicationRenderingTests(unittest.TestCase):
                 )
                 self.assertIn(
                     "Invented Editor",
-                    soup.select_one("[data-gal-search-text]")["data-gal-search-text"],
+                    soup.select_one("[data-grove-search-text]")[
+                        "data-grove-search-text"
+                    ],
                 )
-                self.assertFalse(soup.select('[data-gal-filter="subgroups"]'))
+                self.assertFalse(soup.select('[data-grove-filter="subgroups"]'))
 
     def test_archive_month_controls_use_publication_dates_and_are_isolated(self):
         view = self.prepare(
@@ -103,30 +105,30 @@ class PublicationRenderingTests(unittest.TestCase):
             (pubnotes_page, ""),
         ):
             soup = BeautifulSoup(render(view), "html.parser")
-            row = soup.select_one(".gal-publication-filter-row")
+            row = soup.select_one(".grove-publication-filter-row")
             self.assertIsNotNone(row.select_one("fieldset"))
-            self.assertIsNotNone(row.select_one("[data-gal-archive-expand-all]"))
+            self.assertIsNotNone(row.select_one("[data-grove-archive-expand-all]"))
             self.assertLess(
-                str(soup).index("data-gal-date-before"),
-                str(soup).index('class="gal-publication-filter-row"'),
+                str(soup).index("data-grove-date-before"),
+                str(soup).index('class="grove-publication-filter-row"'),
             )
             for bound in ("after", "before"):
-                control = soup.select_one(f"[data-gal-date-{bound}]")
+                control = soup.select_one(f"[data-grove-date-{bound}]")
                 self.assertEqual(control["type"], "month")
                 self.assertIsNotNone(soup.find("label", attrs={"for": control["id"]}))
             self.assertEqual(
-                soup.select_one("[data-gal-date]")["data-gal-date"], expected
+                soup.select_one("[data-grove-date]")["data-grove-date"], expected
             )
             self.assertEqual(
-                soup.select_one("[data-gal-archive-expand-all]").text, "Expand all"
+                soup.select_one("[data-grove-archive-expand-all]").text, "Expand all"
             )
         paper_markup = papers_page(view)
         self.assertLess(
-            paper_markup.index("data-gal-date-after"),
-            paper_markup.index('data-gal-filter="publication_status"'),
+            paper_markup.index("data-grove-date-after"),
+            paper_markup.index('data-grove-filter="publication_status"'),
         )
-        self.assertNotIn("data-gal-date-after", ongoing_page(view))
-        self.assertNotIn("data-gal-archive-expand-all", ongoing_page(view))
+        self.assertNotIn("data-grove-date-after", ongoing_page(view))
+        self.assertNotIn("data-grove-archive-expand-all", ongoing_page(view))
 
 
 class SeparatePublicationPageTests(unittest.TestCase):
@@ -153,7 +155,7 @@ class SeparatePublicationPageTests(unittest.TestCase):
         ):
             soup = BeautifulSoup(render(view), "html.parser")
             rows = soup.select(
-                "tbody tr:not([data-gal-note-details]):not([data-gal-paper-details])"
+                "tbody tr:not([data-grove-note-details]):not([data-grove-paper-details])"
             )
             self.assertEqual(len(rows), 1)
             if resource == "confnotes":
@@ -162,14 +164,14 @@ class SeparatePublicationPageTests(unittest.TestCase):
                 self.assertIn("ATL-PHYS-PUB-2099-003", rows[0].get_text())
             else:
                 self.assertEqual(
-                    set(json.loads(rows[0]["data-gal-metadata"])),
+                    set(json.loads(rows[0]["data-grove-metadata"])),
                     {"text", "publication_status"},
                 )
             self.assertEqual(
-                bool(soup.select("[data-gal-archive]")), resource == "papers"
+                bool(soup.select("[data-grove-archive]")), resource == "papers"
             )
-            self.assertEqual(bool(soup.select("[data-gal-search]")), True)
-            self.assertFalse(soup.select('[data-gal-filter="publication_type"]'))
+            self.assertEqual(bool(soup.select("[data-grove-search]")), True)
+            self.assertFalse(soup.select('[data-grove-filter="publication_type"]'))
 
     def test_publication_search_has_its_own_module_and_browser_entrypoint(self):
         from grove.views.markdown import (
@@ -182,11 +184,11 @@ class SeparatePublicationPageTests(unittest.TestCase):
         self.assertIs(ongoing.render_controls, ongoing_controls.render_controls)
         self.assertIs(papers.render_controls, publication_controls.render_controls)
         self.assertIsNot(ongoing.render_controls, papers.render_controls)
-        ongoing = (ROOT / "grove/views/assets/gal-ongoing.js").read_text()
-        paper = (ROOT / "grove/views/assets/gal-papers.js").read_text()
-        self.assertIn(".gal-ongoing[data-gal-collection]", ongoing)
-        self.assertIn("window.GALPapers", paper)
-        self.assertNotIn("window.GALOngoing", paper)
+        ongoing = (ROOT / "grove/views/assets/grove-ongoing.js").read_text()
+        paper = (ROOT / "grove/views/assets/grove-papers.js").read_text()
+        self.assertIn(".grove-ongoing[data-grove-collection]", ongoing)
+        self.assertIn("window.GROVEPapers", paper)
+        self.assertNotIn("window.GROVEOngoing", paper)
 
 
 if __name__ == "__main__":

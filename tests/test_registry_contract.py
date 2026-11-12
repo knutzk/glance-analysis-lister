@@ -25,7 +25,7 @@ PAPER_TIMESTAMP_FIELDS = (
 
 
 def baseline():
-    return json.loads((FIXTURES / "v2-baseline.json").read_text())
+    return json.loads((FIXTURES / "grove-baseline.json").read_text())
 
 
 def schema():
@@ -51,9 +51,9 @@ class RegistryContractTests(unittest.TestCase):
 
         check(contract)
 
-    def test_historical_sparse_fixtures_preserve_values_without_defaults(self):
+    def test_current_sparse_fixtures_preserve_values_without_defaults(self):
         validator = Draft202012Validator(schema(), format_checker=FormatChecker())
-        for path in sorted(FIXTURES.glob("*.json")):
+        for path in sorted(FIXTURES.glob("grove-*.json")):
             with self.subTest(fixture=path.name):
                 data = json.loads(path.read_text())
                 before = copy.deepcopy(data)
@@ -66,6 +66,37 @@ class RegistryContractTests(unittest.TestCase):
             "finalSubmissionJournal",
             CuratedRegistry(baseline()).records("papers")[0]["publicationPhase"],
         )
+
+    def test_retired_fixtures_are_rejected_without_modification(self):
+        validator = Draft202012Validator(schema(), format_checker=FormatChecker())
+        for path in sorted(FIXTURES.glob("*.json")):
+            if path.name.startswith("grove-"):
+                continue
+            with self.subTest(fixture=path.name):
+                data = json.loads(path.read_text())
+                before = copy.deepcopy(data)
+                self.assertFalse(validator.is_valid(data))
+                with self.assertRaisesRegex(ValueError, "unsupported gal_.*rebuild"):
+                    CuratedRegistry(data)
+                self.assertEqual(data, before)
+
+    def test_mixed_namespaces_are_rejected_even_in_unknown_nested_data(self):
+        validator = Draft202012Validator(schema())
+        for path in ((), ("analyses", 0), ("papers", 0, "publicationPhase")):
+            with self.subTest(path=path):
+                data = baseline()
+                parent = data
+                for key in path:
+                    parent = parent[key]
+                parent["futureField"] = [{"gal_keywords": ["PRIVATE_MARKER"]}]
+                before = copy.deepcopy(data)
+                self.assertFalse(validator.is_valid(data))
+                with self.assertRaisesRegex(
+                    ValueError, "unsupported gal_.*rebuild"
+                ) as caught:
+                    validate_registry(data)
+                self.assertNotIn("PRIVATE_MARKER", str(caught.exception))
+                self.assertEqual(data, before)
 
     def test_unknown_additions_and_new_source_codes_are_preserved(self):
         data = baseline()
@@ -176,9 +207,9 @@ class RegistryContractTests(unittest.TestCase):
             ),
             (("papers", 0, "relatedAnalysis"), "PRIVATE_BAD_LINK"),
             (("papers", 0, "relatedAnalysis", "referenceCode"), 123),
-            (("analyses", 0, "gal_analysisContacts"), [123]),
-            (("analyses", 0, "phase0", "gal_editorialBoard"), [None]),
-            (("analyses", 0, "phase0", "gal_approvalMeetingDates"), ["2099-02-30"]),
+            (("analyses", 0, "grove_analysisContacts"), [123]),
+            (("analyses", 0, "phase0", "grove_editorialBoard"), [None]),
+            (("analyses", 0, "phase0", "grove_approvalMeetingDates"), ["2099-02-30"]),
             (("pubnotes", 0, "metadata", "collisions"), {}),
             (("fetched_at",), "PRIVATE_BAD_TIMESTAMP"),
             (("counts", "analyses"), True),
@@ -198,9 +229,9 @@ class RegistryContractTests(unittest.TestCase):
 
     def test_missing_required_fields_and_source_people_are_rejected(self):
         data = baseline()
-        del data["papers"][0]["gal_contactEditors"]
+        del data["papers"][0]["grove_contactEditors"]
         with self.assertRaisesRegex(
-            ValueError, "missing required field.*gal_contactEditors"
+            ValueError, "missing required field.*grove_contactEditors"
         ):
             validate_registry(data)
         data = baseline()

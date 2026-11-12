@@ -24,8 +24,8 @@ class ConfNoteTableTests(unittest.TestCase):
     def test_conf_note_row_has_only_requested_columns_and_public_identifier(self):
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         note["phase1"]["draftCdsUrl"] = "https://cds.cern.ch/record/209900000001"
-        note["gal_groups"]["leadingSubgroup"] = "DEMO-Alpha"
-        note["gal_groups"]["subgroups"] = ["DEMO-Beta"]
+        note["grove_groups"]["leadingSubgroup"] = "DEMO-Alpha"
+        note["grove_groups"]["subgroups"] = ["DEMO-Beta"]
         view = prepare_group(
             CuratedRegistry(snapshot(analysis(1), confnotes=(note,))),
             GroupProfile("DEMO"),
@@ -41,7 +41,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(
             [link.text for link in cells[0].select("a")],
             [
-                note.get("finalReferenceCode") or note.get("gal_finalReferenceCode"),
+                note.get("finalReferenceCode") or note.get("grove_finalReferenceCode"),
                 "CDS",
             ],
         )
@@ -53,12 +53,14 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(cells[2].text, note["phase1"]["releaseDate"])
         self.assertFalse(
             soup.select(
-                "[data-gal-disclosure], details, .gal-publication-details__body, [data-gal-pagination]"
+                "[data-grove-disclosure], details, .grove-publication-details__body, [data-grove-pagination]"
             )
         )
-        self.assertFalse(soup.select('[data-gal-filter="subgroups"]'))
-        self.assertIsNotNone(soup.select_one("[data-gal-search]"))
-        self.assertTrue(soup.select_one("[data-gal-note-controls]").has_attr("hidden"))
+        self.assertFalse(soup.select('[data-grove-filter="subgroups"]'))
+        self.assertIsNotNone(soup.select_one("[data-grove-search]"))
+        self.assertTrue(
+            soup.select_one("[data-grove-note-controls]").has_attr("hidden")
+        )
         self.assertFalse(row.has_attr("hidden"))
         evidence = next(
             r for r in view.archive if r.resource == "confnotes"
@@ -87,7 +89,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(
             [
                 a.text
-                for a in soup.select_one("[data-gal-note]").select("th:first-child a")
+                for a in soup.select_one("[data-grove-note]").select("th:first-child a")
             ],
             [note["finalReferenceCode"]],
         )
@@ -96,20 +98,20 @@ class ConfNoteTableTests(unittest.TestCase):
 class ConfNoteExpansionTests(unittest.TestCase):
     def test_people_and_tags_are_rendered_without_review_dates(self):
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
-        note["gal_analysisContacts"] = ["Invented Contact"]
-        note["gal_groups"].update(
+        note["grove_analysisContacts"] = ["Invented Contact"]
+        note["grove_groups"].update(
             {"leadingSubgroup": "DEMO-Alpha", "subgroups": ["DEMO-Beta"]}
         )
         note["phase1"].update(
             {
-                "gal_editorialBoard": ["Invented Member"],
-                "gal_editorialBoardChairs": ["Invented Chair"],
+                "grove_editorialBoard": ["Invented Member"],
+                "grove_editorialBoardChairs": ["Invented Chair"],
                 "firstSignOffDate": "2099-01-03T10:00:00Z",
             }
         )
         note["metadata"] = {
-            "gal_keywords": ["Invented keyword"],
-            "gal_statisticalTools": ["Invented tool"],
+            "grove_keywords": ["Invented keyword"],
+            "grove_statisticalTools": ["Invented tool"],
             "mvaMlTools": [{"name": "Invented ML tool"}],
             "collisions": [{"year": "2099", "ecmValue": "13", "ecmUnit": "TeV"}],
         }
@@ -118,26 +120,28 @@ class ConfNoteExpansionTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
-        detail = soup.select_one("[data-gal-note-details]")
+        detail = soup.select_one("[data-grove-note-details]")
         self.assertEqual(detail.td["colspan"], "3")
         self.assertIn("Invented Chair (chair)", detail.get_text())
         self.assertIn("Invented Contact", detail.get_text())
         self.assertIn("Not recorded", detail.get_text())
         self.assertNotIn("2099-01-03", detail.get_text())
         self.assertEqual(
-            [tag.text for tag in detail.select(".gal-note-tags .gal-badge")],
+            [tag.text for tag in detail.select(".grove-note-tags .grove-badge")],
             ["Invented keyword", "Invented tool", "Invented ML tool", "2099 · 13 TeV"],
         )
         self.assertEqual(
             [
                 tag.contents[0]
-                for tag in detail.select(".gal-card__affiliations .gal-badge--leading")
+                for tag in detail.select(
+                    ".grove-card__affiliations .grove-badge--leading"
+                )
             ],
             ["DEMO", "DEMO-Alpha"],
         )
         self.assertIn("DEMO-Beta", detail.get_text())
         self.assertTrue(
-            detail.select_one("[data-gal-note-collapse]").has_attr("hidden")
+            detail.select_one("[data-grove-note-collapse]").has_attr("hidden")
         )
         self.assertFalse(detail.has_attr("hidden"))  # Complete static fallback.
         prepared = next(row for row in view.archive if row.resource == "confnotes")
@@ -154,13 +158,13 @@ class ConfNoteResponsibleNameTests(unittest.TestCase):
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         note["phase1"].update(
             {
-                "gal_firstSignOffResponsible": "Invented First Person",
-                "gal_secondSignOffResponsible": [
+                "grove_firstSignOffResponsible": "Invented First Person",
+                "grove_secondSignOffResponsible": [
                     "Invented Second Person",
                     "Invented Third Person",
                 ],
-                "gal_editorialBoard": "Invented Board Member",
-                "gal_editorialBoardChairs": "Invented Chair",
+                "grove_editorialBoard": "Invented Board Member",
+                "grove_editorialBoardChairs": "Invented Chair",
             }
         )
         decision = note_expansion(note, "confnotes")
@@ -179,7 +183,7 @@ class ConfNoteResponsibleNameTests(unittest.TestCase):
             ["Invented Board Member", "Invented Chair (chair)"],
         )
         self.assertEqual(
-            decision.inputs["phase1.gal_firstSignOffResponsible"],
+            decision.inputs["phase1.grove_firstSignOffResponsible"],
             "Invented First Person",
         )
         view = prepare_group(
@@ -188,7 +192,7 @@ class ConfNoteResponsibleNameTests(unittest.TestCase):
         )
         markup = (
             BeautifulSoup(confnotes_page(view), "html.parser")
-            .select_one("[data-gal-note-details]")
+            .select_one("[data-grove-note-details]")
             .get_text()
         )
         self.assertIn("Invented First Person", markup)
@@ -223,23 +227,25 @@ class ConfNoteSupersessionTests(unittest.TestCase):
         self.assertEqual(evidence["inputs"]["supersededBy"], superseded["supersededBy"])
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
         self.assertEqual(
-            soup.select_one('[data-gal-note-supersession="non-superseded"]')[
+            soup.select_one('[data-grove-note-supersession="non-superseded"]')[
                 "aria-pressed"
             ],
             "true",
         )
         self.assertEqual(
-            soup.select_one('[data-gal-note-supersession="superseded"]')[
+            soup.select_one('[data-grove-note-supersession="superseded"]')[
                 "aria-pressed"
             ],
             "false",
         )
-        self.assertEqual(soup.select_one("[data-gal-note-count]").text, "2 of 2 notes")
         self.assertEqual(
-            len(soup.select('[data-gal-note][data-gal-superseded="true"]')), 1
+            soup.select_one("[data-grove-note-count]").text, "2 of 2 notes"
+        )
+        self.assertEqual(
+            len(soup.select('[data-grove-note][data-grove-superseded="true"]')), 1
         )
         self.assertFalse(
-            any(row.has_attr("hidden") for row in soup.select("[data-gal-note]"))
+            any(row.has_attr("hidden") for row in soup.select("[data-grove-note]"))
         )
 
 
@@ -256,7 +262,7 @@ class ConfNoteSupersedingLinksTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(confnotes_page(view), "html.parser")
-        links = soup.select(".gal-note-superseders a")
+        links = soup.select(".grove-note-superseders a")
         self.assertEqual(len(links), 3)
         for link, target, resource in zip(
             links,
@@ -274,7 +280,7 @@ class ConfNoteSupersedingLinksTests(unittest.TestCase):
         )
         self.assertFalse(
             BeautifulSoup(confnotes_page(current_view), "html.parser").select(
-                ".gal-note-superseders"
+                ".grove-note-superseders"
             )
         )
 
@@ -282,14 +288,14 @@ class ConfNoteSupersedingLinksTests(unittest.TestCase):
 class PubNotePageTests(unittest.TestCase):
     def test_pub_notes_share_note_controls_and_use_public_identifiers_and_readers(self):
         note = publication(1, resource="pubnotes", status="Phase 1 Finished")
-        note["gal_finalReferenceCode"] = note.pop("finalReferenceCode")
-        note["gal_groups"]["leadingSubgroup"] = "DEMO-Alpha"
+        note["grove_finalReferenceCode"] = note.pop("finalReferenceCode")
+        note["grove_groups"]["leadingSubgroup"] = "DEMO-Alpha"
         note["phase1"].update(
             {
                 "draftCdsUrl": "https://cds.cern.ch/record/209900000001",
-                "gal_readers": ["Invented Reader"],
-                "gal_firstReaders": "Invented First Reader",
-                "gal_secondReaders": [],
+                "grove_readers": ["Invented Reader"],
+                "grove_firstReaders": "Invented First Reader",
+                "grove_secondReaders": [],
             }
         )
         note["supersededBy"] = [{"type": "Paper", "referenceCode": "DEMO-2099-77"}]
@@ -298,7 +304,7 @@ class PubNotePageTests(unittest.TestCase):
             GroupProfile("DEMO"),
         )
         soup = BeautifulSoup(pubnotes_page(view), "html.parser")
-        summary = soup.select_one("[data-gal-note]")
+        summary = soup.select_one("[data-grove-note]")
         cells = summary.select(":scope > td, :scope > th")
         self.assertEqual(len(cells), 3)
         self.assertEqual(cells[0].a.text, "ATL-PHYS-PUB-2099-001")
@@ -307,20 +313,22 @@ class PubNotePageTests(unittest.TestCase):
         self.assertEqual(
             [link.text for link in cells[0].select("a")],
             [
-                note.get("finalReferenceCode") or note.get("gal_finalReferenceCode"),
+                note.get("finalReferenceCode") or note.get("grove_finalReferenceCode"),
                 "CDS",
             ],
         )
-        details = soup.select_one("[data-gal-note-details]")
+        details = soup.select_one("[data-grove-note-details]")
         self.assertIn("Invented Reader", details.get_text())
         self.assertIn("Invented First Reader", details.get_text())
         self.assertIn("Second readers", details.get_text())
         self.assertIn("Not recorded", details.get_text())
         self.assertNotIn("Editorial board", details.get_text())
-        self.assertTrue(details.select(".gal-note-superseders a"))
-        self.assertTrue(details.select("[data-gal-note-collapse]"))
-        self.assertTrue(soup.select("[data-gal-note-supersession]"))
-        self.assertEqual(soup.select_one("[data-gal-note-count]").text, "1 of 1 notes")
+        self.assertTrue(details.select(".grove-note-superseders a"))
+        self.assertTrue(details.select("[data-grove-note-collapse]"))
+        self.assertTrue(soup.select("[data-grove-note-supersession]"))
+        self.assertEqual(
+            soup.select_one("[data-grove-note-count]").text, "1 of 1 notes"
+        )
         row = next(row for row in view.archive if row.resource == "pubnotes")
         self.assertEqual(
             row.provenance["details"]["inputs"]["pub_note_expansion"]["rule"],

@@ -32,7 +32,7 @@ class PaperCitationTests(unittest.TestCase):
         paper["publicationPhase"].update(
             finalTitleTex=title,
             arXivUrls=[{"url": "https://arxiv.org/abs/9901.12345v2"}],
-            gal_dois=[
+            grove_dois=[
                 {"doi": "10.9999/original", "citation": "Demo J. 12 (2099) 123"},
                 {"doi": "10.9999/erratum", "citation": "Erratum: Demo J. 13 (2099) 5"},
                 {"doi": "10.9999/unresolved"},
@@ -55,7 +55,7 @@ class PaperCitationTests(unittest.TestCase):
         )
         self.assertEqual(view.archive[0].details.cite_as, expected)
         soup = BeautifulSoup(papers_page(view), "html.parser")
-        block = soup.select_one(".gal-paper-citation")
+        block = soup.select_one(".grove-paper-citation")
         self.assertEqual(tuple(block.stripped_strings), expected)
         self.assertIsNone(block.find("study"))
         self.assertFalse(block.find_parent("tr").has_attr("hidden"))
@@ -69,7 +69,7 @@ class PaperCitationTests(unittest.TestCase):
             arXivSubmissionDate="2099-01-01",
             finalSubmissionJournal="NEW_JOURNAL_CODE",
             arXivUrls=[{"url": "https://arxiv.org/pdf/hep-ex/9901999.pdf"}],
-            gal_dois=[],
+            grove_dois=[],
         )
         self.assertEqual(
             self.view(paper).archive[0].details.cite_as,
@@ -103,7 +103,7 @@ class PaperCitationTests(unittest.TestCase):
 
     def test_unresolved_original_does_not_borrow_a_correction_citation(self):
         paper = publication(1)
-        paper["publicationPhase"]["gal_dois"] = [
+        paper["publicationPhase"]["grove_dois"] = [
             {"doi": "10.9999/unresolved"},
             {"doi": "10.9999/correction", "citation": "Invented correction"},
         ]
@@ -117,7 +117,7 @@ class PaperCitationTests(unittest.TestCase):
 
     def test_sparse_doi_entries_keep_available_references_without_empty_lines(self):
         paper = publication(1)
-        paper["publicationPhase"]["gal_dois"] = [
+        paper["publicationPhase"]["grove_dois"] = [
             {"citation": "Invented original reference"},
             {},
             {"citation": "Invented correction reference", "doi": None},
@@ -133,7 +133,7 @@ class PaperCitationTests(unittest.TestCase):
         )
         self.assertEqual(view.archive[0].details.cite_as, expected)
         block = BeautifulSoup(papers_page(view), "html.parser").select_one(
-            ".gal-paper-citation"
+            ".grove-paper-citation"
         )
         self.assertEqual(tuple(block.stripped_strings), expected)
         self.assertNotIn("[]", block.text)
@@ -148,7 +148,7 @@ class PaperCitationTests(unittest.TestCase):
         soup = BeautifulSoup(
             papers_page(evolve(view, publications=(older,))), "html.parser"
         )
-        self.assertIsNone(soup.select_one(".gal-paper-citation-panel"))
+        self.assertIsNone(soup.select_one(".grove-paper-citation-panel"))
         self.assertNotIn("Cite as:", soup.text)
         self.assertIn("Synthetic publication", soup.text)
         self.assertIn("Synthetic citation", soup.text)
@@ -161,7 +161,7 @@ class PaperCitationTests(unittest.TestCase):
         soup = BeautifulSoup(
             papers_page(evolve(view, publications=(custom,))), "html.parser"
         )
-        block = soup.select_one(".gal-paper-citation")
+        block = soup.select_one(".grove-paper-citation")
         self.assertEqual(tuple(block.stripped_strings), (citation,))
         self.assertIsNone(block.find("reference"))
         self.assertIsNone(block.find("br"))

@@ -109,8 +109,8 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
             "paper_milestones": paper_milestones,
             "email_lists": asdict(email_lists),
             "editorial_board_chairs": {
-                "phase0.gal_editorialBoardChairs": (record.get("phase0") or {}).get(
-                    "gal_editorialBoardChairs"
+                "phase0.grove_editorialBoardChairs": (record.get("phase0") or {}).get(
+                    "grove_editorialBoardChairs"
                 )
                 or []
             },
@@ -132,11 +132,11 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
             reference,
             record.get("shortTitle") or reference,
             state.value,
-            tuple(record.get("gal_analysisContacts") or []),
-            tuple(record.get("gal_contactEditors") or []),
-            tuple(phase.get("gal_editorialBoard") or []),
-            record.get("gal_groups") or {},
-            tuple((record.get("metadata") or {}).get("gal_keywords") or []),
+            tuple(record.get("grove_analysisContacts") or []),
+            tuple(record.get("grove_contactEditors") or []),
+            tuple(phase.get("grove_editorialBoard") or []),
+            record.get("grove_groups") or {},
+            tuple((record.get("metadata") or {}).get("grove_keywords") or []),
             milestone.value,
             tuple(
                 (record.get("documentation") or {}).get("supportingInternalDocuments")
@@ -148,23 +148,26 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
                     dict.fromkeys(
                         name
                         for name in [
-                            (record.get("gal_groups") or {}).get("leadingSubgroup"),
-                            *((record.get("gal_groups") or {}).get("subgroups") or []),
+                            (record.get("grove_groups") or {}).get("leadingSubgroup"),
+                            *(
+                                (record.get("grove_groups") or {}).get("subgroups")
+                                or []
+                            ),
                         ]
                         if name
                     )
                 ),
-                "leading_subgroup": (record.get("gal_groups") or {}).get(
+                "leading_subgroup": (record.get("grove_groups") or {}).get(
                     "leadingSubgroup"
                 ),
                 "keywords": list(
-                    (record.get("metadata") or {}).get("gal_keywords") or []
+                    (record.get("metadata") or {}).get("grove_keywords") or []
                 ),
                 "triggers": list(
-                    (record.get("metadata") or {}).get("gal_triggers") or []
+                    (record.get("metadata") or {}).get("grove_triggers") or []
                 ),
                 "statistical_tools": list(
-                    (record.get("metadata") or {}).get("gal_statisticalTools") or []
+                    (record.get("metadata") or {}).get("grove_statisticalTools") or []
                 ),
                 "stage": state.value,
                 "stage_order": review_order.value,
@@ -175,13 +178,13 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
                     [
                         reference,
                         record.get("shortTitle") or "",
-                        *record.get("gal_analysisContacts", []),
-                        *record.get("gal_contactEditors", []),
-                        *(phase.get("gal_editorialBoard") or []),
-                        *((record.get("metadata") or {}).get("gal_keywords") or []),
-                        *((record.get("metadata") or {}).get("gal_triggers") or []),
+                        *record.get("grove_analysisContacts", []),
+                        *record.get("grove_contactEditors", []),
+                        *(phase.get("grove_editorialBoard") or []),
+                        *((record.get("metadata") or {}).get("grove_keywords") or []),
+                        *((record.get("metadata") or {}).get("grove_triggers") or []),
                         *(
-                            (record.get("metadata") or {}).get("gal_statisticalTools")
+                            (record.get("metadata") or {}).get("grove_statisticalTools")
                             or []
                         ),
                     ]
@@ -190,7 +193,7 @@ def prepare_analyses(analyses, publications, linked, issues, profile):
             tuple(progress.value),
             record.get("status") or "Not recorded",
             tuple(email_lists.value),
-            tuple(phase.get("gal_editorialBoardChairs") or []),
+            tuple(phase.get("grove_editorialBoardChairs") or []),
             tuple(paper_statuses.value),
             tuple(paper_milestones),
         )

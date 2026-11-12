@@ -1,0 +1,46 @@
+/* SPDX-FileCopyrightText: 2024-2026 Knut Zoch
+ * SPDX-License-Identifier: GPL-3.0-only */
+.grove-note-filters > .grove-filter-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+@media (max-width: 600px) {
+  .grove-note-filters { align-items: stretch; flex-direction: column; }
+}
+.grove-archive .grove-note-filters { display: block; }
+.grove-notes { width: 100%; border-collapse: collapse; font-size: .67rem; }
+.grove-notes :is(th, td) { padding: .35rem .5rem; white-space: nowrap; overflow-wrap: normal; word-break: normal; text-align: left; font-weight: 400; }
+.grove-notes thead th { font-weight: 600; border-bottom: 2px solid var(--grove-border); }
+.grove-notes tbody :is(th, td) { border-bottom: 1px solid color-mix(in srgb, var(--md-default-fg-color, #253041) 22%, transparent); }
+.grove-notes tbody tr:nth-child(4n+3), .grove-notes--filtered .grove-notes tbody tr.grove-note--stripe { background: color-mix(in srgb, var(--grove-accent) 6%, transparent); }
+.grove-notes--filtered .grove-notes tbody tr:not(.grove-note--stripe) { background: transparent; }
+.grove-notes tbody tr[data-grove-note]:hover { background: color-mix(in srgb, var(--grove-accent) 13%, transparent); }
+.grove-notes--filtered .grove-notes tbody tr[data-grove-note]:hover { background: color-mix(in srgb, var(--grove-accent) 13%, transparent); }
+.grove-notes tbody tr:focus-within { background: color-mix(in srgb, var(--grove-accent) 13%, transparent); }
+.grove-notes [data-grove-note] > td:nth-child(2) { width: 100%; }
+.grove-notes a.grove-note-link { display: inline-block; padding: .12rem .4rem; border: 1px solid var(--grove-accent); border-radius: 0; color: var(--grove-accent); font-size: .6rem; line-height: 1.4; text-decoration: none; }
+.grove-notes a.grove-note-link:hover { background: color-mix(in srgb, var(--grove-accent) 12%, transparent); }
+.grove-note-links { display: inline-flex; align-items: center; gap: .2rem; }
+.grove-note-filters { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .5rem .7rem; margin-bottom: .7rem; }
+.grove-note-filters fieldset { flex: 1; min-width: 0; margin: 0; }
+.grove-note-filters > button { flex-shrink: 0; }
+.grove-notes--filtered [data-grove-note] { cursor: pointer; }
+.grove-notes [data-grove-note-toggle]:focus-visible { outline: 2px solid var(--grove-accent); outline-offset: 2px; }
+.grove-note-details { overflow-wrap: anywhere; }
+.grove-note-details__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.grove-note-details__columns > div { min-width: 0; }
+.grove-note-details .grove-card__fields { margin: .5rem 0; }
+.grove-note-details .grove-card__fields dd { margin: .1rem 0 .45rem; }
+.grove-note-details .grove-card__label { margin: .4rem 0 .2rem; }
+.grove-note-details :is(p, ul, li, a) { font-family: inherit; font-size: inherit; }
+.grove-note-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.grove-notes .grove-badge { font-size: .6rem; padding: .12rem .4rem; }
+.grove-notes .grove-badge--leading { color: inherit; border-inline-start: 3px solid var(--grove-accent); background: color-mix(in srgb, var(--md-default-fg-color, #253041) 5%, var(--md-default-bg-color, #fff)); font-weight: 700; }
+.grove-note-collapse-row { display: flex; justify-content: flex-start; margin-top: .6rem; }
+.grove-note-collapse-row button { padding: .3rem .6rem; border: 1px solid var(--grove-border); border-radius: .3rem; color: var(--grove-accent); background: transparent; font: inherit; cursor: pointer; }
+.grove-note-collapse-row button:hover { border-color: var(--grove-accent); background: color-mix(in srgb, var(--grove-accent) 12%, transparent); }
+@media (max-width: 600px) {
+  .grove-note-details__columns { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+}
+.grove-notes tbody tr.grove-note-detail-row { background: var(--md-default-bg-color, #fff); }
+.grove-notes--filtered .grove-notes tbody tr.grove-note-detail-row { background: var(--md-default-bg-color, #fff); }
+.grove-notes .grove-note-detail-row > td { white-space: normal; padding: .65rem .75rem; background: var(--md-default-bg-color, #fff); }
+.grove-note-filter-groups { min-width: 0; flex: 1; }
+.grove-note-filters [data-grove-note-status] { margin-top: .6rem; }

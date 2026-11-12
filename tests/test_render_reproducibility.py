@@ -31,10 +31,10 @@ def contents(directory):
 
 def fixture():
     active = analysis(1)
-    active["gal_groups"]["subgroups"] = ["DEMO-Beta", "DEMO-Alpha"]
+    active["grove_groups"]["subgroups"] = ["DEMO-Beta", "DEMO-Alpha"]
     uncertain = analysis(2, status="Phase 0 Finished")
     paper = publication(1)
-    paper["gal_groups"]["subgroups"] = ["DEMO-Alpha", "DEMO-Beta"]
+    paper["grove_groups"]["subgroups"] = ["DEMO-Alpha", "DEMO-Beta"]
     note = publication(2, resource="confnotes", status="Phase 1 Finished")
     pub = publication(3, resource="pubnotes", status="Phase 1 Finished")
     return snapshot(

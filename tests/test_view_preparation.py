@@ -46,7 +46,7 @@ class PreparationTests(unittest.TestCase):
         first = analysis(1, additional=("DEMO",))
         second = analysis(2, group="OTHER", additional=("DEMO",))
         excluded = analysis(3, group="OTHER")
-        excluded["gal_groups"]["subgroups"] = ["DEMO"]
+        excluded["grove_groups"]["subgroups"] = ["DEMO"]
         view = self.prepare(snapshot(first, second, excluded))
         self.assertEqual(
             [row.reference for row in view.ongoing],
@@ -65,14 +65,14 @@ class PreparationTests(unittest.TestCase):
     def test_states_milestones_and_terminal_precedence_are_traceable(self):
         value = analysis(1)
         self.assertEqual(analysis_state(value, []).value, "phase0")
-        value["phase0"]["gal_editorialBoard"] = ["Example Reviewer"]
+        value["phase0"]["grove_editorialBoard"] = ["Example Reviewer"]
         self.assertEqual(analysis_state(value, []).value, "editorial_review")
         value["phase0"]["pgcOrSgcSignOffDate"] = "2099-01-03T12:00:00Z"
         decision = analysis_state(value, [])
         self.assertEqual(decision.value, "preapproved")
         self.assertEqual(decision.rule, "analysis-state")
         self.assertIn("phase0.pgcOrSgcSignOffDate", decision.inputs)
-        value["phase0"]["gal_approvalMeetingDates"] = ["2099-01-03"]
+        value["phase0"]["grove_approvalMeetingDates"] = ["2099-01-03"]
         self.assertEqual(
             last_milestone(value).value, ("Approval meeting", "2099-01-03")
         )
@@ -142,7 +142,7 @@ class PreparationTests(unittest.TestCase):
         )
         explicit_other = publication(2, group="OTHER", related=value["referenceCode"])
         direct = publication(3)
-        direct["gal_groups"]["subgroups"] = ["Direct subgroup"]
+        direct["grove_groups"]["subgroups"] = ["Direct subgroup"]
         data = snapshot(value, papers=(inherited, explicit_other, direct))
         before = copy.deepcopy(data)
         view = self.prepare(data)
@@ -190,26 +190,26 @@ class PreparationTests(unittest.TestCase):
             1, resource="pubnotes", status="Phase 1 Finished", date="1999-01-01"
         )
         note["supersededBy"] = [{"referenceCode": "DEMO-2099-02", "type": "Paper"}]
-        note["gal_finalReferenceCode"] = note.pop("finalReferenceCode")
+        note["grove_finalReferenceCode"] = note.pop("finalReferenceCode")
         self.assertEqual(publication_state(note, "pubnotes").value, "released")
         view = self.prepare(snapshot(analysis(1), pubnotes=(note,)))
         self.assertEqual(view.archive[0].date, "1999-01-01")
-        note["gal_finalReferenceCode"] = "PUB-DEMO-2099-01 TEMP"
+        note["grove_finalReferenceCode"] = "PUB-DEMO-2099-01 TEMP"
         self.assertNotEqual(publication_state(note, "pubnotes").value, "released")
 
     def test_trigger_and_tool_metadata_inherit_only_through_explicit_links(self):
         value = analysis(1)
         value["metadata"].update(
             {
-                "gal_triggers": ["Synthetic trigger"],
-                "gal_statisticalTools": ["Synthetic tool"],
+                "grove_triggers": ["Synthetic trigger"],
+                "grove_statisticalTools": ["Synthetic tool"],
             }
         )
         inherited = publication(1, related=value["referenceCode"])
         direct = publication(2, related=value["referenceCode"])
         direct["metadata"] = {
-            "gal_triggers": ["Own trigger"],
-            "gal_statisticalTools": ["Own tool"],
+            "grove_triggers": ["Own trigger"],
+            "grove_statisticalTools": ["Own tool"],
         }
         unlinked = publication(3)
         view = self.prepare(snapshot(value, papers=(inherited, direct, unlinked)))
@@ -233,7 +233,7 @@ class PreparationTests(unittest.TestCase):
         soup = BeautifulSoup(papers_page(view), "html.parser")
         self.assertNotIn("Leading:", soup.select_one("tbody").get_text())
         for key in ("keywords", "triggers", "statistical_tools"):
-            self.assertIsNone(soup.select_one(f'[data-gal-filter="{key}"]'))
+            self.assertIsNone(soup.select_one(f'[data-grove-filter="{key}"]'))
 
 
 if __name__ == "__main__":

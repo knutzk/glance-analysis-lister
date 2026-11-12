@@ -90,7 +90,7 @@ class GeneratedContractTests(unittest.TestCase):
                         ("confnotes", "ATLAS-CONF-2099-099"),
                         ("pubnotes", "ATL-PHYS-PUB-2099-099"),
                     ):
-                        data[resource][-1]["gal_finalReferenceCode"] = label
+                        data[resource][-1]["grove_finalReferenceCode"] = label
                         data[resource][-1]["finalReferenceCode"] = label
                 source.write_text(json.dumps(data))
                 render_group(
@@ -111,7 +111,7 @@ class GeneratedContractTests(unittest.TestCase):
                     *FRAGMENTS,
                     "view-report.json",
                     *(
-                        f"assets/gal-{component}.{extension}"
+                        f"assets/grove-{component}.{extension}"
                         for component in ("common", "ongoing", "papers", "notes")
                         for extension in ("css", "js")
                     ),

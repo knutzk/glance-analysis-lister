@@ -23,17 +23,17 @@ from .schema import (
 )
 
 logger = logging.getLogger(__name__)
-# Source collection -> dictionary field to extract into gal_<collection>.
+# Source collection -> dictionary field to extract into grove_<collection>.
 STRING_LIST_FIELDS = {
     "keywords": "name",
     "triggers": "name",
     "statisticalTools": "name",
 }
 MEETING_DATE_FIELDS = {
-    "eoiMeetings": "gal_eoiMeetingDates",
-    "editorialBoardRequestMeetings": "gal_editorialBoardRequestMeetingDates",
-    "preApprovalMeetings": "gal_preApprovalMeetingDates",
-    "approvalMeetings": "gal_approvalMeetingDates",
+    "eoiMeetings": "grove_eoiMeetingDates",
+    "editorialBoardRequestMeetings": "grove_editorialBoardRequestMeetingDates",
+    "preApprovalMeetings": "grove_preApprovalMeetingDates",
+    "approvalMeetings": "grove_approvalMeetingDates",
 }
 
 
@@ -128,7 +128,7 @@ def reject_reserved_keys(value):
     if isinstance(value, dict):
         for key, item in value.items():
             if key.startswith(PREFIX):
-                raise ValueError("API input uses reserved gal_ namespace")
+                raise ValueError("API input uses reserved grove_ namespace")
             reject_reserved_keys(item)
     elif isinstance(value, list):
         for item in value:
@@ -158,10 +158,10 @@ def compact(value, *, reference="Unknown record"):
             result[PREFIX + key] = unique_names(
                 [person_name(person) for person in board]
             )
-            result["gal_editorialBoardChairs"] = unique_names(
+            result["grove_editorialBoardChairs"] = unique_names(
                 [person_name(person) for person in board if person.get("isChair")]
             )
-            result["gal_editorialBoardExOfficio"] = unique_names(
+            result["grove_editorialBoardExOfficio"] = unique_names(
                 [person_name(person) for person in board if person.get("isExOfficio")]
             )
         elif key == "readers":
@@ -170,8 +170,8 @@ def compact(value, *, reference="Unknown record"):
                 [person_name(person) for person in readers]
             )
             for flag, field in (
-                ("isFirstReader", "gal_firstReaders"),
-                ("isSecondReader", "gal_secondReaders"),
+                ("isFirstReader", "grove_firstReaders"),
+                ("isSecondReader", "grove_secondReaders"),
             ):
                 result[field] = unique_names(
                     [person_name(person) for person in readers if person.get(flag)]
@@ -231,14 +231,14 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
             team = record.get("analysisTeam", []) or []
             if not isinstance(team, list):
                 raise ValueError("Analysis team must be a list")
-            record["gal_analysisContacts"] = unique_names(
+            record["grove_analysisContacts"] = unique_names(
                 [
                     person_name(person)
                     for person in team
                     if current_contact(person, as_of)
                 ]
             )
-            record["gal_contactEditors"] = unique_names(
+            record["grove_contactEditors"] = unique_names(
                 [
                     person_name(person)
                     for person in team
@@ -247,7 +247,7 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
             )
             evidence = enrich_public_identifiers(record, resource, identifiers)
             if evidence:
-                record["gal_publicationProvenance"] = evidence
+                record["grove_publicationProvenance"] = evidence
                 source = evidence["source"]
                 stats = identifier_statistics.setdefault(resource, {})
                 stats[source] = stats.get(source, 0) + 1
@@ -290,7 +290,7 @@ def curate(api, *, citations=None, pubnote_identifiers=None):
             len(records),
             perf_counter() - resource_started,
         )
-    result["gal_curation"] = {
+    result["grove_curation"] = {
         "built_at": datetime.now(UTC).isoformat(),
         "public_identifier_statistics": identifier_statistics,
         "pubnote_identifier_store": {

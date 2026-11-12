@@ -2,30 +2,30 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  const common = window.GALCommon;
+  const common = window.GROVECommon;
   if (!common) return;
-  if (window.GALNotes) { window.GALNotes.initialize(); return; }
+  if (window.GROVENotes) { window.GROVENotes.initialize(); return; }
   const initialized = new WeakSet();
   function initialize() {
-    document.querySelectorAll("[data-gal-notes]").forEach(root => {
+    document.querySelectorAll("[data-grove-notes]").forEach(root => {
       if (initialized.has(root)) return;
-      const controls = root.querySelector("[data-gal-note-controls]");
-      const search = controls?.querySelector("[data-gal-search]");
-      const statusButtons = Array.from(controls?.querySelectorAll("[data-gal-note-supersession]") || []);
-      const counter = root.querySelector("[data-gal-note-count]");
-      const empty = root.querySelector("[data-gal-notes-empty]");
+      const controls = root.querySelector("[data-grove-note-controls]");
+      const search = controls?.querySelector("[data-grove-search]");
+      const statusButtons = Array.from(controls?.querySelectorAll("[data-grove-note-supersession]") || []);
+      const counter = root.querySelector("[data-grove-note-count]");
+      const empty = root.querySelector("[data-grove-notes-empty]");
       let rows;
       try {
-        rows = Array.from(root.querySelectorAll("[data-gal-note]"), element => {
-          const toggle = element.querySelector("[data-gal-note-toggle]");
+        rows = Array.from(root.querySelectorAll("[data-grove-note]"), element => {
+          const toggle = element.querySelector("[data-grove-note-toggle]");
           const panel = document.getElementById(toggle.getAttribute("aria-controls"));
           if (!panel || !root.contains(panel)) throw new Error("Missing note details");
-          return {element, toggle, panel, expanded: false, superseded: element.dataset.galSuperseded === "true", text: (element.dataset.galSearchText || "").toLowerCase()};
+          return {element, toggle, panel, expanded: false, superseded: element.dataset.groveSuperseded === "true", text: (element.dataset.groveSearchText || "").toLowerCase()};
         });
       } catch (_) { return; }
-      const after = controls?.querySelector("[data-gal-date-after]");
-      const before = controls?.querySelector("[data-gal-date-before]");
-      const expandAll = controls?.querySelector("[data-gal-archive-expand-all]");
+      const after = controls?.querySelector("[data-grove-date-after]");
+      const before = controls?.querySelector("[data-grove-date-before]");
+      const expandAll = controls?.querySelector("[data-grove-archive-expand-all]");
       function syncExpandAll() {
         if (!expandAll) return;
         const visible = rows.filter(row => !row.element.hidden);
@@ -36,7 +36,7 @@
         row.expanded = expanded;
         row.panel.hidden = row.element.hidden || !expanded;
         row.toggle.setAttribute("aria-expanded", String(expanded));
-        row.element.classList.toggle("gal-note--expanded", expanded);
+        row.element.classList.toggle("grove-note--expanded", expanded);
         syncExpandAll();
       }
       rows.forEach(row => {
@@ -52,7 +52,7 @@
           event.preventDefault();
           setExpanded(row, !row.expanded);
         });
-        const collapse = row.panel.querySelector("[data-gal-note-collapse]");
+        const collapse = row.panel.querySelector("[data-grove-note-collapse]");
         collapse.hidden = false;
         collapse.addEventListener("click", () => {
           setExpanded(row, false);
@@ -63,20 +63,20 @@
       function readURL() {
         const params = common.readURLFields({q: search, after, before});
         const status = params.get("supersession");
-        statusButtons.forEach(button => button.setAttribute("aria-pressed", String(status === "all" || button.dataset.galNoteSupersession === (status === "superseded" ? "superseded" : "non-superseded"))));
+        statusButtons.forEach(button => button.setAttribute("aria-pressed", String(status === "all" || button.dataset.groveNoteSupersession === (status === "superseded" ? "superseded" : "non-superseded"))));
       }
       function update() {
         const query = (search?.value || "").trim().toLowerCase();
-        const statuses = statusButtons.filter(button => button.getAttribute("aria-pressed") === "true").map(button => button.dataset.galNoteSupersession);
+        const statuses = statusButtons.filter(button => button.getAttribute("aria-pressed") === "true").map(button => button.dataset.groveNoteSupersession);
         const visible = rows.filter(row => {
-          return common.monthMatches(row.element.dataset.galDate, after?.value, before?.value) && (!query || row.text.includes(query)) && (!statuses.length || statuses.includes(row.superseded ? "superseded" : "non-superseded"));
+          return common.monthMatches(row.element.dataset.groveDate, after?.value, before?.value) && (!query || row.text.includes(query)) && (!statuses.length || statuses.includes(row.superseded ? "superseded" : "non-superseded"));
         });
         rows.forEach(row => {
           row.element.hidden = !visible.includes(row);
           row.panel.hidden = row.element.hidden || !row.expanded;
         });
         visible.forEach((row, i) => {
-          row.element.classList.toggle("gal-note--stripe", i % 2 === 1);
+          row.element.classList.toggle("grove-note--stripe", i % 2 === 1);
         });
         syncExpandAll();
         empty.hidden = visible.length > 0;
@@ -91,18 +91,18 @@
       controls?.addEventListener("click", event => {
         const button = event.target.closest("button");
         if (!button || !controls.contains(button)) return;
-        if (button.hasAttribute("data-gal-archive-expand-all")) {
+        if (button.hasAttribute("data-grove-archive-expand-all")) {
           const expanded = button.getAttribute("aria-pressed") !== "true";
           rows.filter(row => !row.element.hidden).forEach(row => setExpanded(row, expanded));
           return;
         }
-        if (button.hasAttribute("data-gal-note-reset")) {
+        if (button.hasAttribute("data-grove-note-reset")) {
           if (after) after.value = "";
           if (before) before.value = "";
           if (search) search.value = "";
-          statusButtons.forEach(option => option.setAttribute("aria-pressed", String(option.dataset.galNoteSupersession === "non-superseded")));
+          statusButtons.forEach(option => option.setAttribute("aria-pressed", String(option.dataset.groveNoteSupersession === "non-superseded")));
         }
-        else if (button.hasAttribute("data-gal-note-supersession")) button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true"));
+        else if (button.hasAttribute("data-grove-note-supersession")) button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true"));
         else return;
         update();
       });
@@ -112,10 +112,10 @@
       readURL();
       update();
       initialized.add(root);
-      root.classList.add("gal-notes--filtered");
+      root.classList.add("grove-notes--filtered");
       if (controls) controls.hidden = false;
     });
   }
-  window.GALNotes = {initialize};
-  common.observeCollections('[data-gal-notes]', initialize);
+  window.GROVENotes = {initialize};
+  common.observeCollections('[data-grove-notes]', initialize);
 })();

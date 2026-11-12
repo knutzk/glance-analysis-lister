@@ -1,5 +1,10 @@
 # Building and maintaining a group website
 
+When upgrading from v0.4.0 or earlier, replace the generated pages and assets
+together and update all `gal-*` asset references and custom selectors to
+`grove-*`. There are no old-name aliases; see the
+[namespace upgrade](upgrading.md#unreleased-grove-field-and-browser-names).
+
 [Documentation overview](README.md)
 
 The package generates Markdown and browser assets; your website builder turns
@@ -122,7 +127,7 @@ After a successful render and report review, stage the intended site inputs:
 mkdir -p docs/analyses/assets
 cp generated/topq/ongoing.md generated/topq/papers.md \
   generated/topq/confnotes.md generated/topq/pubnotes.md docs/analyses/
-cp generated/topq/assets/gal-*.css generated/topq/assets/gal-*.js docs/analyses/assets/
+cp generated/topq/assets/grove-*.css generated/topq/assets/grove-*.js docs/analyses/assets/
 ```
 
 Keep `data/` and `generated/` out of version control when they hold private data.
@@ -173,16 +178,16 @@ asset lists, keeping common files before view-specific files:
 
 ```toml
 extra_css = [
-  "analyses/assets/gal-common.css",
-  "analyses/assets/gal-ongoing.css",
-  "analyses/assets/gal-papers.css",
-  "analyses/assets/gal-notes.css",
+  "analyses/assets/grove-common.css",
+  "analyses/assets/grove-ongoing.css",
+  "analyses/assets/grove-papers.css",
+  "analyses/assets/grove-notes.css",
 ]
 extra_javascript = [
-  "analyses/assets/gal-common.js",
-  "analyses/assets/gal-ongoing.js",
-  "analyses/assets/gal-papers.js",
-  "analyses/assets/gal-notes.js",
+  "analyses/assets/grove-common.js",
+  "analyses/assets/grove-ongoing.js",
+  "analyses/assets/grove-papers.js",
+  "analyses/assets/grove-notes.js",
 ]
 ```
 

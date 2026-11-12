@@ -40,26 +40,26 @@ class BuildTests(unittest.TestCase):
         view = self.prepare(data)
         ongoing = ongoing_page(view)
         self.assertEqual(
-            BeautifulSoup(ongoing, "html.parser").select_one("[data-gal-count]").text,
+            BeautifulSoup(ongoing, "html.parser").select_one("[data-grove-count]").text,
             "2 analyses",
         )
         self.assertNotIn("<tag>", ongoing)
         soup = BeautifulSoup(ongoing, "html.parser")
-        cards = soup.select("article[data-gal-item]")
+        cards = soup.select("article[data-grove-item]")
         self.assertEqual(len(cards), 2)
         self.assertIn("Invented | title [link] <tag>", cards[0].get_text())
         self.assertFalse(soup.find_all("script"))
-        self.assertTrue(soup.select_one("[data-gal-controls]").has_attr("hidden"))
+        self.assertTrue(soup.select_one("[data-grove-controls]").has_attr("hidden"))
         self.assertTrue(all(not card.has_attr("hidden") for card in cards))
-        metadata = json.loads(cards[0]["data-gal-metadata"])
+        metadata = json.loads(cards[0]["data-grove-metadata"])
         self.assertEqual(metadata["subgroups"], ["Example subgroup, with comma"])
         self.assertEqual(
             set(metadata), {"text", "subgroups", "stage_order", "reference"}
         )
-        for button in soup.select("[data-gal-value]"):
+        for button in soup.select("[data-grove-value]"):
             self.assertEqual(button["type"], "button")
             self.assertEqual(button["aria-pressed"], "false")
-        self.assertEqual(soup.select_one("[data-gal-count]")["aria-live"], "polite")
+        self.assertEqual(soup.select_one("[data-grove-count]")["aria-live"], "polite")
         self.assertIn("ref_code=ANA-DEMO-2099-01", ongoing)
         self.assertIn('id="analysis-demo-ana-demo-2099-01"', ongoing)
         self.assertNotIn("ANA-DEMO-2099-03", ongoing)

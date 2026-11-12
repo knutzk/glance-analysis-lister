@@ -44,7 +44,7 @@ class PublicIdentifierTests(unittest.TestCase):
             self.assertEqual(
                 enrich_public_identifiers(record, resource, MAPPING)["source"], "api"
             )
-            self.assertNotIn("gal_finalReferenceCode", record)
+            self.assertNotIn("grove_finalReferenceCode", record)
             record["finalReferenceCode"] = "temporary placeholder"
             record["phase1"]["publicWebPageUrlForFiguresAndTables"] = (
                 "https://example.test/" + identifier + "/"
@@ -53,7 +53,7 @@ class PublicIdentifierTests(unittest.TestCase):
                 enrich_public_identifiers(record, resource, MAPPING)["source"],
                 "api-public-url",
             )
-            self.assertEqual(record["gal_finalReferenceCode"], identifier)
+            self.assertEqual(record["grove_finalReferenceCode"], identifier)
         record = {
             "status": "Phase 1 Finished",
             "phase1": {
@@ -64,7 +64,7 @@ class PublicIdentifierTests(unittest.TestCase):
             enrich_public_identifiers(record, "pubnotes", MAPPING)["source"],
             "unresolved",
         )
-        self.assertNotIn("gal_finalReferenceCode", record)
+        self.assertNotIn("grove_finalReferenceCode", record)
 
     def test_cds_aliases_and_draft_link_fallback_do_not_make_requests(self):
         for url in (
@@ -94,7 +94,7 @@ class PublicIdentifierTests(unittest.TestCase):
         with patch("requests.get", side_effect=AssertionError("no network")):
             evidence = enrich_public_identifiers(record, "pubnotes", MAPPING)
         self.assertEqual(evidence["api_field"], "phase1.draftCdsUrl")
-        self.assertEqual(record["gal_finalReferenceCode"], "ATL-PHYS-PUB-2099-001")
+        self.assertEqual(record["grove_finalReferenceCode"], "ATL-PHYS-PUB-2099-001")
 
     def test_published_paper_links_are_explicitly_derived_without_testing_availability(
         self,
@@ -105,7 +105,7 @@ class PublicIdentifierTests(unittest.TestCase):
         }
         evidence = enrich_public_identifiers(record, "papers", {})
         self.assertEqual(
-            record["gal_figuresUrl"],
+            record["grove_figuresUrl"],
             "https://atlas.web.cern.ch/Atlas/GROUPS/PHYSICS/PAPERS/DEMO-2099-01/",
         )
         self.assertFalse(evidence["availability_checked"])

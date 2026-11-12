@@ -11,7 +11,7 @@ from ..provenance import warn_generator_mismatch
 
 API_SCHEMA = "glance-api-registry"
 SCHEMA = "glance-curated-registry"
-PREFIX = "gal_"
+PREFIX = "grove_"
 RESOURCES = ("analyses", "papers", "confnotes", "pubnotes")
 
 
@@ -49,7 +49,7 @@ def _curated_validator():
 def validate_registry(data):
     """Validate current structure and integrity, then warn on generator mismatch.
 
-    Unknown additions (including legacy version fields) are ignored. Validation
+    Unknown additions (except retired gal_ fields) are ignored. Validation
     does not transform records and never makes network requests.
     """
     if not isinstance(data, dict) or data.get("schema") != SCHEMA:
@@ -62,7 +62,12 @@ def validate_registry(data):
         )
         # Never include instance values (which can contain private records).
         detail = f"failed {error.validator} validation"
-        if error.validator == "required":
+        if error.validator == "not" and error.validator_value == {"pattern": "^gal_"}:
+            detail = (
+                "unsupported gal_ field namespace; rebuild with build-registry "
+                "from the saved API snapshot into a new output path"
+            )
+        elif error.validator == "required":
             missing = [
                 key for key in error.validator_value if key not in error.instance
             ]

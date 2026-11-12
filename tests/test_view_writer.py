@@ -56,13 +56,13 @@ class ViewWriterTests(unittest.TestCase):
             self.assertIn("0 written, 13 unchanged", "\n".join(logs.output))
             self.assertEqual(states(output), before)
             (output / "papers.md").write_text("locally changed")
-            (output / "assets/gal-common.css").unlink()
+            (output / "assets/grove-common.css").unlink()
             with self.assertLogs("grove.views.build", level="INFO") as logs:
                 render_group(source, output, profile)
             self.assertIn("2 written, 11 unchanged", "\n".join(logs.output))
             after = states(output)
             for name in before:
-                if name in {"papers.md", "assets/gal-common.css"}:
+                if name in {"papers.md", "assets/grove-common.css"}:
                     self.assertEqual(after[name][2], before[name][2])
                 else:
                     self.assertEqual(after[name], before[name])

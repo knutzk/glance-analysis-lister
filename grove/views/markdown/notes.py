@@ -27,9 +27,11 @@ def note_details(row):
         "inherited" in row.provenance["subgroups"]["reason"]
         or "inherited" in row.provenance["leading_subgroup"]["reason"]
     ):
-        out += '<p class="gal-card__label">Subgroup assignments via linked analysis</p>'
+        out += (
+            '<p class="grove-card__label">Subgroup assignments via linked analysis</p>'
+        )
     if extra.superseded:
-        out += '<p class="gal-card__label">Superseded by</p><ul class="gal-note-superseders">'
+        out += '<p class="grove-card__label">Superseded by</p><ul class="grove-note-superseders">'
         for link in extra.superseded_by:
             kind = link.get("type") or "Publication"
             reference = link.get("referenceCode") or "Not recorded"
@@ -45,7 +47,7 @@ def note_details(row):
                 + "</li>"
             )
         out += "</ul>"
-    out += '<div class="gal-note-details__columns"><div>'
+    out += '<div class="grove-note-details__columns"><div>'
     out += fields([(person.label, ", ".join(person.names)) for person in extra.people])
     out += "</div><div>"
     tags = [
@@ -57,12 +59,12 @@ def note_details(row):
         )
     ] + list(extra.tags)
     for category in tags:
-        out += f'<p class="gal-card__label">{escape(category.label)}</p>'
+        out += f'<p class="grove-card__label">{escape(category.label)}</p>'
         if category.values:
             out += (
-                '<div class="gal-note-tags">'
+                '<div class="grove-note-tags">'
                 + "".join(
-                    f'<span class="gal-badge">{escape(value)}</span>\n'
+                    f'<span class="grove-badge">{escape(value)}</span>\n'
                     for value in category.values
                 )
                 + "</div>"
@@ -78,7 +80,7 @@ def note_details(row):
             + "</p>"
         )
     if row.details.links:
-        out += '<p class="gal-card__label">Supporting links</p><ul>'
+        out += '<p class="grove-card__label">Supporting links</p><ul>'
         for link in row.details.links:
             url = link.url or ""
             label = link.label or ""
@@ -96,23 +98,23 @@ def note_table(view, resource):
     public_prefix = "ATLAS-CONF" if resource == "confnotes" else "ATL-<series>-PUB"
     public_pattern = r"ATLAS-CONF-\d{4}-\d+" if resource == "confnotes" else PUB_PATTERN
     rows = tuple(row for row in view.archive if row.resource == resource)
-    out = f'<section class="gal-collection gal-archive gal-note-collection" data-gal-notes aria-label="{kind} notes">'
-    out += '<div class="gal-filters gal-note-filters" data-gal-note-controls hidden><div class="gal-note-filter-groups">'
+    out = f'<section class="grove-collection grove-archive grove-note-collection" data-grove-notes aria-label="{kind} notes">'
+    out += '<div class="grove-filters grove-note-filters" data-grove-note-controls hidden><div class="grove-note-filter-groups">'
     out += search_control(
         anchor(view.profile.group, resource + "-filters"),
         f"Search {kind} notes",
         "Identifier, subgroup, title, citation, CDS URL, keyword or person",
     )
     out += date_controls(anchor(view.profile.group, resource + "-dates"), release=True)
-    out += '<div class="gal-publication-filter-row"><fieldset data-gal-note-status><legend>Supersession</legend><div class="gal-filter-buttons">'
+    out += '<div class="grove-publication-filter-row"><fieldset data-grove-note-status><legend>Supersession</legend><div class="grove-filter-buttons">'
     for value, label in view.controls[resource]["supersession"]:
         pressed = "true" if value == "non-superseded" else "false"
-        out += f'<button type="button" data-gal-note-supersession="{escape(value, quote=True)}" aria-pressed="{pressed}">{escape(label)}</button>'
+        out += f'<button type="button" data-grove-note-supersession="{escape(value, quote=True)}" aria-pressed="{pressed}">{escape(label)}</button>'
     out += "</div></fieldset>"
-    out += '<div class="gal-filter-actions">' + expansion_control()
-    out += '<button type="button" data-gal-note-reset>Reset filters</button></div></div></div></div>'
-    out += f'<p class="gal-result-count" data-gal-note-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} of {len(rows)} notes</p>'
-    out += f'<div class="gal-table-scroll" role="region" aria-label="{kind} notes table" tabindex="0"><table class="gal-notes">\n<thead>\n<tr>'
+    out += '<div class="grove-filter-actions">' + expansion_control()
+    out += '<button type="button" data-grove-note-reset>Reset filters</button></div></div></div></div>'
+    out += f'<p class="grove-result-count" data-grove-note-count role="status" aria-live="polite" aria-atomic="true">{len(rows)} of {len(rows)} notes</p>'
+    out += f'<div class="grove-table-scroll" role="region" aria-label="{kind} notes table" tabindex="0"><table class="grove-notes">\n<thead>\n<tr>'
     for label in ("Identifier", "Title", "Release date"):
         out += f'<th scope="col">{label}</th>'
     out += "</tr>\n</thead>\n<tbody>\n"
@@ -130,19 +132,19 @@ def note_table(view, resource):
             row.details.conf_note if resource == "confnotes" else row.details.pub_note
         )
         superseded = "true" if extra.superseded else "false"
-        out += f'<tr id="{identifier}" data-gal-note data-gal-search-text="{escape(row.metadata["text"], quote=True)}" data-gal-date="{row.date or ""}" data-gal-superseded="{superseded}">'
-        out += f'<th scope="row"><div class="gal-note-links"><a class="gal-note-link" href="{escape(glance_url(resource, row.reference), quote=True)}" aria-label="GLANCE entry for {escape(row.label, quote=True)}">{escape(row.label)}</a>'
+        out += f'<tr id="{identifier}" data-grove-note data-grove-search-text="{escape(row.metadata["text"], quote=True)}" data-grove-date="{row.date or ""}" data-grove-superseded="{superseded}">'
+        out += f'<th scope="row"><div class="grove-note-links"><a class="grove-note-link" href="{escape(glance_url(resource, row.reference), quote=True)}" aria-label="GLANCE entry for {escape(row.label, quote=True)}">{escape(row.label)}</a>'
         cds_url = row.details.cds_url
         if cds_url:
             out += html_link("CDS", cds_url).replace(
-                "<a ", '<a class="gal-note-link" ', 1
+                "<a ", '<a class="grove-note-link" ', 1
             )
-        out += f'</div></th><td><span data-gal-note-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td>'
+        out += f'</div></th><td><span data-grove-note-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></td><td>'
         if row.date:
             out += f'<time datetime="{row.date}">{row.date}</time>'
         out += "</td></tr>\n"
-        out += f'<tr class="gal-note-detail-row" id="{identifier}-details" data-gal-note-details><td colspan="3"><div class="gal-note-details">'
+        out += f'<tr class="grove-note-detail-row" id="{identifier}-details" data-grove-note-details><td colspan="3"><div class="grove-note-details">'
         out += note_details(row)
-        out += f'<div class="gal-note-collapse-row"><button type="button" data-gal-note-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
-    out += f"</tbody>\n</table></div><p data-gal-notes-empty hidden>No {kind} notes match the selected filters.</p>"
+        out += f'<div class="grove-note-collapse-row"><button type="button" data-grove-note-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></td></tr>\n'
+    out += f"</tbody>\n</table></div><p data-grove-notes-empty hidden>No {kind} notes match the selected filters.</p>"
     return readable_html(out + "</section>") + "\n"
