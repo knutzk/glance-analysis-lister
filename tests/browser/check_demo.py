@@ -331,17 +331,6 @@ def check_demo(work, driver):
         destination = work / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, destination)
-    # Keep the repository link in the header, but avoid live GitHub statistics
-    # in synthetic browser checks (including before a repository rename).
-    config = work / "zensical.toml"
-    config.write_text(
-        re.sub(
-            r"^repo_url = .*$",
-            'repo_url = "https://example.invalid/synthetic/repository"',
-            config.read_text(),
-            flags=re.MULTILINE,
-        )
-    )
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
     assert not (work / "examples/demo/work").exists()
