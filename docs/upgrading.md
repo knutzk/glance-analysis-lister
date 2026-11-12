@@ -28,8 +28,8 @@ For a source checkout, update the Git remote to
 Saved snapshot filenames have not changed. Supported saved snapshots still load;
 their old generator identity may produce a warning. Newly built snapshots retain
 the optional paper `fullTitle` and `publicationPhase.finalTitleTex` fields for
-complete citations. Keep the previous snapshots for rollback: older versions
-may reject these fields. Rebuild from a saved API snapshot and render into a
+complete citations. Keep the previous snapshots and environment for rollback
+and reproducibility. Rebuild from a saved API snapshot and render into a
 separate directory to record the new generator identity and retained titles.
 This needs no fresh CERN download. Preserve custom
 stores and policies and pass their paths explicitly as before. Bundled data in
