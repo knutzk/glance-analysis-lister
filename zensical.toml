@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
-# SPDX-License-Identifier: GPL-3.0-only
-
 [project]
 site_name = "GLANCE analysis lister · development"
 site_description = "Analysis and publication pages from ATLAS GLANCE records"

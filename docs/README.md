@@ -1,6 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
-
 # Find your guide
 
 Start with the demo to see what the package produces. Then use the topic guides

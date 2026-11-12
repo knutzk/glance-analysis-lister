@@ -1,6 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
-
 # GLANCE data and the curated registry
 
 [Documentation overview](README.md)

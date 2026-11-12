@@ -1,6 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
-
 ## Main changes
 
 - **New API workflow:** download through stare and CERN SSO, build a compact curated registry offline, and generate multiple groups' pages with one `refresh` command.

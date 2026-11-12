@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
-# SPDX-License-Identifier: GPL-3.0-only
-
 # Shared publication archive policies. All listed groups, subgroups and
 # keywords are combined with OR. A group matches an internal identifier
 # token or a leading/additional affiliation. Groups absent from this file

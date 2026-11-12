@@ -1,6 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2024-2026 Knut Zoch -->
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
-
 # Add CERN data to the demo
 
 [Documentation index](README.md)
