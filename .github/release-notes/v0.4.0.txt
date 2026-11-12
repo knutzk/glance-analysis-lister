@@ -1,0 +1,45 @@
+# v0.4.0 — first GROVE release
+
+The project is now GROVE: GLANCE Records Organised for Viewing and Exploration.
+
+- Renames the distribution and GitHub repository to `glance-grove`, and the
+  Python package and command to `grove`. The previous names have no compatibility
+  aliases or import shims.
+- Restores complete **Cite as** blocks in paper details, including full titles,
+  recorded TeX titles and DOI-aligned citations. Improves citation typography and
+  wrapping of long publication links on narrow screens.
+- Adds `grove --version`, reporting the installed distribution version. Updates
+  documentation, demo commands, generated-page branding and packaged resources
+  to use the new names.
+
+## Upgrading from v0.3.0
+
+Install the `glance_grove-0.4.0-py3-none-any.whl` artifact in a fresh Python 3.13
+environment. Pip treats `glance-grove` and `glance-analysis-lister` as separate
+projects; installing the new distribution does not remove the old one.
+
+Replace `analysis-lister` with `grove` in shell commands and automation, and
+`analysis_lister` with `grove` in Python imports and module invocations. Update
+dependency declarations to `glance-grove`. Use `grove --version` or
+`python -m grove --version` to verify the installation.
+
+The repository is https://github.com/knutzk/glance-grove and documentation is at
+https://knutzk.github.io/glance-grove/. Update Git remotes and documentation links;
+the old GitHub Pages address does not automatically redirect.
+
+Snapshot filenames and generated group-page URLs are unchanged. Existing
+supported curated snapshots remain readable, with advisory warnings for the old
+generator identity. Newly built snapshots retain the optional paper `fullTitle`
+and `publicationPhase.finalTitleTex` fields. Keep the previous snapshots and
+environment for rollback and reproducibility. Rebuild from a saved API snapshot with
+`grove build-registry` to recover full paper titles omitted by older curated
+snapshots, then render into a separate output directory with `grove render-group`.
+No fresh CERN download is needed. Preserve custom citation stores and policies
+outside the environment and pass their explicit paths when rebuilding.
+
+Historical v0.1.0–v0.3.0 tags and distribution artifacts retain their original
+names and contents. They are not `glance-grove` packages.
+
+Python 3.13+ and GPL-3.0-only licensing remain unchanged. Existing 0.x interface
+and generated-data support limits still apply. Live retrieval requires authorised
+CERN access; synthetic and offline checks do not establish live login.

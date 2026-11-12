@@ -5,10 +5,10 @@ a separate output directory. Keep the old environment and site until you have
 checked the candidate. Keep custom policies and citation stores outside the Python
 environment so reinstalling the package cannot replace your edits.
 
-## Renaming to GROVE (unreleased)
+## Upgrading to v0.4.0: GROVE
 
-The project is now **GROVE** (GLANCE Records Organised for Viewing and
-Exploration). This change replaces the installation, command and import names:
+Version 0.4.0 is the first release of **GROVE** (GLANCE Records Organised for
+Viewing and Exploration). It replaces the installation, command and import names:
 
 | Interface | Previous name | New name |
 | --- | --- | --- |
@@ -25,10 +25,13 @@ Use `grove --version` or `python -m grove --version` to check the candidate.
 For a source checkout, update the Git remote to
 `https://github.com/knutzk/glance-grove.git` after the repository rename.
 
-Saved snapshot filenames and the curated data schema have not changed. Valid
-saved snapshots still load; their old generator identity may produce a warning.
-Rebuild from a saved API snapshot and render into a separate directory to record
-the new generator identity. This needs no fresh CERN download. Preserve custom
+Saved snapshot filenames have not changed. Supported saved snapshots still load;
+their old generator identity may produce a warning. Newly built snapshots retain
+the optional paper `fullTitle` and `publicationPhase.finalTitleTex` fields for
+complete citations. Keep the previous snapshots and environment for rollback
+and reproducibility. Rebuild from a saved API snapshot and render into a
+separate directory to record the new generator identity and retained titles.
+This needs no fresh CERN download. Preserve custom
 stores and policies and pass their paths explicitly as before. Bundled data in
 an installed wheel now lives under `share/glance-grove/`.
 
@@ -190,6 +193,7 @@ indefinite support for every previous file shape.
 
 ## Release history
 
+- [v0.4.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.4.0.txt)
 - [v0.3.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.3.0.txt)
 - [v0.2.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.2.0.txt)
 - [v0.1.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.1.0.txt)
