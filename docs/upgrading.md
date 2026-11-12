@@ -8,7 +8,10 @@ environment so reinstalling the package cannot replace your edits.
 ## Upgrading to v0.4.0: GROVE
 
 Version 0.4.0 is the first release of **GROVE** (GLANCE Records Organised for
-Viewing and Exploration). It replaces the installation, command and import names:
+Viewing and Exploration), published on
+[GitHub](https://github.com/knutzk/glance-grove/releases/tag/v0.4.0) and
+[PyPI](https://pypi.org/project/glance-grove/0.4.0/).
+It replaces the installation, command and import names:
 
 | Interface | Previous name | New name |
 | --- | --- | --- |
@@ -18,10 +21,11 @@ Viewing and Exploration). It replaces the installation, command and import names
 | GitHub repository | `knutzk/glance-analysis-lister` | `knutzk/glance-grove` |
 
 There are no aliases or import shims for the old names. Update scripts, scheduled
-commands, Python imports and dependency declarations. Install the candidate into
+commands, Python imports and dependency declarations. Install GROVE into
 a fresh virtual environment: pip treats the two distribution names as separate
 projects, so installing `glance-grove` does not remove the old installation.
-Use `grove --version` or `python -m grove --version` to check the candidate.
+For v0.4.0, install with `python -m pip install glance-grove==0.4.0`.
+Use `grove --version` or `python -m grove --version` to check the installed version.
 For a source checkout, update the Git remote to
 `https://github.com/knutzk/glance-grove.git` after the repository rename.
 
@@ -37,7 +41,7 @@ an installed wheel now lives under `share/glance-grove/`.
 
 Historical v0.1.0–v0.3.0 tags, release notes and artifacts describe the old package.
 They are not GROVE distributions and must not be renamed or uploaded to the
-`glance-grove` PyPI project. The examples below describe the candidate interface.
+`glance-grove` PyPI project. The examples below use the GROVE interface.
 
 ## Restoring full paper citations
 

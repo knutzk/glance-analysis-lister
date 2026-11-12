@@ -45,7 +45,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: Check manual publication request
+      - name: Check dispatched publication request
         if: github.event_name == 'workflow_dispatch'
         env:
           PUBLISH_REQUESTED: ${{ inputs.publish }}
@@ -73,6 +73,12 @@ jobs:
       - name: Report disabled publishing
         if: vars.PYPI_PUBLISHING_ENABLED != 'true'
         run: echo 'Validation completed; PyPI uploads are disabled.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Link to owner approval
+        if: >-
+          vars.PYPI_PUBLISHING_ENABLED == 'true' &&
+          (github.event_name == 'release' || inputs.publish)
+        run: |
+          echo "Approve this upload in [this workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID): **Review deployments → pypi → Approve and deploy**. Approval belongs to the repository owner, not an automation agent." >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     if: >-
@@ -82,9 +88,8 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Activation also requires the pypi environment to allow release tags.
-    # Its required reviewer must be removed for uploads without a second approval.
-    # Keep PYPI_PUBLISHING_ENABLED=false until activation is explicitly authorised.
+    # Preserve the required owner review for both release and dispatch triggers.
+    # Automation prepares the upload; only the owner approves this deployment.
     environment:
       name: pypi
       url: https://pypi.org/project/glance-grove/
