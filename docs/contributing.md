@@ -401,11 +401,15 @@ qualification, and synthetic recovery tests do not establish power-loss or
 concurrent-writer safety. Live login and downloads require separate authorised
 checks; record only non-sensitive outcomes.
 
-A pushed `vVERSION` tag must match package metadata and have nonempty notes.
-After the package, browser and documentation jobs pass, CI creates a **draft
-GitHub release** containing the tested distributions and notes. Review it before
-publication; tag CI does not upload to a package index. The separate Pages workflow
-publishes the development documentation from `main`.
+Merge the reviewed release preparation and workflow changes before tagging the
+qualified commit. Pushing a signed `vMAJOR.MINOR.PATCH` tag authorises automatic
+GitHub publication; review the notes and candidate before pushing. The tag must
+match package metadata and have nonempty notes. After the package, browser and
+documentation jobs pass, CI publishes a **regular GitHub release** containing the
+tested distributions and notes. It then starts PyPI validation when publishing is
+enabled; the upload waits for the owner's approval as described below. A failed
+required CI job prevents GitHub publication. The separate Pages workflow publishes
+the development documentation from `main`.
 
 There is one development documentation site. Release tags and source archives
 retain the matching guides and demo; there is no hosted version selector.
@@ -415,11 +419,36 @@ permanent release archive.
 
 ### Publish to PyPI
 
-PyPI publishing is manual for now and will be automated in the future.
+Release-triggered PyPI publishing is enabled and was used for
+[v0.4.0, the first GROVE release](https://pypi.org/project/glance-grove/0.4.0/).
+The publisher uses Trusted Publishing for `knutzk/glance-grove`, workflow
+`publish-pypi.yml`, environment `pypi`, and PyPI project `glance-grove`.
 
-The prepared publisher targets `knutzk/glance-grove` and distribution metadata
-named `glance-grove`, with wheel and source filenames beginning `glance_grove-`.
-Configure the PyPI Trusted Publisher for the renamed repository and project
-before authorising an upload. Keep uploads disabled until a specific release is
-approved. Existing `glance-analysis-lister` release assets cannot be uploaded to
-the new project; the validator rejects their filenames and metadata.
+CI explicitly dispatches the publisher after creating the GitHub release:
+GitHub does not trigger another release workflow for a release created with
+`GITHUB_TOKEN`, but it does allow
+[explicit workflow dispatch](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+A regular release published through the GitHub UI also starts the publisher.
+Both paths download the existing release assets, verify their SHA-256 digests,
+package name and version, and check metadata and the rendered description.
+The upload uses those same wheel and source archive bytes, without rebuilding.
+
+The `pypi` environment requires approval by `knutzk`. Open the
+[publisher's Actions run](https://github.com/knutzk/glance-grove/actions/workflows/publish-pypi.yml),
+review the validation summary, then choose **Review deployments → pypi → Approve
+and deploy**. Automation agents must provide the run link and leave this action
+to the owner. Keep the required reviewer and environment protections in place.
+`PYPI_PUBLISHING_ENABLED=true` enables this flow; setting it to `false` disables
+uploads without preventing GitHub release publication.
+
+For validation only, run the publisher on `main` with `release_tag` set to a
+published release and `publish=false` (the default). If GitHub publication
+succeeds but dispatch fails, dispatch the publisher on `main` for the same tag
+with `publish=true`; it still requires owner approval. Do not recreate the
+release, replace its assets or move its tag. Inspect any partial PyPI upload
+before retrying; an existing PyPI file cannot be overwritten. After upload,
+verify the PyPI files against the tested hashes and check a clean installation.
+
+Historical `glance-analysis-lister` release assets cannot be uploaded to the
+`glance-grove` project; the validator rejects their filenames and metadata.
+Historical backfills require separate authorisation.
