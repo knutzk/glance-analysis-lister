@@ -4,13 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glance-grove"
-version = "0.4.0"
-description = "Maintain ATLAS GLANCE analysis registries and render analysis pages"
+version = "0.5.0"
+description = "Curate ATLAS GLANCE analysis and publication registries and render searchable group pages"
 readme = "README.md"
 license = "GPL-3.0-only"
 license-files = ["LICENCE"]
 authors = [{name = "Knut Zoch"}]
 requires-python = ">=3.13"
+keywords = ["atlas", "cern", "glance", "particle-physics", "publications", "registry", "markdown", "zensical"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
 dependencies = ["attrs>=26.1", "jsonschema>=4.23,<5", "rfc3339-validator>=0.1.4", "requests>=2.34", "stare==0.7.0"]
 
 [project.urls]

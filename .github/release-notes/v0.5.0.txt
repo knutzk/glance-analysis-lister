@@ -1,0 +1,57 @@
+# v0.5.0 — GROVE field and browser namespaces
+
+This release completes the GROVE rename with a breaking change to curated
+snapshots and browser integration. There are no old-name aliases or automatic
+conversions.
+
+- Renames curated `gal_*` fields to `grove_*`, including `grove_curation`,
+  `grove_dois` and identifier-provenance field references. Old and mixed namespaces
+  are rejected by package validation and the standalone JSON Schema.
+- Renames the eight browser assets to `grove-*.css` and `grove-*.js`, along with
+  CSS classes/variables, HTML data attributes and JavaScript globals. Updates the
+  demo, documentation and consuming-site configuration examples together.
+- Automates GitHub release publication after successful tag CI and uploads the
+  verified release assets to PyPI through Trusted Publishing. No separate PyPI
+  deployment approval is required; release authorisation happens before tagging.
+
+## Upgrading from v0.4.0
+
+Install `glance_grove-0.5.0-py3-none-any.whl` in a fresh Python 3.13 environment
+and check `grove --version`. The distribution remains `glance-grove`, and the
+Python import and command remain `grove`.
+
+Rebuild from a saved API snapshot into a new curated file, preserving explicit
+custom citation-store and policy paths, then render into a fresh output directory:
+
+```bash
+grove build-registry --api-snapshot data/previous-api.json \
+  --doi-cache data/doi-metadata.json --output data/grove-curated.json
+grove render-group --group TOPQ --snapshot data/grove-curated.json \
+  --curation-config data/publication-curation.toml --output-dir pages/grove
+```
+
+Use your actual group and paths. Existing curated files containing `gal_*` fields
+cannot be read or overwritten by a build, even with `--allow-count-drop`. Do not
+rename fields manually or edit generator metadata. Saved API snapshots and custom
+citation-store formats are unchanged; no new CERN download is needed. If the old
+curated file is your only copy, retain the previous environment until an API
+snapshot is available. Compare generated counts and pages: `compare-snapshots`
+cannot compare registries across this incompatible namespace change.
+
+Update consuming-site and editable demo configuration from `assets/gal-*` to
+`assets/grove-*`, including both stylesheets and scripts for `common`, `ongoing`,
+`papers` and `notes`. Custom integrations must replace `gal-*` classes, `--gal-*`
+CSS variables and `data-gal-*` attributes with `grove-*`, `--grove-*` and
+`data-grove-*`. JavaScript globals are now `GROVECommon`, `GROVEOngoing`,
+`GROVEPapers` and `GROVENotes`.
+
+Deploy the regenerated pages and matching assets together. Rendering does not
+remove stale assets from an existing directory. Page filenames, native record
+IDs, record fragments and filter query parameters are unchanged. Keep the old
+environment, curated snapshots, configuration and generated site together for
+rollback. Preserve custom citations and their provenance outside environments.
+
+Historical tags and release artifacts are unchanged. Python 3.13+,
+GPL-3.0-only licensing and the existing 0.x interface limits remain unchanged.
+Live retrieval requires authorised CERN access; synthetic and offline checks do
+not establish live login.

@@ -269,8 +269,8 @@ jobs:
             --verify-tag --prerelease=false --title "$RELEASE_TAG" \
             --notes-file ".github/release-notes/$RELEASE_TAG.txt"
       # Releases created with GITHUB_TOKEN do not emit a new workflow run.
-      # workflow_dispatch is an exception; the pypi environment still gates upload.
-      - name: Start PyPI validation and request owner approval
+      # workflow_dispatch is an exception; the publisher verifies assets before upload.
+      - name: Start automated PyPI publishing
         if: vars.PYPI_PUBLISHING_ENABLED == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -279,4 +279,4 @@ jobs:
         run: |
           gh workflow run publish-pypi.yml --ref main \
             -f release_tag="$RELEASE_TAG" -f publish=true
-          echo 'PyPI validation started; the owner must approve the pypi deployment before upload.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PyPI publishing started; verified release assets will upload automatically.' >> "$GITHUB_STEP_SUMMARY"

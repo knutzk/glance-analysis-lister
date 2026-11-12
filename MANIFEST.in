@@ -4,6 +4,7 @@ include .github/release-notes/v0.1.0.txt
 include .github/release-notes/v0.2.0.txt
 include .github/release-notes/v0.3.0.txt
 include .github/release-notes/v0.4.0.txt
+include .github/release-notes/v0.5.0.txt
 include json/doi_metadata.json
 include json/pubnote_identifiers.json
 include publication-curation.toml
