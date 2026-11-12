@@ -15,6 +15,7 @@ include scripts/docs.py
 include scripts/check_public_api.py
 include scripts/public_api.toml
 include scripts/coverage_summary.py
+include scripts/prepare_pypi.py
 include zensical.toml
 recursive-include tests *.py
 include tests/browser/requirements.txt
