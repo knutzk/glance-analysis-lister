@@ -17,11 +17,9 @@ def default_identifiers_path():
     if source.is_file():
         return source
     try:
-        package = distribution("glance-analysis-lister")
+        package = distribution("glance-grove")
         for path in package.files or []:
-            if str(path).endswith(
-                "share/glance-analysis-lister/pubnote_identifiers.json"
-            ):
+            if str(path).endswith("share/glance-grove/pubnote_identifiers.json"):
                 return Path(package.locate_file(path))
     except PackageNotFoundError:
         pass

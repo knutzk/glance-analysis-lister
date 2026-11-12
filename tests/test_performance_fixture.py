@@ -9,9 +9,9 @@ from collections import Counter
 from pathlib import Path
 from runpy import run_path
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.registry import CuratedRegistry
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ROOT = Path(__file__).resolve().parents[1]
 synthetic_registry = run_path(str(ROOT / "tests/browser/performance_fixture.py"))[

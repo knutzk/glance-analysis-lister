@@ -12,6 +12,9 @@ class DistributionBoundaryTests(unittest.TestCase):
     def test_forbidden_sentinels_are_rejected(self):
         for name in (
             "AGENTS.md",
+            "analysis_lister/__init__.py",
+            "analysis_lister/events.py",
+            "analysis_lister/event_labels.py",
             ".python-version",
             "cookies.json",
             "examples/cookies.json",
@@ -27,8 +30,8 @@ class DistributionBoundaryTests(unittest.TestCase):
             "browser-report/failure.png",
             "coverage-report/index.html",
             "public-api-report/changes.md",
-            "analysis_lister/events.py",
-            "analysis_lister/event_labels.py",
+            "grove/events.py",
+            "grove/event_labels.py",
             "tests/test_events.py",
             ".venv/pyvenv.cfg",
             "site/index.html",
@@ -44,16 +47,16 @@ class DistributionBoundaryTests(unittest.TestCase):
     def test_public_resources_and_installed_data_paths_are_allowed(self):
         check_public_paths(
             [
-                "analysis_lister/registry/schemas/curated.schema.json",
+                "grove/registry/schemas/curated.schema.json",
                 "examples/synthetic_registry.json",
                 "tests/fixtures/curated/invented.json",
                 "json/doi_metadata.json",
                 "json/pubnote_identifiers.json",
-                "../../../share/glance-analysis-lister/doi_metadata.json",
-                "../../../share/glance-analysis-lister/pubnote_identifiers.json",
-                "analysis_lister/downloaders/certs/README.md",
-                "analysis_lister/downloaders/certs/intermediate.pem",
-                "analysis_lister/_source_revision.txt",
+                "../../../share/glance-grove/doi_metadata.json",
+                "../../../share/glance-grove/pubnote_identifiers.json",
+                "grove/downloaders/certs/README.md",
+                "grove/downloaders/certs/intermediate.pem",
+                "grove/_source_revision.txt",
                 "docs/images/ongoing.png",
                 "package.dist-info/licenses/LICENCE",
             ],

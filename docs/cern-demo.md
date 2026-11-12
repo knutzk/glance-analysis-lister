@@ -24,7 +24,7 @@ same. Check the publication policy for your chosen group; use
 With an authorised CERN account, first download the accessible records:
 
 ```bash
-analysis-lister download-api --login
+grove download-api --login
 ```
 
 `--login` opens browser sign-in; omit it on later downloads to reuse stored
@@ -35,8 +35,8 @@ credentials. This writes `glance_api_registry.json` in the repository root.
 Build the curated registry and render TOPQ into the demonstrator:
 
 ```bash
-analysis-lister build-registry
-analysis-lister render-group --group TOPQ \
+grove build-registry
+grove render-group --group TOPQ \
   --snapshot glance_curated_registry.json \
   --output-dir examples/demo/work/pages/topq
 ```
@@ -88,7 +88,7 @@ documentation build excludes this working directory.
 ## Next steps
 
 To update all three stages in one command, use
-`analysis-lister refresh --groups TOPQ --output-dir examples/demo/work/pages/topq --login`
+`grove refresh --groups TOPQ --output-dir examples/demo/work/pages/topq --login`
 and omit `--login` when reusing stored credentials. See
 [how the commands connect](data.md#how-the-commands-connect) for saved-file
 handoffs and rerunning individual stages.
@@ -96,4 +96,4 @@ handoffs and rerunning individual stages.
 For an existing website, see [integration into a consuming site](website.md#integrate-into-a-consuming-site).
 For recovery or other command options, see [recovery guidance](problems.md#resume-an-interrupted-workflow)
 and the [command reference](cli-reference.md), or use
-`analysis-lister COMMAND --help`.
+`grove COMMAND --help`.

@@ -13,8 +13,8 @@ from unittest.mock import patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.downloaders import csv_batch as html_download, html as downloader
-from analysis_lister.downloaders.manifest import (
+from grove.downloaders import csv_batch as html_download, html as downloader
+from grove.downloaders.manifest import (
     CSV_REFRESH_MARKER,
     HTML_MANIFEST,
     make_manifest,
@@ -202,9 +202,7 @@ class CsvBatchTests(unittest.TestCase):
 
         with (
             patch.object(Path, "replace", fail_promotion_and_rollback),
-            self.assertLogs(
-                "analysis_lister.downloaders.html", level="WARNING"
-            ) as logs,
+            self.assertLogs("grove.downloaders.html", level="WARNING") as logs,
             self.assertRaises(OSError),
         ):
             html_download.download_html_csvs(

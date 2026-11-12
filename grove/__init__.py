@@ -1,4 +1,4 @@
 # SPDX-FileCopyrightText: 2024-2026 Knut Zoch
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Package to create lists of glance analyses and papers."""
+"""GROVE: GLANCE Records Organised for Viewing and Exploration."""

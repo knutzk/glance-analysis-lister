@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.downloaders import http as downloader
+from grove.downloaders import http as downloader
 
 
 class DownloadTests(unittest.TestCase):
@@ -76,9 +76,7 @@ class DownloadTests(unittest.TestCase):
                 get.reset_mock()
                 get.side_effect = error("test failure")
                 with (
-                    self.assertLogs(
-                        "analysis_lister.downloaders.http", level="ERROR"
-                    ) as logs,
+                    self.assertLogs("grove.downloaders.http", level="ERROR") as logs,
                     self.assertRaises(ValueError),
                 ):
                     downloader.DataFetcher.fetch_html("https://example.test", {}, {})
@@ -100,7 +98,7 @@ class DownloadTests(unittest.TestCase):
             "private response", response=response
         )
         with (
-            self.assertLogs("analysis_lister.downloaders.http", level="ERROR") as logs,
+            self.assertLogs("grove.downloaders.http", level="ERROR") as logs,
             self.assertRaises(ValueError),
         ):
             downloader.DataFetcher.fetch_html("https://example.test", {}, {})

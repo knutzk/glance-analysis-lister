@@ -13,15 +13,15 @@ from unittest.mock import Mock, patch
 
 from test_api import client_for
 
-from analysis_lister import cli
-from analysis_lister.downloaders.api import collect_registry, publish_registry
-from analysis_lister.downloaders.html import download_tasks
-from analysis_lister.downloaders.manifest import (
+from grove import cli
+from grove.downloaders.api import collect_registry, publish_registry
+from grove.downloaders.html import download_tasks
+from grove.downloaders.manifest import (
     CSV_REFRESH_MARKER,
     HTML_MANIFEST,
     make_manifest,
 )
-from analysis_lister.downloaders.reporting import run_download
+from grove.downloaders.reporting import run_download
 
 
 class DownloadReportingTests(unittest.TestCase):
@@ -68,7 +68,7 @@ class DownloadReportingTests(unittest.TestCase):
             patch("stare.auth.TokenManager"),
             patch("stare.settings.StareSettings") as settings,
             patch(
-                "analysis_lister.downloaders.reporting.perf_counter",
+                "grove.downloaders.reporting.perf_counter",
                 side_effect=[10, 12.5],
             ),
             redirect_stdout(stdout),
@@ -98,8 +98,8 @@ class DownloadReportingTests(unittest.TestCase):
     def test_html_replay_reports_the_same_summary_fields_without_authentication(self):
         stdout = io.StringIO()
         with (
-            patch("analysis_lister.downloaders.auth.resolve_cookies") as auth,
-            patch("analysis_lister.downloaders.http.DataFetcher.fetch_html") as network,
+            patch("grove.downloaders.auth.resolve_cookies") as auth,
+            patch("grove.downloaders.http.DataFetcher.fetch_html") as network,
             redirect_stdout(stdout),
             redirect_stderr(io.StringIO()),
         ):
@@ -135,8 +135,8 @@ class DownloadReportingTests(unittest.TestCase):
                     patch("stare.Glance") as glance,
                     patch("stare.auth.TokenManager") as auth,
                     patch("stare.settings.StareSettings") as settings,
-                    patch("analysis_lister.downloaders.api.atomic_write_text") as write,
-                    self.assertLogs("analysis_lister", level="ERROR") as logs,
+                    patch("grove.downloaders.api.atomic_write_text") as write,
+                    self.assertLogs("grove", level="ERROR") as logs,
                     redirect_stdout(stdout),
                     redirect_stderr(io.StringIO()),
                     self.assertRaises(SystemExit) as error,
@@ -181,7 +181,7 @@ class DownloadReportingTests(unittest.TestCase):
             with (
                 self.subTest(rollback_fails=rollback_fails),
                 patch.object(Path, "replace", fail),
-                self.assertLogs("analysis_lister", level="ERROR") as logs,
+                self.assertLogs("grove", level="ERROR") as logs,
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(io.StringIO()),
                 self.assertRaises(SystemExit),
@@ -215,9 +215,7 @@ class DownloadReportingTests(unittest.TestCase):
 
             with (
                 self.subTest(writes_first=writes_first),
-                self.assertLogs(
-                    "analysis_lister.downloaders.reporting", level="ERROR"
-                ) as logs,
+                self.assertLogs("grove.downloaders.reporting", level="ERROR") as logs,
                 self.assertRaises(OSError),
             ):
                 run_download(
@@ -242,12 +240,10 @@ class DownloadReportingTests(unittest.TestCase):
         destination = self.root / "api.json"
         with (
             patch(
-                "analysis_lister.downloaders.reporting._file_state",
+                "grove.downloaders.reporting._file_state",
                 return_value=("unknown", None),
             ),
-            self.assertLogs(
-                "analysis_lister.downloaders.reporting", level="ERROR"
-            ) as logs,
+            self.assertLogs("grove.downloaders.reporting", level="ERROR") as logs,
             self.assertRaises(ValueError),
         ):
             run_download(
@@ -264,7 +260,7 @@ class DownloadReportingTests(unittest.TestCase):
         (self.csv_dir / CSV_REFRESH_MARKER).touch()
         (self.saved / "analyses.html").unlink()
         with (
-            self.assertLogs("analysis_lister", level="ERROR") as logs,
+            self.assertLogs("grove", level="ERROR") as logs,
             redirect_stdout(io.StringIO()),
             redirect_stderr(io.StringIO()),
             self.assertRaises(SystemExit),
@@ -296,7 +292,7 @@ class DownloadReportingTests(unittest.TestCase):
             with (
                 self.subTest(fail_after_operation=fail_after_operation),
                 patch.object(Path, "open", unreadable),
-                self.assertLogs("analysis_lister", level="ERROR") as logs,
+                self.assertLogs("grove", level="ERROR") as logs,
                 self.assertRaises(ValueError) as raised,
             ):
                 run_download(
@@ -334,7 +330,7 @@ class DownloadReportingTests(unittest.TestCase):
 
         with (
             patch.object(Path, "exists", unreadable),
-            self.assertLogs("analysis_lister", level="ERROR") as logs,
+            self.assertLogs("grove", level="ERROR") as logs,
             self.assertRaises(ValueError) as raised,
         ):
             run_download(
@@ -373,7 +369,7 @@ class DownloadReportingTests(unittest.TestCase):
 
         with (
             patch.object(Path, "glob", interrupted_scan),
-            self.assertLogs("analysis_lister", level="ERROR") as logs,
+            self.assertLogs("grove", level="ERROR") as logs,
             self.assertRaises(ValueError) as raised,
         ):
             run_download(

@@ -10,9 +10,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli
-from analysis_lister.downloaders import auth, csv_batch, html
-from analysis_lister.downloaders.manifest import (
+from grove import cli
+from grove.downloaders import auth, csv_batch, html
+from grove.downloaders.manifest import (
     HTML_MANIFEST,
     make_manifest,
     read_manifest,
@@ -142,7 +142,7 @@ class RetrievalTests(unittest.TestCase):
                 )
 
     def test_replay_warns_on_legacy_manifest_and_writes_current_metadata(self):
-        from analysis_lister.provenance import generator_metadata
+        from grove.provenance import generator_metadata
 
         saved = self.root / "saved"
         saved.mkdir()
@@ -155,7 +155,7 @@ class RetrievalTests(unittest.TestCase):
         source.write_text(json.dumps(manifest))
         before = source.read_bytes()
         with (
-            self.assertLogs("analysis_lister.provenance", level="WARNING"),
+            self.assertLogs("grove.provenance", level="WARNING"),
             patch.object(
                 html.http.DataFetcher,
                 "fetch_html",

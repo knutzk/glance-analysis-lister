@@ -20,8 +20,8 @@ Starting fresh? Use Python 3.13 and Git in a macOS or Linux shell:
 
 ```bash
 # Get the project
-git clone https://github.com/knutzk/glance-analysis-lister.git
-cd glance-analysis-lister
+git clone https://github.com/knutzk/glance-grove.git
+cd glance-grove
 
 # Create an environment and install the package with Zensical
 python3.13 -m venv .venv
@@ -34,7 +34,7 @@ cp examples/demo/zensical.toml examples/demo/work/zensical.toml
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
 # Generate pages from the synthetic records
-analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+grove render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
@@ -141,7 +141,7 @@ keywords = []
 Regenerate using that copy:
 
 ```bash
-analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+grove render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
@@ -158,7 +158,7 @@ Restore the original example policy and regenerate:
 ```bash
 cp examples/demo/publication-curation.toml examples/demo/work/demo-policy.toml
 
-analysis-lister render-group --group DEMO --group-title "Synthetic demo" \
+grove render-group --group DEMO --group-title "Synthetic demo" \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/work/demo-policy.toml \
   --output-dir examples/demo/work/pages
@@ -175,7 +175,7 @@ To demonstrate missing configuration separately, omit `--curation-config` and
 write to another directory:
 
 ```bash
-analysis-lister render-group --group DEMO \
+grove render-group --group DEMO \
   --snapshot examples/synthetic_registry.json --output-dir examples/demo/work/pages-fallback
 ```
 

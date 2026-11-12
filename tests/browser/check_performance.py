@@ -27,8 +27,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 
-from analysis_lister.provenance import generator_fingerprint, generator_revision
-from analysis_lister.storage import atomic_write_text
+from grove.provenance import generator_fingerprint, generator_revision
+from grove.storage import atomic_write_text
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -72,7 +72,7 @@ def render_and_build(work, records, repeats):
             [
                 sys.executable,
                 "-m",
-                "analysis_lister",
+                "grove",
                 "render-group",
                 "--group",
                 "DEMO",
@@ -299,7 +299,7 @@ def main():
             "dependencies": {
                 name: version(name)
                 for name in (
-                    "glance-analysis-lister",
+                    "glance-grove",
                     "zensical",
                     "selenium",
                     "attrs",

@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "glance-analysis-lister"
+name = "glance-grove"
 version = "0.3.0"
 description = "Maintain ATLAS GLANCE analysis registries and render analysis pages"
 readme = "README.md"
@@ -14,30 +14,30 @@ requires-python = ">=3.13"
 dependencies = ["attrs>=26.1", "jsonschema>=4.23,<5", "rfc3339-validator>=0.1.4", "requests>=2.34", "stare==0.7.0"]
 
 [project.urls]
-Repository = "https://github.com/knutzk/glance-analysis-lister.git"
-Documentation = "https://knutzk.github.io/glance-analysis-lister/docs/"
-Issues = "https://github.com/knutzk/glance-analysis-lister/issues"
-Changelog = "https://github.com/knutzk/glance-analysis-lister/releases"
+Repository = "https://github.com/knutzk/glance-grove.git"
+Documentation = "https://knutzk.github.io/glance-grove/docs/"
+Issues = "https://github.com/knutzk/glance-grove/issues"
+Changelog = "https://github.com/knutzk/glance-grove/releases"
 
 [project.optional-dependencies]
 html = ["beautifulsoup4>=4.15", "selenium>=4.46"]
 dev = ["beautifulsoup4>=4.15", "selenium>=4.46", "ruff==0.16.0", "build>=1.2", "coverage==7.17.2", "twine>=6,<7"]
 
 [project.scripts]
-analysis-lister = "analysis_lister.cli:main"
+grove = "grove.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["analysis_lister*"]
+include = ["grove*"]
 
 [tool.setuptools.package-data]
-analysis_lister = ["_source_revision.txt", "registry/schemas/*.json", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
+grove = ["_source_revision.txt", "registry/schemas/*.json", "views/assets/*.js", "views/assets/*.css", "downloaders/certs/*.pem", "downloaders/certs/README.md"]
 
 [tool.setuptools.data-files]
-"share/glance-analysis-lister" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml", "ruff.toml"]
+"share/glance-grove" = ["json/doi_metadata.json", "json/pubnote_identifiers.json", "publication-curation.toml", "ruff.toml"]
 
 [tool.coverage.run]
 branch = true
-source = ["analysis_lister"]
+source = ["grove"]
 relative_files = true
 parallel = true
 patch = ["subprocess"]

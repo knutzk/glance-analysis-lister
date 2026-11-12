@@ -10,7 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister.provenance import (
+from grove.provenance import (
     REVISION_FILE,
     asset_provenance,
     generator_revision,
@@ -58,11 +58,11 @@ class GeneratorProvenanceTests(unittest.TestCase):
             consumer = Path(directory)
             (consumer / ".git").mkdir()
             package_root = consumer / "installed"
-            recorded = package_root / "analysis_lister" / REVISION_FILE
+            recorded = package_root / "grove" / REVISION_FILE
             recorded.parent.mkdir(parents=True)
             recorded.write_text(COMMIT + "-dirty\n")
             with patch(
-                "analysis_lister.provenance.subprocess.check_output",
+                "grove.provenance.subprocess.check_output",
                 side_effect=AssertionError("consumer git must not be inspected"),
             ):
                 self.assertEqual(generator_revision(package_root), COMMIT + "-dirty")
@@ -103,6 +103,6 @@ class GeneratorProvenanceTests(unittest.TestCase):
             source.write_text("changed\n")
             self.assertEqual(generator_revision(root), commit + "-dirty")
             source.write_text("original\n")
-            (root / "analysis_lister").mkdir()
-            (root / "analysis_lister/new.py").write_text("new source\n")
+            (root / "grove").mkdir()
+            (root / "grove/new.py").write_text("new source\n")
             self.assertEqual(generator_revision(root), commit + "-dirty")

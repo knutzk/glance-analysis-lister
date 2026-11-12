@@ -72,8 +72,8 @@ def bash_blocks(text):
 def executable(command):
     if command[0] == "python":
         return [sys.executable, *command[1:]]
-    if command[0] == "analysis-lister":
-        return [str(Path(sys.executable).with_name("analysis-lister")), *command[1:]]
+    if command[0] == "grove":
+        return [str(Path(sys.executable).with_name("grove")), *command[1:]]
     assert command[0] in {"mkdir", "cp"}, command
     return command
 
@@ -109,7 +109,7 @@ def preview(work, *, documentation=False, group_pages=()):
         port = reservation.getsockname()[1]
     base = f"http://127.0.0.1:{port}/"
     if documentation:
-        base += "glance-analysis-lister/"
+        base += "glance-grove/"
     command = (
         [sys.executable, "scripts/docs.py", "serve"]
         if documentation
@@ -161,7 +161,7 @@ def check_local_group_preview(work, driver):
         work,
         [
             [
-                "analysis-lister",
+                "grove",
                 "render-group",
                 "--group",
                 "DEMO",
@@ -262,7 +262,7 @@ def check_demonstrator_group(work, driver):
     section = (work / "docs/cern-demo.md").read_text()
     commands = bash_blocks(section)
     render = commands[1][1].copy()
-    assert render[:2] == ["analysis-lister", "render-group"]
+    assert render[:2] == ["grove", "render-group"]
     assert render[render.index("--group") + 1] == "TOPQ"
     # Exercise the real documented destination, but never download/read CERN data.
     render[render.index("--group") + 1] = "DEMO"
@@ -331,6 +331,17 @@ def check_demo(work, driver):
         destination = work / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, destination)
+    # Keep the repository link in the header, but avoid live GitHub statistics
+    # in synthetic browser checks (including before a repository rename).
+    config = work / "zensical.toml"
+    config.write_text(
+        re.sub(
+            r"^repo_url = .*$",
+            'repo_url = "https://example.invalid/synthetic/repository"',
+            config.read_text(),
+            flags=re.MULTILINE,
+        )
+    )
     fixture = (work / "examples/synthetic_registry.json").read_bytes()
     original_policy = (work / POLICY).read_text()
     assert not (work / "examples/demo/work").exists()
@@ -453,9 +464,7 @@ def check_demo(work, driver):
         assert not (work / "site/docs" / removed).exists()
     served = work / "served"
     served.mkdir()
-    (served / "glance-analysis-lister").symlink_to(
-        work / "site", target_is_directory=True
-    )
+    (served / "glance-grove").symlink_to(work / "site", target_is_directory=True)
     with ThreadingHTTPServer(
         ("127.0.0.1", 0),
         functools.partial(SiteHandler, directory=str(served)),
@@ -463,7 +472,7 @@ def check_demo(work, driver):
         thread = Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            base = f"http://127.0.0.1:{server.server_port}/glance-analysis-lister/"
+            base = f"http://127.0.0.1:{server.server_port}/glance-grove/"
             # Keep the full suite on the real documentation theme and project CSS,
             # in addition to the minimal host exercised by check_zensical.py.
             browse(

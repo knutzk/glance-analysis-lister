@@ -10,9 +10,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.downloaders.csv_io import read_csv_rows
-from analysis_lister.downloaders.html import HTMLParser
-from analysis_lister.downloaders.tables import (
+from grove.downloaders.csv_io import read_csv_rows
+from grove.downloaders.html import HTMLParser
+from grove.downloaders.tables import (
     parse_html_table,
     table_to_rows,
     validate_table_completeness,
@@ -118,9 +118,7 @@ class CsvValidationTests(unittest.TestCase):
             "<tr><td>ANA-DEMO-2099-01</td><td> first </td><td>second</td>"
             "<td>third</td><td>fourth</td></tr></table>"
         )
-        with self.assertLogs(
-            "analysis_lister.downloaders.tables", level="WARNING"
-        ) as logs:
+        with self.assertLogs("grove.downloaders.tables", level="WARNING") as logs:
             HTMLParser.parse_to_csv(html, self.path)
         rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
         self.assertEqual(
@@ -148,9 +146,7 @@ class CsvValidationTests(unittest.TestCase):
             "<tr><td>action</td><td>ANA-DEMO-2099-01</td><td>first</td>"
             "<td>second</td><td>third</td><td>fourth</td></tr></table>"
         )
-        with self.assertLogs(
-            "analysis_lister.downloaders.tables", level="WARNING"
-        ) as logs:
+        with self.assertLogs("grove.downloaders.tables", level="WARNING") as logs:
             HTMLParser.parse_to_csv(html, self.path)
         rows = read_csv_rows(self.path, key="Reference Code", prefix="ANA-")
         self.assertEqual(

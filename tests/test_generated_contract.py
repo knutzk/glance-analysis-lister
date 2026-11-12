@@ -11,8 +11,8 @@ from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
 
-from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.build import render_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ROOT = Path(__file__).resolve().parents[1]
 FRAGMENTS = {
@@ -55,9 +55,7 @@ class GeneratedContractTests(unittest.TestCase):
                     )
                     self.assertEqual(report["profile"]["group"], "DEMO")
                     self.assertRegex(report["profile_sha256"], r"\A[0-9a-f]{64}\Z")
-                    self.assertEqual(
-                        report["generator"]["name"], "glance-analysis-lister"
-                    )
+                    self.assertEqual(report["generator"]["name"], "glance-grove")
                     self.assertIsInstance(report["generator"]["git_commit"], str)
                     self.assertTrue(report["generator"]["git_commit"])
                     self.assertRegex(

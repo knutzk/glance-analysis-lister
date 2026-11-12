@@ -22,9 +22,9 @@ from stare.exceptions import (
 )
 from test_api import client_for
 
-from analysis_lister import cli
-from analysis_lister.downloaders.html import download_tasks
-from analysis_lister.downloaders.manifest import HTML_MANIFEST, make_manifest
+from grove import cli
+from grove.downloaders.html import download_tasks
+from grove.downloaders.manifest import HTML_MANIFEST, make_manifest
 
 SECRET = "invented-sensitive-marker"
 URL = f"https://{SECRET}:{SECRET}@example.test/api?token={SECRET}#{SECRET}"
@@ -183,15 +183,15 @@ class DownloadErrorTests(unittest.TestCase):
                 ):
                     with (
                         patch(
-                            "analysis_lister.downloaders.auth.resolve_cookies",
+                            "grove.downloaders.auth.resolve_cookies",
                             return_value={"session": SECRET},
                         ),
                         patch.dict(
-                            "analysis_lister.downloaders.http.URLS",
+                            "grove.downloaders.http.URLS",
                             {task.name: URL for task in tasks},
                         ),
                         patch(
-                            "analysis_lister.downloaders.http.requests.get",
+                            "grove.downloaders.http.requests.get",
                             side_effect=error,
                         ) as get,
                     ):

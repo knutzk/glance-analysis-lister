@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister.storage import atomic_write_text
+from grove.storage import atomic_write_text
 
 
 class RegistryWriteTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class RegistryWriteTests(unittest.TestCase):
         self.assertEqual(list(destination.parent.iterdir()), [destination])
 
     def test_failed_flush_or_replace_preserves_previous_snapshot(self):
-        for target in ("analysis_lister.storage.os.fsync", "pathlib.Path.replace"):
+        for target in ("grove.storage.os.fsync", "pathlib.Path.replace"):
             with (
                 self.subTest(target=target),
                 patch(target, side_effect=OSError("disk failure")),

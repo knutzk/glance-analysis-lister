@@ -12,9 +12,9 @@ from unittest.mock import patch
 
 from view_fixtures import analysis, snapshot
 
-from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
-from analysis_lister.views.writer import write_documents
+from grove.views.build import render_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.writer import write_documents
 
 
 def states(directory):
@@ -47,17 +47,17 @@ class ViewWriterTests(unittest.TestCase):
             before = states(output)
             with (
                 patch(
-                    "analysis_lister.views.writer.atomic_write_text",
+                    "grove.views.writer.atomic_write_text",
                     side_effect=AssertionError("unchanged output must not be written"),
                 ),
-                self.assertLogs("analysis_lister.views.build", level="INFO") as logs,
+                self.assertLogs("grove.views.build", level="INFO") as logs,
             ):
                 render_group(source, output, profile)
             self.assertIn("0 written, 13 unchanged", "\n".join(logs.output))
             self.assertEqual(states(output), before)
             (output / "papers.md").write_text("locally changed")
             (output / "assets/gal-common.css").unlink()
-            with self.assertLogs("analysis_lister.views.build", level="INFO") as logs:
+            with self.assertLogs("grove.views.build", level="INFO") as logs:
                 render_group(source, output, profile)
             self.assertIn("2 written, 11 unchanged", "\n".join(logs.output))
             after = states(output)

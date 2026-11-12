@@ -37,7 +37,7 @@ plus matching nonnegative integer `counts`. All four arrays are required; empty
 arrays with zero counts are valid storage. Download completeness and count-drop
 protection are separate checks.
 
-The bundled [JSON Schema](../analysis_lister/registry/schemas/curated.schema.json)
+The bundled [JSON Schema](../grove/registry/schemas/curated.schema.json)
 defines the retained fields and their types. Use `CuratedRegistry.from_json(path)`
 to validate and read a file, or `validate_registry(data)` to validate a decoded
 object. Both check nested types, dates, counts and identifier uniqueness. Reading
@@ -107,7 +107,7 @@ Generated files include a top-level `generator` object:
 
 | Field | Purpose |
 | --- | --- |
-| `name` | `glance-analysis-lister`. |
+| `name` | `glance-grove`. |
 | `git_commit` | Source revision for tracing the generating code, or `unknown` if unavailable. |
 | `content_sha256` | Fingerprint of package Python files, validation schemas and browser assets. |
 
@@ -137,7 +137,7 @@ The schema ships in the wheel and source archive. To inspect it programmatically
 from importlib.resources import files
 
 schema_text = (
-    files("analysis_lister.registry")
+    files("grove.registry")
     .joinpath("schemas/curated.schema.json")
     .read_text(encoding="utf-8")
 )
@@ -207,7 +207,7 @@ precede browser filtering; analysis and diagnostic categories can overlap.
 | `schema` | `"glance-group-view-report"`. |
 | `snapshot.filename`, `snapshot.sha256` | Input basename and SHA-256 of its exact bytes. |
 | `profile.group`, `profile_sha256` | Selected main group and hash of the effective profile. |
-| `generator.name` | `"glance-analysis-lister"`. |
+| `generator.name` | `"glance-grove"`. |
 | `generator.git_commit`, `generator.content_sha256` | Source revision and content hash. |
 | `counts.ongoing_analyses`, `counts.analyses_needing_review` | Displayed analyses and analyses needing classification review. |
 | `counts.publication_records` | Selected publications, including those not ready for the archive. |

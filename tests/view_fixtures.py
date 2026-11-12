@@ -3,9 +3,9 @@
 
 """Independently invented records shared by unit and browser checks."""
 
-from analysis_lister.provenance import generator_metadata
-from analysis_lister.registry.enrichment import curate
-from analysis_lister.registry.schema import RESOURCES
+from grove.provenance import generator_metadata
+from grove.registry.enrichment import curate
+from grove.registry.schema import RESOURCES
 
 
 def person(first, last="Example", **roles):

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister.citations.ordering import order_doi_urls
+from grove.citations.ordering import order_doi_urls
 
 ORIGINAL = "10.1140/epjc/s10052-024-11111-1"
 CORRECTION = "10.1140/epjc/s10052-024-99999-9"

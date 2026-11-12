@@ -75,7 +75,7 @@ def parser():
         "--doi-cache",
         type=Path,
         default=default_store_path(),
-        help="Citation JSON dictionary to read (default: bundled glance-analysis-lister dictionary).",
+        help="Citation JSON dictionary to read (default: bundled glance-grove dictionary).",
     )
     citation_updates = argparse.ArgumentParser(add_help=False)
     citation_updates.add_argument(
@@ -95,7 +95,7 @@ def parser():
     command.add_argument(
         "--version",
         action="version",
-        version=f"analysis-lister {version('glance-analysis-lister')}",
+        version=f"grove {version('glance-grove')}",
         help="Show the installed package version and exit.",
     )
     command.set_defaults(validator=None)
@@ -345,7 +345,7 @@ def _run_download_html(args):
                 import selenium  # noqa: F401
         except ImportError:
             raise ValueError(
-                "HTML downloading requires optional dependencies: pip install 'glance-analysis-lister[html]'"
+                "HTML downloading requires optional dependencies: pip install 'glance-grove[html]'"
             ) from None
         logger.info(
             "HTML configuration: all accessible records and columns; sequential retrieval; source=%s",
@@ -391,7 +391,7 @@ def _run_download_html(args):
 
 
 def _run_build_registry(args):
-    from analysis_lister.registry.builder import build_registry
+    from grove.registry.builder import build_registry
 
     result = build_registry(
         args.api_snapshot,
@@ -435,9 +435,9 @@ def _run_compare_snapshots(args):
 
 
 def _run_render_group(args):
-    from analysis_lister.views.build import render_group
-    from analysis_lister.views.curation import load_publication_policy
-    from analysis_lister.views.profiles import GroupProfile
+    from grove.views.build import render_group
+    from grove.views.curation import load_publication_policy
+    from grove.views.profiles import GroupProfile
 
     counts = render_group(
         args.snapshot,
@@ -462,7 +462,7 @@ def _run_render_group(args):
 
 
 def _run_resolve_dois(args):
-    from analysis_lister.citations.resolver import resolve_dois, snapshot_dois
+    from grove.citations.resolver import resolve_dois, snapshot_dois
 
     dois = snapshot_dois(args.snapshot) if args.snapshot is not None else args.doi
     summary = resolve_dois(
@@ -481,7 +481,7 @@ def _run_resolve_dois(args):
 
 
 def _run_format_citations(args):
-    from analysis_lister.citations.formatting import format_citations
+    from grove.citations.formatting import format_citations
 
     changed = format_citations(args.doi_cache)
     print_summary(f"Updated formatting in {changed} citation(s).", color=args.color)

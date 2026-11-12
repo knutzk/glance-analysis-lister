@@ -2,14 +2,14 @@
 
 [Documentation index](README.md)
 
-Run `analysis-lister COMMAND`, or `python -m analysis_lister COMMAND`.
+Run `grove COMMAND`, or `python -m grove COMMAND`.
 This reference describes the current CLI, including unreleased changes. The
 [compatibility policy](upgrading.md) defines its supported scope and change
-rules. Use `analysis-lister COMMAND --help` to check your installed version.
+rules. Use `grove COMMAND --help` to check your installed version.
 For worked sequences, see [data workflows](data.md) and
 [recovery guidance](problems.md#resume-an-interrupted-workflow).
 
-`analysis-lister --version` prints `analysis-lister VERSION` to stdout and exits
+`grove --version` prints `grove VERSION` to stdout and exits
 successfully without running a workflow. This top-level option reports installed
 package metadata; `-v` remains the verbose-logging option.
 

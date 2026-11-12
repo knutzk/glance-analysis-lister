@@ -8,13 +8,13 @@ import unittest
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.analysis_states import analysis_state
-from analysis_lister.views.markdown.pages import ongoing_page
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.publication_states import publication_state
-from analysis_lister.views.report import build_report
+from grove.registry import CuratedRegistry
+from grove.views.analysis_states import analysis_state
+from grove.views.markdown.pages import ongoing_page
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
+from grove.views.publication_states import publication_state
+from grove.views.report import build_report
 
 
 class AwaitingPublicationReviewTests(unittest.TestCase):

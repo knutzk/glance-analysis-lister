@@ -10,9 +10,9 @@ from tempfile import TemporaryDirectory
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.views.build import render_group
-from analysis_lister.views.diagnostics import diagnostic_entry, group_diagnostics
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.build import render_group
+from grove.views.diagnostics import diagnostic_entry, group_diagnostics
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 
 class DiagnosticReportTests(unittest.TestCase):
@@ -27,9 +27,7 @@ class DiagnosticReportTests(unittest.TestCase):
             root = Path(directory)
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(uncertain, linked, unrelated)))
-            with self.assertLogs(
-                "analysis_lister.views.build", level="WARNING"
-            ) as logs:
+            with self.assertLogs("grove.views.build", level="WARNING") as logs:
                 counts = render_group(source, root / "pages", GroupProfile("DEMO"))
             report = json.loads((root / "pages/view-report.json").read_text())
         self.assertEqual(counts["analyses_needing_review"], 1)
@@ -75,7 +73,7 @@ class DiagnosticReportTests(unittest.TestCase):
             root = Path(directory)
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(analysis(1))))
-            with self.assertNoLogs("analysis_lister.views.build", level="WARNING"):
+            with self.assertNoLogs("grove.views.build", level="WARNING"):
                 render_group(
                     source,
                     root / "pages",
@@ -117,7 +115,7 @@ class DiagnosticReportTests(unittest.TestCase):
             root = Path(directory)
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(record, papers=(paper,))))
-            with self.assertLogs("analysis_lister.views.build", level="INFO") as logs:
+            with self.assertLogs("grove.views.build", level="INFO") as logs:
                 counts = render_group(
                     source,
                     root / "pages",
@@ -165,7 +163,7 @@ class DiagnosticReportTests(unittest.TestCase):
             root = Path(directory)
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(analysis(1), papers=(paper,))))
-            with self.assertLogs("analysis_lister.views.build", level="WARNING"):
+            with self.assertLogs("grove.views.build", level="WARNING"):
                 counts = render_group(source, root / "pages", GroupProfile("DEMO"))
             report = json.loads((root / "pages/view-report.json").read_text())
         self.assertEqual(counts["archive_publications"], 1)
@@ -187,7 +185,7 @@ class DiagnosticReportTests(unittest.TestCase):
             root = Path(directory)
             source = root / "input.json"
             source.write_text(json.dumps(snapshot(analysis(1), pubnotes=(note,))))
-            with self.assertLogs("analysis_lister.views.build", level="WARNING"):
+            with self.assertLogs("grove.views.build", level="WARNING"):
                 counts = render_group(source, root / "pages", GroupProfile("DEMO"))
             report = json.loads((root / "pages/view-report.json").read_text())
         self.assertEqual(counts["records_with_diagnostics"], 1)

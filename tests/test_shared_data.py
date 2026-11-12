@@ -8,8 +8,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister.cli import parser
-from analysis_lister.views.curation import (
+from grove.cli import parser
+from grove.views.curation import (
     default_curation_path,
     load_publication_policy,
 )
@@ -28,14 +28,12 @@ class SharedDataTests(unittest.TestCase):
     def test_installed_policy_location(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            installed = root / "share/glance-analysis-lister/publication-curation.toml"
+            installed = root / "share/glance-grove/publication-curation.toml"
             installed.parent.mkdir(parents=True)
             installed.write_text('[groups.DEMO]\ngroups = ["DEMO"]\n')
             with (
-                patch(
-                    "analysis_lister.views.curation.__file__", str(root / "a/b/c.py")
-                ),
-                patch("analysis_lister.views.curation.distribution") as distribution,
+                patch("grove.views.curation.__file__", str(root / "a/b/c.py")),
+                patch("grove.views.curation.distribution") as distribution,
             ):
                 distribution.return_value.files = [installed.relative_to(root)]
                 distribution.return_value.locate_file.side_effect = lambda path: (

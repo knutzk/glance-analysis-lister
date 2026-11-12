@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis_lister import cli
+from grove import cli
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 
@@ -19,15 +19,13 @@ SCRIPTS = Path(__file__).resolve().parents[1]
 class WorkflowCliTests(unittest.TestCase):
     def test_version_exits_successfully_without_running_a_workflow(self):
         result = subprocess.run(
-            [sys.executable, "-m", "analysis_lister", "--version"],
+            [sys.executable, "-m", "grove", "--version"],
             cwd=SCRIPTS,
             capture_output=True,
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(
-            result.stdout, f"analysis-lister {version('glance-analysis-lister')}\n"
-        )
+        self.assertEqual(result.stdout, f"grove {version('glance-grove')}\n")
         self.assertEqual(result.stderr, "")
 
     def test_imports_do_not_configure_logging_or_load_browser_dependencies(self):
@@ -36,9 +34,9 @@ import logging
 import sys
 from unittest.mock import patch
 with patch.object(logging, "basicConfig", side_effect=AssertionError("logging on import")):
-    import analysis_lister.cli
-    import analysis_lister.downloaders.api
-    import analysis_lister.views.build
+    import grove.cli
+    import grove.downloaders.api
+    import grove.views.build
 assert "selenium" not in sys.modules
 assert "bs4" not in sys.modules
 """
@@ -57,8 +55,8 @@ def read_text(path, *args, **kwargs):
         raise AssertionError("JSON read during import")
     return original(path, *args, **kwargs)
 with patch.object(Path, "read_text", read_text):
-    import analysis_lister.cli
-    import analysis_lister.citations.ordering
+    import grove.cli
+    import grove.citations.ordering
 """
         result = subprocess.run(
             [sys.executable, "-c", code], cwd=SCRIPTS, capture_output=True, text=True
@@ -85,9 +83,9 @@ with patch.object(Path, "read_text", read_text):
     def test_api_default_and_downloads_do_not_load_citations(self):
         with (
             patch(
-                "analysis_lister.downloaders.api.download_registry", return_value={}
+                "grove.downloaders.api.download_registry", return_value={}
             ) as operation,
-            patch("analysis_lister.citations.store.load_store") as citations,
+            patch("grove.citations.store.load_store") as citations,
         ):
             cli.main(["download-api"])
         operation.assert_called_once_with(
@@ -99,7 +97,7 @@ with patch.object(Path, "read_text", read_text):
 
     def test_api_page_size_is_forwarded_and_invalid_values_fail_before_auth(self):
         with patch(
-            "analysis_lister.downloaders.api.download_registry", return_value={}
+            "grove.downloaders.api.download_registry", return_value={}
         ) as operation:
             cli.main(["download-api", "--page-size", "250"])
         self.assertEqual(operation.call_args.kwargs["page_size"], 250)
@@ -130,9 +128,7 @@ with patch.object(Path, "read_text", read_text):
     def test_registry_command_forwards_count_override(self):
         with (
             patch.object(cli, "configure_logging"),
-            patch(
-                "analysis_lister.registry.builder.build_registry", return_value={}
-            ) as workflow,
+            patch("grove.registry.builder.build_registry", return_value={}) as workflow,
         ):
             cli.main(["build-registry", "--allow-count-drop"])
         workflow.assert_called_once_with(

@@ -10,16 +10,16 @@ from unittest.mock import patch
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.public_identifiers import (
+from grove.registry import CuratedRegistry
+from grove.registry.public_identifiers import (
     cds_record_id,
     default_identifiers_path,
     enrich_public_identifiers,
     load_identifiers,
 )
-from analysis_lister.views.markdown.pages import pubnotes_page
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.views.markdown.pages import pubnotes_page
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 MAPPING = {
     "9999999": {

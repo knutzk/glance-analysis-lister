@@ -11,18 +11,18 @@ from unittest.mock import patch
 
 from view_fixtures import api_fixture
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.enrichment import curate
-from analysis_lister.registry.fields import RECORD_FIELDS, count_fields, select_fields
-from analysis_lister.views.markdown.pages import (
+from grove.registry import CuratedRegistry
+from grove.registry.enrichment import curate
+from grove.registry.fields import RECORD_FIELDS, count_fields, select_fields
+from grove.views.markdown.pages import (
     confnotes_page,
     ongoing_page,
     papers_page,
     pubnotes_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.publication_states import PAPER_MILESTONES
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
+from grove.views.publication_states import PAPER_MILESTONES
 
 
 class RegistryFieldTests(unittest.TestCase):
@@ -190,7 +190,7 @@ class RegistryFieldTests(unittest.TestCase):
             "https://example.test/ATLAS-CONF-2099-001"
         )
         with patch(
-            "analysis_lister.registry.enrichment.select_fields",
+            "grove.registry.enrichment.select_fields",
             side_effect=lambda value, fields: value,
         ):
             full = curate(api)

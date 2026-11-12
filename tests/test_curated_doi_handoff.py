@@ -13,10 +13,10 @@ from unittest.mock import patch
 
 from view_fixtures import api_fixture
 
-from analysis_lister import cli
-from analysis_lister.citations.resolver import snapshot_dois
-from analysis_lister.citations.store import load_store, save_store
-from analysis_lister.registry.builder import build_registry
+from grove import cli
+from grove.citations.resolver import snapshot_dois
+from grove.citations.store import load_store, save_store
+from grove.registry.builder import build_registry
 
 ORIGINAL = "10.1007/jhep01(2099)001"
 CORRECTION = "10.1007/jhep02(2099)002"
@@ -81,7 +81,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
         api_before = self.api.read_bytes()
         with (
             patch(
-                "analysis_lister.citations.resolver.InspireClient",
+                "grove.citations.resolver.InspireClient",
                 side_effect=AssertionError("Offline inference must not query INSPIRE"),
             ),
             redirect_stdout(io.StringIO()),
@@ -138,9 +138,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
         ]
         self.curated.write_text(json.dumps(data))
         before = self.curated.read_bytes()
-        with self.assertLogs(
-            "analysis_lister.citations.resolver", level="WARNING"
-        ) as logs:
+        with self.assertLogs("grove.citations.resolver", level="WARNING") as logs:
             self.assertEqual(snapshot_dois(self.curated), {ORIGINAL, CORRECTION})
         self.assertEqual(len(logs.output), 1)
         self.assertIn("Skipped 6 malformed DOI values", logs.output[0])
@@ -173,7 +171,7 @@ class CuratedDoiHandoffTests(unittest.TestCase):
             with self.subTest(fields=fields):
                 data["papers"] = [{"referenceCode": "DEMO-2099-01", **fields}]
                 self.curated.write_text(json.dumps(data))
-                with self.assertNoLogs("analysis_lister", level="WARNING"):
+                with self.assertNoLogs("grove", level="WARNING"):
                     self.assertEqual(snapshot_dois(self.curated), set())
 
     def test_invalid_curated_containers_are_rejected(self):

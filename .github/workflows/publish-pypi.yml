@@ -28,7 +28,7 @@ concurrency:
 jobs:
   prepare:
     if: >-
-      github.repository == 'knutzk/glance-analysis-lister' &&
+      github.repository == 'knutzk/glance-grove' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
        (github.event_name == 'release' && github.event.action == 'published' &&
         !github.event.release.draft && !github.event.release.prerelease &&
@@ -87,7 +87,7 @@ jobs:
     # Keep PYPI_PUBLISHING_ENABLED=false until activation is explicitly authorised.
     environment:
       name: pypi
-      url: https://pypi.org/project/glance-analysis-lister/
+      url: https://pypi.org/project/glance-grove/
     permissions:
       id-token: write
     steps:

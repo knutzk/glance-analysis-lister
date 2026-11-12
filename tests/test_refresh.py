@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from test_api import client_for
 
-from analysis_lister import cli
+from grove import cli
 
 
 class RefreshTests(unittest.TestCase):
@@ -104,7 +104,7 @@ class RefreshTests(unittest.TestCase):
         for command in cases:
             with (
                 self.subTest(command=command),
-                patch("analysis_lister.cli._run_download_api") as download,
+                patch("grove.cli._run_download_api") as download,
                 redirect_stderr(io.StringIO()),
                 self.assertRaises(SystemExit) as error,
             ):
@@ -129,15 +129,11 @@ class RefreshTests(unittest.TestCase):
             with (
                 self.subTest(failure=failure),
                 patch(
-                    "analysis_lister.cli._run_download_api",
+                    "grove.cli._run_download_api",
                     side_effect=step("download"),
                 ),
-                patch(
-                    "analysis_lister.cli._run_build_registry", side_effect=step("build")
-                ),
-                patch(
-                    "analysis_lister.refresh.render_group", side_effect=step("render")
-                ),
+                patch("grove.cli._run_build_registry", side_effect=step("build")),
+                patch("grove.refresh.render_group", side_effect=step("render")),
                 redirect_stdout(io.StringIO()) as output,
                 redirect_stderr(io.StringIO()) as errors,
                 self.assertRaises(SystemExit),
@@ -156,9 +152,9 @@ class RefreshTests(unittest.TestCase):
 
     def test_options_reach_both_protected_stages(self):
         with (
-            patch("analysis_lister.cli._run_download_api") as download,
-            patch("analysis_lister.cli._run_build_registry") as build,
-            patch("analysis_lister.refresh.render_group", return_value={}),
+            patch("grove.cli._run_download_api") as download,
+            patch("grove.cli._run_build_registry") as build,
+            patch("grove.refresh.render_group", return_value={}),
             redirect_stdout(io.StringIO()),
             redirect_stderr(io.StringIO()),
         ):

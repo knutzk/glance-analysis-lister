@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
-from analysis_lister.downloaders.api import (
+from grove.downloaders.api import (
     RESOURCES,
     SORT_FIELDS,
     collect_registry,
@@ -83,7 +83,7 @@ class ApiTests(unittest.TestCase):
                 patch("stare.Glance") as glance,
                 patch("stare.auth.TokenManager"),
                 patch("stare.settings.StareSettings") as settings,
-                self.assertLogs("analysis_lister", level="DEBUG") as captured,
+                self.assertLogs("grove", level="DEBUG") as captured,
             ):
                 settings.return_value.base_url = "https://invented-user:invented-password@example.test/api?token=invented-token#invented-fragment"
                 glance.return_value.__enter__.return_value = client
@@ -120,10 +120,10 @@ class ApiTests(unittest.TestCase):
             before = destination.read_bytes()
             with (
                 patch(
-                    "analysis_lister.downloaders.api.atomic_write_text",
+                    "grove.downloaders.api.atomic_write_text",
                     side_effect=OSError("invented failure"),
                 ),
-                self.assertLogs("analysis_lister", level="INFO") as captured,
+                self.assertLogs("grove", level="INFO") as captured,
                 self.assertRaises(OSError),
             ):
                 publish_registry(candidate, destination)

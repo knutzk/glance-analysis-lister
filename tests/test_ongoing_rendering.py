@@ -10,20 +10,20 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import (
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import (
     ongoing_page,
     papers_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class ApprovalProgressTests(unittest.TestCase):
     def test_milestones_require_independent_evidence(self):
-        from analysis_lister.views.analysis_states import approval_progress
+        from grove.views.analysis_states import approval_progress
 
         record = analysis(1)
         record["phase0"] = {"gal_approvalMeetingDates": ["2099-01-04"]}
@@ -117,7 +117,7 @@ class AssociatedPaperStatusTests(unittest.TestCase):
         )
 
     def test_missing_or_active_phase_zero_does_not_invent_paper_status(self):
-        from analysis_lister.views.analysis_states import associated_paper_statuses
+        from grove.views.analysis_states import associated_paper_statuses
 
         self.assertEqual(
             associated_paper_statuses(
@@ -177,7 +177,7 @@ class SubgroupButtonTests(unittest.TestCase):
             self.assertNotIn("Leading subgroup (snapshot)", page)
 
     def test_namespace_includes_historical_names_without_configuration(self):
-        from analysis_lister.views.common import subgroup_button_choices
+        from grove.views.common import subgroup_button_choices
 
         decision = subgroup_button_choices(
             "DEMO", ["DEMO-Old", "OTHER-Current", "DEMO-Current"]
@@ -266,7 +266,7 @@ class FoldedMilestoneTests(unittest.TestCase):
         )
 
     def test_missing_dates_do_not_use_paper_status(self):
-        from analysis_lister.views.publication_states import last_paper_milestone
+        from grove.views.publication_states import last_paper_milestone
 
         self.assertIsNone(
             last_paper_milestone(
@@ -280,7 +280,7 @@ class FoldedMilestoneTests(unittest.TestCase):
 
 class PaperMilestonePhaseTests(unittest.TestCase):
     def test_milestone_labels_identify_source_phase(self):
-        from analysis_lister.views.publication_states import last_paper_milestone
+        from grove.views.publication_states import last_paper_milestone
 
         for section, field, expected in (
             ("phase1", "draftReleasedDate", "Phase 1 · ATLAS circulation 1"),
@@ -349,8 +349,8 @@ class PaperReviewOrderTests(unittest.TestCase):
         )
 
     def test_later_tick_outweighs_all_earlier_ticks(self):
-        from analysis_lister.views.analysis_states import analysis_review_order
-        from analysis_lister.views.models import Decision
+        from grove.views.analysis_states import analysis_review_order
+        from grove.views.models import Decision
 
         def rank(ticks):
             return analysis_review_order(

@@ -11,7 +11,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister.downloaders.auth import CookieManager, resolve_cookies
+from grove.downloaders.auth import CookieManager, resolve_cookies
 
 
 class HtmlAuthTests(unittest.TestCase):
@@ -60,8 +60,8 @@ class NoHtmlDependencies(importlib.abc.MetaPathFinder):
         if fullname.split('.')[0] in {'bs4', 'selenium'}:
             raise ModuleNotFoundError(fullname)
 sys.meta_path.insert(0, NoHtmlDependencies())
-from analysis_lister.downloaders import api
-from analysis_lister.cli import main
+from grove.downloaders import api
+from grove.cli import main
 for args in (['--help'], ['download-html', '--help'], ['download-api', '--help']):
     try:
         main(args)
@@ -78,4 +78,4 @@ else:
             [sys.executable, "-c", code], capture_output=True, text=True
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("glance-analysis-lister[html]", result.stderr)
+        self.assertIn("glance-grove[html]", result.stderr)
