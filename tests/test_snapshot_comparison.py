@@ -14,8 +14,8 @@ from unittest.mock import patch
 
 from view_fixtures import analysis, api_fixture, publication, snapshot
 
-from analysis_lister.cli import main
-from analysis_lister.registry.comparison import compare_files, compare_snapshots
+from grove.cli import main
+from grove.registry.comparison import compare_files, compare_snapshots
 
 
 class SnapshotComparisonTests(unittest.TestCase):
@@ -156,7 +156,7 @@ class SnapshotComparisonTests(unittest.TestCase):
             existing = report.read_bytes()
             with (
                 patch(
-                    "analysis_lister.storage.os.fsync",
+                    "grove.storage.os.fsync",
                     side_effect=OSError("disk failure"),
                 ),
                 self.assertRaises(OSError),

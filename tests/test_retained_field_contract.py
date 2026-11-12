@@ -13,17 +13,17 @@ from unittest.mock import patch
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.fields import RECORD_FIELDS
-from analysis_lister.views.markdown.pages import (
+from grove.registry import CuratedRegistry
+from grove.registry.fields import RECORD_FIELDS
+from grove.views.markdown.pages import (
     confnotes_page,
     ongoing_page,
     papers_page,
     pubnotes_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
-from analysis_lister.views.publication_states import PAPER_MILESTONES
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
+from grove.views.publication_states import PAPER_MILESTONES
 
 
 class GuardedRecord(dict):

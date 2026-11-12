@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 [project]
-site_name = "GLANCE analysis lister · demonstrator"
+site_name = "GROVE · demonstrator"
 site_description = "Explore analysis and publication pages locally"
 site_url = "http://127.0.0.1:8001/"
 # Copy this template into work/ before serving; paths are relative to that copy.

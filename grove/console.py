@@ -67,7 +67,7 @@ class ConsoleFormatter(logging.Formatter):
             stamp = self.formatTime(record, "%H:%M:%S")
             plain = f"{stamp} {plain}"
             prefix = f"{stamp} {prefix}"
-            message = f"{record.name.removeprefix('analysis_lister.')}: {message}"
+            message = f"{record.name.removeprefix('grove.')}: {message}"
         lines = _wrap(message, self.width - len(plain))
         result = prefix + ("\n" + " " * len(plain)).join(lines)
         if record.exc_info:
@@ -78,7 +78,7 @@ class ConsoleFormatter(logging.Formatter):
 @contextmanager
 def configure_logging(*, verbose=False, quiet=False, color="auto"):
     """Own a handler for this CLI invocation; preserve host/root logging."""
-    logger = logging.getLogger("analysis_lister")
+    logger = logging.getLogger("grove")
     previous_level = logger.level
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(

@@ -14,7 +14,7 @@ ASSET_NAMES = tuple(
 
 def asset_documents(revision=None):
     revision = revision if revision is not None else generator_revision()
-    root = files("analysis_lister.views").joinpath("assets")
+    root = files("grove.views").joinpath("assets")
     return {
         "assets/" + name: asset_provenance(
             root.joinpath(name).read_text(encoding="utf-8"), revision=revision

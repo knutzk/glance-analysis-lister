@@ -12,12 +12,12 @@ from unittest.mock import patch
 
 from view_fixtures import api_fixture
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.builder import build_registry
-from analysis_lister.registry.fields import count_fields
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
-from analysis_lister.views.report import build_report
+from grove.registry import CuratedRegistry
+from grove.registry.builder import build_registry
+from grove.registry.fields import count_fields
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.report import build_report
 
 MAPPING = {
     "9999999": {
@@ -60,9 +60,7 @@ class ApiOnlyRegistryTests(unittest.TestCase):
             self.assertNotIn("html_source", data["gal_curation"])
             self.assertNotIn("supplement_fields", data["gal_curation"])
             mapping.write_text("{}")
-            with self.assertLogs(
-                "analysis_lister.registry.enrichment", level="WARNING"
-            ):
+            with self.assertLogs("grove.registry.enrichment", level="WARNING"):
                 build_registry(source, output, pubnote_identifiers=mapping)
             data = json.loads(output.read_text())
             view = prepare_group(
@@ -104,7 +102,7 @@ class ApiOnlyRegistryTests(unittest.TestCase):
             source.write_text(json.dumps(api, ensure_ascii=False))
             mapping.write_text(json.dumps(MAPPING))
             citations.write_text("{}")
-            with self.assertLogs("analysis_lister", level="INFO") as captured:
+            with self.assertLogs("grove", level="INFO") as captured:
                 build_registry(
                     source, output, pubnote_identifiers=mapping, doi_cache=citations
                 )
@@ -142,10 +140,10 @@ class ApiOnlyRegistryTests(unittest.TestCase):
             before = output.read_bytes()
             with (
                 patch(
-                    "analysis_lister.registry.builder.atomic_write_text",
+                    "grove.registry.builder.atomic_write_text",
                     side_effect=OSError("invented failure"),
                 ),
-                self.assertLogs("analysis_lister", level="INFO") as captured,
+                self.assertLogs("grove", level="INFO") as captured,
                 self.assertRaises(OSError),
             ):
                 build_registry(

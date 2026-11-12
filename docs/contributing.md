@@ -36,12 +36,12 @@ record the tested environment rather than inferring support for other versions.
 
 | Area | Responsibility |
 | --- | --- |
-| `analysis_lister/cli.py`, `refresh.py` | Command validation and sequential workflow orchestration. |
-| `analysis_lister/downloaders/` | API retrieval and independent HTML/CSV export; authentication and download validation. |
-| `analysis_lister/registry/` | Field retention, enrichment, identifiers, validation, reading and snapshot comparison. |
-| `analysis_lister/citations/` | Citation stores, formatting, ordering and public metadata retrieval. |
-| `analysis_lister/views/` | Policies, lifecycle rules, prepared collections, diagnostics, rendering and browser assets. |
-| `analysis_lister/storage.py`, `provenance.py` | Safe file replacement and input/code fingerprints. |
+| `grove/cli.py`, `refresh.py` | Command validation and sequential workflow orchestration. |
+| `grove/downloaders/` | API retrieval and independent HTML/CSV export; authentication and download validation. |
+| `grove/registry/` | Field retention, enrichment, identifiers, validation, reading and snapshot comparison. |
+| `grove/citations/` | Citation stores, formatting, ordering and public metadata retrieval. |
+| `grove/views/` | Policies, lifecycle rules, prepared collections, diagnostics, rendering and browser assets. |
+| `grove/storage.py`, `provenance.py` | Safe file replacement and input/code fingerprints. |
 
 Keep the saved-file boundaries described in the [data guide](data.md).
 Registry reads validate and return copies; they must not enrich data or request
@@ -73,7 +73,7 @@ git diff --check
 ```
 
 The source archive includes `ruff.toml`. The wheel also installs a copy under
-`share/glance-analysis-lister/ruff.toml` in the Python environment; pass that file
+`share/glance-grove/ruff.toml` in the Python environment; pass that file
 with Ruff's `--config` option when using the installed copy.
 
 Use `tests/view_fixtures.py` for invented records and add focused regressions
@@ -230,7 +230,7 @@ python -m pip install -r requirements-docs.txt
 python scripts/docs.py serve
 ```
 
-Open `http://127.0.0.1:8000/glance-analysis-lister/`; stop with **Ctrl+C**.
+Open `http://127.0.0.1:8000/glance-grove/`; stop with **Ctrl+C**.
 For the strict build, run `python scripts/docs.py build`. New pages need an entry
 in `scripts/docs.py`'s public input list and `zensical.toml` navigation. Restart
 the preview after adding a page or changing renderer code. Edit source files,
@@ -238,7 +238,7 @@ not generated `site-src/` or `site/`; run one build or preview at a time.
 
 CI uploads a `documentation-site` artifact for review. It contains only public
 guides and synthetic examples. To inspect it under the configured URL prefix,
-extract it into `preview/glance-analysis-lister/` and run
+extract it into `preview/glance-grove/` and run
 `python -m http.server 8000 --bind 127.0.0.1 --directory preview`.
 
 ## Open a pull request
@@ -374,7 +374,7 @@ and the environment path as needed:
 
 ```bash
 python3.13 -m venv /tmp/glance-release-check
-/tmp/glance-release-check/bin/python -m pip install dist/glance_analysis_lister-VERSION-py3-none-any.whl
+/tmp/glance-release-check/bin/python -m pip install dist/glance_grove-VERSION-py3-none-any.whl
 /tmp/glance-release-check/bin/python -m pip check
 /tmp/glance-release-check/bin/python -I scripts/check_distribution.py
 ```
@@ -416,3 +416,10 @@ permanent release archive.
 ### Publish to PyPI
 
 PyPI publishing is manual for now and will be automated in the future.
+
+The prepared publisher targets `knutzk/glance-grove` and distribution metadata
+named `glance-grove`, with wheel and source filenames beginning `glance_grove-`.
+Configure the PyPI Trusted Publisher for the renamed repository and project
+before authorising an upload. Keep uploads disabled until a specific release is
+approved. Existing `glance-analysis-lister` release assets cannot be uploaded to
+the new project; the validator rejects their filenames and metadata.

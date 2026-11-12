@@ -51,8 +51,8 @@ class PublicApiCheckTests(unittest.TestCase):
         with TemporaryDirectory(dir=self.work) as directory:
             root = Path(directory)
             shutil.copytree(
-                ROOT / "analysis_lister",
-                root / "analysis_lister",
+                ROOT / "grove",
+                root / "grove",
                 ignore=shutil.ignore_patterns(
                     "__pycache__", "events.py", "event_labels.py"
                 ),
@@ -62,7 +62,7 @@ class PublicApiCheckTests(unittest.TestCase):
 
     def test_actual_removed_method_is_detected(self):
         def change(root):
-            path = root / "analysis_lister/registry/reader.py"
+            path = root / "grove/registry/reader.py"
             path.write_text(
                 path.read_text().replace(
                     "def records(self, resource):", "def _records(self, resource):"
@@ -83,7 +83,7 @@ class PublicApiCheckTests(unittest.TestCase):
 
     def test_actual_incompatible_parameter_is_detected(self):
         def change(root):
-            path = root / "analysis_lister/registry/reader.py"
+            path = root / "grove/registry/reader.py"
             path.write_text(
                 path.read_text().replace(
                     "def records(self, resource):", "def records(self, *, resource):"
@@ -98,7 +98,7 @@ class PublicApiCheckTests(unittest.TestCase):
 
     def test_internal_refactor_and_optional_parameter_are_compatible(self):
         def change(root):
-            path = root / "analysis_lister/registry/reader.py"
+            path = root / "grove/registry/reader.py"
             path.write_text(
                 path.read_text().replace(
                     "def records(self, resource):",
@@ -106,7 +106,7 @@ class PublicApiCheckTests(unittest.TestCase):
                 )
                 + "\n\ndef _internal_helper(value):\n    return value\n"
             )
-            registry = root / "analysis_lister/registry"
+            registry = root / "grove/registry"
             path.rename(registry / "_reader_impl.py")
             (registry / "reader.py").write_text(
                 "from ._reader_impl import CuratedRegistry, LINK_RESOURCES\n"
@@ -118,7 +118,7 @@ class PublicApiCheckTests(unittest.TestCase):
         after = deepcopy(self.before)
         del after["callables"]["CuratedRegistry.get"]
         del after["attributes"]["GroupView.archive"]
-        after["imports"]["prepare_group"] = "analysis_lister.other:prepare_group"
+        after["imports"]["prepare_group"] = "grove.other:prepare_group"
         findings = compare(self.before, after)
         self.assertTrue(any("CuratedRegistry.get" in item for item in findings))
         self.assertTrue(any("GroupView.archive" in item for item in findings))

@@ -217,7 +217,7 @@ def download_registry(
         from stare.settings import StareSettings
     except ImportError:
         raise ValueError(
-            "stare is missing; reinstall glance-analysis-lister with its dependencies"
+            "stare is missing; reinstall glance-grove with its dependencies"
         ) from None
 
     stage = "configuration"

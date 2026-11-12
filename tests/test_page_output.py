@@ -13,11 +13,11 @@ from tempfile import TemporaryDirectory
 
 from bs4 import BeautifulSoup
 
-from analysis_lister import cli
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import archive_curation_intro
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove import cli
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import archive_curation_intro
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 
 class PageOutputTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class PageOutputTests(unittest.TestCase):
                 )
                 self.assertNotIn("Curated registry built:", content)
                 self.assertIn("GLANCE data extracted:", content)
-                self.assertIn("Generated with [glance-analysis-lister]", content)
+                self.assertIn("Generated with [GROVE]", content)
                 revision = report["generator"]["git_commit"]
                 if revision != "unknown":
                     self.assertIn("/commit/" + revision.removesuffix("-dirty"), content)

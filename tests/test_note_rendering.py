@@ -9,13 +9,13 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import (
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import (
     confnotes_page,
     pubnotes_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -66,7 +66,7 @@ class ConfNoteTableTests(unittest.TestCase):
         self.assertEqual(evidence["rule"], "conf-note-cds-record")
 
     def test_missing_cds_link_is_blank_without_guessing_a_record(self):
-        from analysis_lister.views.notes import note_cds_record
+        from grove.views.notes import note_cds_record
 
         for value in (
             None,
@@ -149,7 +149,7 @@ class ConfNoteExpansionTests(unittest.TestCase):
 
 class ConfNoteResponsibleNameTests(unittest.TestCase):
     def test_scalar_responsibles_and_chairs_are_names_not_characters(self):
-        from analysis_lister.views.notes import note_expansion
+        from grove.views.notes import note_expansion
 
         note = publication(1, resource="confnotes", status="Phase 1 Finished")
         note["phase1"].update(

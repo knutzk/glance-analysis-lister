@@ -14,15 +14,15 @@ from tempfile import TemporaryDirectory
 from bs4 import BeautifulSoup
 from view_fixtures import analysis, snapshot
 
-from analysis_lister import cli
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.build import render_group
-from analysis_lister.views.markdown.links import external
-from analysis_lister.views.markdown.pages import (
+from grove import cli
+from grove.registry import CuratedRegistry
+from grove.views.build import render_group
+from grove.views.markdown.links import external
+from grove.views.markdown.pages import (
     ongoing_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -137,12 +137,12 @@ import sys
 class Block(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if any(fullname == name or fullname.startswith(name + ".")
-               for name in ("analysis_lister.glance", "analysis_lister.markdown",
-                            "analysis_lister.download", "stare", "selenium")):
+               for name in ("grove.glance", "grove.markdown",
+                            "grove.download", "stare", "selenium")):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, Block())
-from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.build import render_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 render_group(sys.argv[1], sys.argv[2], GroupProfile("DEMO"))
 assert "requests" not in sys.modules
 """

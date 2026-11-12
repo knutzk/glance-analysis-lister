@@ -28,7 +28,7 @@ GROUP_PAGES = {
     "Conference notes": "confnotes.md",
     "Public notes": "pubnotes.md",
 }
-if (ROOT / "analysis_lister/__init__.py").is_file():
+if (ROOT / "grove/__init__.py").is_file():
     sys.path.insert(0, str(ROOT))
 # Never stage the whole checkout or docs tree: they may contain private outputs.
 PUBLIC_FILES = (
@@ -38,7 +38,7 @@ PUBLIC_FILES = (
     "examples/demo/zensical.toml",
     "scripts/docs.py",
     "publication-curation.toml",
-    "analysis_lister/registry/schemas/curated.schema.json",
+    "grove/registry/schemas/curated.schema.json",
     "examples/README.md",
     "examples/synthetic_registry.json",
     "examples/demo/index.md",
@@ -73,10 +73,10 @@ def example_fragments(snapshot, policy):
     """Use the package's real views and controls with only the public fixture."""
     from attrs import evolve
 
-    from analysis_lister.registry import CuratedRegistry
-    from analysis_lister.views.markdown.ongoing import ongoing_cards
-    from analysis_lister.views.markdown.papers import paper_table
-    from analysis_lister.views.prepare import prepare_group
+    from grove.registry import CuratedRegistry
+    from grove.views.markdown.ongoing import ongoing_cards
+    from grove.views.markdown.papers import paper_table
+    from grove.views.prepare import prepare_group
 
     registry = CuratedRegistry(json.loads(snapshot))
     view = prepare_group(registry, demo_profile(policy))
@@ -97,8 +97,8 @@ def example_fragments(snapshot, policy):
 
 def demo_profile(policy):
     """Read the same explicit policy used by the standalone tutorial."""
-    from analysis_lister.views.curation import load_publication_policy
-    from analysis_lister.views.profiles import GroupProfile
+    from grove.views.curation import load_publication_policy
+    from grove.views.profiles import GroupProfile
 
     with TemporaryDirectory(prefix="glance-demo-policy-") as directory:
         path = Path(directory) / "publication-curation.toml"
@@ -114,7 +114,7 @@ def demo_profile(policy):
 @lru_cache(maxsize=1)
 def demo_pages(snapshot, policy):
     """Render only the fixed synthetic input; publish only the four demo pages."""
-    from analysis_lister.views.build import render_group
+    from grove.views.build import render_group
 
     with TemporaryDirectory(prefix="glance-docs-demo-") as directory:
         work = Path(directory)
@@ -188,7 +188,7 @@ def stage(root=ROOT, *, group_pages=()):
         for extension in ("css", "js"):
             filename = f"gal-{component}.{extension}"
             sources[f"docs/assets/{filename}"] = (
-                files("analysis_lister.views") / "assets" / filename
+                files("grove.views") / "assets" / filename
             ).read_bytes()
     for name, content in sources.items():
         write_changed(destination / name, content)

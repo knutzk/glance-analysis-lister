@@ -10,15 +10,15 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import (
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import (
     confnotes_page,
     ongoing_page,
     papers_page,
     pubnotes_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -172,7 +172,7 @@ class SeparatePublicationPageTests(unittest.TestCase):
             self.assertFalse(soup.select('[data-gal-filter="publication_type"]'))
 
     def test_publication_search_has_its_own_module_and_browser_entrypoint(self):
-        from analysis_lister.views.markdown import (
+        from grove.views.markdown import (
             ongoing,
             ongoing_controls,
             papers,
@@ -182,8 +182,8 @@ class SeparatePublicationPageTests(unittest.TestCase):
         self.assertIs(ongoing.render_controls, ongoing_controls.render_controls)
         self.assertIs(papers.render_controls, publication_controls.render_controls)
         self.assertIsNot(ongoing.render_controls, papers.render_controls)
-        ongoing = (ROOT / "analysis_lister/views/assets/gal-ongoing.js").read_text()
-        paper = (ROOT / "analysis_lister/views/assets/gal-papers.js").read_text()
+        ongoing = (ROOT / "grove/views/assets/gal-ongoing.js").read_text()
+        paper = (ROOT / "grove/views/assets/gal-papers.js").read_text()
         self.assertIn(".gal-ongoing[data-gal-collection]", ongoing)
         self.assertIn("window.GALPapers", paper)
         self.assertNotIn("window.GALOngoing", paper)

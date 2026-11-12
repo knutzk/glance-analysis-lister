@@ -13,13 +13,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from analysis_lister import cli
-from analysis_lister.downloaders import (
+from grove import cli
+from grove.downloaders import (
     auth,
     csv_batch as html_download,
     html as download,
 )
-from analysis_lister.downloaders.manifest import HTML_MANIFEST, make_manifest
+from grove.downloaders.manifest import HTML_MANIFEST, make_manifest
 
 
 class HtmlDownloadTests(unittest.TestCase):

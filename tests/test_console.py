@@ -12,8 +12,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from analysis_lister import cli
-from analysis_lister.console import (
+from grove import cli
+from grove.console import (
     ConsoleFormatter,
     configure_logging,
     print_summary,
@@ -41,7 +41,7 @@ class ConsoleTests(unittest.TestCase):
 
     def test_formatter_colours_severity_and_aligns_wrapped_bullets(self):
         record = logging.LogRecord(
-            "analysis_lister.demo",
+            "grove.demo",
             logging.WARNING,
             "",
             0,
@@ -65,7 +65,7 @@ class ConsoleTests(unittest.TestCase):
             raise ValueError("synthetic failure")
         except ValueError:
             record = logging.LogRecord(
-                "analysis_lister.demo",
+                "grove.demo",
                 logging.DEBUG,
                 "",
                 0,
@@ -78,7 +78,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertIn("ValueError: synthetic failure", text)
 
     def test_cli_handler_restores_host_logging_after_failure(self):
-        logger = logging.getLogger("analysis_lister")
+        logger = logging.getLogger("grove")
         root = logging.getLogger()
         previous = (
             logger.level,
@@ -108,7 +108,7 @@ class ConsoleTests(unittest.TestCase):
             patch("sys.stdout", output),
             configure_logging(quiet=True),
         ):
-            logger = logging.getLogger("analysis_lister.demo")
+            logger = logging.getLogger("grove.demo")
             logger.info("progress")
             logger.warning("needs attention")
             print_summary("Completed", [("Records", 12)])
@@ -119,9 +119,9 @@ class ConsoleTests(unittest.TestCase):
     def test_redirected_summaries_precede_subsequent_diagnostics(self):
         code = """
 import logging
-from analysis_lister.console import configure_logging, print_summary
+from grove.console import configure_logging, print_summary
 with configure_logging(color="never"):
-    log = logging.getLogger("analysis_lister.demo")
+    log = logging.getLogger("grove.demo")
     log.info("first stage")
     print_summary("First complete", [("Records", 3)], color="never")
     log.info("second stage")
@@ -180,7 +180,7 @@ with configure_logging(color="never"):
                 patch.dict(os.environ, {"NO_COLOR": "1"}),
                 patch("sys.stdout", io.StringIO()) as output,
                 patch(
-                    "analysis_lister.citations.formatting.format_citations",
+                    "grove.citations.formatting.format_citations",
                     return_value=0,
                 ),
             ):
@@ -200,7 +200,7 @@ with configure_logging(color="never"):
             [
                 sys.executable,
                 "-m",
-                "analysis_lister",
+                "grove",
                 "render-group",
                 "--group",
                 "DEMO",
@@ -226,7 +226,7 @@ with configure_logging(color="never"):
                 [
                     sys.executable,
                     "-m",
-                    "analysis_lister",
+                    "grove",
                     "--quiet",
                     "render-group",
                     "--group",

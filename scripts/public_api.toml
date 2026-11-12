@@ -3,61 +3,61 @@
 # during refactors. Result constructors are excluded.
 
 [callables]
-"CuratedRegistry" = "analysis_lister.registry:CuratedRegistry"
-"CuratedRegistry.from_json" = "analysis_lister.registry:CuratedRegistry.from_json"
-"CuratedRegistry.records" = "analysis_lister.registry:CuratedRegistry.records"
-"CuratedRegistry.get" = "analysis_lister.registry:CuratedRegistry.get"
-"CuratedRegistry.resolve_link" = "analysis_lister.registry:CuratedRegistry.resolve_link"
-"validate_registry" = "analysis_lister.registry:validate_registry"
-"GroupProfile" = "analysis_lister.views.profiles:GroupProfile"
-"PublicationPolicy" = "analysis_lister.views.profiles:PublicationPolicy"
-"load_publication_policy" = "analysis_lister.views.curation:load_publication_policy"
-"prepare_group" = "analysis_lister.views.prepare:prepare_group"
+"CuratedRegistry" = "grove.registry:CuratedRegistry"
+"CuratedRegistry.from_json" = "grove.registry:CuratedRegistry.from_json"
+"CuratedRegistry.records" = "grove.registry:CuratedRegistry.records"
+"CuratedRegistry.get" = "grove.registry:CuratedRegistry.get"
+"CuratedRegistry.resolve_link" = "grove.registry:CuratedRegistry.resolve_link"
+"validate_registry" = "grove.registry:validate_registry"
+"GroupProfile" = "grove.views.profiles:GroupProfile"
+"PublicationPolicy" = "grove.views.profiles:PublicationPolicy"
+"load_publication_policy" = "grove.views.curation:load_publication_policy"
+"prepare_group" = "grove.views.prepare:prepare_group"
 
 [constants]
-"RESOURCES" = "analysis_lister.registry:RESOURCES"
-"SCHEMA" = "analysis_lister.registry:SCHEMA"
+"RESOURCES" = "grove.registry:RESOURCES"
+"SCHEMA" = "grove.registry:SCHEMA"
 
 [attributes.CuratedRegistry]
-target = "analysis_lister.registry:CuratedRegistry"
+target = "grove.registry:CuratedRegistry"
 names = ["metadata"]
 
 [attributes.GroupProfile]
-target = "analysis_lister.views.profiles:GroupProfile"
+target = "grove.views.profiles:GroupProfile"
 names = ["group", "title", "publication_policy"]
 
 [attributes.PublicationPolicy]
-target = "analysis_lister.views.profiles:PublicationPolicy"
+target = "grove.views.profiles:PublicationPolicy"
 names = ["title", "groups", "subgroups", "keywords"]
 
 [attributes.GroupView]
-target = "analysis_lister.views.models:GroupView"
+target = "grove.views.models:GroupView"
 names = ["profile", "ongoing", "needs_review", "publications", "archive", "source_metadata"]
 
 [attributes.AnalysisRow]
-target = "analysis_lister.views.models:AnalysisRow"
+target = "grove.views.models:AnalysisRow"
 names = ["reference", "title", "metadata", "status", "stage", "contacts", "editors", "board", "board_chairs", "keywords"]
 
 [attributes.PublicationRow]
-target = "analysis_lister.views.models:PublicationRow"
+target = "grove.views.models:PublicationRow"
 names = ["reference", "title", "metadata", "resource", "label", "state", "date", "subgroups", "details"]
 
 [attributes.PublicationDetails]
-target = "analysis_lister.views.models:PublicationDetails"
+target = "grove.views.models:PublicationDetails"
 names = ["publication_records", "links", "contacts", "editors", "board", "board_chairs", "last_milestone", "cds_url", "conf_note", "pub_note"]
 
 [attributes.PublicationLink]
-target = "analysis_lister.views.models:PublicationLink"
+target = "grove.views.models:PublicationLink"
 names = ["label", "url"]
 
 [attributes.NoteDetails]
-target = "analysis_lister.views.models:NoteDetails"
+target = "grove.views.models:NoteDetails"
 names = ["people", "tags", "superseded"]
 
 [attributes.PeopleRole]
-target = "analysis_lister.views.models:PeopleRole"
+target = "grove.views.models:PeopleRole"
 names = ["label", "names"]
 
 [attributes.TagGroup]
-target = "analysis_lister.views.models:TagGroup"
+target = "grove.views.models:TagGroup"
 names = ["label", "values"]

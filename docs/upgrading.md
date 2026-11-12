@@ -5,6 +5,37 @@ a separate output directory. Keep the old environment and site until you have
 checked the candidate. Keep custom policies and citation stores outside the Python
 environment so reinstalling the package cannot replace your edits.
 
+## Renaming to GROVE (unreleased)
+
+The project is now **GROVE** (GLANCE Records Organised for Viewing and
+Exploration). This change replaces the installation, command and import names:
+
+| Interface | Previous name | New name |
+| --- | --- | --- |
+| Python distribution | `glance-analysis-lister` | `glance-grove` |
+| Shell command | `analysis-lister` | `grove` |
+| Python imports and module invocation | `analysis_lister` | `grove` |
+| GitHub repository | `knutzk/glance-analysis-lister` | `knutzk/glance-grove` |
+
+There are no aliases or import shims for the old names. Update scripts, scheduled
+commands, Python imports and dependency declarations. Install the candidate into
+a fresh virtual environment: pip treats the two distribution names as separate
+projects, so installing `glance-grove` does not remove the old installation.
+Use `grove --version` or `python -m grove --version` to check the candidate.
+For a source checkout, update the Git remote to
+`https://github.com/knutzk/glance-grove.git` after the repository rename.
+
+Saved snapshot filenames and the curated data schema have not changed. Valid
+saved snapshots still load; their old generator identity may produce a warning.
+Rebuild from a saved API snapshot and render into a separate directory to record
+the new generator identity. This needs no fresh CERN download. Preserve custom
+stores and policies and pass their paths explicitly as before. Bundled data in
+an installed wheel now lives under `share/glance-grove/`.
+
+Historical v0.1.0–v0.3.0 tags, release notes and artifacts describe the old package.
+They are not GROVE distributions and must not be renamed or uploaded to the
+`glance-grove` PyPI project. The examples below describe the candidate interface.
+
 ## Restoring full paper citations
 
 Paper details again include a **Cite as** block. To recover final TeX and full
@@ -19,12 +50,13 @@ native identifier) when the fuller titles are unavailable.
 Record the installed package version and resolved dependencies:
 
 ```bash
-analysis-lister --version
+grove --version
 python -m pip freeze > previous-environment.txt
 ```
 
-For an older installation without `--version`, use
-`python -c 'from importlib.metadata import version; print(version("glance-analysis-lister"))'`.
+For the previous package, use `analysis-lister --version`, or
+`python -c 'from importlib.metadata import version; print(version("glance-analysis-lister"))'`
+if that installation predates `--version`.
 
 Review that environment file before sharing it: direct dependency URLs can
 contain private locations. Keep copies of the API and curated snapshots,
@@ -52,7 +84,7 @@ intend to evaluate. Replace the wheel path with your actual artifact:
 
 ```bash
 python3.13 -m venv .venv-candidate
-.venv-candidate/bin/python -m pip install /path/to/glance_analysis_lister-VERSION-py3-none-any.whl
+.venv-candidate/bin/python -m pip install /path/to/glance_grove-VERSION-py3-none-any.whl
 .venv-candidate/bin/python -m pip check
 ```
 
@@ -62,7 +94,7 @@ documentation are in the source archive, not the wheel. Then render your saved
 curated registry to a separate destination:
 
 ```bash
-.venv-candidate/bin/analysis-lister render-group --group TOPQ \
+.venv-candidate/bin/grove render-group --group TOPQ \
   --snapshot data/previous-curated.json \
   --curation-config data/publication-curation.toml \
   --output-dir pages/candidate
@@ -78,10 +110,10 @@ To assess curation or bundled-data changes, rebuild from the same saved API
 snapshot. If the candidate can also read the previous curated file, compare them:
 
 ```bash
-.venv-candidate/bin/analysis-lister build-registry \
+.venv-candidate/bin/grove build-registry \
   --api-snapshot data/previous-api.json \
   --doi-cache data/doi-metadata.json --output data/candidate-curated.json
-.venv-candidate/bin/analysis-lister compare-snapshots \
+.venv-candidate/bin/grove compare-snapshots \
   data/previous-curated.json data/candidate-curated.json --details \
   --output data/upgrade-comparison.json
 ```
@@ -158,6 +190,6 @@ indefinite support for every previous file shape.
 
 ## Release history
 
-- [v0.3.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.3.0.txt)
-- [v0.2.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.2.0.txt)
-- [v0.1.0](https://github.com/knutzk/glance-analysis-lister/blob/main/.github/release-notes/v0.1.0.txt)
+- [v0.3.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.3.0.txt)
+- [v0.2.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.2.0.txt)
+- [v0.1.0](https://github.com/knutzk/glance-grove/blob/main/.github/release-notes/v0.1.0.txt)

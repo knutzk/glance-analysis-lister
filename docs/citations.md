@@ -138,14 +138,14 @@ For example, fill recognised JHEP entries from a saved snapshot without network
 access:
 
 ```bash
-analysis-lister resolve-dois --snapshot glance_api_registry.json \
+grove resolve-dois --snapshot glance_api_registry.json \
   --method infer --doi-cache data/doi-metadata.json
 ```
 
 To look up remaining entries in public INSPIRE metadata instead:
 
 ```bash
-analysis-lister resolve-dois --snapshot glance_api_registry.json \
+grove resolve-dois --snapshot glance_api_registry.json \
   --method inspire --doi-cache data/doi-metadata.json
 ```
 
@@ -177,14 +177,14 @@ using the same store path throughout:
 
 ```bash
 # Normalise automatically generated citations
-analysis-lister format-citations --doi-cache data/doi-metadata.json
+grove format-citations --doi-cache data/doi-metadata.json
 
 # Embed the updated citations in the curated registry
-analysis-lister build-registry --api-snapshot glance_api_registry.json \
+grove build-registry --api-snapshot glance_api_registry.json \
   --doi-cache data/doi-metadata.json --output glance_curated_registry.json
 
 # Regenerate the pages from that registry
-analysis-lister render-group --group TOPQ \
+grove render-group --group TOPQ \
   --snapshot glance_curated_registry.json --output-dir examples/demo/work/pages/topq
 ```
 
@@ -215,7 +215,7 @@ This invented DOI lets you try resolution without a GLANCE snapshot. Use a
 separate temporary store to leave your maintained and bundled stores untouched:
 
 ```bash
-analysis-lister resolve-dois --doi '10.1007/JHEP07(2099)999' \
+grove resolve-dois --doi '10.1007/JHEP07(2099)999' \
   --method infer --doi-cache /tmp/demo-citations.json
 ```
 

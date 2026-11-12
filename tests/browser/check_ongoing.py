@@ -22,10 +22,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from timing import timed
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import ongoing_page
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import ongoing_page
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -84,11 +84,11 @@ def run_checks(work_dir):
     markup = str(
         BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-ongoing")
     )
-    common_css = (root / "analysis_lister/views/assets/gal-common.css").as_uri()
-    common_js = (root / "analysis_lister/views/assets/gal-common.js").as_uri()
-    css = (root / "analysis_lister/views/assets/gal-ongoing.css").as_uri()
-    js = (root / "analysis_lister/views/assets/gal-ongoing.js").as_uri()
-    archive_js = (root / "analysis_lister/views/assets/gal-papers.js").as_uri()
+    common_css = (root / "grove/views/assets/gal-common.css").as_uri()
+    common_js = (root / "grove/views/assets/gal-common.js").as_uri()
+    css = (root / "grove/views/assets/gal-ongoing.css").as_uri()
+    js = (root / "grove/views/assets/gal-ongoing.js").as_uri()
+    archive_js = (root / "grove/views/assets/gal-papers.js").as_uri()
     html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{common_css}"><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{common_js}"></script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
     output = work_dir / "fixture.html"
     output.write_text(html)
@@ -413,9 +413,7 @@ def run_checks(work_dir):
         choose("subgroups", "DEMO-Alpha, with comma")
         count(2)
         reset()
-        driver.execute_script(
-            (root / "analysis_lister/views/assets/gal-ongoing.js").read_text()
-        )
+        driver.execute_script((root / "grove/views/assets/gal-ongoing.js").read_text())
         choose("subgroups", "DEMO-Beta")
         count(2)
         reset()

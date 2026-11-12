@@ -14,15 +14,15 @@ from unittest.mock import Mock, call, patch
 
 import requests
 
-from analysis_lister import cli
-from analysis_lister.citations.formatting import format_citations, format_journal_name
-from analysis_lister.citations.inspire import InspireClient, inspire_citation
-from analysis_lister.citations.resolver import (
+from grove import cli
+from grove.citations.formatting import format_citations, format_journal_name
+from grove.citations.inspire import InspireClient, inspire_citation
+from grove.citations.resolver import (
     infer_citation,
     resolve_dois,
     snapshot_dois,
 )
-from analysis_lister.citations.store import (
+from grove.citations.store import (
     default_store_path,
     load_store,
     normalize_doi,
@@ -113,11 +113,9 @@ class CitationStoreTests(unittest.TestCase):
             with (
                 self.subTest(flags=flags),
                 patch("sys.stderr", io.StringIO()) as error_output,
-                patch("analysis_lister.citations.store.load_store") as load,
-                patch("analysis_lister.citations.resolver.resolve_dois") as resolve,
-                patch(
-                    "analysis_lister.citations.formatting.format_citations"
-                ) as format_store,
+                patch("grove.citations.store.load_store") as load,
+                patch("grove.citations.resolver.resolve_dois") as resolve,
+                patch("grove.citations.formatting.format_citations") as format_store,
                 self.assertRaises(SystemExit) as error,
             ):
                 cli.main(flags)
@@ -334,7 +332,7 @@ class ResolutionTests(unittest.TestCase):
 
     def test_inference_is_incremental_and_never_contacts_inspire(self):
         with patch(
-            "analysis_lister.citations.resolver.InspireClient",
+            "grove.citations.resolver.InspireClient",
             side_effect=AssertionError("network"),
         ):
             first = resolve_dois([JHEP, JHEP.lower()], self.path)
@@ -346,7 +344,7 @@ class ResolutionTests(unittest.TestCase):
 
     def test_manual_entries_are_protected_even_on_explicit_refresh(self):
         save_store(self.path, {DOI: record()})
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
+        with patch("grove.citations.resolver.InspireClient") as client:
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         client.assert_not_called()
         self.assertEqual(summary["locked"], 1)
@@ -356,7 +354,7 @@ class ResolutionTests(unittest.TestCase):
         self,
     ):
         save_store(self.path, {DOI: record("Old", source="inspire")})
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
+        with patch("grove.citations.resolver.InspireClient") as client:
             client.return_value.fetch.return_value = payload()
             summary = resolve_dois([DOI], self.path, method="inspire", refresh=True)
         self.assertEqual(summary["resolved"], 1)
@@ -381,21 +379,21 @@ class ResolutionTests(unittest.TestCase):
 
     def test_failures_are_retryable_and_successes_survive_interruption(self):
         second = "10.9999/other"
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
+        with patch("grove.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = [requests.ReadTimeout(), payload()]
             first = resolve_dois([DOI], self.path, method="inspire")
             self.assertNotIn(DOI, load_store(self.path))
             retry = resolve_dois([DOI], self.path, method="inspire")
         self.assertEqual(first["failed"], 1)
         self.assertEqual(retry["resolved"], 1)
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
+        with patch("grove.citations.resolver.InspireClient") as client:
             client.return_value.fetch.side_effect = KeyboardInterrupt()
             with self.assertRaises(KeyboardInterrupt):
                 resolve_dois([second], self.path, method="inspire")
         self.assertIn(DOI, load_store(self.path))
 
     def test_auto_infers_before_api_and_limit_counts_only_attempts(self):
-        with patch("analysis_lister.citations.resolver.InspireClient") as client:
+        with patch("grove.citations.resolver.InspireClient") as client:
             summary = resolve_dois([JHEP, DOI], self.path, method="auto", limit=1)
         client.assert_not_called()  # The JHEP DOI sorts first.
         self.assertEqual(summary["resolved"], 1)
@@ -422,10 +420,8 @@ class ResolutionTests(unittest.TestCase):
                         initial[DOI] = previous
                     save_store(self.path, initial)
                     with (
-                        patch(
-                            "analysis_lister.citations.resolver.InspireClient"
-                        ) as client,
-                        self.assertLogs("analysis_lister", level="WARNING") as logs,
+                        patch("grove.citations.resolver.InspireClient") as client,
+                        self.assertLogs("grove", level="WARNING") as logs,
                     ):
                         client.return_value.fetch.side_effect = [
                             result,
@@ -462,9 +458,7 @@ class ResolutionTests(unittest.TestCase):
                     )
                     self.assertEqual(stored[success]["citation"], record()["citation"])
 
-                    with patch(
-                        "analysis_lister.citations.resolver.InspireClient"
-                    ) as client:
+                    with patch("grove.citations.resolver.InspireClient") as client:
                         client.return_value.fetch.return_value = payload()
                         retry = resolve_dois(
                             [DOI], self.path, method="inspire", refresh=refreshing
@@ -493,8 +487,8 @@ class ResolutionTests(unittest.TestCase):
         save_store(self.path, initial)
         before = self.path.read_bytes()
         with (
-            patch("analysis_lister.citations.resolver.InspireClient") as client,
-            self.assertLogs("analysis_lister", level="WARNING") as logs,
+            patch("grove.citations.resolver.InspireClient") as client,
+            self.assertLogs("grove", level="WARNING") as logs,
         ):
             summary = resolve_dois([DOI], self.path, method="infer")
         client.assert_not_called()
@@ -514,8 +508,8 @@ class ResolutionTests(unittest.TestCase):
 
     def test_auto_closes_the_http_session_when_the_only_lookup_is_not_found(self):
         with (
-            patch("analysis_lister.citations.inspire.requests.Session") as session,
-            self.assertLogs("analysis_lister", level="WARNING"),
+            patch("grove.citations.inspire.requests.Session") as session,
+            self.assertLogs("grove", level="WARNING"),
         ):
             session.return_value.get.return_value = response(404)
             summary = resolve_dois([DOI], self.path, method="auto")
@@ -705,8 +699,8 @@ class InspireTests(unittest.TestCase):
             inspire_citation(DOI, data)["citation"], "Demo J. 12 (2099) 101"
         )
 
-    @patch("analysis_lister.citations.inspire.time.sleep")
-    @patch("analysis_lister.citations.inspire.requests.Session")
+    @patch("grove.citations.inspire.time.sleep")
+    @patch("grove.citations.inspire.requests.Session")
     def test_http_client_uses_verified_tls_timeouts_and_bounded_rate_limit_retry(
         self, session, sleep
     ):
@@ -729,10 +723,10 @@ class InspireTests(unittest.TestCase):
         for error_type in (requests.Timeout, requests.ConnectionError):
             with (
                 self.subTest(error=error_type.__name__),
-                patch("analysis_lister.citations.inspire.requests.Session") as session,
-                patch("analysis_lister.citations.inspire.time.sleep") as sleep,
+                patch("grove.citations.inspire.requests.Session") as session,
+                patch("grove.citations.inspire.time.sleep") as sleep,
                 patch(
-                    "analysis_lister.citations.inspire.time.monotonic",
+                    "grove.citations.inspire.time.monotonic",
                     side_effect=range(20),
                 ),
             ):
@@ -770,10 +764,10 @@ class InspireTests(unittest.TestCase):
         for error_type in (requests.Timeout, requests.ConnectionError):
             with (
                 self.subTest(error=error_type.__name__),
-                patch("analysis_lister.citations.inspire.requests.Session") as session,
-                patch("analysis_lister.citations.inspire.time.sleep") as sleep,
+                patch("grove.citations.inspire.requests.Session") as session,
+                patch("grove.citations.inspire.time.sleep") as sleep,
                 patch(
-                    "analysis_lister.citations.inspire.time.monotonic",
+                    "grove.citations.inspire.time.monotonic",
                     side_effect=range(20),
                 ),
             ):
@@ -797,8 +791,8 @@ class InspireTests(unittest.TestCase):
                 )
                 session.return_value.close.assert_called_once_with()
 
-    @patch("analysis_lister.citations.inspire.time.sleep")
-    @patch("analysis_lister.citations.inspire.requests.Session")
+    @patch("grove.citations.inspire.time.sleep")
+    @patch("grove.citations.inspire.requests.Session")
     def test_tls_errors_are_not_retried_and_long_retry_after_is_deferred(
         self, session, sleep
     ):
@@ -815,8 +809,8 @@ class InspireTests(unittest.TestCase):
             InspireClient().fetch(DOI)
         sleep.assert_not_called()
 
-    @patch("analysis_lister.citations.inspire.time.sleep")
-    @patch("analysis_lister.citations.inspire.requests.Session")
+    @patch("grove.citations.inspire.time.sleep")
+    @patch("grove.citations.inspire.requests.Session")
     def test_http_date_retry_after_uses_utc_and_remains_bounded(self, session, sleep):
         from datetime import UTC, datetime
 
@@ -824,7 +818,7 @@ class InspireTests(unittest.TestCase):
             response(429, headers={"Retry-After": "Thu, 01 Jan 2099 00:00:06 GMT"}),
             response(),
         ]
-        with patch("analysis_lister.citations.inspire.datetime") as clock:
+        with patch("grove.citations.inspire.datetime") as clock:
             clock.now.return_value = datetime(2099, 1, 1, tzinfo=UTC)
             self.assertEqual(InspireClient().fetch(DOI), payload())
         self.assertIn(
@@ -832,7 +826,7 @@ class InspireTests(unittest.TestCase):
         )
         self.assertEqual(session.return_value.get.call_count, 2)
 
-    @patch("analysis_lister.citations.inspire.requests.Session")
+    @patch("grove.citations.inspire.requests.Session")
     def test_not_found_is_unresolved(self, session):
         session.return_value.get.return_value = response(404)
         self.assertIsNone(InspireClient().fetch(DOI))

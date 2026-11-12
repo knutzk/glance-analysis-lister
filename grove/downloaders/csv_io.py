@@ -60,13 +60,13 @@ def read_csv_rows(
         raise ValueError(f"{path}: line {reader.line_num}: invalid CSV: {exc}") from exc
     except FileNotFoundError:
         raise FileNotFoundError(
-            f"{path} not found. Re-run analysis-lister download-html."
+            f"{path} not found. Re-run grove download-html."
         ) from None
 
     if not rows:
         raise ValueError(
             f"{path} holds no rows. GLANCE probably returned a login page; "
-            "renew the cookies and re-run analysis-lister download-html."
+            "renew the cookies and re-run grove download-html."
         )
 
     return rows

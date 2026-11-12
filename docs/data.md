@@ -40,7 +40,7 @@ subgroup is a recorded affiliation, not a separate dataset.
 
 ## How the commands connect
 
-The three numbered boxes are `analysis-lister` commands. **`refresh` runs steps
+The three numbered boxes are `grove` commands. **`refresh` runs steps
 1–3 in order**; previewing the result is a separate step.
 
 [![GLANCE feeds three refresh commands: download-api writes an API snapshot, build-registry writes a curated registry, and render-group produces Markdown pages, assets and a report. The flow then turns right to a preview or website.](images/command-flow.svg)](images/command-flow.svg)
@@ -165,19 +165,19 @@ GLANCE records requires CERN access; rendering never refreshes the snapshot.
 ## Download and build a registry
 
 After [installation](../README.md#install-and-try-without-credentials), use
-`analysis-lister` or `python -m analysis_lister`. Live GLANCE downloads require
+`grove` or `python -m grove`. Live GLANCE downloads require
 an authorised CERN account. Run data commands from the directory where you
 want to keep the snapshots, or supply explicit paths. Use
-`analysis-lister COMMAND --help` for the options supported by your installation.
+`grove COMMAND --help` for the options supported by your installation.
 
 The [command flowchart](#how-the-commands-connect) shows how the saved
 files connect the stages. To produce TOPQ pages without `refresh`, execute
 these three commands **in order**, from the same directory:
 
 ```bash
-analysis-lister download-api --login
-analysis-lister build-registry
-analysis-lister render-group --group TOPQ --output-dir pages/topq
+grove download-api --login
+grove build-registry
+grove render-group --group TOPQ --output-dir pages/topq
 ```
 
 The download retrieves all accessible records, including their explicit
@@ -197,11 +197,11 @@ Default snapshot and dictionary locations are listed in the
 To choose snapshot destinations:
 
 ```bash
-analysis-lister download-api --output data/api.json
-analysis-lister build-registry \
+grove download-api --output data/api.json
+grove build-registry \
   --api-snapshot data/api.json \
   --output data/curated.json
-analysis-lister render-group --group TOPQ \
+grove render-group --group TOPQ \
   --snapshot data/curated.json --output-dir pages/topq
 ```
 
@@ -262,7 +262,7 @@ Save the previous snapshot under a separate filename before replacing it, then
 compare the two files:
 
 ```bash
-analysis-lister compare-snapshots previous.json glance_curated_registry.json --details \
+grove compare-snapshots previous.json glance_curated_registry.json --details \
   --output snapshot-comparison.json
 ```
 
@@ -326,7 +326,7 @@ From a checkout, install the HTML dependencies and start the export:
 
 ```bash
 python -m pip install '.[html]'
-analysis-lister download-html --login
+grove download-html --login
 ```
 
 Chrome opens for manual CERN SSO. Later runs reuse `cookies.json`. The command

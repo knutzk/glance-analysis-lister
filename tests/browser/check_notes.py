@@ -18,10 +18,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from timing import timed
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.pages import confnotes_page, pubnotes_page
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.registry import CuratedRegistry
+from grove.views.markdown.pages import confnotes_page, pubnotes_page
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -59,7 +59,7 @@ def run_checks(work_dir):
             "html.parser",
         ).select_one("[data-gal-notes]")
     )
-    assets = ROOT / "analysis_lister/views/assets"
+    assets = ROOT / "grove/views/assets"
     css = "".join(
         f'<link rel="stylesheet" href="{(assets / name).as_uri()}">'
         for name in (

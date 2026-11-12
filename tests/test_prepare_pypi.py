@@ -15,16 +15,16 @@ from zipfile import ZipFile
 from scripts.prepare_pypi import check_metadata, prepare, release_assets
 
 TAG = "v0.9.0"
-WHEEL = "glance_analysis_lister-0.9.0-py3-none-any.whl"
-SDIST = "glance_analysis_lister-0.9.0.tar.gz"
+WHEEL = "glance_grove-0.9.0-py3-none-any.whl"
+SDIST = "glance_grove-0.9.0.tar.gz"
 
 
 def make_release(directory):
-    metadata = b"Metadata-Version: 2.4\nName: glance-analysis-lister\nVersion: 0.9.0\n"
+    metadata = b"Metadata-Version: 2.4\nName: glance-grove\nVersion: 0.9.0\n"
     with ZipFile(directory / WHEEL, "w") as archive:
-        archive.writestr("glance_analysis_lister-0.9.0.dist-info/METADATA", metadata)
+        archive.writestr("glance_grove-0.9.0.dist-info/METADATA", metadata)
     with tarfile.open(directory / SDIST, "w:gz") as archive:
-        info = tarfile.TarInfo("glance_analysis_lister-0.9.0/PKG-INFO")
+        info = tarfile.TarInfo("glance_grove-0.9.0/PKG-INFO")
         info.size = len(metadata)
         archive.addfile(info, io.BytesIO(metadata))
     return {
@@ -104,9 +104,9 @@ class PreparePyPITests(unittest.TestCase):
     def test_metadata_must_match_project_and_version(self):
         for metadata in (
             b"Name: other-project\nVersion: 0.9.0\n",
-            b"Name: other-distribution\nVersion: 0.9.0\n",
-            b"Name: glance-analysis-lister\nVersion: 0.8.0\n",
-            b"Name: glance-analysis-lister\nVersion: 0.9.0\nVersion: 0.8.0\n",
+            b"Name: glance-analysis-lister\nVersion: 0.9.0\n",
+            b"Name: glance-grove\nVersion: 0.8.0\n",
+            b"Name: glance-grove\nVersion: 0.9.0\nVersion: 0.8.0\n",
         ):
             with ZipFile(self.downloaded / WHEEL, "w") as archive:
                 archive.writestr("example.dist-info/METADATA", metadata)
@@ -138,17 +138,17 @@ class PreparePyPITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             prepare(self.release, TAG, self.downloaded, self.root / "other")
 
-    def test_other_distribution_names_are_rejected(self):
+    def test_legacy_distribution_names_are_rejected(self):
         release = deepcopy(self.release)
         for asset in release["assets"]:
             asset["name"] = asset["name"].replace(
-                "glance_analysis_lister", "other_distribution"
+                "glance_grove", "glance_analysis_lister"
             )
         with self.assertRaisesRegex(ValueError, "Expected exactly"):
             prepare(release, TAG, self.downloaded, self.output)
         self.assertFalse(self.output.exists())
 
-    def test_historical_regular_versions_are_allowed(self):
+    def test_regular_versions_built_under_the_new_name_are_allowed(self):
         for version in ("0.1.0", "0.2.0", "0.3.0"):
             release = deepcopy(self.release)
             release["tag_name"] = f"v{version}"

@@ -13,8 +13,8 @@ from unittest.mock import patch
 
 from test_api import client_for
 
-from analysis_lister import cli
-from analysis_lister.downloaders.api import collect_registry, publish_registry
+from grove import cli
+from grove.downloaders.api import collect_registry, publish_registry
 
 GROUPS = ("DEMO", "SECOND", "THIRD")
 RESOURCES = ("analyses", "papers", "confnotes", "pubnotes")

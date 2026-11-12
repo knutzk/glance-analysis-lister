@@ -18,17 +18,17 @@ import httpx
 from stare import Glance
 from stare.settings import StareSettings
 
-from analysis_lister.downloaders.api import (
+from grove.downloaders.api import (
     collect_registry,
     download_registry,
     publish_registry,
 )
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.builder import build_registry
-from analysis_lister.registry.enrichment import curate
-from analysis_lister.registry.schema import validate_api_registry, validate_registry
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.registry import CuratedRegistry
+from grove.registry.builder import build_registry
+from grove.registry.enrichment import curate
+from grove.registry.schema import validate_api_registry, validate_registry
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ENDPOINTS = {
     "/searchAnalysis": "analyses",

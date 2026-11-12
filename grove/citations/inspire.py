@@ -155,9 +155,7 @@ class InspireClient:
 
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update(
-            {"User-Agent": "glance-analysis-lister/0.1 DOI resolver"}
-        )
+        self.session.headers.update({"User-Agent": "glance-grove/0.1 DOI resolver"})
         self.last_request = None
 
     def close(self):

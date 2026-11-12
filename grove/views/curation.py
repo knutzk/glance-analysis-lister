@@ -20,11 +20,9 @@ def default_curation_path():
     if checkout.is_file():
         return checkout
     try:
-        package = distribution("glance-analysis-lister")
+        package = distribution("glance-grove")
         for path in package.files or []:
-            if str(path).endswith(
-                "share/glance-analysis-lister/publication-curation.toml"
-            ):
+            if str(path).endswith("share/glance-grove/publication-curation.toml"):
                 return Path(package.locate_file(path))
     except PackageNotFoundError:
         pass

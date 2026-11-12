@@ -19,8 +19,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
-REPOSITORY = "knutzk/glance-analysis-lister"
-PROJECT = "glance-analysis-lister"
+REPOSITORY = "knutzk/glance-grove"
+PROJECT = "glance-grove"
 
 
 def release_assets(release, tag):
@@ -34,7 +34,7 @@ def release_assets(release, tag):
         or not release.get("published_at")
     ):
         raise ValueError("The tag must identify a published, non-prerelease release")
-    prefix = f"glance_analysis_lister-{tag[1:]}"
+    prefix = f"glance_grove-{tag[1:]}"
     expected = {f"{prefix}-py3-none-any.whl", f"{prefix}.tar.gz"}
     assets = [
         asset
@@ -63,7 +63,7 @@ def check_metadata(path, version):
             metadata = archive.read(candidates[0])
     else:
         with tarfile.open(path) as archive:
-            expected = f"glance_analysis_lister-{version}/PKG-INFO"
+            expected = f"glance_grove-{version}/PKG-INFO"
             candidates = [item for item in archive if item.name == expected]
             if (
                 len(candidates) != 1

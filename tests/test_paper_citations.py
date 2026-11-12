@@ -10,13 +10,13 @@ from attrs import evolve
 from bs4 import BeautifulSoup
 from view_fixtures import api_fixture, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.enrichment import curate
-from analysis_lister.views.markdown.pages import papers_page
-from analysis_lister.views.models import PublicationDetails
-from analysis_lister.views.paper_citations import arxiv_reference
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile
+from grove.registry import CuratedRegistry
+from grove.registry.enrichment import curate
+from grove.views.markdown.pages import papers_page
+from grove.views.models import PublicationDetails
+from grove.views.paper_citations import arxiv_reference
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile
 
 
 class PaperCitationTests(unittest.TestCase):

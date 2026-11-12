@@ -16,7 +16,7 @@ Load and validate a registry without importing downloaders, authentication
 clients or renderers:
 
 ```python
-from analysis_lister.registry import CuratedRegistry
+from grove.registry import CuratedRegistry
 
 registry = CuratedRegistry.from_json("examples/synthetic_registry.json")
 for paper in registry.records("papers"):
@@ -36,10 +36,10 @@ DEMO-2099-04
 
 | Import path | Names | Purpose |
 | --- | --- | --- |
-| `analysis_lister.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA` | Read and validate stored curated data. |
-| `analysis_lister.views.profiles` | `GroupProfile`, `PublicationPolicy` | Describe a group's presentation and publication selection. |
-| `analysis_lister.views.curation` | `load_publication_policy` | Read a policy from TOML. |
-| `analysis_lister.views.prepare` | `prepare_group` | Produce collections without rendering or network access. |
+| `grove.registry` | `CuratedRegistry`, `validate_registry`, `RESOURCES`, `SCHEMA` | Read and validate stored curated data. |
+| `grove.views.profiles` | `GroupProfile`, `PublicationPolicy` | Describe a group's presentation and publication selection. |
+| `grove.views.curation` | `load_publication_policy` | Read a policy from TOML. |
+| `grove.views.prepare` | `prepare_group` | Produce collections without rendering or network access. |
 
 `RESOURCES` is `("analyses", "papers", "confnotes", "pubnotes")`.
 `SCHEMA` is `"glance-curated-registry"`.
@@ -78,8 +78,8 @@ difference between missing, null and empty values.
 Preparation produces collections that can be used without Markdown rendering:
 
 ```python
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 policy = PublicationPolicy(groups=("DEMO",))
 view = prepare_group(registry, GroupProfile("DEMO", publication_policy=policy))

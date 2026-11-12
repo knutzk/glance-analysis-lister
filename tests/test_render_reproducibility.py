@@ -14,9 +14,9 @@ from tempfile import TemporaryDirectory
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.provenance import generator_fingerprint, json_fingerprint
-from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.provenance import generator_fingerprint, json_fingerprint
+from grove.views.build import render_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,7 +75,7 @@ class RenderReproducibilityTests(unittest.TestCase):
                     [
                         sys.executable,
                         "-m",
-                        "analysis_lister",
+                        "grove",
                         "render-group",
                         "--group",
                         "DEMO",

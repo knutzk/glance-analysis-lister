@@ -8,8 +8,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from analysis_lister.citations.resolver import snapshot_dois
-from analysis_lister.registry.publication_dois import enrich_paper, paper_dois
+from grove.citations.resolver import snapshot_dois
+from grove.registry.publication_dois import enrich_paper, paper_dois
 
 ORIGINAL = "10.1007/jhep01(2099)001"
 CORRECTION = "10.1007/jhep02(2099)002"
@@ -30,7 +30,7 @@ class PublicationDoiTests(unittest.TestCase):
         link = record["publicationPhase"]["finalJournalPublicationUrls"][0]
         link["label"] = "DOI:" + ORIGINAL
         original_link = link.copy()
-        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+        with self.assertNoLogs("grove.registry.publication_dois"):
             self.assertEqual(paper_dois(record), ([CORRECTION], 0))
         self.assertEqual(link, original_link)
 
@@ -39,7 +39,7 @@ class PublicationDoiTests(unittest.TestCase):
         record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
             "DOI:" + ORIGINAL.upper()
         )
-        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+        with self.assertNoLogs("grove.registry.publication_dois"):
             self.assertEqual(paper_dois(record), ([ORIGINAL], 0))
 
     def test_link_conflict_does_not_suppress_ambiguous_order_warning(self):
@@ -49,7 +49,7 @@ class PublicationDoiTests(unittest.TestCase):
         record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
             "DOI:10.1234/example-a"
         )
-        with self.assertLogs("analysis_lister", level="WARNING") as logs:
+        with self.assertLogs("grove", level="WARNING") as logs:
             entries, malformed = enrich_paper(record, {})
         self.assertEqual(malformed, 0)
         self.assertEqual(len(entries), 2)
@@ -84,7 +84,7 @@ class PublicationDoiTests(unittest.TestCase):
         record["publicationPhase"]["finalJournalPublicationUrls"][0]["label"] = (
             "Errratum: DOI:" + ORIGINAL
         )
-        with self.assertNoLogs("analysis_lister.registry.publication_dois"):
+        with self.assertNoLogs("grove.registry.publication_dois"):
             self.assertEqual(paper_dois(record), ([], 0))
 
     def test_publisher_paths_with_embedded_dois(self):

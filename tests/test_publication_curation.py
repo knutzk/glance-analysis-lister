@@ -10,17 +10,17 @@ from tempfile import TemporaryDirectory
 
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister import cli
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.build import render_group
-from analysis_lister.views.markdown.pages import (
+from grove import cli
+from grove.registry import CuratedRegistry
+from grove.views.build import render_group
+from grove.views.markdown.pages import (
     confnotes_page,
     ongoing_page,
     papers_page,
     pubnotes_page,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -186,9 +186,7 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
                 stdout = io.StringIO()
                 with (
                     redirect_stdout(stdout),
-                    self.assertLogs(
-                        "analysis_lister.views.build", level="INFO"
-                    ) as logs,
+                    self.assertLogs("grove.views.build", level="INFO") as logs,
                 ):
                     render_group(path, root / "out", configured)
                 self.assertEqual(stdout.getvalue(), "")
@@ -201,7 +199,7 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
                 )
 
     def test_config_is_optional_and_validated(self):
-        from analysis_lister.views.curation import load_publication_policy
+        from grove.views.curation import load_publication_policy
 
         self.assertEqual(load_publication_policy(None, "DEMO"), None)
         with TemporaryDirectory() as folder:

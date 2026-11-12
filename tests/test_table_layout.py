@@ -9,12 +9,12 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.markdown.layout import metadata_json, readable_html
-from analysis_lister.views.markdown.notes import note_table
-from analysis_lister.views.markdown.papers import paper_table
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.registry import CuratedRegistry
+from grove.views.markdown.layout import metadata_json, readable_html
+from grove.views.markdown.notes import note_table
+from grove.views.markdown.papers import paper_table
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 
 class TableLayoutTests(unittest.TestCase):

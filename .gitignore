@@ -47,6 +47,8 @@ dist/
 # Retired local Events files; prevent accidental reintroduction.
 /analysis_lister/events.py
 /analysis_lister/event_labels.py
+/grove/events.py
+/grove/event_labels.py
 /tests/test_events.py
 
 # Local coding-agent guidance.
@@ -56,5 +58,5 @@ dist/
 /ROADMAP.md
 
 # Public schema and independently invented compatibility fixtures.
-!/analysis_lister/registry/schemas/curated.schema.json
+!/grove/registry/schemas/curated.schema.json
 !/tests/fixtures/curated/*.json

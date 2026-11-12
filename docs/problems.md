@@ -93,7 +93,7 @@ remove private information before sharing a reproducer.
 
 | Symptom | Check and remedy |
 | --- | --- |
-| `analysis-lister` is not found | Activate the environment where you installed it, or use that environment's `python -m analysis_lister`. |
+| `grove` is not found | Activate the environment where you installed it, or use that environment's `python -m grove`. |
 | A module such as `jsonschema` is missing | Use the same Python for installation and execution. From a checkout, `python -m pip install .` installs runtime dependencies. |
 | Documentation preview lacks dependencies | Activate `.venv` and run `python -m pip install -r requirements-docs.txt`, then `python scripts/docs.py serve`. |
 | HTML export reports missing optional dependencies | From a checkout, install `python -m pip install '.[html]'`. Browser login also needs Chrome. |
@@ -172,8 +172,8 @@ a successful download can still be followed by a rejected build.
 For a successful download followed by a failed build:
 
 ```bash
-analysis-lister build-registry --api-snapshot data/api.json --output data/curated.json
-analysis-lister render-group --group TOPQ --snapshot data/curated.json \
+grove build-registry --api-snapshot data/api.json --output data/curated.json
+grove render-group --group TOPQ --snapshot data/curated.json \
   --output-dir docs/analyses
 ```
 
@@ -195,7 +195,7 @@ CSV destination; a successful run completes the batch. If you saved a complete
 HTML set and manifest, you can recover offline:
 
 ```bash
-analysis-lister download-html --from-html saved-html --csv-dir exports
+grove download-html --from-html saved-html --csv-dir exports
 ```
 
 Keep these directories separate. A partially saved HTML set is not sufficient
@@ -233,7 +233,7 @@ be read-only or replaced during an upgrade.
 | Only three of four synthetic notes appear | The fourth is superseded and initially hidden. Enable the superseded status filter. |
 | A filter reappears after reload | Filters and sorting persist in the URL. Use the page's Reset control. |
 | Records are readable but controls do nothing | Load the [browser assets](website.md#enable-browser-assets), with common files first. Check browser network errors and asset paths relative to the site's docs directory. |
-| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-analysis-lister/`; see the [site guide](contributing.md#documentation-changes). |
+| Navigation works at `/` but breaks under a repository path | Test through the preview server at the configured subpath. The documentation preview uses `/glance-grove/`; see the [site guide](contributing.md#documentation-changes). |
 | Editing a generated page has no lasting effect | Edit the original Markdown or synthetic fixture. The documentation helper regenerates `site-src/` and `site/`; restart after renderer-code changes. |
 
 Selection and derivation details are explained in the

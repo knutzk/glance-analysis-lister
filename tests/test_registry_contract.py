@@ -11,9 +11,9 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.fields import RECORD_FIELDS
-from analysis_lister.registry.schema import RESOURCES, validate_registry
+from grove.registry import CuratedRegistry
+from grove.registry.fields import RECORD_FIELDS
+from grove.registry.schema import RESOURCES, validate_registry
 
 FIXTURES = Path(__file__).parent / "fixtures/curated"
 PAPER_TIMESTAMP_FIELDS = (
@@ -30,9 +30,7 @@ def baseline():
 
 def schema():
     return json.loads(
-        files("analysis_lister.registry")
-        .joinpath("schemas/curated.schema.json")
-        .read_text()
+        files("grove.registry").joinpath("schemas/curated.schema.json").read_text()
     )
 
 
@@ -239,9 +237,7 @@ class RegistryContractTests(unittest.TestCase):
             with self.subTest(version=version):
                 data = baseline()
                 data["schema_version"] = version
-                with self.assertLogs(
-                    "analysis_lister.provenance", level="WARNING"
-                ) as logs:
+                with self.assertLogs("grove.provenance", level="WARNING") as logs:
                     validate_registry(data)
                 self.assertIn("generator metadata", logs.output[0])
 

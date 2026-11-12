@@ -11,24 +11,24 @@ from pathlib import Path
 from attrs.exceptions import FrozenInstanceError
 from view_fixtures import analysis, publication, snapshot
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.views.models import (
+from grove.registry import CuratedRegistry
+from grove.views.models import (
     NoteDetails,
     PublicationDetails,
     PublicationLink,
 )
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 
 class PreparedContractTests(unittest.TestCase):
     def test_public_preparation_works_without_io_or_renderer_imports(self):
         code = """
 import sys
-from analysis_lister.registry import CuratedRegistry, RESOURCES, SCHEMA, validate_registry
-from analysis_lister.views.curation import load_publication_policy
-from analysis_lister.views.prepare import prepare_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.registry import CuratedRegistry, RESOURCES, SCHEMA, validate_registry
+from grove.views.curation import load_publication_policy
+from grove.views.prepare import prepare_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 registry = CuratedRegistry.from_json("examples/synthetic_registry.json")
 policy = load_publication_policy("examples/demo/publication-curation.toml", "DEMO")
@@ -49,7 +49,7 @@ assert {resource: registry.records(resource) for resource in RESOURCES} == befor
 assert all(isinstance(row.metadata["text"], str) for row in (*view.ongoing, *view.archive))
 empty = prepare_group(registry, GroupProfile("DEMO", publication_policy=PublicationPolicy()))
 assert len(empty.ongoing) == 4 and empty.archive == ()
-assert not any(name.startswith(("analysis_lister.views.markdown", "analysis_lister.downloaders"))
+assert not any(name.startswith(("grove.views.markdown", "grove.downloaders"))
                for name in sys.modules)
 assert not {"requests", "stare", "selenium"}.intersection(sys.modules)
 """

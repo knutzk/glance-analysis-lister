@@ -27,8 +27,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from timing import timed
 
-from analysis_lister.views.build import render_group
-from analysis_lister.views.profiles import GroupProfile, PublicationPolicy
+from grove.views.build import render_group
+from grove.views.profiles import GroupProfile, PublicationPolicy
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGES = ("ongoing", "papers", "confnotes", "pubnotes")

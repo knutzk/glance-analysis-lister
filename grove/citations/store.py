@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from analysis_lister.storage import atomic_write_text
+from grove.storage import atomic_write_text
 
 DEFAULT_CACHE = Path("json/doi_metadata.json")
 DOI_PATTERN = re.compile(r"10\.\d{4,9}/\S+", re.IGNORECASE)
@@ -84,9 +84,9 @@ def default_store_path():
     if checkout.is_file():
         return checkout
     try:
-        package = distribution("glance-analysis-lister")
+        package = distribution("glance-grove")
         for path in package.files or []:
-            if str(path).endswith("share/glance-analysis-lister/doi_metadata.json"):
+            if str(path).endswith("share/glance-grove/doi_metadata.json"):
                 return Path(package.locate_file(path))
     except PackageNotFoundError:
         pass

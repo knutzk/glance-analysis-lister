@@ -6,14 +6,14 @@
 import logging
 import unittest
 
-from analysis_lister.diagnostics import lookup_notice, lookup_report
+from grove.diagnostics import lookup_notice, lookup_report
 
 
 class CitationNoticeTests(unittest.TestCase):
     def test_nested_reports_deduplicate_and_emit_even_when_work_fails(self):
-        logger = logging.getLogger("analysis_lister.synthetic")
+        logger = logging.getLogger("grove.synthetic")
         with (
-            self.assertLogs("analysis_lister.diagnostics", level="WARNING") as logs,
+            self.assertLogs("grove.diagnostics", level="WARNING") as logs,
             self.assertRaisesRegex(ValueError, "synthetic"),
             lookup_report(),
         ):

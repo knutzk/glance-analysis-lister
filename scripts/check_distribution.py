@@ -13,24 +13,25 @@ import sys
 import tarfile
 from importlib.metadata import distribution
 from importlib.resources import files
+from importlib.util import find_spec
 from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
-import analysis_lister
-from analysis_lister.citations.store import default_store_path, load_store
-from analysis_lister.provenance import (
+import grove
+from grove.citations.store import default_store_path, load_store
+from grove.provenance import (
     asset_provenance,
     generator_fingerprint,
     generator_revision,
     json_fingerprint,
 )
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.public_identifiers import (
+from grove.registry import CuratedRegistry
+from grove.registry.public_identifiers import (
     default_identifiers_path,
     load_identifiers,
 )
-from analysis_lister.views.curation import (
+from grove.views.curation import (
     default_curation_path,
     load_publication_policy,
 )
@@ -40,6 +41,7 @@ def check_public_paths(paths, artifact):
     """Reject known private/local outputs; this cannot establish data provenance."""
     forbidden_parts = {
         "AGENTS.md",
+        "analysis_lister",
         ".python-version",
         "cookies.json",
         ".cache",
@@ -59,12 +61,12 @@ def check_public_paths(paths, artifact):
         ".html-download-in-progress",
     }
     forbidden_paths = {
-        "analysis_lister/events.py",
-        "analysis_lister/event_labels.py",
+        "grove/events.py",
+        "grove/event_labels.py",
         "tests/test_events.py",
     }
     public_json = {
-        "analysis_lister/registry/schemas/curated.schema.json",
+        "grove/registry/schemas/curated.schema.json",
         "examples/synthetic_registry.json",
         "json/doi_metadata.json",
         "json/pubnote_identifiers.json",
@@ -81,8 +83,8 @@ def check_public_paths(paths, artifact):
             )
             or name.endswith(
                 (
-                    "/share/glance-analysis-lister/doi_metadata.json",
-                    "/share/glance-analysis-lister/pubnote_identifiers.json",
+                    "/share/glance-grove/doi_metadata.json",
+                    "/share/glance-grove/pubnote_identifiers.json",
                 )
             )
         )
@@ -104,15 +106,24 @@ def check_public_paths(paths, artifact):
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    installed = Path(analysis_lister.__file__).resolve()
+    installed = Path(grove.__file__).resolve()
     if installed.is_relative_to(root):
         raise RuntimeError("Check must import the installed wheel, not the checkout")
 
-    package = distribution("glance-analysis-lister")
+    package = distribution("glance-grove")
+    assert package.metadata["Name"] == "glance-grove"
+    assert find_spec("analysis_lister") is None, "Old Python package must not ship"
+    entry_points = {
+        entry.name: entry.value
+        for entry in package.entry_points
+        if entry.group == "console_scripts"
+    }
+    assert entry_points == {"grove": "grove.cli:main"}
+    assert not (Path(sys.executable).parent / "analysis-lister").exists()
     ruff_configs = [
         path
         for path in package.files or []
-        if str(path).endswith("/share/glance-analysis-lister/ruff.toml")
+        if str(path).endswith("/share/glance-grove/ruff.toml")
     ]
     assert len(ruff_configs) == 1, "Wheel must install the Ruff configuration"
     assert (
@@ -130,25 +141,25 @@ def main():
     with ZipFile(wheels[0]) as wheel:
         check_public_paths(wheel.namelist(), "wheel")
     retired = (
-        "analysis_lister/download.py",
-        "analysis_lister/certs/",
-        "analysis_lister/configs/",
-        "analysis_lister/glance/",
-        "analysis_lister/markdown/",
-        "analysis_lister/lookup_dicts/",
-        "analysis_lister/render.py",
-        "analysis_lister/obsidian.py",
-        "analysis_lister/lookup_review.py",
-        "analysis_lister/lookup_validation.py",
-        "analysis_lister/citation_store.py",
-        "analysis_lister/doi_resolver.py",
-        "analysis_lister/registry/doi.py",
-        "analysis_lister/views/selection.py",
-        "analysis_lister/views/semantics.py",
-        "analysis_lister/views/markdown/cards.py",
-        "analysis_lister/views/markdown/archive.py",
-        "analysis_lister/views/markdown/filtering.py",
-        "analysis_lister/views/markdown/publication_filtering.py",
+        "grove/download.py",
+        "grove/certs/",
+        "grove/configs/",
+        "grove/glance/",
+        "grove/markdown/",
+        "grove/lookup_dicts/",
+        "grove/render.py",
+        "grove/obsidian.py",
+        "grove/lookup_review.py",
+        "grove/lookup_validation.py",
+        "grove/citation_store.py",
+        "grove/doi_resolver.py",
+        "grove/registry/doi.py",
+        "grove/views/selection.py",
+        "grove/views/semantics.py",
+        "grove/views/markdown/cards.py",
+        "grove/views/markdown/archive.py",
+        "grove/views/markdown/filtering.py",
+        "grove/views/markdown/publication_filtering.py",
     )
     assert not any(str(path).startswith(retired) for path in package.files), (
         "Retired modules must not ship in the wheel"
@@ -162,14 +173,12 @@ def main():
     assert browser_requirements and all(
         "extra ==" in item for item in browser_requirements
     )
-    from analysis_lister.downloaders.http import INTERMEDIATE_CA
+    from grove.downloaders.http import INTERMEDIATE_CA
 
     assert INTERMEDIATE_CA.is_file()
     assert (
         INTERMEDIATE_CA.read_bytes()
-        == (
-            root / "analysis_lister/downloaders/certs" / INTERMEDIATE_CA.name
-        ).read_bytes()
+        == (root / "grove/downloaders/certs" / INTERMEDIATE_CA.name).read_bytes()
     )
     assert INTERMEDIATE_CA.with_name("README.md").is_file()
     assert package.metadata["License-Expression"] == "GPL-3.0-only"
@@ -183,7 +192,7 @@ def main():
     licence = (root / "LICENCE").read_bytes()
     assert package.locate_file(licences[0]).read_bytes() == licence
     revision = generator_revision()
-    assert generator_fingerprint() == generator_fingerprint(root / "analysis_lister")
+    assert generator_fingerprint() == generator_fingerprint(root / "grove")
     assert revision != "unknown", "Installed wheel must retain its source Git commit"
     citation_path = default_store_path()
     bundled_citations_before = citation_path.read_bytes()
@@ -204,11 +213,9 @@ def main():
     assert policy_path.read_bytes() == (root / "publication-curation.toml").read_bytes()
     assert load_publication_policy(policy_path, "TOPQ") is not None
 
-    schema_path = "analysis_lister/registry/schemas/curated.schema.json"
+    schema_path = "grove/registry/schemas/curated.schema.json"
     assert (
-        files("analysis_lister.registry")
-        .joinpath("schemas/curated.schema.json")
-        .read_bytes()
+        files("grove.registry").joinpath("schemas/curated.schema.json").read_bytes()
         == (root / schema_path).read_bytes()
     )
     for fixture in (root / "tests/fixtures/curated").glob("*.json"):
@@ -296,16 +303,16 @@ def main():
             ],
             ["format-citations", "--doi-cache", str(work / "citations.json")],
         ]
-        executable = Path(sys.executable).parent / "analysis-lister"
+        executable = Path(sys.executable).parent / "grove"
         for invocation in (
             [str(executable)],
-            [sys.executable, "-m", "analysis_lister"],
+            [sys.executable, "-m", "grove"],
         ):
             reported = subprocess.run(
                 [*invocation, "--version"], cwd=work, capture_output=True, text=True
             )
             assert reported.returncode == 0, reported.stderr
-            assert reported.stdout == f"analysis-lister {package.version}\n"
+            assert reported.stdout == f"grove {package.version}\n"
             assert not reported.stderr
         for command in (
             ["resolve-dois", "--doi", "10.1007/JHEP07(2099)999"],
@@ -451,7 +458,7 @@ def main():
             "gal-notes.css",
         ):
             assert (group_output / "assets" / name).read_text() == asset_provenance(
-                (root / "analysis_lister/views/assets" / name).read_text(),
+                (root / "grove/views/assets" / name).read_text(),
                 revision=revision,
             )
         report = json.loads((group_output / "view-report.json").read_text())
@@ -465,7 +472,7 @@ def main():
                 "Registry SHA-256: " + report["snapshot"]["sha256"] in page.read_text()
             )
         subprocess.run(
-            [sys.executable, "-I", "-m", "analysis_lister", "--help"],
+            [sys.executable, "-I", "-m", "grove", "--help"],
             cwd=work,
             check=True,
         )

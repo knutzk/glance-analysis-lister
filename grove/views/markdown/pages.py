@@ -46,8 +46,8 @@ def archive_curation_intro(view):
 
 def provenance(view, revision=None):
     fetched = text(view.source_metadata.get("fetched_at") or "unknown")
-    repository = "https://github.com/knutzk/glance-analysis-lister"
-    generator = f"Generated with [glance-analysis-lister]({repository})"
+    repository = "https://github.com/knutzk/glance-grove"
+    generator = f"Generated with [GROVE]({repository})"
     if revision and re.fullmatch(r"[0-9a-f]{40}(?:-dirty)?", revision):
         commit = revision.removesuffix("-dirty")
         generator += f", commit [`{commit[:12]}`]({repository}/commit/{commit})"

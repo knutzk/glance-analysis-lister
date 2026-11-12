@@ -15,11 +15,11 @@ from unittest.mock import patch
 
 from view_fixtures import api_fixture, person
 
-from analysis_lister import cli
-from analysis_lister.downloaders.api import RESOURCES
-from analysis_lister.registry import builder, enrichment as registry
-from analysis_lister.registry.fields import RECORD_FIELDS, select_fields
-from analysis_lister.registry.schema import validate_registry
+from grove import cli
+from grove.downloaders.api import RESOURCES
+from grove.registry import builder, enrichment as registry
+from grove.registry.fields import RECORD_FIELDS, select_fields
+from grove.registry.schema import validate_registry
 
 
 class CuratedTests(unittest.TestCase):
@@ -251,17 +251,17 @@ import sys
 class BlockLegacyAndAuthentication(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if any(fullname == name or fullname.startswith(name + ".")
-               for name in ("analysis_lister.glance", "stare", "selenium")):
+               for name in ("grove.glance", "stare", "selenium")):
             raise AssertionError("Forbidden dependency: " + fullname)
 sys.meta_path.insert(0, BlockLegacyAndAuthentication())
-from analysis_lister.downloaders import api as download
-from analysis_lister.cli import main
-from analysis_lister.registry import CuratedRegistry
+from grove.downloaders import api as download
+from grove.cli import main
+from grove.registry import CuratedRegistry
 main(["build-registry", "--api-snapshot", sys.argv[1],
       "--output", sys.argv[2]])
 registry = CuratedRegistry.from_json(sys.argv[2])
 assert registry.get("analyses", "ANA-DEMO-2099-01") is not None
-assert not any(name.startswith("analysis_lister.glance") for name in sys.modules)
+assert not any(name.startswith("grove.glance") for name in sys.modules)
 """
         subprocess.run(
             [

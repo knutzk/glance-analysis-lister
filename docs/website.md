@@ -30,7 +30,7 @@ If you already have a curated registry, render it directly. For example, from
 this checkout, use the public fixture and its policy:
 
 ```bash
-analysis-lister render-group --group DEMO \
+grove render-group --group DEMO \
   --snapshot examples/synthetic_registry.json \
   --curation-config examples/demo/publication-curation.toml \
   --output-dir examples/demo/work/pages
@@ -53,9 +53,9 @@ If curation rules or citation data changed, first rebuild from the saved API
 snapshot, then render the new registry:
 
 ```bash
-analysis-lister build-registry --api-snapshot data/api.json \
+grove build-registry --api-snapshot data/api.json \
   --doi-cache data/doi-metadata.json --output data/curated.json
-analysis-lister render-group --group TOPQ --snapshot data/curated.json \
+grove render-group --group TOPQ --snapshot data/curated.json \
   --curation-config publication-curation.toml --output-dir pages/topq
 ```
 
@@ -71,12 +71,12 @@ environment. TOPQ is an example: substitute your group and directory consistentl
 To display TOPQ pages from an existing curated registry:
 
 ```bash
-analysis-lister render-group --group TOPQ \
+grove render-group --group TOPQ \
   --snapshot glance_curated_registry.json --output-dir pages/topq
 python scripts/docs.py serve --group-pages TOPQ=pages/topq
 ```
 
-Open <http://127.0.0.1:8000/glance-analysis-lister/>. **TOPQ (local data)** appears
+Open <http://127.0.0.1:8000/glance-grove/>. **TOPQ (local data)** appears
 beside **Demo**, with ongoing analyses, papers, conference notes and public notes.
 The synthetic demo remains available. The group pages use the site's existing
 search, filtering, navigation and assets; no landing-page or asset copies are
@@ -112,7 +112,7 @@ curated snapshot at `data/curated.json`, and your policy at
 `publication-curation.toml`:
 
 ```bash
-analysis-lister render-group --group TOPQ --snapshot data/curated.json \
+grove render-group --group TOPQ --snapshot data/curated.json \
   --curation-config publication-curation.toml --output-dir generated/topq
 ```
 
@@ -204,7 +204,7 @@ cover these behaviours in the default Zensical theme.
 From the repository that consumes the pages, run:
 
 ```bash
-analysis-lister refresh --groups TOPQ --output-dir docs/analyses --login
+grove refresh --groups TOPQ --output-dir docs/analyses --login
 ```
 
 Refresh downloads one API snapshot, builds the curated registry offline, then
@@ -215,7 +215,7 @@ Refresh does not download HTML or query citation services.
 For several groups:
 
 ```bash
-analysis-lister refresh --groups TOPQ HIGP --output-dir pages
+grove refresh --groups TOPQ HIGP --output-dir pages
 ```
 
 A single group writes directly into the output directory. Multiple groups use

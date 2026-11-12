@@ -13,8 +13,8 @@ from tempfile import TemporaryDirectory
 
 from attrs import frozen
 
-from analysis_lister.downloaders.csv_io import read_csv_rows
-from analysis_lister.downloaders.tables import (
+from grove.downloaders.csv_io import read_csv_rows
+from grove.downloaders.tables import (
     parse_html_table,
     table_to_rows,
     validate_table_completeness,

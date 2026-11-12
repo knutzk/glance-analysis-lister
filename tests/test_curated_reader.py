@@ -13,8 +13,8 @@ from tempfile import TemporaryDirectory
 
 from view_fixtures import api_fixture
 
-from analysis_lister.registry import CuratedRegistry
-from analysis_lister.registry.enrichment import curate
+from grove.registry import CuratedRegistry
+from grove.registry.enrichment import curate
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -109,11 +109,11 @@ class CuratedReaderTests(unittest.TestCase):
     def test_reader_import_does_not_import_construction_or_downloaders(self):
         code = """
 import sys
-from analysis_lister.registry import CuratedRegistry
-assert not any(name.startswith(("analysis_lister.glance", "analysis_lister.download"))
+from grove.registry import CuratedRegistry
+assert not any(name.startswith(("grove.glance", "grove.download"))
                for name in sys.modules)
-assert "analysis_lister.registry.builder" not in sys.modules
-assert "analysis_lister.registry.enrichment" not in sys.modules
+assert "grove.registry.builder" not in sys.modules
+assert "grove.registry.enrichment" not in sys.modules
 assert "requests" not in sys.modules
 assert "stare" not in sys.modules
 assert "selenium" not in sys.modules

@@ -15,14 +15,14 @@ from unittest.mock import patch
 
 from view_fixtures import api_fixture, snapshot
 
-from analysis_lister.cli import main
-from analysis_lister.downloaders.api import collect_registry, publish_registry
-from analysis_lister.downloaders.manifest import make_manifest, validate_manifest
-from analysis_lister.provenance import generator_metadata, warn_generator_mismatch
-from analysis_lister.registry import CuratedRegistry, validate_registry
-from analysis_lister.registry.comparison import compare_snapshots
-from analysis_lister.registry.enrichment import curate
-from analysis_lister.registry.schema import RESOURCES, validate_api_registry
+from grove.cli import main
+from grove.downloaders.api import collect_registry, publish_registry
+from grove.downloaders.manifest import make_manifest, validate_manifest
+from grove.provenance import generator_metadata, warn_generator_mismatch
+from grove.registry import CuratedRegistry, validate_registry
+from grove.registry.comparison import compare_snapshots
+from grove.registry.enrichment import curate
+from grove.registry.schema import RESOURCES, validate_api_registry
 
 
 class GeneratorMetadataTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class GeneratorMetadataTests(unittest.TestCase):
         data = {"generator": generator_metadata()}
         data["generator"]["git_commit"] = "a" * 40
         data["generator"]["worktree"] = "/another/checkout"
-        with self.assertNoLogs("analysis_lister.provenance", level="WARNING"):
+        with self.assertNoLogs("grove.provenance", level="WARNING"):
             warn_generator_mismatch(data, label="Snapshot")
 
     def test_missing_malformed_or_different_metadata_warns_without_leaking_values(self):
@@ -42,7 +42,7 @@ class GeneratorMetadataTests(unittest.TestCase):
             {"content_sha256": "PRIVATE"},
             {"name": "PRIVATE", "content_sha256": "0" * 64},
             {
-                "name": "glance-analysis-lister",
+                "name": "glance-grove",
                 "content_sha256": "0" * 64,
                 "git_commit": "PRIVATE",
             },
@@ -50,9 +50,7 @@ class GeneratorMetadataTests(unittest.TestCase):
         for metadata in cases:
             with self.subTest(metadata=metadata):
                 data = {"generator": metadata}
-                with self.assertLogs(
-                    "analysis_lister.provenance", level="WARNING"
-                ) as logs:
+                with self.assertLogs("grove.provenance", level="WARNING") as logs:
                     warn_generator_mismatch(data, label="Snapshot")
                 self.assertEqual(len(logs.output), 1)
                 self.assertIn("continuing after validation", logs.output[0])
@@ -80,7 +78,7 @@ class GeneratorMetadataTests(unittest.TestCase):
         curated = curate(downloaded)
         tasks = [SimpleNamespace(name=resource) for resource in RESOURCES]
         manifest = make_manifest(tasks)
-        with self.assertNoLogs("analysis_lister.provenance", level="WARNING"):
+        with self.assertNoLogs("grove.provenance", level="WARNING"):
             validate_api_registry(downloaded)
             validate_registry(curated)
             validate_manifest(manifest, tasks)
@@ -95,7 +93,7 @@ class GeneratorMetadataTests(unittest.TestCase):
         api.pop("generator")
         api["schema_version"] = 999
         before = copy.deepcopy(api)
-        with self.assertLogs("analysis_lister.provenance", level="WARNING"):
+        with self.assertLogs("grove.provenance", level="WARNING"):
             curated = curate(api)
         self.assertEqual(api, before)
         self.assertNotIn("schema_version", curated)
@@ -103,14 +101,14 @@ class GeneratorMetadataTests(unittest.TestCase):
         manifest = make_manifest([])
         manifest.pop("generator")
         manifest["schema_version"] = 999
-        with self.assertLogs("analysis_lister.provenance", level="WARNING"):
+        with self.assertLogs("grove.provenance", level="WARNING"):
             self.assertEqual(validate_manifest(manifest, []), manifest)
 
     def test_reader_warning_does_not_modify_or_reject_valid_records(self):
         data = snapshot()
         data["generator"]["content_sha256"] = "0" * 64
         before = copy.deepcopy(data)
-        with self.assertLogs("analysis_lister.provenance", level="WARNING"):
+        with self.assertLogs("grove.provenance", level="WARNING"):
             reader = CuratedRegistry(data)
         self.assertEqual(data, before)
         self.assertEqual(reader.metadata["generator"], before["generator"])
@@ -138,14 +136,14 @@ class GeneratorMetadataTests(unittest.TestCase):
             raw = path.read_bytes()
             candidate = api_fixture()
             with (
-                self.assertLogs("analysis_lister.provenance", level="WARNING"),
+                self.assertLogs("grove.provenance", level="WARNING"),
                 self.assertRaisesRegex(ValueError, "count dropped"),
             ):
                 publish_registry(candidate, path)
             self.assertEqual(path.read_bytes(), raw)
             candidate["source"]["base_url"] = "https://other.example.test/api"
             with (
-                self.assertLogs("analysis_lister.provenance", level="WARNING"),
+                self.assertLogs("grove.provenance", level="WARNING"),
                 self.assertRaisesRegex(ValueError, "endpoint differs"),
             ):
                 publish_registry(candidate, path, allow_count_drop=True)
@@ -208,13 +206,13 @@ class GeneratorMetadataTests(unittest.TestCase):
             self.assertEqual(report["generator"], generator_metadata())
 
     def test_citation_store_has_no_generator_requirement(self):
-        from analysis_lister.citations.store import load_store, save_store
+        from grove.citations.store import load_store, save_store
 
         with TemporaryDirectory() as directory:
             path = Path(directory) / "citations.json"
             entries = {
                 "10.9999/example": {"citation": "Invented citation", "source": "manual"}
             }
-            with self.assertNoLogs("analysis_lister.provenance", level="WARNING"):
+            with self.assertNoLogs("grove.provenance", level="WARNING"):
                 save_store(path, entries)
                 self.assertEqual(load_store(path), entries)
