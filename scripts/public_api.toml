@@ -1,5 +1,3 @@
-# SPDX-FileCopyrightText: 2024-2026 Knut Zoch
-# SPDX-License-Identifier: GPL-3.0-only
 # Scope: docs/python-access.md. Callable/constant targets are documented import
 # paths. Prepared attribute targets are implementation locations and may change
 # during refactors. Result constructors are excluded.
