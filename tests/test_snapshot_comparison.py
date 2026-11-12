@@ -27,7 +27,7 @@ class SnapshotComparisonTests(unittest.TestCase):
         after["analyses"].reverse()
         after["papers"][0] = dict(reversed(list(after["papers"][0].items())))
         after["fetched_at"] = "2099-03-01T00:00:00Z"
-        after["gal_curation"] = {"built_at": "2099-03-02T00:00:00Z"}
+        after["grove_curation"] = {"built_at": "2099-03-02T00:00:00Z"}
         report = compare_snapshots(self.before, after)
         for changes in report["resources"].values():
             self.assertEqual(changes["counts"]["changed"], 0)
@@ -40,11 +40,11 @@ class SnapshotComparisonTests(unittest.TestCase):
         after["analyses"] = [after["analyses"][0], analysis(3)]
         changed = after["analyses"][0]
         changed["status"] = "Closed"
-        changed["gal_groups"]["otherGroups"] = ["OTHER"]
+        changed["grove_groups"]["otherGroups"] = ["OTHER"]
         del changed["shortTitle"]
         changed["optional"] = None
         changed["metadata"]["key/with~punctuation"] = False
-        after["papers"][0]["publicationPhase"]["gal_dois"].append(
+        after["papers"][0]["publicationPhase"]["grove_dois"].append(
             {"doi": "10.9999/correction"}
         )
         original = copy.deepcopy(self.before)
@@ -65,7 +65,7 @@ class SnapshotComparisonTests(unittest.TestCase):
         self.assertEqual(analyses["removed"], ["ANA-DEMO-2099-02"])
         fields = {field["path"]: field for field in analyses["changed"][0]["fields"]}
         self.assertEqual(fields["/status"]["after"], "Closed")
-        self.assertEqual(fields["/gal_groups/otherGroups"]["after"], ["OTHER"])
+        self.assertEqual(fields["/grove_groups/otherGroups"]["after"], ["OTHER"])
         self.assertEqual(
             fields["/optional"], {"path": "/optional", "kind": "added", "after": None}
         )
@@ -73,7 +73,7 @@ class SnapshotComparisonTests(unittest.TestCase):
         self.assertIn("/metadata/key~1with~0punctuation", fields)
         self.assertEqual(
             report["resources"]["papers"]["changed"][0]["fields"][0]["path"],
-            "/publicationPhase/gal_dois",
+            "/publicationPhase/grove_dois",
         )
         self.assertEqual(self.before, original)
 

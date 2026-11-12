@@ -30,19 +30,19 @@ class PaperRenderingTests(unittest.TestCase):
             with self.subTest(chairs=chairs):
                 paper = publication(1)
                 paper["phase1"] = {
-                    "gal_editorialBoard": [
+                    "grove_editorialBoard": [
                         "Invented Member",
                         "Invented Chair",
                         "Invented Member",
                     ],
-                    "gal_editorialBoardChairs": chairs,
+                    "grove_editorialBoardChairs": chairs,
                 }
                 view = self.prepare(snapshot(analysis(1), papers=(paper,)))
                 row = next(row for row in view.archive if row.resource == "papers")
                 self.assertEqual(row.details.board_chairs, tuple(chairs))
                 self.assertEqual(
                     row.provenance["details"]["inputs"][
-                        "phase1.gal_editorialBoardChairs"
+                        "phase1.grove_editorialBoardChairs"
                     ],
                     chairs,
                 )
@@ -108,9 +108,9 @@ class PaperRenderingTests(unittest.TestCase):
         published_undated = publication(3, date=None)
         submitted = publication(4, status="Publication Phase Active", date=None)
         submitted["publicationPhase"]["arXivSubmissionDate"] = "2099-03-01"
-        submitted["publicationPhase"]["gal_dois"] = []
+        submitted["publicationPhase"]["grove_dois"] = []
         review_dated = publication(5, date="2000-01-01")
-        review_dated["publicationPhase"]["gal_dois"] = []
+        review_dated["publicationPhase"]["grove_dois"] = []
         active = publication(6, status="Phase 2 Active", date=None)
         view = self.prepare(
             snapshot(
@@ -118,7 +118,7 @@ class PaperRenderingTests(unittest.TestCase):
             )
         )
         soup = BeautifulSoup(papers_page(view), "html.parser")
-        rows = soup.select("[data-gal-item]")
+        rows = soup.select("[data-grove-item]")
         self.assertEqual(
             [row.select_one('th[scope="row"]').text for row in rows],
             [
@@ -127,12 +127,12 @@ class PaperRenderingTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            [row["data-gal-date"] for row in rows],
+            [row["data-grove-date"] for row in rows],
             ["2000-01-01", "", "2099-02-01", "1999-01-01", ""],
         )
         for row in rows:
             self.assertEqual(
-                row.select_one("[data-gal-paper-toggle]")["aria-controls"],
+                row.select_one("[data-grove-paper-toggle]")["aria-controls"],
                 row.find_next_sibling("tr")["id"],
             )
 
@@ -148,7 +148,7 @@ class PaperRenderingTests(unittest.TestCase):
         soup = BeautifulSoup(papers_page(view), "html.parser")
         self.assertIn(
             "Submission · arXiv submission · 2099-03-01",
-            soup.select_one("[data-gal-paper-details]").text,
+            soup.select_one("[data-grove-paper-details]").text,
         )
         paper["publicationPhase"]["journalAcceptanceDate"] = "2099-04-01"
         view = self.prepare(snapshot(analysis(1), papers=(paper,)))
@@ -162,7 +162,7 @@ class PaperRenderingTests(unittest.TestCase):
         paper["publicationPhase"]["arXivUrls"] = [
             {"url": "https://example.test/preprint"}
         ]
-        paper["publicationPhase"]["gal_dois"] = [
+        paper["publicationPhase"]["grove_dois"] = [
             {"doi": "10.9999/original", "citation": "Invented journal citation"},
             {
                 "doi": "10.9999/correction",
@@ -172,7 +172,7 @@ class PaperRenderingTests(unittest.TestCase):
         ]
         view = self.prepare(snapshot(analysis(1), papers=(paper,)))
         soup = BeautifulSoup(papers_page(view), "html.parser")
-        links = soup.select(".gal-publication-records a")
+        links = soup.select(".grove-publication-records a")
         self.assertEqual(
             [(link.text, link["href"]) for link in links],
             [
@@ -182,32 +182,32 @@ class PaperRenderingTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            soup.select_one("[data-gal-item] th a").text, paper["referenceCode"]
+            soup.select_one("[data-grove-item] th a").text, paper["referenceCode"]
         )
-        details = soup.select_one("[data-gal-paper-details]")
+        details = soup.select_one("[data-grove-paper-details]")
         self.assertFalse(details.has_attr("hidden"))
-        self.assertIsNotNone(details.select_one("[data-gal-paper-collapse]"))
+        self.assertIsNotNone(details.select_one("[data-grove-paper-collapse]"))
 
     def test_archive_html_keeps_full_table_and_inherited_subgroup_evidence(self):
         value = analysis(1)
         paper = publication(1, group=None, related=value["referenceCode"])
-        paper["gal_contactEditors"] = ["Invented Editor"]
-        paper["phase1"] = {"gal_editorialBoard": ["Invented Board Member"]}
+        paper["grove_contactEditors"] = ["Invented Editor"]
+        paper["phase1"] = {"grove_editorialBoard": ["Invented Board Member"]}
         paper["publicationPhase"]["arXivUrls"] = [{"url": "https://example.test/arxiv"}]
         paper["shortTitle"] = 'Invented <script> "quoted" | title'
-        paper["publicationPhase"]["gal_dois"][0]["citation"] = (
+        paper["publicationPhase"]["grove_dois"][0]["citation"] = (
             "Synthetic <citation> | text"
         )
         note = publication(2, resource="pubnotes", status="Phase 1 Finished", date=None)
         view = self.prepare(snapshot(value, papers=(paper,), pubnotes=(note,)))
         markup = papers_page(view)
         soup = BeautifulSoup(markup, "html.parser")
-        rows = soup.select("tbody [data-gal-item]")
+        rows = soup.select("tbody [data-grove-item]")
         self.assertEqual(
             len(rows), sum(row.resource == "papers" for row in view.archive)
         )
         self.assertTrue(all(not row.has_attr("hidden") for row in rows))
-        self.assertTrue(soup.select_one("[data-gal-controls]").has_attr("hidden"))
+        self.assertTrue(soup.select_one("[data-grove-controls]").has_attr("hidden"))
         self.assertEqual(len(soup.select("thead th[scope=col]")), 4)
         detail = rows[0].find_next_sibling("tr")
         self.assertEqual(detail.td["colspan"], "4")
@@ -216,41 +216,41 @@ class PaperRenderingTests(unittest.TestCase):
         self.assertIn("Synthetic <citation> | text", rows[0].get_text())
         self.assertIn(
             "Synthetic <citation> | text",
-            detail.select_one(".gal-publication-details__body").get_text(),
+            detail.select_one(".grove-publication-details__body").get_text(),
         )
-        self.assertIsNotNone(rows[0].select_one("[data-gal-paper-toggle]"))
+        self.assertIsNotNone(rows[0].select_one("[data-grove-paper-toggle]"))
         self.assertIn(
             "Invented Editor",
-            detail.select_one(".gal-publication-details__body").get_text(),
+            detail.select_one(".grove-publication-details__body").get_text(),
         )
         self.assertIn(
             "Invented Board Member",
-            detail.select_one(".gal-publication-details__body").get_text(),
+            detail.select_one(".grove-publication-details__body").get_text(),
         )
         self.assertIsNotNone(rows[0].select_one('a[href="https://example.test/arxiv"]'))
         note_row = BeautifulSoup(pubnotes_page(view), "html.parser").select_one(
             "tbody tr"
         )
         self.assertIsNotNone(
-            note_row.find_next_sibling("tr").select_one(".gal-badge--leading")
+            note_row.find_next_sibling("tr").select_one(".grove-badge--leading")
         )
 
         self.assertIn("Via linked analysis", detail.get_text())
-        metadata = json.loads(rows[0]["data-gal-metadata"])
+        metadata = json.loads(rows[0]["data-grove-metadata"])
         self.assertEqual(set(metadata), {"text", "publication_status"})
         self.assertIn("Example subgroup, with comma", metadata["text"])
         self.assertIn(
             "inherited", view.archive[0].provenance["leading_subgroup"]["reason"]
         )
-        self.assertFalse(soup.select('[data-gal-filter="subgroups"]'))
-        self.assertIsNone(soup.select_one('[data-gal-filter="leading_subgroup"]'))
-        self.assertIsNone(soup.select_one('[data-gal-filter="keywords"]'))
+        self.assertFalse(soup.select('[data-grove-filter="subgroups"]'))
+        self.assertIsNone(soup.select_one('[data-grove-filter="leading_subgroup"]'))
+        self.assertIsNone(soup.select_one('[data-grove-filter="keywords"]'))
         self.assertNotIn("Not recorded", note_row.get_text())
-        self.assertIsNone(note_row.select_one(".gal-native-id"))
+        self.assertIsNone(note_row.select_one(".grove-native-id"))
         self.assertFalse(
-            detail.select_one(".gal-publication-details__body").has_attr("open")
+            detail.select_one(".grove-publication-details__body").has_attr("open")
         )
-        self.assertNotIn("data-gal-pagination", markup)
+        self.assertNotIn("data-grove-pagination", markup)
 
         empty = BeautifulSoup(
             papers_page(self.prepare(snapshot(analysis(1)))), "html.parser"
@@ -259,13 +259,13 @@ class PaperRenderingTests(unittest.TestCase):
 
     def test_recorded_metadata_is_visible_without_archive_dropdowns(self):
         paper = publication(1)
-        paper["gal_groups"]["leadingSubgroup"] = "Leading assignment"
-        paper["gal_groups"]["subgroups"] = ["Additional assignment"]
-        paper["metadata"] = {"gal_keywords": ["Synthetic keyword", "A, B"]}
+        paper["grove_groups"]["leadingSubgroup"] = "Leading assignment"
+        paper["grove_groups"]["subgroups"] = ["Additional assignment"]
+        paper["metadata"] = {"grove_keywords": ["Synthetic keyword", "A, B"]}
         view = self.prepare(snapshot(analysis(1), papers=(paper,)))
         soup = BeautifulSoup(papers_page(view), "html.parser")
-        self.assertFalse(soup.select('[data-gal-filter="leading_subgroup"]'))
-        self.assertFalse(soup.select(".gal-multiselect"))
+        self.assertFalse(soup.select('[data-grove-filter="leading_subgroup"]'))
+        self.assertFalse(soup.select(".grove-multiselect"))
         self.assertIn("Synthetic keyword", soup.select_one("tbody").text)
         self.assertIn("Additional assignment", soup.select_one("tbody").get_text())
         self.assertEqual(

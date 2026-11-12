@@ -31,10 +31,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def choose_filter(driver, category, value):
-    container = driver.find_element(By.CSS_SELECTOR, f'[data-gal-filter="{category}"]')
+    container = driver.find_element(
+        By.CSS_SELECTOR, f'[data-grove-filter="{category}"]'
+    )
     if category == "subgroups":
         for button in container.find_elements(By.CSS_SELECTOR, "button"):
-            expected = button.get_attribute("data-gal-value") == value
+            expected = button.get_attribute("data-grove-value") == value
             if (button.get_attribute("aria-pressed") == "true") != expected:
                 button.click()
         return
@@ -65,16 +67,16 @@ def run_checks(work_dir):
         (third, ["DEMO-Alpha, with comma", "DEMO-Beta"]),
         (fourth, []),
     ):
-        record["gal_groups"]["leadingSubgroup"] = names[0] if names else None
-        record["gal_groups"]["subgroups"] = names
+        record["grove_groups"]["leadingSubgroup"] = names[0] if names else None
+        record["grove_groups"]["subgroups"] = names
     for record in (first, second, third, fourth):
-        record["metadata"]["gal_keywords"] = [
+        record["metadata"]["grove_keywords"] = [
             "Signal" if record in (first, fourth) else "Background"
         ]
-    first["metadata"]["gal_triggers"] = ["Invented trigger"]
+    first["metadata"]["grove_triggers"] = ["Invented trigger"]
     first["shortTitle"] = "Synthetic first analysis"
     second["shortTitle"] = "Synthetic second analysis"
-    second["phase0"]["gal_editorialBoard"] = ["Example Reviewer"]
+    second["phase0"]["grove_editorialBoard"] = ["Example Reviewer"]
     third["shortTitle"] = "Synthetic third analysis"
     third["phase0"]["pgcOrSgcSignOffDate"] = "2099-01-02"
     fourth["shortTitle"] = "Synthetic analysis without subgroup"
@@ -82,13 +84,13 @@ def run_checks(work_dir):
         CuratedRegistry(snapshot(first, second, third, fourth)), GroupProfile("DEMO")
     )
     markup = str(
-        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-ongoing")
+        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".grove-ongoing")
     )
-    common_css = (root / "grove/views/assets/gal-common.css").as_uri()
-    common_js = (root / "grove/views/assets/gal-common.js").as_uri()
-    css = (root / "grove/views/assets/gal-ongoing.css").as_uri()
-    js = (root / "grove/views/assets/gal-ongoing.js").as_uri()
-    archive_js = (root / "grove/views/assets/gal-papers.js").as_uri()
+    common_css = (root / "grove/views/assets/grove-common.css").as_uri()
+    common_js = (root / "grove/views/assets/grove-common.js").as_uri()
+    css = (root / "grove/views/assets/grove-ongoing.css").as_uri()
+    js = (root / "grove/views/assets/grove-ongoing.js").as_uri()
+    archive_js = (root / "grove/views/assets/grove-papers.js").as_uri()
     html = f'''<!doctype html><html><head><meta charset="utf-8"><style>.md-typeset details {{ content-visibility: auto; }} .md-typeset ol:not([hidden]), .md-typeset ul:not([hidden]) {{ display: flow-root; }}</style><link rel="stylesheet" href="{common_css}"><link rel="stylesheet" href="{css}"><style>body{{font:16px system-ui;max-width:1000px;margin:auto;padding:24px;background:#fafbfc;color:#253041}}p{{line-height:1.5}}</style></head><body><main class="md-typeset">{markup}</main><script>window.document$={{subscribe(fn){{window.documentSubscriber=fn;}}}};</script><script src="{common_js}"></script><script src="{js}"></script><script src="{archive_js}"></script></body></html>'''
     output = work_dir / "fixture.html"
     output.write_text(html)
@@ -112,16 +114,16 @@ def run_checks(work_dir):
         def count(value):
             wait.until(
                 lambda d: (
-                    d.find_element(By.CSS_SELECTOR, "[data-gal-count]").text
+                    d.find_element(By.CSS_SELECTOR, "[data-grove-count]").text
                     == f"{value} of 4 analyses"
                 )
             )
 
         def button(value):
-            return driver.find_element(By.CSS_SELECTOR, f'[data-gal-value="{value}"]')
+            return driver.find_element(By.CSS_SELECTOR, f'[data-grove-value="{value}"]')
 
         def reset():
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-reset]").click()
+            driver.find_element(By.CSS_SELECTOR, "[data-grove-reset]").click()
             count(4)
 
         driver.get(
@@ -129,18 +131,18 @@ def run_checks(work_dir):
         )
         count(2)
         assert (
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+            driver.find_element(By.CSS_SELECTOR, "[data-grove-search]").get_attribute(
                 "value"
             )
             == "Signal"
         )
         assert (
             Select(
-                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
             ).first_selected_option.get_attribute("value")
             == "reference"
         )
-        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
         search.clear()
         search.send_keys("Invented trigger")
         count(1)
@@ -158,14 +160,14 @@ def run_checks(work_dir):
         )
         count(2)
         assert (
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+            driver.find_element(By.CSS_SELECTOR, "[data-grove-search]").get_attribute(
                 "value"
             )
             == "Signal"
         )
         assert (
             Select(
-                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
             ).first_selected_option.get_attribute("value")
             == "stage-asc"
         )
@@ -177,7 +179,7 @@ def run_checks(work_dir):
         driver.back()
         wait.until(
             lambda d: (
-                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                d.find_element(By.CSS_SELECTOR, "[data-grove-search]").get_attribute(
                     "value"
                 )
                 == "Signal"
@@ -186,14 +188,14 @@ def run_checks(work_dir):
         count(2)
         assert (
             Select(
-                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
             ).first_selected_option.get_attribute("value")
             == "stage-asc"
         )
         driver.forward()
         wait.until(
             lambda d: (
-                d.find_element(By.CSS_SELECTOR, "[data-gal-search]").get_attribute(
+                d.find_element(By.CSS_SELECTOR, "[data-grove-search]").get_attribute(
                     "value"
                 )
                 == "Background"
@@ -202,7 +204,7 @@ def run_checks(work_dir):
         count(2)
         assert (
             Select(
-                driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]")
+                driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]")
             ).first_selected_option.get_attribute("value")
             == "reference"
         )
@@ -226,13 +228,13 @@ def run_checks(work_dir):
         count(2)
         reset()
         count(4)
-        card = driver.find_element(By.CSS_SELECTOR, ".gal-card")
-        toggle = card.find_element(By.CSS_SELECTOR, "[data-gal-card-toggle]")
+        card = driver.find_element(By.CSS_SELECTOR, ".grove-card")
+        toggle = card.find_element(By.CSS_SELECTOR, "[data-grove-card-toggle]")
         assert toggle.get_attribute("aria-expanded") == "false"
         card.find_element(By.CSS_SELECTOR, "h2").click()
         assert toggle.get_attribute("aria-expanded") == "true"
-        collapse = card.find_element(By.CSS_SELECTOR, "[data-gal-card-collapse]")
-        card.find_element(By.CSS_SELECTOR, ".gal-progress").click()
+        collapse = card.find_element(By.CSS_SELECTOR, "[data-grove-card-collapse]")
+        card.find_element(By.CSS_SELECTOR, ".grove-progress").click()
         assert toggle.get_attribute("aria-expanded") == "true"
         collapse.click()
         assert toggle.get_attribute("aria-expanded") == "false"
@@ -242,37 +244,39 @@ def run_checks(work_dir):
         assert toggle.get_attribute("aria-expanded") == "false"
         assert not card.find_elements(By.CSS_SELECTOR, "summary")
         assert (
-            card.find_element(By.CSS_SELECTOR, ".gal-card__header").rect["y"]
-            < card.find_element(By.CSS_SELECTOR, ".gal-progress").rect["y"]
+            card.find_element(By.CSS_SELECTOR, ".grove-card__header").rect["y"]
+            < card.find_element(By.CSS_SELECTOR, ".grove-progress").rect["y"]
         )
         assert driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-controls]"
+            By.CSS_SELECTOR, "[data-grove-controls]"
         ).is_displayed()
 
-        expand_all = driver.find_element(By.CSS_SELECTOR, "[data-gal-expand-all]")
+        expand_all = driver.find_element(By.CSS_SELECTOR, "[data-grove-expand-all]")
         expand_all.click()
         assert expand_all.text == "Collapse all"
         assert all(
             p.is_displayed()
-            for p in driver.find_elements(By.CSS_SELECTOR, ".gal-card__details")
+            for p in driver.find_elements(By.CSS_SELECTOR, ".grove-card__details")
         )
         expand_all.click()
         assert expand_all.text == "Expand all"
         assert not any(
             p.is_displayed()
-            for p in driver.find_elements(By.CSS_SELECTOR, ".gal-card__details")
+            for p in driver.find_elements(By.CSS_SELECTOR, ".grove-card__details")
         )
-        target = driver.find_elements(By.CSS_SELECTOR, ".gal-card")[-1]
+        target = driver.find_elements(By.CSS_SELECTOR, ".grove-card")[-1]
         target_id = target.get_attribute("id")
-        permalink = target.find_element(By.CSS_SELECTOR, ".gal-card__permalink")
+        permalink = target.find_element(By.CSS_SELECTOR, ".grove-card__permalink")
         assert permalink.get_attribute("href").endswith("#" + target_id)
         permalink.click()
-        assert target.find_element(By.CSS_SELECTOR, ".gal-card__details").is_displayed()
+        assert target.find_element(
+            By.CSS_SELECTOR, ".grove-card__details"
+        ).is_displayed()
         driver.refresh()
         count(4)
         assert (
             driver.find_element(By.ID, target_id)
-            .find_element(By.CSS_SELECTOR, ".gal-card__details")
+            .find_element(By.CSS_SELECTOR, ".grove-card__details")
             .is_displayed()
         )
         # A direct card link reveals its target even if a subgroup URL hides it.
@@ -283,7 +287,7 @@ def run_checks(work_dir):
         count(4)
         assert (
             driver.find_element(By.ID, "analysis-demo-ana-demo-2099-04")
-            .find_element(By.CSS_SELECTOR, ".gal-card__details")
+            .find_element(By.CSS_SELECTOR, ".grove-card__details")
             .is_displayed()
         )
         driver.get(output.as_uri())
@@ -293,21 +297,21 @@ def run_checks(work_dir):
         # card. Moving unchanged DOM nodes used to drop focus and redo layout.
         stable = driver.execute_script(
             """
-            const container = document.querySelector('.gal-cards');
+            const container = document.querySelector('.grove-cards');
             const cards = [...container.children];
             const card = document.getElementById('analysis-demo-ana-demo-2099-01');
-            const toggle = card.querySelector('[data-gal-card-toggle]');
+            const toggle = card.querySelector('[data-grove-card-toggle]');
             toggle.click();
             toggle.focus();
             const observer = new MutationObserver(() => {});
             observer.observe(container, {childList: true});
-            const search = document.querySelector('[data-gal-search]');
+            const search = document.querySelector('[data-grove-search]');
             for (const query of ['Signal', '']) {
               search.value = query;
               search.dispatchEvent(new Event('input', {bubbles: true}));
             }
-            document.querySelector('[data-gal-value="DEMO-Alpha, with comma"]').click();
-            document.querySelector('[data-gal-reset]').click();
+            document.querySelector('[data-grove-value="DEMO-Alpha, with comma"]').click();
+            document.querySelector('[data-grove-reset]').click();
             const result = {
               moves: observer.takeRecords().length,
               sameOrder: cards.every((card, i) => container.children[i] === card),
@@ -339,9 +343,9 @@ def run_checks(work_dir):
         count(2)
         assert not driver.find_elements(
             By.CSS_SELECTOR,
-            '[data-gal-filter="keywords"], [data-gal-filter="triggers"]',
+            '[data-grove-filter="keywords"], [data-grove-filter="triggers"]',
         )
-        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
         search.send_keys("Signal")
         count(1)
         search.clear()
@@ -349,43 +353,43 @@ def run_checks(work_dir):
         count(1)
         search.clear()
         count(2)
-        sorter = Select(driver.find_element(By.CSS_SELECTOR, "[data-gal-sort]"))
+        sorter = Select(driver.find_element(By.CSS_SELECTOR, "[data-grove-sort]"))
         sorter.select_by_value("stage-desc")
         count(2)
         assert (
             driver.execute_script(
-                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).reference"
+                "return JSON.parse(document.querySelector('.grove-card').dataset.groveMetadata).reference"
             )
             == "ANA-DEMO-2099-03"
         )
         sorter.select_by_value("stage-asc")
         assert (
             driver.execute_script(
-                "return JSON.parse(document.querySelector('.gal-card').dataset.galMetadata).reference"
+                "return JSON.parse(document.querySelector('.grove-card').dataset.groveMetadata).reference"
             )
             == "ANA-DEMO-2099-01"
         )
         # A reset after an actual sort change must restore the default order.
         sorter.select_by_value("stage-desc")
         default_order = driver.execute_script(
-            "return [...document.querySelectorAll('.gal-card')].map(card => card.id)"
+            "return [...document.querySelectorAll('.grove-card')].map(card => card.id)"
         )
         sorter.select_by_value("reference")
         reset()
         assert (
             driver.execute_script(
-                "return [...document.querySelectorAll('.gal-card')].map(card => card.id)"
+                "return [...document.querySelectorAll('.grove-card')].map(card => card.id)"
             )
             == default_order
         )
-        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
         search.send_keys("no-match")
         count(0)
-        assert driver.find_element(By.CSS_SELECTOR, "[data-gal-empty]").is_displayed()
+        assert driver.find_element(By.CSS_SELECTOR, "[data-grove-empty]").is_displayed()
         reset()
         assert not driver.find_elements(
             By.CSS_SELECTOR,
-            '[data-gal-filter="stage"], [data-gal-filter="participation"], [data-gal-filter="statistical_tools"]',
+            '[data-grove-filter="stage"], [data-grove-filter="participation"], [data-grove-filter="statistical_tools"]',
         )
         driver.execute_script(
             "window.documentSubscriber();window.documentSubscriber();"
@@ -394,15 +398,15 @@ def run_checks(work_dir):
         count(2)
         reset()
         original = driver.execute_script(
-            'return document.querySelector("[data-gal-collection]").outerHTML'
+            'return document.querySelector("[data-grove-collection]").outerHTML'
         )
         driver.execute_script(
-            'document.querySelector("[data-gal-collection]").outerHTML=arguments[0]',
+            'document.querySelector("[data-grove-collection]").outerHTML=arguments[0]',
             original,
         )
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-controls]"
+                By.CSS_SELECTOR, "[data-grove-controls]"
             ).is_displayed()
         )
         button("DEMO-Alpha, with comma").click()
@@ -413,12 +417,14 @@ def run_checks(work_dir):
         choose("subgroups", "DEMO-Alpha, with comma")
         count(2)
         reset()
-        driver.execute_script((root / "grove/views/assets/gal-ongoing.js").read_text())
+        driver.execute_script(
+            (root / "grove/views/assets/grove-ongoing.js").read_text()
+        )
         choose("subgroups", "DEMO-Beta")
         count(2)
         reset()
         assert driver.execute_script(
-            "return getComputedStyle(document.querySelector('.gal-progress')).flexDirection === 'row'"
+            "return getComputedStyle(document.querySelector('.grove-progress')).flexDirection === 'row'"
         )
         driver.save_screenshot(str(work_dir / "desktop.png"))
         driver.set_window_size(390, 1000)
@@ -432,22 +438,22 @@ def run_checks(work_dir):
             len(
                 [
                     x
-                    for x in driver.find_elements(By.CSS_SELECTOR, "[data-gal-item]")
+                    for x in driver.find_elements(By.CSS_SELECTOR, "[data-grove-item]")
                     if x.is_displayed()
                 ]
             )
             == 4
         )
         assert not driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-controls]"
+            By.CSS_SELECTOR, "[data-grove-controls]"
         ).is_displayed()
         assert driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-item] .gal-progress"
+            By.CSS_SELECTOR, "[data-grove-item] .grove-progress"
         ).is_displayed()
         assert driver.execute_script(
-            "const flow=document.querySelector('.gal-progress'); const steps=Array.from(flow.children); return getComputedStyle(flow).flexDirection==='column' && new Set(steps.map(e=>Math.round(e.getBoundingClientRect().x))).size===1 && steps.every((e,i)=>i===0 || e.getBoundingClientRect().y>steps[i-1].getBoundingClientRect().bottom)"
+            "const flow=document.querySelector('.grove-progress'); const steps=Array.from(flow.children); return getComputedStyle(flow).flexDirection==='column' && new Set(steps.map(e=>Math.round(e.getBoundingClientRect().x))).size===1 && steps.every((e,i)=>i===0 || e.getBoundingClientRect().y>steps[i-1].getBoundingClientRect().bottom)"
         )
-        cards = driver.find_elements(By.CSS_SELECTOR, "[data-gal-item]")
+        cards = driver.find_elements(By.CSS_SELECTOR, "[data-grove-item]")
         assert len({round(card.rect["x"]) for card in cards}) == 1
         check_large_collection(driver, work_dir, html, markup)
         print(
@@ -461,7 +467,7 @@ def check_large_collection(driver, work_dir, html, original_markup):
         CuratedRegistry(synthetic_registry(1000)), GroupProfile("DEMO")
     )
     markup = str(
-        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".gal-ongoing")
+        BeautifulSoup(ongoing_page(view), "html.parser").select_one(".grove-ongoing")
     )
     output = work_dir / "large.html"
     output.write_text(html.replace(original_markup, markup))
@@ -470,10 +476,12 @@ def check_large_collection(driver, work_dir, html, original_markup):
     driver.get(output.as_uri())
     wait = WebDriverWait(driver, 20, poll_frequency=0.1)
     wait.until(
-        lambda d: d.find_element(By.CSS_SELECTOR, "[data-gal-controls]").is_displayed()
+        lambda d: d.find_element(
+            By.CSS_SELECTOR, "[data-grove-controls]"
+        ).is_displayed()
     )
     target_id = driver.execute_script(
-        "return document.querySelector('.gal-cards').lastElementChild.id"
+        "return document.querySelector('.grove-cards').lastElementChild.id"
     )
     for width in (1280, 390):
         driver.execute_cdp_cmd(
@@ -482,7 +490,7 @@ def check_large_collection(driver, work_dir, html, original_markup):
         )
         driver.get(output.as_uri() + "#" + target_id)
         target = driver.find_element(By.ID, target_id)
-        toggle = target.find_element(By.CSS_SELECTOR, "[data-gal-card-toggle]")
+        toggle = target.find_element(By.CSS_SELECTOR, "[data-grove-card-toggle]")
         wait.until(
             lambda d, toggle=toggle: toggle.get_attribute("aria-expanded") == "true"
         )
@@ -494,7 +502,7 @@ def check_large_collection(driver, work_dir, html, original_markup):
             )
         )
         assert target.find_element(By.CSS_SELECTOR, "h2").text.strip()
-        collapse = target.find_element(By.CSS_SELECTOR, "[data-gal-card-collapse]")
+        collapse = target.find_element(By.CSS_SELECTOR, "[data-grove-card-collapse]")
         collapse.send_keys(Keys.SPACE)
         assert toggle.get_attribute("aria-expanded") == "false"
         assert driver.switch_to.active_element == toggle
@@ -506,7 +514,7 @@ def check_large_collection(driver, work_dir, html, original_markup):
 
     driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"media": "print"})
     assert driver.execute_script(
-        "return [...document.querySelectorAll('.gal-card')].every(card => "
+        "return [...document.querySelectorAll('.grove-card')].every(card => "
         "getComputedStyle(card).contentVisibility === 'visible')"
     ), "Printing must not defer offscreen card content"
     driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"media": "screen"})
@@ -514,7 +522,7 @@ def check_large_collection(driver, work_dir, html, original_markup):
 
 
 def main():
-    with TemporaryDirectory(prefix="gal-ongoing-browser-") as directory:
+    with TemporaryDirectory(prefix="grove-ongoing-browser-") as directory:
         run_checks(Path(directory))
 
 

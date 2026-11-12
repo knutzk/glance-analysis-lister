@@ -43,8 +43,8 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             for n, record in enumerate(records):
                 record[key] = f"OTHER-2099-{n:02}"
             records[0][key] = "DEMO-2099-01"
-            records[1]["metadata"] = {"gal_keywords": ["INVENTED TOPIC"]}
-            records[2]["metadata"] = {"gal_keywords": ["Invented topic suffix"]}
+            records[1]["metadata"] = {"grove_keywords": ["INVENTED TOPIC"]}
+            records[2]["metadata"] = {"grove_keywords": ["Invented topic suffix"]}
             data = snapshot(analysis(1), **{resource: tuple(records)})
             profile = GroupProfile(
                 "DEMO",
@@ -86,14 +86,14 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
             ]
             for n, record in enumerate(records):
                 record[key] = f"OTHER-2099-{n:02}"
-                record["gal_groups"]["leadingSubgroup"] = None
+                record["grove_groups"]["leadingSubgroup"] = None
             records[0][key] = "LEGACY-2099-01"
-            records[1]["gal_groups"]["leadingGroup"] = "LEGACY"
-            records[2]["gal_groups"]["otherGroups"] = ["LEGACY"]
-            records[3]["gal_groups"]["leadingSubgroup"] = "OTHER-Merged"
-            records[4]["gal_groups"]["subgroups"] = ["OTHER-Merged"]
-            records[5]["gal_groups"]["subgroups"] = ["OTHER-Merged-suffix"]
-            records[6]["gal_groups"]["leadingGroup"] = "LEGACYX"
+            records[1]["grove_groups"]["leadingGroup"] = "LEGACY"
+            records[2]["grove_groups"]["otherGroups"] = ["LEGACY"]
+            records[3]["grove_groups"]["leadingSubgroup"] = "OTHER-Merged"
+            records[4]["grove_groups"]["subgroups"] = ["OTHER-Merged"]
+            records[5]["grove_groups"]["subgroups"] = ["OTHER-Merged-suffix"]
+            records[6]["grove_groups"]["leadingGroup"] = "LEGACYX"
             profile = GroupProfile(
                 "DEMO",
                 publication_policy=PublicationPolicy(
@@ -121,10 +121,10 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
 
     def test_configured_affiliations_trace_explicit_analysis_fallback(self):
         own = analysis(1, group="LEGACY")
-        own["gal_groups"]["leadingSubgroup"] = "OTHER-Merged"
+        own["grove_groups"]["leadingSubgroup"] = "OTHER-Merged"
         paper = publication(1, group=None, related=own["referenceCode"])
         paper["referenceCode"] = "OTHER-2099-01"
-        paper["gal_groups"]["leadingSubgroup"] = None
+        paper["grove_groups"]["leadingSubgroup"] = None
         view = prepare_group(
             CuratedRegistry(snapshot(own, papers=(paper,))),
             GroupProfile(
@@ -139,7 +139,7 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
         self.assertEqual(evidence["matching_groups"], ["LEGACY"])
         self.assertEqual(evidence["matching_subgroups"], ["OTHER-Merged"])
         self.assertIn(
-            "relatedAnalysis.gal_groups", evidence["affiliation_evidence"]["inputs"]
+            "relatedAnalysis.grove_groups", evidence["affiliation_evidence"]["inputs"]
         )
         self.assertEqual(len(view.ongoing), 0)
 
@@ -231,7 +231,7 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
     def test_cli_loads_keyword_configuration_into_report(self):
         paper = publication(1)
         paper["referenceCode"] = "OTHER-2099-01"
-        paper["metadata"] = {"gal_keywords": ["Invented topic"]}
+        paper["metadata"] = {"grove_keywords": ["Invented topic"]}
         with TemporaryDirectory() as folder:
             root = Path(folder)
             source, config, output = (
@@ -271,7 +271,7 @@ class ArchiveCurationPolicyTests(unittest.TestCase):
     def test_keywords_do_not_select_ongoing_analyses(self):
         own, foreign = analysis(1), analysis(2, group="OTHER")
         foreign["referenceCode"] = "ANA-DEMO-2099-02"
-        foreign["metadata"]["gal_keywords"] = ["Invented topic"]
+        foreign["metadata"]["grove_keywords"] = ["Invented topic"]
         view = prepare_group(
             CuratedRegistry(snapshot(own, foreign)),
             GroupProfile(

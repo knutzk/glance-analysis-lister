@@ -8,8 +8,8 @@ from importlib.resources import files
 from ..provenance import asset_provenance, generator_revision
 
 ASSET_NAMES = tuple(
-    f"gal-{name}.css" for name in ("common", "ongoing", "papers", "notes")
-) + tuple(f"gal-{name}.js" for name in ("common", "ongoing", "papers", "notes"))
+    f"grove-{name}.css" for name in ("common", "ongoing", "papers", "notes")
+) + tuple(f"grove-{name}.js" for name in ("common", "ongoing", "papers", "notes"))
 
 
 def asset_documents(revision=None):

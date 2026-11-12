@@ -18,10 +18,10 @@ def iso_date(value):
 
 
 def group_membership(record, group):
-    groups = record.get("gal_groups") or {}
+    groups = record.get("grove_groups") or {}
     inputs = {
-        "gal_groups.leadingGroup": groups.get("leadingGroup"),
-        "gal_groups.otherGroups": groups.get("otherGroups", []),
+        "grove_groups.leadingGroup": groups.get("leadingGroup"),
+        "grove_groups.otherGroups": groups.get("otherGroups", []),
     }
     leading = groups.get("leadingGroup") == group
     additional = group in (groups.get("otherGroups") or [])

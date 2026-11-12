@@ -30,7 +30,7 @@ def chrome(*, options, driver_path, label=None):
     """Capture evidence before quitting Chrome, including startup failures."""
     label = label or Path(sys.argv[0]).stem
     options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
-    with TemporaryDirectory(prefix="gal-browser-diagnostics-") as temporary:
+    with TemporaryDirectory(prefix="grove-browser-diagnostics-") as temporary:
         work = Path(temporary)
         service = Service(str(driver_path), log_output=str(work / "chromedriver.log"))
         driver = None

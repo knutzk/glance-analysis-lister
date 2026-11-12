@@ -294,7 +294,7 @@ the structural comparison finds no changes:
 | [Prepared values](python-access.md#read-prepared-collections): group collections, analysis/publication rows, detail/link/note/role/tag attributes and documented metadata keys. | `test_view_contracts.py`: directly consume documented values; `test_view_preparation.py`: lifecycle, membership, relationships and ordering. |
 | [CLI reference](cli-reference.md): all eight commands and their documented options/defaults, help/version, exit `0`/`1`/`2`, stdout/stderr roles. | `test_workflow_cli.py`, `test_console.py`, `test_download_errors.py`, `test_curated_doi_handoff.py`, `test_refresh_recovery.py`. |
 | [Publication policy fields](selection.md#publication-policies): title, groups, subgroups, keywords; OR semantics; missing versus empty policy; independent ongoing membership. | `test_publication_curation.py`, `test_view_contracts.py`. |
-| [Generated files](website.md) and [record/filter URLs](pages.md): four Markdown filenames, `gal-*` assets, native record fragments, search/subgroup/sort and publication-filter meanings. | `test_generated_contract.py`; browser `check_ongoing.py`, `check_papers.py`, `check_notes.py`, `check_zensical.py` for persistence, history, anchors and site integration. |
+| [Generated files](website.md) and [record/filter URLs](pages.md): four Markdown filenames, `grove-*` assets, native record fragments, search/subgroup/sort and publication-filter meanings. | `test_generated_contract.py`; browser `check_ongoing.py`, `check_papers.py`, `check_notes.py`, `check_zensical.py` for persistence, history, anchors and site integration. |
 
 ### Advisory Python comparison
 

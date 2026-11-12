@@ -16,7 +16,7 @@
       "referenceCode": "ANA-DEMO-2099-01",
       "shortTitle": "Invented analyses example",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Invented keyword"
         ]
       },
@@ -24,9 +24,9 @@
       "phase0": {
         "startDate": "2099-01-01"
       },
-      "gal_analysisContacts": [],
-      "gal_contactEditors": [],
-      "gal_groups": {
+      "grove_analysisContacts": [],
+      "grove_contactEditors": [],
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Invented",
         "otherGroups": [],
@@ -37,7 +37,7 @@
       "referenceCode": "ANA-DEMO-2099-02",
       "shortTitle": "Synthetic tracking calibration",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Calibration"
         ]
@@ -46,18 +46,18 @@
       "phase0": {
         "startDate": "2099-02-01",
         "editorialBoardFormedDate": "2099-02-10",
-        "gal_editorialBoard": [
+        "grove_editorialBoard": [
           "Elio Example",
           "Fenn Example"
         ]
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Aster Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -68,7 +68,7 @@
       "referenceCode": "ANA-DEMO-2099-03",
       "shortTitle": "Synthetic calorimeter response",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Calorimetry",
           "Simulation"
         ]
@@ -77,22 +77,22 @@
       "phase0": {
         "startDate": "2099-03-01",
         "editorialBoardFormedDate": "2099-03-10",
-        "gal_editorialBoard": [
+        "grove_editorialBoard": [
           "Elio Example",
           "Fenn Example"
         ],
         "pgcOrSgcSignOffDate": "2099-04-15",
-        "gal_approvalMeetingDates": [
+        "grove_approvalMeetingDates": [
           "2099-05-01"
         ]
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Beryl Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Calorimetry",
         "otherGroups": [],
@@ -103,7 +103,7 @@
       "referenceCode": "ANA-DEMO-2099-04",
       "shortTitle": "Synthetic tracking simulation",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Simulation"
         ]
@@ -112,13 +112,13 @@
       "phase0": {
         "startDate": "2099-04-01"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Cedar Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -133,14 +133,14 @@
       "referenceCode": "DEMO-2099-01",
       "shortTitle": "Invented papers example",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Invented keyword"
         ]
       },
       "status": "Publication Phase Finished",
       "publicationPhase": {
         "publishedOnlineDate": "2099-02-01",
-        "gal_dois": [
+        "grove_dois": [
           {
             "doi": "10.9999/synthetic",
             "url": "https://doi.org/10.9999/synthetic",
@@ -148,9 +148,9 @@
           }
         ]
       },
-      "gal_analysisContacts": [],
-      "gal_contactEditors": [],
-      "gal_groups": {
+      "grove_analysisContacts": [],
+      "grove_contactEditors": [],
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Invented",
         "otherGroups": [],
@@ -161,7 +161,7 @@
       "referenceCode": "DEMO-2099-02",
       "shortTitle": "Synthetic tracking performance",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Calibration"
         ]
@@ -169,7 +169,7 @@
       "status": "Publication Phase Finished",
       "publicationPhase": {
         "publishedOnlineDate": "2098-11-15",
-        "gal_dois": [
+        "grove_dois": [
           {
             "doi": "10.9999/synthetic-tracking",
             "url": "https://doi.org/10.9999/synthetic-tracking",
@@ -177,13 +177,13 @@
           }
         ]
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Aster Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -194,7 +194,7 @@
       "referenceCode": "DEMO-2099-03",
       "shortTitle": "Synthetic calorimeter simulation",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Calorimetry",
           "Simulation"
         ]
@@ -202,15 +202,15 @@
       "status": "Publication Phase Active",
       "publicationPhase": {
         "arXivSubmissionDate": "2099-06-10",
-        "gal_dois": []
+        "grove_dois": []
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Beryl Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Calorimetry",
         "otherGroups": [],
@@ -221,7 +221,7 @@
       "referenceCode": "DEMO-2099-04",
       "shortTitle": "Synthetic tracking reconstruction",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Simulation"
         ]
@@ -229,15 +229,15 @@
       "status": "Publication Phase Active",
       "publicationPhase": {
         "arXivSubmissionDate": "2099-07-10",
-        "gal_dois": []
+        "grove_dois": []
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Cedar Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -252,7 +252,7 @@
       "temporaryReferenceCode": "CONF-DEMO-2099-01",
       "shortTitle": "Invented confnotes example",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Invented keyword"
         ]
       },
@@ -261,9 +261,9 @@
         "releaseDate": "2099-03-01",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/note"
       },
-      "gal_analysisContacts": [],
-      "gal_contactEditors": [],
-      "gal_groups": {
+      "grove_analysisContacts": [],
+      "grove_contactEditors": [],
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Invented",
         "otherGroups": [],
@@ -275,7 +275,7 @@
       "temporaryReferenceCode": "CONF-DEMO-2099-02",
       "shortTitle": "Synthetic tracking efficiency",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Calibration"
         ]
@@ -285,13 +285,13 @@
         "releaseDate": "2099-06-15",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/confnotes/2"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Aster Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -303,7 +303,7 @@
       "temporaryReferenceCode": "CONF-DEMO-2099-03",
       "shortTitle": "Synthetic calorimeter study: first version",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Calorimetry",
           "Simulation"
         ]
@@ -313,13 +313,13 @@
         "releaseDate": "2098-12-10",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/confnotes/3"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Beryl Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Calorimetry",
         "otherGroups": [],
@@ -337,7 +337,7 @@
       "temporaryReferenceCode": "CONF-DEMO-2099-04",
       "shortTitle": "Synthetic calorimeter study: update",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Simulation"
         ]
@@ -347,13 +347,13 @@
         "releaseDate": "2099-09-20",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/confnotes/4"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Cedar Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -369,7 +369,7 @@
       "temporaryReferenceCode": "PUB-DEMO-2099-01",
       "shortTitle": "Invented pubnotes example",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Invented keyword"
         ]
       },
@@ -378,9 +378,9 @@
         "releaseDate": "2099-03-01",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/note"
       },
-      "gal_analysisContacts": [],
-      "gal_contactEditors": [],
-      "gal_groups": {
+      "grove_analysisContacts": [],
+      "grove_contactEditors": [],
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Invented",
         "otherGroups": [],
@@ -392,7 +392,7 @@
       "temporaryReferenceCode": "PUB-DEMO-2099-02",
       "shortTitle": "Synthetic tracking tools",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Calibration"
         ]
@@ -402,13 +402,13 @@
         "releaseDate": "2099-07-15",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/pubnotes/2"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Aster Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -420,7 +420,7 @@
       "temporaryReferenceCode": "PUB-DEMO-2099-03",
       "shortTitle": "Synthetic simulation methods: first version",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Calorimetry",
           "Simulation"
         ]
@@ -430,13 +430,13 @@
         "releaseDate": "2098-10-10",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/pubnotes/3"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Beryl Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Calorimetry",
         "otherGroups": [],
@@ -454,7 +454,7 @@
       "temporaryReferenceCode": "PUB-DEMO-2099-04",
       "shortTitle": "Synthetic simulation methods: update",
       "metadata": {
-        "gal_keywords": [
+        "grove_keywords": [
           "Tracking",
           "Simulation"
         ]
@@ -464,13 +464,13 @@
         "releaseDate": "2099-10-20",
         "publicWebPageUrlForFiguresAndTables": "https://example.test/pubnotes/4"
       },
-      "gal_analysisContacts": [
+      "grove_analysisContacts": [
         "Cedar Example"
       ],
-      "gal_contactEditors": [
+      "grove_contactEditors": [
         "Dara Example"
       ],
-      "gal_groups": {
+      "grove_groups": {
         "leadingGroup": "DEMO",
         "leadingSubgroup": "DEMO-Tracking",
         "otherGroups": [],
@@ -481,7 +481,7 @@
       "finalReferenceCode": "ATL-PHYS-PUB-2099-004"
     }
   ],
-  "gal_curation": {
+  "grove_curation": {
     "built_at": "2099-12-01T12:05:00+00:00",
     "contacts_as_of": "2099-12-01",
     "api_schema": "glance-api-registry",

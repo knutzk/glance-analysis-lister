@@ -148,7 +148,7 @@ exactly one input form. Manual entries are never replaced automatically.
 | `--limit N` | No limit | Positive maximum number of eligible entries to attempt. |
 
 API snapshots supply DOIs from source journal-publication URLs; curated registries
-supply the retained `publicationPhase.gal_dois[].doi` values. The input format
+supply the retained `publicationPhase.grove_dois[].doi` values. The input format
 selects which field is read; citation text and other fields are not fallbacks.
 Malformed individual DOI values are skipped with a warning while valid values
 are processed. Resolution leaves the input snapshot unchanged.

@@ -534,7 +534,7 @@ class ResolutionTests(unittest.TestCase):
                                 "finalJournalPublicationUrls": [
                                     {"url": "https://doi.org/" + JHEP}
                                 ],
-                                "gal_dois": [{"doi": DOI}],
+                                "grove_dois": [{"doi": DOI}],
                             }
                         }
                     ],

@@ -17,20 +17,20 @@ def leaves(*names):
 LINK = leaves("type", "referenceCode")
 URL = leaves("label", "url")
 GROUPS = leaves("leadingGroup", "otherGroups", "leadingSubgroup", "subgroups")
-METADATA = leaves("gal_keywords", "gal_triggers", "gal_statisticalTools")
+METADATA = leaves("grove_keywords", "grove_triggers", "grove_statisticalTools")
 PEOPLE = leaves(
-    "gal_editorialBoard",
-    "gal_editorialBoardChairs",
-    "gal_editorialBoardExOfficio",
-    "gal_firstSignOffResponsible",
-    "gal_secondSignOffResponsible",
-    "gal_readers",
-    "gal_firstReaders",
-    "gal_secondReaders",
+    "grove_editorialBoard",
+    "grove_editorialBoardChairs",
+    "grove_editorialBoardExOfficio",
+    "grove_firstSignOffResponsible",
+    "grove_secondSignOffResponsible",
+    "grove_readers",
+    "grove_firstReaders",
+    "grove_secondReaders",
 )
 COMMON = {
-    **leaves("status", "shortTitle", "gal_analysisContacts", "gal_contactEditors"),
-    "gal_groups": GROUPS,
+    **leaves("status", "shortTitle", "grove_analysisContacts", "grove_contactEditors"),
+    "grove_groups": GROUPS,
     "metadata": METADATA,
     "documentation": {"supportingInternalDocuments": URL},
 }
@@ -38,11 +38,13 @@ PUBLICATION = {
     **COMMON,
     "relatedAnalysis": LINK,
     # Retain the complete derived evidence for identifier provenance.
-    "gal_publicationProvenance": None,
+    "grove_publicationProvenance": None,
 }
 NOTE = {
     **PUBLICATION,
-    **leaves("temporaryReferenceCode", "finalReferenceCode", "gal_finalReferenceCode"),
+    **leaves(
+        "temporaryReferenceCode", "finalReferenceCode", "grove_finalReferenceCode"
+    ),
     "supersededBy": LINK,
     "metadata": {
         **METADATA,
@@ -77,17 +79,17 @@ RECORD_FIELDS = {
             "startDate",
             "editorialBoardFormedDate",
             "pgcOrSgcSignOffDate",
-            "gal_editorialBoard",
-            "gal_editorialBoardChairs",
-            "gal_eoiMeetingDates",
-            "gal_editorialBoardRequestMeetingDates",
-            "gal_preApprovalMeetingDates",
-            "gal_approvalMeetingDates",
+            "grove_editorialBoard",
+            "grove_editorialBoardChairs",
+            "grove_eoiMeetingDates",
+            "grove_editorialBoardRequestMeetingDates",
+            "grove_preApprovalMeetingDates",
+            "grove_approvalMeetingDates",
         ),
     },
     "papers": {
         **PUBLICATION,
-        **leaves("referenceCode", "gal_figuresUrl", "fullTitle"),
+        **leaves("referenceCode", "grove_figuresUrl", "fullTitle"),
         "phase1": {
             **PEOPLE,
             **leaves(
@@ -127,7 +129,7 @@ RECORD_FIELDS = {
                 "publishedOnlineDate",
             ),
             "arXivUrls": URL,
-            "gal_dois": leaves("doi", "url", "citation"),
+            "grove_dois": leaves("doi", "url", "citation"),
         },
     },
     "confnotes": NOTE,

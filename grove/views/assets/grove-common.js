@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  if (window.GALCommon) return;
+  if (window.GROVECommon) return;
   function observeCollections(selector, initialize) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, {once: true});
     else initialize();
@@ -43,5 +43,5 @@
     button.textContent = expanded ? "Collapse all" : "Expand all";
     button.setAttribute("aria-pressed", String(expanded));
   }
-  window.GALCommon = {observeCollections, readURLFields, writeURLParams, monthMatches, updateExpandButton};
+  window.GROVECommon = {observeCollections, readURLFields, writeURLParams, monthMatches, updateExpandButton};
 })();

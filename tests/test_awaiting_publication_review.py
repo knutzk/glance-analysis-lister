@@ -86,7 +86,7 @@ class AwaitingPublicationReviewTests(unittest.TestCase):
                 paper = publication(
                     1, related=record["referenceCode"], status=status, date=None
                 )
-                paper["publicationPhase"]["gal_dois"] = []
+                paper["publicationPhase"]["grove_dois"] = []
                 paper["phase1"] = {"draftReleasedDate": "2099-01-02"}
                 paper["phase2"] = (
                     {"draft2ReleasedDate": "2099-02-03"}

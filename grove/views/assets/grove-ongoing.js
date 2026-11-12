@@ -2,33 +2,33 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  const common = window.GALCommon;
+  const common = window.GROVECommon;
   if (!common) return;
-  if (window.GALOngoing) {
-    window.GALOngoing.initialize();
+  if (window.GROVEOngoing) {
+    window.GROVEOngoing.initialize();
     return;
   }
   const initialized = new WeakSet();
   function initialize() {
-    document.querySelectorAll(".gal-ongoing[data-gal-collection]").forEach((root) => {
+    document.querySelectorAll(".grove-ongoing[data-grove-collection]").forEach((root) => {
       if (initialized.has(root)) return;
-      const controls = root.querySelector("[data-gal-controls]");
-      const search = root.querySelector("[data-gal-search]");
-      const counter = root.querySelector("[data-gal-count]");
-      const empty = root.querySelector("[data-gal-empty]");
+      const controls = root.querySelector("[data-grove-controls]");
+      const search = root.querySelector("[data-grove-search]");
+      const counter = root.querySelector("[data-grove-count]");
+      const empty = root.querySelector("[data-grove-empty]");
       if (!controls || !search || !counter || !empty) return;
       let items;
       try {
-        items = Array.from(root.querySelectorAll("[data-gal-item]"), (element) => ({
-          element, metadata: JSON.parse(element.dataset.galMetadata),
+        items = Array.from(root.querySelectorAll("[data-grove-item]"), (element) => ({
+          element, metadata: JSON.parse(element.dataset.groveMetadata),
         }));
       } catch (_) {
         return; // Keep the complete static collection if metadata is unreadable.
       }
-      const categories = Array.from(controls.querySelectorAll("[data-gal-filter]"));
-      const sorter = controls.querySelector("[data-gal-sort]");
-      const cardContainer = root.querySelector(".gal-cards");
-      const subgroupButtons = Array.from(controls.querySelectorAll('[data-gal-filter="subgroups"] button'));
+      const categories = Array.from(controls.querySelectorAll("[data-grove-filter]"));
+      const sorter = controls.querySelector("[data-grove-sort]");
+      const cardContainer = root.querySelector(".grove-cards");
+      const subgroupButtons = Array.from(controls.querySelectorAll('[data-grove-filter="subgroups"] button'));
       function readURL() {
         const params = common.readURLFields({q: search});
         if (sorter) {
@@ -37,19 +37,19 @@
             ? value : sorter.options[0].value;
         }
         const values = params.getAll("subgroup");
-        subgroupButtons.forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.galValue))));
+        subgroupButtons.forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.groveValue))));
       }
       function writeURL() {
         common.writeURLParams({
           q: search.value.trim(),
           subgroup: subgroupButtons.filter(button => button.getAttribute("aria-pressed") === "true")
-            .map(button => button.dataset.galValue),
+            .map(button => button.dataset.groveValue),
           sort: sorter && sorter.value !== sorter.options[0].value ? sorter.value : "",
         });
       }
       readURL();
       const cardControllers = [];
-      const expandAll = controls.querySelector("[data-gal-expand-all]");
+      const expandAll = controls.querySelector("[data-grove-expand-all]");
       function updateExpandAll() {
         if (!expandAll) return;
         const visible = cardControllers.filter(({card}) => !card.hidden);
@@ -70,9 +70,9 @@
         }
         const query = search.value.trim().toLowerCase();
         const selections = categories.map((category) => ({
-          key: category.dataset.galFilter,
+          key: category.dataset.groveFilter,
           values: [
-            ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.galValue),
+            ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.groveValue),
           ],
         }));
         const matched = items.filter(({metadata}) => {
@@ -86,7 +86,7 @@
         const count = matched.length;
         const shown = new Set(matched);
         items.forEach(item => { item.element.hidden = !shown.has(item); });
-        counter.textContent = `${count} of ${items.length} ${root.dataset.galNoun || "results"}`;
+        counter.textContent = `${count} of ${items.length} ${root.dataset.groveNoun || "results"}`;
         empty.hidden = count !== 0;
         writeURL();
         updateExpandAll();
@@ -94,42 +94,42 @@
       controls.addEventListener("click", (event) => {
         const button = event.target.closest("button");
         if (!button || !controls.contains(button)) return;
-        if (button.hasAttribute("data-gal-expand-all")) {
+        if (button.hasAttribute("data-grove-expand-all")) {
           const expand = button.getAttribute("aria-pressed") !== "true";
           cardControllers.filter(({card}) => !card.hidden).forEach(controller => controller.setExpanded(expand));
           return;
         }
-        if (button.hasAttribute("data-gal-reset")) {
+        if (button.hasAttribute("data-grove-reset")) {
           search.value = "";
           if (sorter) sorter.selectedIndex = 0;
-          controls.querySelectorAll("[data-gal-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
-        } else if (button.hasAttribute("data-gal-value")) {
+          controls.querySelectorAll("[data-grove-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
+        } else if (button.hasAttribute("data-grove-value")) {
           button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true");
         } else return;
         update();
       });
       search.addEventListener("input", update);
       controls.addEventListener("change", update);
-      root.querySelectorAll(".gal-card").forEach(card => {
-        const toggle = card.querySelector("[data-gal-card-toggle]");
-        const panel = card.querySelector(".gal-card__details");
+      root.querySelectorAll(".grove-card").forEach(card => {
+        const toggle = card.querySelector("[data-grove-card-toggle]");
+        const panel = card.querySelector(".grove-card__details");
         if (!toggle || !panel) return;
-        const collapse = card.querySelector("[data-gal-card-collapse]");
+        const collapse = card.querySelector("[data-grove-card-collapse]");
         if (collapse) collapse.hidden = false;
         toggle.setAttribute("role", "button");
         toggle.tabIndex = 0;
         toggle.setAttribute("aria-expanded", "false");
         panel.hidden = true;
-        card.classList.add("gal-card--expandable");
+        card.classList.add("grove-card--expandable");
         function setExpanded(expanded) {
           panel.hidden = !expanded;
-          card.classList.toggle("gal-card--open", expanded);
+          card.classList.toggle("grove-card--open", expanded);
           toggle.setAttribute("aria-expanded", String(expanded));
           updateExpandAll();
         }
         function expand() { setExpanded(true); }
         cardControllers.push({card, panel, setExpanded});
-        card.querySelector(".gal-card__permalink")?.addEventListener("click", () => setExpanded(true));
+        card.querySelector(".grove-card__permalink")?.addEventListener("click", () => setExpanded(true));
         toggle.addEventListener("click", expand);
         toggle.addEventListener("keydown", event => {
           if (!["Enter", " "].includes(event.key)) return;
@@ -153,7 +153,7 @@
         catch (_) { return; }
         const controller = cardControllers.find(({card}) => card.id === id);
         if (!controller) return;
-        if (controller.card.hidden) controls.querySelector("[data-gal-reset]").click();
+        if (controller.card.hidden) controls.querySelector("[data-grove-reset]").click();
         controller.setExpanded(true);
         requestAnimationFrame(() => controller.card.scrollIntoView({block: "start"}));
       }
@@ -169,6 +169,6 @@
       openAnchoredCard();
     });
   }
-  window.GALOngoing = {initialize};
-  common.observeCollections('.gal-ongoing[data-gal-collection]', initialize);
+  window.GROVEOngoing = {initialize};
+  common.observeCollections('.grove-ongoing[data-grove-collection]', initialize);
 })();

@@ -45,7 +45,7 @@ def synthetic_registry(records):
         for resource in RESOURCES:
             result[resource].extend(remap(source[resource]))
     result["counts"] = dict.fromkeys(RESOURCES, records)
-    stats = result["gal_curation"]["doi_statistics"]
+    stats = result["grove_curation"]["doi_statistics"]
     for key in stats:
         stats[key] *= records // 4
     return result

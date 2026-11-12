@@ -53,12 +53,12 @@ class ApiOnlyRegistryTests(unittest.TestCase):
             data = json.loads(output.read_text())
             self.assertEqual(json.loads(source.read_text()), original)
             self.assertEqual(
-                data["pubnotes"][0]["gal_finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
+                data["pubnotes"][0]["grove_finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
             )
-            self.assertNotIn("gal_internalNoteEditors", data["analyses"][0])
-            self.assertNotIn("gal_currentPaperDraft", data["papers"][0])
-            self.assertNotIn("html_source", data["gal_curation"])
-            self.assertNotIn("supplement_fields", data["gal_curation"])
+            self.assertNotIn("grove_internalNoteEditors", data["analyses"][0])
+            self.assertNotIn("grove_currentPaperDraft", data["papers"][0])
+            self.assertNotIn("html_source", data["grove_curation"])
+            self.assertNotIn("supplement_fields", data["grove_curation"])
             mapping.write_text("{}")
             with self.assertLogs("grove.registry.enrichment", level="WARNING"):
                 build_registry(source, output, pubnote_identifiers=mapping)

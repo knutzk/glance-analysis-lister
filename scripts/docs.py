@@ -182,11 +182,11 @@ def stage(root=ROOT, *, group_pages=()):
         before, rest = text.split(start)
         _, after = rest.split(end)
         sources[page] = (
-            before + '<div class="gal-doc-example">\n' + fragment + "</div>\n" + after
+            before + '<div class="grove-doc-example">\n' + fragment + "</div>\n" + after
         ).encode("utf-8")
     for component in ("common", "ongoing", "papers", "notes"):
         for extension in ("css", "js"):
-            filename = f"gal-{component}.{extension}"
+            filename = f"grove-{component}.{extension}"
             sources[f"docs/assets/{filename}"] = (
                 files("grove.views") / "assets" / filename
             ).read_bytes()

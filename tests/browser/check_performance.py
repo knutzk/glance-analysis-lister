@@ -102,9 +102,9 @@ def render_and_build(work, records, repeats):
         "nav:\n"
         + "".join(f"  - {page}: {page}.md\n" for page in PAGES)
         + "extra_css:\n"
-        + "".join(f"  - assets/gal-{name}.css\n" for name in assets)
+        + "".join(f"  - assets/grove-{name}.css\n" for name in assets)
         + "extra_javascript:\n"
-        + "".join(f"  - assets/gal-{name}.js\n" for name in assets)
+        + "".join(f"  - assets/grove-{name}.js\n" for name in assets)
     )
     (work / "mkdocs.yml").write_text(config)
     subprocess.run(
@@ -156,9 +156,9 @@ def browse(work, driver_path, base, records, repeats):
         ), "Use matching Chrome and ChromeDriver builds"
         for page in PAGES:
             notes = page in {"confnotes", "pubnotes"}
-            counter = "[data-gal-note-count]" if notes else "[data-gal-count]"
-            rows = "[data-gal-note]" if notes else "[data-gal-item]"
-            reset = "[data-gal-note-reset]" if notes else "[data-gal-reset]"
+            counter = "[data-grove-note-count]" if notes else "[data-grove-count]"
+            rows = "[data-grove-note]" if notes else "[data-grove-item]"
+            reset = "[data-grove-note-reset]" if notes else "[data-grove-reset]"
             default = records * 3 // 4 if notes else records
             start = time.perf_counter()
             driver.get(base + page + "/")
@@ -166,8 +166,8 @@ def browse(work, driver_path, base, records, repeats):
                 lambda d, notes=notes: d.execute_script(
                     "return !!document.querySelector(arguments[0]) && "
                     "!document.querySelector(arguments[0]).hidden && "
-                    "document.querySelector('[data-gal-search]').getClientRects().length > 0",
-                    "[data-gal-note-controls]" if notes else "[data-gal-controls]",
+                    "document.querySelector('[data-grove-search]').getClientRects().length > 0",
+                    "[data-grove-note-controls]" if notes else "[data-grove-controls]",
                 )
             )
             ready = time.perf_counter() - start
@@ -178,15 +178,20 @@ def browse(work, driver_path, base, records, repeats):
                 == records
             )
             category = (
-                '[data-gal-note-supersession="superseded"]'
+                '[data-grove-note-supersession="superseded"]'
                 if notes
-                else '[data-gal-value="DEMO-Tracking"]'
+                else '[data-grove-value="DEMO-Tracking"]'
                 if page == "ongoing"
-                else '[data-gal-value="published"]'
+                else '[data-grove-value="published"]'
             )
             actions = (
-                ("search-half", "[data-gal-search]", "Tracking", records // 2),
-                ("search-none", "[data-gal-search]", "no-synthetic-record-matches", 0),
+                ("search-half", "[data-grove-search]", "Tracking", records // 2),
+                (
+                    "search-none",
+                    "[data-grove-search]",
+                    "no-synthetic-record-matches",
+                    0,
+                ),
                 ("reset-search", reset, None, default),
                 ("category", category, None, records if notes else records // 2),
                 ("reset-category", reset, None, default),

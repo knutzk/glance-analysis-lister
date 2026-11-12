@@ -21,7 +21,7 @@ credentials, then add your group's real data with authorised CERN access.
 
 ## Explore the pages
 
-<table class="gal-screenshot-gallery" role="presentation">
+<table class="grove-screenshot-gallery" role="presentation">
   <tr>
     <td width="50%" valign="top">
       <p><strong>Ongoing analyses</strong></p>

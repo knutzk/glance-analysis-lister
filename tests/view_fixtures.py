@@ -86,16 +86,16 @@ def analysis(number, *, group="DEMO", status="Phase 0 Active", additional=()):
         "referenceCode": f"ANA-DEMO-2099-{number:02}",
         "status": status,
         "shortTitle": "Invented | title [link] <tag>",
-        "gal_analysisContacts": ["Example Contact"],
-        "gal_contactEditors": [],
-        "gal_groups": {
+        "grove_analysisContacts": ["Example Contact"],
+        "grove_contactEditors": [],
+        "grove_groups": {
             "leadingGroup": group,
             "otherGroups": list(additional),
             "leadingSubgroup": "Example subgroup, with comma",
             "subgroups": [],
         },
-        "metadata": {"gal_keywords": ["Synthetic"]},
-        "phase0": {"startDate": "2099-01-01", "gal_editorialBoard": []},
+        "metadata": {"grove_keywords": ["Synthetic"]},
+        "phase0": {"startDate": "2099-01-01", "grove_editorialBoard": []},
         "relatedPublications": [],
     }
 
@@ -116,9 +116,9 @@ def publication(
         "status": status,
         "shortTitle": "Synthetic publication",
         "publicShortTitle": "Synthetic public title",
-        "gal_analysisContacts": [],
-        "gal_contactEditors": [],
-        "gal_groups": {
+        "grove_analysisContacts": [],
+        "grove_contactEditors": [],
+        "grove_groups": {
             "leadingGroup": group,
             "otherGroups": [],
             "leadingSubgroup": None,
@@ -132,7 +132,7 @@ def publication(
         value["publicationPhase"] = {
             "publishedOnlineDate": date,
             "arXivSubmissionDate": None,
-            "gal_dois": [
+            "grove_dois": [
                 {"doi": "10.9999/synthetic", "citation": "Synthetic citation"}
             ],
         }

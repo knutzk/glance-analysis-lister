@@ -73,7 +73,7 @@ def cds_record_id(url):
 
 def final_identifier(record, resource):
     pattern = r"ATLAS-CONF-\d{4}-\d+" if resource == "confnotes" else PUB_PATTERN
-    for key in ("finalReferenceCode", "gal_finalReferenceCode"):
+    for key in ("finalReferenceCode", "grove_finalReferenceCode"):
         value = record.get(key)
         if isinstance(value, str) and re.fullmatch(pattern, value):
             return value
@@ -91,11 +91,11 @@ def enrich_public_identifiers(record, resource, identifiers):
         )
         reference = record.get("referenceCode", "")
         if published and re.fullmatch(r"[A-Z]+-\d{4}-\d{2}", reference):
-            record["gal_figuresUrl"] = (
+            record["grove_figuresUrl"] = (
                 f"https://atlas.web.cern.ch/Atlas/GROUPS/PHYSICS/PAPERS/{reference}/"
             )
             return {
-                "field": "gal_figuresUrl",
+                "field": "grove_figuresUrl",
                 "source": "canonical-paper-url",
                 "availability_checked": False,
             }
@@ -107,7 +107,7 @@ def enrich_public_identifiers(record, resource, identifiers):
         return (
             {"field": "finalReferenceCode", "source": "api"}
             if record.get("finalReferenceCode") == native
-            else {"field": "gal_finalReferenceCode", "source": "provided-enrichment"}
+            else {"field": "grove_finalReferenceCode", "source": "provided-enrichment"}
         )
     phase = record.get("phase1") or {}
     url = phase.get("publicWebPageUrlForFiguresAndTables") or ""
@@ -116,9 +116,9 @@ def enrich_public_identifiers(record, resource, identifiers):
         re.findall(r"(?<![A-Za-z0-9-])" + pattern + r"(?![A-Za-z0-9-])", unquote(url))
     )
     if len(matches) == 1:
-        record["gal_finalReferenceCode"] = matches.pop()
+        record["grove_finalReferenceCode"] = matches.pop()
         return {
-            "field": "gal_finalReferenceCode",
+            "field": "grove_finalReferenceCode",
             "source": "api-public-url",
             "source_url": url,
         }
@@ -127,9 +127,9 @@ def enrich_public_identifiers(record, resource, identifiers):
             cds_id = cds_record_id(phase.get(field))
             if cds_id in identifiers:
                 entry = identifiers[cds_id]
-                record["gal_finalReferenceCode"] = entry["identifier"]
+                record["grove_finalReferenceCode"] = entry["identifier"]
                 return {
-                    "field": "gal_finalReferenceCode",
+                    "field": "grove_finalReferenceCode",
                     "source": "bundled-cds-identifier",
                     "api_field": "phase1." + field,
                     "cds_record": cds_id,
@@ -139,7 +139,7 @@ def enrich_public_identifiers(record, resource, identifiers):
         record.get("status") == "Phase 1 Finished" or phase.get("releaseDate")
     ):
         return {
-            "field": "gal_finalReferenceCode",
+            "field": "grove_finalReferenceCode",
             "source": "unresolved",
             "reason": "note has release evidence but no unambiguous public identifier in the API or bundled dictionary",
         }

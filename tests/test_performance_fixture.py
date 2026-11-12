@@ -43,7 +43,7 @@ class PerformanceFixtureTests(unittest.TestCase):
             self.assertEqual(len(by_id), 12)
             self.assertEqual(
                 sum(
-                    "Tracking" in record["metadata"]["gal_keywords"]
+                    "Tracking" in record["metadata"]["grove_keywords"]
                     for record in by_id.values()
                 ),
                 6,
@@ -70,8 +70,8 @@ class PerformanceFixtureTests(unittest.TestCase):
         original = fixture.read_bytes()
         first = synthetic_registry(8)
         self.assertEqual(first, synthetic_registry(8))
-        first["analyses"][0]["metadata"]["gal_keywords"].append("Mutation")
-        self.assertNotIn("Mutation", first["analyses"][4]["metadata"]["gal_keywords"])
+        first["analyses"][0]["metadata"]["grove_keywords"].append("Mutation")
+        self.assertNotIn("Mutation", first["analyses"][4]["metadata"]["grove_keywords"])
         self.assertEqual(fixture.read_bytes(), original)
         self.assertEqual(json.loads(original)["counts"]["analyses"], 4)
 

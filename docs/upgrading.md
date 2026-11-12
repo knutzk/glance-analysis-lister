@@ -5,6 +5,48 @@ a separate output directory. Keep the old environment and site until you have
 checked the candidate. Keep custom policies and citation stores outside the Python
 environment so reinstalling the package cannot replace your edits.
 
+## Unreleased: GROVE field and browser names
+
+The development version replaces the remaining `gal` namespace with `grove`.
+This is a breaking change after v0.4.0, with no aliases or automatic conversion:
+
+| Surface | Previous name | Current name |
+| --- | --- | --- |
+| Curated fields | `gal_*`, including `gal_curation` and `gal_dois` | `grove_*`, including `grove_curation` and `grove_dois` |
+| Browser assets | `assets/gal-*.css`, `assets/gal-*.js` | `assets/grove-*.css`, `assets/grove-*.js` |
+| HTML and CSS | `gal-*` classes, `data-gal-*` attributes, `--gal-*` variables | `grove-*`, `data-grove-*`, `--grove-*` |
+| JavaScript globals | `GALCommon`, `GALOngoing`, `GALPapers`, `GALNotes` | `GROVECommon`, `GROVEOngoing`, `GROVEPapers`, `GROVENotes` |
+
+Curated snapshots from v0.4.0 and earlier that contain `gal_*` fields are rejected,
+including files mixing the old and new namespaces. Rebuild from the saved **API**
+snapshot into a new file, preserving your custom citation store and policy:
+
+```bash
+grove build-registry --api-snapshot data/previous-api.json \
+  --doi-cache data/doi-metadata.json --output data/grove-curated.json
+grove render-group --group TOPQ --snapshot data/grove-curated.json \
+  --curation-config data/publication-curation.toml --output-dir pages/grove
+```
+
+Use your actual group and paths. An existing old curated output is also rejected
+by the build's validation, even with `--allow-count-drop`, so use a new output
+path. Do not rename fields by hand or edit generator metadata. Saved API data
+and custom citation stores retain their formats; no fresh CERN download is needed.
+If only the old curated file is available, keep the previous environment and site
+until an API snapshot is available. Compare old/new page counts and diagnostics;
+`compare-snapshots` cannot compare across this incompatible curated-field change.
+
+Update the consuming site's stylesheet and script configuration to the eight
+`grove-*` assets shown in the [website guide](website.md), then replace generated
+pages and assets together. Update any custom selectors, CSS variables or JavaScript
+hooks to the names above. For an existing demo, update the editable
+`examples/demo/work/zensical.toml` asset entries too; preserve your other settings.
+Use a new output directory so old `gal-*` assets are not carried into deployment:
+rendering does not delete unrelated files from an existing output directory.
+Page filenames, native record IDs, record fragments and filter query parameters
+are unchanged. Keep old snapshots, assets and the old environment together for
+rollback; old pages cannot use the new scripts/styles as drop-in replacements.
+
 ## Upgrading to v0.4.0: GROVE
 
 Version 0.4.0 is the first release of **GROVE** (GLANCE Records Organised for
@@ -29,8 +71,9 @@ Use `grove --version` or `python -m grove --version` to check the installed vers
 For a source checkout, update the Git remote to
 `https://github.com/knutzk/glance-grove.git` after the repository rename.
 
-Saved snapshot filenames have not changed. Supported saved snapshots still load;
-their old generator identity may produce a warning. Newly built snapshots retain
+In the published v0.4.0 release, snapshot filenames stayed unchanged and earlier
+supported snapshots remained readable, with an advisory generator warning.
+The unreleased namespace change above supersedes that compatibility. v0.4.0 also retained
 the optional paper `fullTitle` and `publicationPhase.finalTitleTex` fields for
 complete citations. Keep the previous snapshots and environment for rollback
 and reproducibility. Rebuild from a saved API snapshot and render into a
@@ -49,8 +92,9 @@ Paper details again include a **Cite as** block. To recover final TeX and full
 titles omitted by earlier curated snapshots, rebuild the registry from your
 saved API snapshot with `build-registry`, then rerun `render-group`. Keep the
 same explicit `--doi-cache` when using a custom citation store. No download is
-needed. Older curated snapshots remain readable and use the short title (or
-native identifier) when the fuller titles are unavailable.
+needed. Current-format curated snapshots use the short title (or native
+identifier) when the fuller titles are unavailable. Rebuild `gal_*` snapshots
+first, following the namespace upgrade above.
 
 ## Preserve the inputs
 
@@ -97,8 +141,9 @@ python3.13 -m venv .venv-candidate
 
 From the matching source checkout or source archive, first run the
 [synthetic demo](../examples/README.md) using that environment. Examples and
-documentation are in the source archive, not the wheel. Then render your saved
-curated registry to a separate destination:
+documentation are in the source archive, not the wheel. If your saved curated
+registry uses the current field names, render it to a separate destination
+(otherwise rebuild from the saved API snapshot first):
 
 ```bash
 .venv-candidate/bin/grove render-group --group TOPQ \

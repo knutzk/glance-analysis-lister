@@ -35,9 +35,9 @@ def readable_html(source):
 
     def keep_row(match):
         row = match.group()
-        if re.search(r'class="gal-(?:paper|note)-detail-row"', row):
+        if re.search(r'class="grove-(?:paper|note)-detail-row"', row):
             return row
-        token = f"<!--gal-compact-row-{len(rows)}-->"
+        token = f"<!--grove-compact-row-{len(rows)}-->"
         rows.append(row)
         return "\n" + token + "\n"
 
@@ -55,10 +55,10 @@ def readable_html(source):
     )
     source = "\n".join(line for line in source.splitlines() if line.strip())
     for index, row in enumerate(rows):
-        source = source.replace(f"<!--gal-compact-row-{index}-->", row)
+        source = source.replace(f"<!--grove-compact-row-{index}-->", row)
     # Metadata changes should not replace the visible cells in the same diff line.
     source = re.sub(
-        r' (data-gal-(?:metadata|search-text|subgroups)="[^"]*")', r"\n  \1", source
+        r' (data-grove-(?:metadata|search-text|subgroups)="[^"]*")', r"\n  \1", source
     )
     source = re.sub(r"(<tr\b[^>]*>)", r"\1\n", source)
     return "\n".join(line for line in source.splitlines() if line.strip()) + "\n"

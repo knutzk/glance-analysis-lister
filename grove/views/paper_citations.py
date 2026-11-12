@@ -36,7 +36,7 @@ def paper_citation(record):
         or record["referenceCode"]
     )
     lines = ["ATLAS Collaboration", title]
-    dois = phase.get("gal_dois") or []
+    dois = phase.get("grove_dois") or []
     references = []
     if dois and dois[0].get("citation"):
         references.append(dois[0]["citation"])

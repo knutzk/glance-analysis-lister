@@ -63,14 +63,14 @@ assert not {"requests", "stare", "selenium"}.intersection(sys.modules)
 
     def test_record_metadata_is_independent_of_page_control_choices(self):
         active = analysis(1)
-        active["gal_groups"]["leadingSubgroup"] = "DEMO-Active"
+        active["grove_groups"]["leadingSubgroup"] = "DEMO-Active"
         active["metadata"] = {
-            "gal_keywords": ["Invented keyword"],
-            "gal_triggers": ["Invented trigger"],
-            "gal_statisticalTools": ["Invented tool"],
+            "grove_keywords": ["Invented keyword"],
+            "grove_triggers": ["Invented trigger"],
+            "grove_statisticalTools": ["Invented tool"],
         }
         historical = publication(1)
-        historical["gal_groups"]["leadingSubgroup"] = "DEMO-Historical"
+        historical["grove_groups"]["leadingSubgroup"] = "DEMO-Historical"
         view = prepare_group(
             CuratedRegistry(snapshot(active, papers=(historical,))),
             GroupProfile("DEMO"),

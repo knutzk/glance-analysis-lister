@@ -19,7 +19,7 @@ def publication_subgroups(record, related):
     """Current-snapshot labels; an explicit analysis link supplies missing labels."""
 
     def labels(value):
-        groups = value.get("gal_groups") or {}
+        groups = value.get("grove_groups") or {}
         return list(
             dict.fromkeys(
                 name
@@ -33,10 +33,12 @@ def publication_subgroups(record, related):
 
     direct = labels(record)
     inputs = {
-        "gal_groups.leadingSubgroup": (record.get("gal_groups") or {}).get(
+        "grove_groups.leadingSubgroup": (record.get("grove_groups") or {}).get(
             "leadingSubgroup"
         ),
-        "gal_groups.subgroups": (record.get("gal_groups") or {}).get("subgroups", []),
+        "grove_groups.subgroups": (record.get("grove_groups") or {}).get(
+            "subgroups", []
+        ),
     }
     reason = "subgroup assignments recorded on the publication in the current snapshot"
     value = direct
@@ -45,7 +47,7 @@ def publication_subgroups(record, related):
         inputs.update(
             {
                 "relatedAnalysis": record.get("relatedAnalysis"),
-                "analysis.gal_groups": related.get("gal_groups"),
+                "analysis.grove_groups": related.get("grove_groups"),
             }
         )
         reason = "missing publication subgroups inherited through its explicit analysis link; current snapshot assignments"
@@ -53,15 +55,15 @@ def publication_subgroups(record, related):
 
 
 def publication_leading_subgroup(record, related):
-    value = (record.get("gal_groups") or {}).get("leadingSubgroup")
-    inputs = {"gal_groups.leadingSubgroup": value}
+    value = (record.get("grove_groups") or {}).get("leadingSubgroup")
+    inputs = {"grove_groups.leadingSubgroup": value}
     reason = "leading subgroup recorded on the publication in the current snapshot"
     if not value and related is not None:
-        value = (related.get("gal_groups") or {}).get("leadingSubgroup")
+        value = (related.get("grove_groups") or {}).get("leadingSubgroup")
         inputs.update(
             {
                 "relatedAnalysis": record.get("relatedAnalysis"),
-                "analysis.gal_groups.leadingSubgroup": value,
+                "analysis.grove_groups.leadingSubgroup": value,
             }
         )
         reason = "missing leading subgroup inherited through the explicit analysis link; current snapshot assignment"
@@ -96,47 +98,48 @@ def publication_details(record, resource, related=None):
     phase = record.get("phase1") or {}
     publication = (record.get("publicationPhase") or {}) if resource == "papers" else {}
     sources = {
-        "gal_analysisContacts": record.get("gal_analysisContacts") or [],
-        "gal_contactEditors": record.get("gal_contactEditors") or [],
-        "phase1.gal_editorialBoard": phase.get("gal_editorialBoard") or [],
-        "phase1.gal_editorialBoardChairs": phase.get("gal_editorialBoardChairs") or [],
-        "gal_groups": record.get("gal_groups") or {},
-        "gal_figuresUrl": record.get("gal_figuresUrl")
+        "grove_analysisContacts": record.get("grove_analysisContacts") or [],
+        "grove_contactEditors": record.get("grove_contactEditors") or [],
+        "phase1.grove_editorialBoard": phase.get("grove_editorialBoard") or [],
+        "phase1.grove_editorialBoardChairs": phase.get("grove_editorialBoardChairs")
+        or [],
+        "grove_groups": record.get("grove_groups") or {},
+        "grove_figuresUrl": record.get("grove_figuresUrl")
         if resource == "papers"
         else None,
         "phase1.publicWebPageUrlForFiguresAndTables": phase.get(
             "publicWebPageUrlForFiguresAndTables"
         ),
         "publicationPhase.arXivUrls": publication.get("arXivUrls") or [],
-        "publicationPhase.gal_dois": publication.get("gal_dois") or [],
+        "publicationPhase.grove_dois": publication.get("grove_dois") or [],
         "documentation.supportingInternalDocuments": (
             record.get("documentation") or {}
         ).get("supportingInternalDocuments")
         or [],
     }
-    groups = sources["gal_groups"]
+    groups = sources["grove_groups"]
     if (
         not groups.get("leadingGroup")
         and not groups.get("otherGroups")
         and related is not None
     ):
-        groups = related.get("gal_groups") or {}
+        groups = related.get("grove_groups") or {}
         sources["relatedAnalysis"] = record.get("relatedAnalysis")
-        sources["relatedAnalysis.gal_groups"] = groups
+        sources["relatedAnalysis.grove_groups"] = groups
     links = []
     public_url = (
-        sources["gal_figuresUrl"]
+        sources["grove_figuresUrl"]
         or sources["phase1.publicWebPageUrlForFiguresAndTables"]
     )
     if public_url and not public_url.startswith(("https://", "http://")):
         public_url = None
     if not public_url:
-        public_url = (record.get("gal_publicationProvenance") or {}).get("source_url")
+        public_url = (record.get("grove_publicationProvenance") or {}).get("source_url")
     if public_url:
         links.append({"label": "Public page", "url": public_url})
     for source, label in (
         ("publicationPhase.arXivUrls", "arXiv"),
-        ("publicationPhase.gal_dois", "DOI"),
+        ("publicationPhase.grove_dois", "DOI"),
         ("documentation.supportingInternalDocuments", "Supporting document"),
     ):
         for item in sources[source]:
@@ -144,12 +147,13 @@ def publication_details(record, resource, related=None):
                 links.append(
                     {
                         "label": label
-                        if source == "publicationPhase.gal_dois"
+                        if source == "publicationPhase.grove_dois"
                         else item.get("label") or label,
                         "url": item.get("url")
                         or (
                             "https://doi.org/" + item["doi"]
-                            if source == "publicationPhase.gal_dois" and item.get("doi")
+                            if source == "publicationPhase.grove_dois"
+                            and item.get("doi")
                             else None
                         ),
                     }
@@ -158,7 +162,7 @@ def publication_details(record, resource, related=None):
     for item in sources["publicationPhase.arXivUrls"]:
         if isinstance(item, dict) and item.get("url"):
             publication_records.append({"label": "arXiv", "url": item["url"]})
-    for item in sources["publicationPhase.gal_dois"]:
+    for item in sources["publicationPhase.grove_dois"]:
         if isinstance(item, dict):
             url = item.get("url") or (
                 "https://doi.org/" + item["doi"] if item.get("doi") else None
@@ -190,10 +194,10 @@ def publication_details(record, resource, related=None):
             "last_milestone": milestone.value if milestone else None,
             "publication_records": publication_records,
             "cite_as": citation.value if citation else [],
-            "contacts": sources["gal_analysisContacts"],
-            "editors": sources["gal_contactEditors"],
-            "board": sources["phase1.gal_editorialBoard"],
-            "board_chairs": sources["phase1.gal_editorialBoardChairs"],
+            "contacts": sources["grove_analysisContacts"],
+            "editors": sources["grove_contactEditors"],
+            "board": sources["phase1.grove_editorialBoard"],
+            "board_chairs": sources["phase1.grove_editorialBoardChairs"],
             "groups": groups,
             "links": links,
             "cds_url": cds_record.value if cds_record else None,
@@ -216,7 +220,7 @@ def prepare_publications(registry, profile, analyses):
             related = None
             if isinstance(relation, dict) and relation.get("type") == "Analysis":
                 related = analyses.get(relation.get("referenceCode"))
-            groups = record.get("gal_groups") or {}
+            groups = record.get("grove_groups") or {}
             if (
                 not groups.get("leadingGroup")
                 and not groups.get("otherGroups")
@@ -228,7 +232,7 @@ def prepare_publications(registry, profile, analyses):
                     inherited.value,
                     "unassigned publication uses its explicitly linked analysis affiliation",
                     {
-                        "publication.gal_groups": groups,
+                        "publication.grove_groups": groups,
                         "relatedAnalysis": relation,
                         "analysis_group_evidence": asdict(inherited),
                     },
@@ -247,9 +251,9 @@ def prepare_publications(registry, profile, analyses):
             metadata_decisions = {
                 key: publication_filter_values(record, related, field)
                 for key, field in (
-                    ("keywords", "gal_keywords"),
-                    ("triggers", "gal_triggers"),
-                    ("statistical_tools", "gal_statisticalTools"),
+                    ("keywords", "grove_keywords"),
+                    ("triggers", "grove_triggers"),
+                    ("statistical_tools", "grove_statisticalTools"),
                 )
             }
             details = publication_details(record, resource, related)
@@ -261,7 +265,11 @@ def prepare_publications(registry, profile, analyses):
                     key: value
                     for key, value in details.inputs.items()
                     if key
-                    in {"gal_groups", "relatedAnalysis", "relatedAnalysis.gal_groups"}
+                    in {
+                        "grove_groups",
+                        "relatedAnalysis",
+                        "relatedAnalysis.grove_groups",
+                    }
                 },
             )
             curation = archive_curation(
@@ -273,7 +281,7 @@ def prepare_publications(registry, profile, analyses):
             )
             keywords = metadata_decisions["keywords"].value
             dois = (
-                ((record.get("publicationPhase") or {}).get("gal_dois") or [])
+                ((record.get("publicationPhase") or {}).get("grove_dois") or [])
                 if resource == "papers"
                 else []
             )
@@ -287,22 +295,22 @@ def prepare_publications(registry, profile, analyses):
                     if any(entry.get("doi") for entry in dois)
                     else "under-review",
                     "published means at least one cached DOI; archived papers without a DOI are under review",
-                    {"publicationPhase.gal_dois": dois},
+                    {"publicationPhase.grove_dois": dois},
                 )
             people_sources = {
-                "gal_analysisContacts": record.get("gal_analysisContacts"),
-                "gal_contactEditors": record.get("gal_contactEditors"),
+                "grove_analysisContacts": record.get("grove_analysisContacts"),
+                "grove_contactEditors": record.get("grove_contactEditors"),
                 **{
                     "phase1." + key: (record.get("phase1") or {}).get(key)
                     for key in (
-                        "gal_editorialBoard",
-                        "gal_editorialBoardChairs",
-                        "gal_editorialBoardExOfficio",
-                        "gal_firstSignOffResponsible",
-                        "gal_secondSignOffResponsible",
-                        "gal_readers",
-                        "gal_firstReaders",
-                        "gal_secondReaders",
+                        "grove_editorialBoard",
+                        "grove_editorialBoardChairs",
+                        "grove_editorialBoardExOfficio",
+                        "grove_firstSignOffResponsible",
+                        "grove_secondSignOffResponsible",
+                        "grove_readers",
+                        "grove_firstReaders",
+                        "grove_secondReaders",
                     )
                 },
             }
@@ -363,7 +371,7 @@ def prepare_publications(registry, profile, analyses):
                 "publication-citation-text",
                 list(citations),
                 "cached citation text, falling back to the DOI; no external lookup",
-                {"publicationPhase.gal_dois": dois},
+                {"publicationPhase.grove_dois": dois},
             )
             row = PublicationRow(
                 resource,
@@ -415,12 +423,12 @@ def prepare_publications(registry, profile, analyses):
                         )
                     ),
                     "relatedAnalysis": relation,
-                    "public_identifier_issue": record.get("gal_publicationProvenance")
-                    if (record.get("gal_publicationProvenance") or {}).get("source")
+                    "public_identifier_issue": record.get("grove_publicationProvenance")
+                    if (record.get("grove_publicationProvenance") or {}).get("source")
                     == "unresolved"
                     else None,
                     "public_identifier_provenance": record.get(
-                        "gal_publicationProvenance"
+                        "grove_publicationProvenance"
                     ),
                     "relationship_issue": "unresolved relatedAnalysis"
                     if relation and related is None

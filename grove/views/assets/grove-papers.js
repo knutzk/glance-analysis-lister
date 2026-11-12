@@ -2,41 +2,41 @@
  * SPDX-License-Identifier: GPL-3.0-only */
 (() => {
   "use strict";
-  const common = window.GALCommon;
+  const common = window.GROVECommon;
   if (!common) return;
-  if (window.GALPapers) {
-    window.GALPapers.initialize();
+  if (window.GROVEPapers) {
+    window.GROVEPapers.initialize();
     return;
   }
   const initialized = new WeakSet();
   function initialize() {
-    document.querySelectorAll("[data-gal-archive]").forEach((root) => {
+    document.querySelectorAll("[data-grove-archive]").forEach((root) => {
       if (initialized.has(root)) return;
-      const controls = root.querySelector("[data-gal-controls]");
-      const search = root.querySelector("[data-gal-search]");
-      const counter = root.querySelector("[data-gal-count]");
-      const empty = root.querySelector("[data-gal-empty]");
+      const controls = root.querySelector("[data-grove-controls]");
+      const search = root.querySelector("[data-grove-search]");
+      const counter = root.querySelector("[data-grove-count]");
+      const empty = root.querySelector("[data-grove-empty]");
       if (!controls || !search || !counter || !empty) return;
       let items;
       try {
-        items = Array.from(root.querySelectorAll("[data-gal-item]"), (element) => ({
-          element, metadata: JSON.parse(element.dataset.galMetadata),
-          toggle: element.querySelector("[data-gal-paper-toggle]"),
+        items = Array.from(root.querySelectorAll("[data-grove-item]"), (element) => ({
+          element, metadata: JSON.parse(element.dataset.groveMetadata),
+          toggle: element.querySelector("[data-grove-paper-toggle]"),
           panel: element.nextElementSibling, expanded: false,
         }));
       } catch (_) {
         return; // Keep the complete static collection if metadata is unreadable.
       }
-      const categories = Array.from(controls.querySelectorAll("[data-gal-filter]"));
-      const after = controls.querySelector("[data-gal-date-after]");
-      const before = controls.querySelector("[data-gal-date-before]");
-      const expandAll = controls.querySelector("[data-gal-archive-expand-all]");
+      const categories = Array.from(controls.querySelectorAll("[data-grove-filter]"));
+      const after = controls.querySelector("[data-grove-date-after]");
+      const before = controls.querySelector("[data-grove-date-before]");
+      const expandAll = controls.querySelector("[data-grove-archive-expand-all]");
       const urlKeys = {publication_status: "status"};
       function readURL() {
         const params = common.readURLFields({q: search, after, before});
         categories.forEach(category => {
-          const values = params.getAll(urlKeys[category.dataset.galFilter] || category.dataset.galFilter);
-          category.querySelectorAll("[data-gal-value]").forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.galValue))));
+          const values = params.getAll(urlKeys[category.dataset.groveFilter] || category.dataset.groveFilter);
+          category.querySelectorAll("[data-grove-value]").forEach(button => button.setAttribute("aria-pressed", String(values.includes(button.dataset.groveValue))));
         });
       }
       function writeURL(selections) {
@@ -55,13 +55,13 @@
       function update() {
         const query = search.value.trim().toLowerCase();
         const selections = categories.map((category) => ({
-          key: category.dataset.galFilter,
+          key: category.dataset.groveFilter,
           values: [
-            ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.galValue),
+            ...Array.from(category.querySelectorAll('[aria-pressed="true"]'), (button) => button.dataset.groveValue),
           ],
         }));
         const matched = items.filter(({metadata, element}) => {
-          const dateMatches = common.monthMatches(element.dataset.galDate, after.value, before.value);
+          const dateMatches = common.monthMatches(element.dataset.groveDate, after.value, before.value);
           const matches = dateMatches && (!query || (metadata.text || "").toLowerCase().includes(query)) &&
             selections.every(({key, values}) => {
               const available = Array.isArray(metadata[key]) ? metadata[key] : [metadata[key]];
@@ -75,9 +75,9 @@
         items.forEach(item => {
           item.element.hidden = !shown.has(item);
           item.panel.hidden = item.element.hidden || !item.expanded;
-          item.element.classList.toggle("gal-paper--stripe", shown.has(item) && stripe++ % 2 === 1);
+          item.element.classList.toggle("grove-paper--stripe", shown.has(item) && stripe++ % 2 === 1);
         });
-        counter.textContent = `${count} of ${items.length} ${root.dataset.galNoun || "results"}`;
+        counter.textContent = `${count} of ${items.length} ${root.dataset.groveNoun || "results"}`;
         empty.hidden = count !== 0;
         writeURL(selections);
         syncExpandAll();
@@ -85,29 +85,29 @@
       controls.addEventListener("click", (event) => {
         const button = event.target.closest("button");
         if (!button || !controls.contains(button)) return;
-        if (button.hasAttribute("data-gal-archive-expand-all")) {
+        if (button.hasAttribute("data-grove-archive-expand-all")) {
           const expanded = button.getAttribute("aria-pressed") !== "true";
           items.filter(item => !item.element.hidden).forEach(item => item.setExpanded(expanded));
           syncExpandAll();
           return;
         }
-        if (button.hasAttribute("data-gal-reset")) {
+        if (button.hasAttribute("data-grove-reset")) {
           after.value = "";
           before.value = "";
           search.value = "";
-          controls.querySelectorAll("[data-gal-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
-        } else if (button.hasAttribute("data-gal-value")) {
+          controls.querySelectorAll("[data-grove-value]").forEach((option) => option.setAttribute("aria-pressed", "false"));
+        } else if (button.hasAttribute("data-grove-value")) {
           button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true");
         } else return;
         update();
       });
       search.addEventListener("input", update);
       controls.addEventListener("change", update);
-      root.classList.add("gal-papers--interactive");
+      root.classList.add("grove-papers--interactive");
       items.forEach(item => {
         const {element, toggle, panel} = item;
         if (!toggle || !panel) return;
-        const collapse = panel.querySelector("[data-gal-paper-collapse]");
+        const collapse = panel.querySelector("[data-grove-paper-collapse]");
         function setExpanded(value) {
           item.expanded = value;
           panel.hidden = !value || element.hidden;
@@ -140,6 +140,6 @@
       update();
     });
   }
-  window.GALPapers = {initialize};
-  common.observeCollections('[data-gal-archive]', initialize);
+  window.GROVEPapers = {initialize};
+  common.observeCollections('[data-grove-archive]', initialize);
 })();

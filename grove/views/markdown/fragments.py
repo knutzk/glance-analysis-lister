@@ -8,7 +8,7 @@ from html import escape
 
 def fields(items, *, missing="Not recorded"):
     return (
-        '<dl class="gal-card__fields">'
+        '<dl class="grove-card__fields">'
         + "".join(
             f"<dt>{escape(label)}</dt><dd>{escape(value or missing)}</dd>"
             for label, value in items
@@ -19,7 +19,7 @@ def fields(items, *, missing="Not recorded"):
 
 def affiliation_tags(groups):
     out = ""
-    out += '<div class="gal-card__affiliations" aria-label="Groups and subgroups in the current snapshot">'
+    out += '<div class="grove-card__affiliations" aria-label="Groups and subgroups in the current snapshot">'
     for names, leading, kind in (
         (
             [groups.get("leadingGroup"), *(groups.get("otherGroups") or [])],
@@ -33,10 +33,10 @@ def affiliation_tags(groups):
         ),
     ):
         if kind == "subgroup":
-            out += '<span class="gal-card__divider" aria-hidden="true">|</span>'
-        out += f'<span class="gal-card__tagset" aria-label="{kind.capitalize()}s">'
+            out += '<span class="grove-card__divider" aria-hidden="true">|</span>'
+        out += f'<span class="grove-card__tagset" aria-label="{kind.capitalize()}s">'
         for name in dict.fromkeys(name for name in names if name):
             lead = name == leading
-            out += f'<span class="gal-badge{" gal-badge--leading" if lead else ""}">{escape(name)}<span class="gal-visually-hidden"> ({"leading" if lead else "additional"} {kind})</span></span>\n'
+            out += f'<span class="grove-badge{" grove-badge--leading" if lead else ""}">{escape(name)}<span class="grove-visually-hidden"> ({"leading" if lead else "additional"} {kind})</span></span>\n'
         out += "</span>"
     return out + "</div>"

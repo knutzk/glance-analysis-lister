@@ -18,14 +18,14 @@
 }
 
 /* Linked README thumbnails also render as two columns on GitHub. */
-.gal-screenshot-gallery {
+.grove-screenshot-gallery {
   width: 100%;
   table-layout: fixed;
   border-spacing: 0;
 }
-.gal-screenshot-gallery td { padding: 0 0.5rem; }
-.gal-screenshot-gallery p { margin: 0.5rem 0; }
-.gal-screenshot-gallery img { width: 360px; max-width: 100%; height: auto; }
+.grove-screenshot-gallery td { padding: 0 0.5rem; }
+.grove-screenshot-gallery p { margin: 0.5rem 0; }
+.grove-screenshot-gallery img { width: 360px; max-width: 100%; height: auto; }
 
 /* Separate captured views from the surrounding documentation. */
 .md-typeset img[src$="images/ongoing.png"],
@@ -41,7 +41,7 @@
   box-shadow: 0 0.15rem 0.6rem rgb(0 0 0 / 12%);
 }
 
-.gal-doc-example {
+.grove-doc-example {
   margin: 1rem 0;
   padding: 0.75rem;
   border: 1px solid var(--md-default-fg-color--lighter);
@@ -49,16 +49,16 @@
 }
 
 /* Single-record examples focus on the card; full pages retain their controls. */
-.gal-doc-example .gal-filters,
-.gal-doc-example .gal-result-count {
+.grove-doc-example .grove-filters,
+.grove-doc-example .grove-result-count {
   display: none;
 }
 
 @media (max-width: 600px) {
-  .gal-doc-example { padding: 0.4rem; }
-  .gal-screenshot-gallery,
-  .gal-screenshot-gallery tbody,
-  .gal-screenshot-gallery tr,
-  .gal-screenshot-gallery td { display: block; width: 100%; }
-  .gal-screenshot-gallery td { padding: 0; margin-bottom: 1rem; }
+  .grove-doc-example { padding: 0.4rem; }
+  .grove-screenshot-gallery,
+  .grove-screenshot-gallery tbody,
+  .grove-screenshot-gallery tr,
+  .grove-screenshot-gallery td { display: block; width: 100%; }
+  .grove-screenshot-gallery td { padding: 0; margin-bottom: 1rem; }
 }

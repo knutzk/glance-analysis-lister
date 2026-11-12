@@ -49,21 +49,21 @@ class CuratedTests(unittest.TestCase):
         for resource in RESOURCES:
             record = result[resource][0]
             self.assertNotIn("analysisTeam", record)
-            self.assertEqual(record["gal_analysisContacts"], ["Current Example"])
+            self.assertEqual(record["grove_analysisContacts"], ["Current Example"])
             self.assertEqual(
-                record["gal_contactEditors"], ["Current Example", "Editor Example"]
+                record["grove_contactEditors"], ["Current Example", "Editor Example"]
             )
             phase = record.get("phase0") or record["phase1"]
             self.assertEqual(
-                phase["gal_editorialBoard"], ["Chair Example", "Observer Example"]
+                phase["grove_editorialBoard"], ["Chair Example", "Observer Example"]
             )
-            self.assertEqual(phase["gal_editorialBoardChairs"], ["Chair Example"])
+            self.assertEqual(phase["grove_editorialBoardChairs"], ["Chair Example"])
             if resource != "analyses":
                 self.assertEqual(
-                    phase["gal_editorialBoardExOfficio"], ["Observer Example"]
+                    phase["grove_editorialBoardExOfficio"], ["Observer Example"]
                 )
-            self.assertNotIn("gal_signOffResponsible", phase)
-            self.assertEqual(record["metadata"]["gal_keywords"], ["Keyword", "Other"])
+            self.assertNotIn("grove_signOffResponsible", phase)
+            self.assertEqual(record["metadata"]["grove_keywords"], ["Keyword", "Other"])
             if resource == "analyses":
                 self.assertEqual(
                     record["relatedPublications"],
@@ -87,8 +87,8 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(self.output.read_bytes(), previous)
 
     def test_reserved_namespace_collisions_are_rejected(self):
-        self.api["papers"][0]["metadata"]["gal_future"] = "collision"
-        with self.assertRaisesRegex(ValueError, "reserved gal_"):
+        self.api["papers"][0]["metadata"]["grove_future"] = "collision"
+        with self.assertRaisesRegex(ValueError, "reserved grove_"):
             registry.curate(self.api)
 
     def test_enrichment_retains_sources_without_mutating_input(self):
@@ -102,8 +102,8 @@ class CuratedTests(unittest.TestCase):
         enriched = registry.compact(source)
         for key, value in source.items():
             self.assertEqual(enriched[key], value)
-        self.assertEqual(enriched["gal_keywords"], ["Synthetic keyword"])
-        self.assertEqual(enriched["gal_signOffResponsible"], "Official Example")
+        self.assertEqual(enriched["grove_keywords"], ["Synthetic keyword"])
+        self.assertEqual(enriched["grove_signOffResponsible"], "Official Example")
         self.assertEqual(source, before)
 
     def test_string_collections_share_conversion_without_removing_sources(self):
@@ -112,7 +112,7 @@ class CuratedTests(unittest.TestCase):
         before = copy.deepcopy(source)
         result = registry.compact({"nested": source})["nested"]
         for key in registry.STRING_LIST_FIELDS:
-            self.assertEqual(result["gal_" + key], ["First", "Second"])
+            self.assertEqual(result["grove_" + key], ["First", "Second"])
             self.assertEqual(result[key], values)
         self.assertEqual(source, before)
         self.assertEqual(
@@ -144,7 +144,7 @@ class CuratedTests(unittest.TestCase):
             record = result[resource][0]
             self.assertNotIn("groups", record)
             self.assertEqual(
-                record["gal_groups"],
+                record["grove_groups"],
                 {
                     "leadingGroup": "Example group",
                     "leadingSubgroup": "Example subgroup",
@@ -167,7 +167,7 @@ class CuratedTests(unittest.TestCase):
         self.assertEqual(len(messages.output), 1)
         for message in messages.output:
             self.assertIn("ANA-DEMO-2099-01", message)
-        groups = result["analyses"][0]["gal_groups"]
+        groups = result["analyses"][0]["grove_groups"]
         self.assertEqual(groups["leadingGroup"], "First group")
         self.assertIsNone(groups["leadingSubgroup"])
         with self.assertRaisesRegex(ValueError, "Groups must be an object"):
@@ -230,9 +230,31 @@ class CuratedTests(unittest.TestCase):
             self.assertNotIn("repositories", record["metadata"])
             self.assertNotIn("statisticalTools", record["metadata"])
             self.assertEqual(
-                record["metadata"]["gal_statisticalTools"],
+                record["metadata"]["grove_statisticalTools"],
                 ["Synthetic tool", "Other tool"],
             )
+
+    def test_retired_output_requires_a_new_path_even_with_count_override(self):
+        historical = Path(__file__).parent / "fixtures/curated/v2-baseline.json"
+        self.output.parent.mkdir(parents=True, exist_ok=True)
+        self.output.write_bytes(historical.read_bytes())
+        before = self.output.read_bytes()
+        source_before = self.api_path.read_bytes()
+        for override in (False, True):
+            with self.subTest(allow_count_drop=override):
+                with self.assertRaisesRegex(ValueError, "unsupported gal_.*new output"):
+                    builder.build_registry(
+                        self.api_path, self.output, allow_count_drop=override
+                    )
+                self.assertEqual(self.output.read_bytes(), before)
+                self.assertEqual(self.api_path.read_bytes(), source_before)
+        new_output = self.output.with_name("grove-curated.json")
+        builder.build_registry(self.api_path, new_output)
+        rebuilt = json.loads(new_output.read_text())
+        self.assertIn("grove_curation", rebuilt)
+        self.assertEqual(rebuilt["counts"], self.api["counts"])
+        self.assertEqual(self.output.read_bytes(), before)
+        self.assertEqual(self.api_path.read_bytes(), source_before)
 
     def test_wrong_format_output_is_rejected_without_overwriting_it(self):
         previous = registry.curate(self.api)
@@ -298,15 +320,15 @@ assert not any(name.startswith("grove.glance") for name in sys.modules)
         result = json.loads(self.output.read_text())
         validate_registry(result)
         self.assertNotIn("fullTitle", result["analyses"][0])
-        self.assertNotIn("gal_internalNoteEditors", result["analyses"][0])
-        self.assertNotIn("html_source", result["gal_curation"])
+        self.assertNotIn("grove_internalNoteEditors", result["analyses"][0])
+        self.assertNotIn("html_source", result["grove_curation"])
         self.assertEqual(
-            result["papers"][0]["gal_figuresUrl"],
+            result["papers"][0]["grove_figuresUrl"],
             "https://atlas.web.cern.ch/Atlas/GROUPS/PHYSICS/PAPERS/DEMO-2099-01/",
         )
         self.assertNotIn("creationDate", result["pubnotes"][0])
         self.assertEqual(
-            result["pubnotes"][0]["gal_finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
+            result["pubnotes"][0]["grove_finalReferenceCode"], "ATL-PHYS-PUB-2099-001"
         )
         self.assertEqual(result["counts"], self.api["counts"])
         self.assertEqual(json.loads(self.api_path.read_text()), self.api)
@@ -316,8 +338,8 @@ assert not any(name.startswith("grove.glance") for name in sys.modules)
         result = registry.compact(
             {"readers": [person("Reader", isFirstReader=True, isSecondReader=True)]}
         )
-        self.assertEqual(result["gal_readers"], ["Reader Example"])
-        self.assertEqual(result["gal_firstReaders"], result["gal_secondReaders"])
+        self.assertEqual(result["grove_readers"], ["Reader Example"])
+        self.assertEqual(result["grove_firstReaders"], result["grove_secondReaders"])
 
     def test_build_embeds_the_selected_citation_store_without_network(self):
         doi = "10.1007/jhep01(2099)001"
@@ -333,10 +355,10 @@ assert not any(name.startswith("grove.glance") for name in sys.modules)
         with patch("requests.get", side_effect=AssertionError("network not allowed")):
             builder.build_registry(self.api_path, self.output, doi_cache=cache)
         result = json.loads(self.output.read_text())
-        entry = result["papers"][0]["publicationPhase"]["gal_dois"][0]
+        entry = result["papers"][0]["publicationPhase"]["grove_dois"][0]
         self.assertEqual(entry["citation"], "Synthetic citation")
         self.assertEqual(set(entry), {"doi", "url", "citation"})
-        self.assertEqual(result["gal_curation"]["doi_statistics"]["resolved"], 1)
+        self.assertEqual(result["grove_curation"]["doi_statistics"]["resolved"], 1)
         self.assertEqual(cache.read_bytes(), before)
         with self.assertRaisesRegex(ValueError, "overwrite an input"):
             builder.build_registry(self.api_path, cache, doi_cache=cache)
@@ -371,7 +393,7 @@ assert not any(name.startswith("grove.glance") for name in sys.modules)
                     builder.build_registry(self.api_path, self.output, **options)
                     result = json.loads(self.output.read_text())
                     self.assertEqual(
-                        result["papers"][0]["publicationPhase"]["gal_dois"][0][
+                        result["papers"][0]["publicationPhase"]["grove_dois"][0][
                             "citation"
                         ],
                         expected,
@@ -381,7 +403,7 @@ assert not any(name.startswith("grove.glance") for name in sys.modules)
                 self.api_path, self.output, doi_cache=Path("json/doi_metadata.json")
             )
             self.assertEqual(
-                json.loads(self.output.read_text())["gal_curation"]["doi_statistics"][
+                json.loads(self.output.read_text())["grove_curation"]["doi_statistics"][
                     "resolved"
                 ],
                 0,

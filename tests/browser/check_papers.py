@@ -40,14 +40,16 @@ def run_checks(work_dir):
         paper["publicationPhase"]["publishedOnlineDate"] = (
             f"2099-{n + 1:02}-01" if n < 3 else None
         )
-        paper["gal_contactEditors"] = ["Invented Editor" if n == 0 else "Other Editor"]
+        paper["grove_contactEditors"] = [
+            "Invented Editor" if n == 0 else "Other Editor"
+        ]
         if n >= 2:
-            paper["publicationPhase"]["gal_dois"] = []
-        paper["gal_groups"]["subgroups"] = ["DEMO-Alpha" if n < 2 else "DEMO-Beta"]
+            paper["publicationPhase"]["grove_dois"] = []
+        paper["grove_groups"]["subgroups"] = ["DEMO-Alpha" if n < 2 else "DEMO-Beta"]
         paper["metadata"] = {
-            "gal_keywords": ["Precision" if n % 2 == 0 else "Calibration"],
-            "gal_triggers": ["Trigger A" if n < 2 else "Trigger B"],
-            "gal_statisticalTools": ["Tool A" if n % 2 == 0 else "Tool B"],
+            "grove_keywords": ["Precision" if n % 2 == 0 else "Calibration"],
+            "grove_triggers": ["Trigger A" if n < 2 else "Trigger B"],
+            "grove_statisticalTools": ["Tool A" if n % 2 == 0 else "Tool B"],
         }
     papers[0]["publicationPhase"]["finalTitleTex"] = r"Invented $X \to Y$ measurement"
     papers[0]["publicationPhase"]["arXivUrls"] = [
@@ -56,7 +58,7 @@ def run_checks(work_dir):
     papers[1]["publicationPhase"]["arXivUrls"] = [
         {"url": "https://example.test/arxiv/2099.00001"}
     ]
-    papers[1]["publicationPhase"]["gal_dois"] = [
+    papers[1]["publicationPhase"]["grove_dois"] = [
         {"doi": "10.9999/synthetic", "citation": "Invented Journal 123 (2099) 456"},
         {
             "doi": "10.9999/synthetic-erratum",
@@ -68,16 +70,16 @@ def run_checks(work_dir):
         GroupProfile("DEMO"),
     )
     markup = str(
-        BeautifulSoup(papers_page(view), "html.parser").select_one(".gal-archive")
+        BeautifulSoup(papers_page(view), "html.parser").select_one(".grove-archive")
     )
     assets = ROOT / "grove/views/assets"
     css = "".join(
         f'<link rel="stylesheet" href="{(assets / name).as_uri()}">'
-        for name in ("gal-common.css", "gal-ongoing.css", "gal-papers.css")
+        for name in ("grove-common.css", "grove-ongoing.css", "grove-papers.css")
     )
     js = "".join(
         f'<script src="{(assets / name).as_uri()}"></script>'
-        for name in ("gal-common.js", "gal-ongoing.js", "gal-papers.js")
+        for name in ("grove-common.js", "grove-ongoing.js", "grove-papers.js")
     )
     path = work_dir / "fixture.html"
     path.write_text(
@@ -100,13 +102,13 @@ def run_checks(work_dir):
         def count(n):
             wait.until(
                 lambda d: (
-                    d.find_element(By.CSS_SELECTOR, "[data-gal-count]").text
+                    d.find_element(By.CSS_SELECTOR, "[data-grove-count]").text
                     == f"{n} of 4 papers"
                 )
             )
 
         def reset():
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-reset]").click()
+            driver.find_element(By.CSS_SELECTOR, "[data-grove-reset]").click()
             count(4)
 
         count(4)
@@ -114,12 +116,12 @@ def run_checks(work_dir):
         def check_link_layout():
             for width in (640, 800, 1000):
                 driver.execute_script(
-                    "document.querySelector('.gal-archive').style.maxWidth = arguments[0] + 'px'",
+                    "document.querySelector('.grove-archive').style.maxWidth = arguments[0] + 'px'",
                     width,
                 )
                 dimensions = driver.execute_script("""
-                    const scroll = document.querySelector('.gal-table-scroll');
-                    const links = [...document.querySelectorAll('.gal-publication-records a')]
+                    const scroll = document.querySelector('.grove-table-scroll');
+                    const links = [...document.querySelectorAll('.grove-publication-records a')]
                         .filter(a => a.href.includes('example.test/arxiv') || a.href.includes('10.9999/synthetic'));
                     const erratum = links.find(a => a.textContent.startsWith('Erratum:'));
                     const arxiv = links.find(a => a.textContent === 'arXiv');
@@ -141,30 +143,30 @@ def run_checks(work_dir):
                 )
                 assert dimensions["wrapped"] and dimensions["contained"], dimensions
             driver.execute_script(
-                "document.querySelector('.gal-archive').style.removeProperty('max-width')"
+                "document.querySelector('.grove-archive').style.removeProperty('max-width')"
             )
 
         check_link_layout()
         assert not driver.find_elements(
-            By.CSS_SELECTOR, '[data-gal-filter="publication_type"]'
+            By.CSS_SELECTOR, '[data-grove-filter="publication_type"]'
         )
         assert (
             len(
                 [
                     r
-                    for r in driver.find_elements(By.CSS_SELECTOR, "[data-gal-item]")
+                    for r in driver.find_elements(By.CSS_SELECTOR, "[data-grove-item]")
                     if r.is_displayed()
                 ]
             )
             == 4
         )
         assert not driver.find_elements(
-            By.CSS_SELECTOR, "[data-gal-pagination], [data-gal-filter='subgroups']"
+            By.CSS_SELECTOR, "[data-grove-pagination], [data-grove-filter='subgroups']"
         )
 
         def month(bound, value):
             driver.execute_script(
-                "const input=document.querySelector('[data-gal-date-'+arguments[0]+']');input.value=arguments[1];input.dispatchEvent(new Event('change',{bubbles:true}))",
+                "const input=document.querySelector('[data-grove-date-'+arguments[0]+']');input.value=arguments[1];input.dispatchEvent(new Event('change',{bubbles:true}))",
                 bound,
                 value,
             )
@@ -180,30 +182,30 @@ def run_checks(work_dir):
         driver.refresh()
         count(1)
         assert (
-            driver.find_element(By.CSS_SELECTOR, "[data-gal-date-after]").get_attribute(
-                "value"
-            )
+            driver.find_element(
+                By.CSS_SELECTOR, "[data-grove-date-after]"
+            ).get_attribute("value")
             == "2099-02"
         )
         assert (
             driver.find_element(
-                By.CSS_SELECTOR, "[data-gal-date-before]"
+                By.CSS_SELECTOR, "[data-grove-date-before]"
             ).get_attribute("value")
             == "2099-02"
         )
         month("after", "2099-03")
         count(0)
         assert driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
+            By.CSS_SELECTOR, "[data-grove-archive-expand-all]"
         ).get_attribute("disabled")
         reset()
         count(4)
         expand_all = driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-archive-expand-all]"
+            By.CSS_SELECTOR, "[data-grove-archive-expand-all]"
         )
         expand_all.click()
         assert expand_all.text == "Collapse all"
-        citations = driver.find_elements(By.CSS_SELECTOR, ".gal-paper-citation")
+        citations = driver.find_elements(By.CSS_SELECTOR, ".grove-paper-citation")
         assert len(citations) == 4
         assert all(block.is_displayed() for block in citations)
         complete = next(
@@ -228,7 +230,7 @@ def run_checks(work_dir):
                 [
                     panel
                     for panel in driver.find_elements(
-                        By.CSS_SELECTOR, "[data-gal-paper-details]"
+                        By.CSS_SELECTOR, "[data-grove-paper-details]"
                     )
                     if panel.is_displayed()
                 ]
@@ -240,16 +242,20 @@ def run_checks(work_dir):
         assert not any(
             panel.is_displayed()
             for panel in driver.find_elements(
-                By.CSS_SELECTOR, "[data-gal-paper-details]"
+                By.CSS_SELECTOR, "[data-grove-paper-details]"
             )
         )
-        search = driver.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+        search = driver.find_element(By.CSS_SELECTOR, "[data-grove-search]")
         search.send_keys("Invented Editor")
         count(1)
         assert "q=Invented+Editor" in driver.current_url
         reset()
-        published = driver.find_element(By.CSS_SELECTOR, '[data-gal-value="published"]')
-        review = driver.find_element(By.CSS_SELECTOR, '[data-gal-value="under-review"]')
+        published = driver.find_element(
+            By.CSS_SELECTOR, '[data-grove-value="published"]'
+        )
+        review = driver.find_element(
+            By.CSS_SELECTOR, '[data-grove-value="under-review"]'
+        )
         published.click()
         count(2)
         assert "status=published" in driver.current_url
@@ -262,12 +268,12 @@ def run_checks(work_dir):
         count(0)
         reset()
         assert not driver.find_elements(
-            By.CSS_SELECTOR, ".gal-multiselect, [data-gal-choice]"
+            By.CSS_SELECTOR, ".grove-multiselect, [data-grove-choice]"
         )
         driver.execute_script(
-            "window.GALOngoing.initialize();window.GALPapers.initialize();window.GALPapers.initialize()"
+            "window.GROVEOngoing.initialize();window.GROVEPapers.initialize();window.GROVEPapers.initialize()"
         )
-        toggle = driver.find_element(By.CSS_SELECTOR, "[data-gal-paper-toggle]")
+        toggle = driver.find_element(By.CSS_SELECTOR, "[data-grove-paper-toggle]")
         toggle.send_keys(Keys.ENTER)
         assert toggle.get_attribute("aria-expanded") == "true"
         toggle.send_keys(Keys.SPACE)
@@ -280,25 +286,27 @@ def run_checks(work_dir):
         assert not panel.is_displayed()
         reset()
         assert panel.is_displayed()
-        panel.find_element(By.CSS_SELECTOR, "[data-gal-paper-collapse]").click()
+        panel.find_element(By.CSS_SELECTOR, "[data-grove-paper-collapse]").click()
         assert not panel.is_displayed()
         toggle.click()
         toggle.click()
         assert not panel.is_displayed()
 
         original = driver.execute_script(
-            "return document.querySelector('[data-gal-archive]').outerHTML"
+            "return document.querySelector('[data-grove-archive]').outerHTML"
         )
         driver.execute_script(
-            "document.querySelector('[data-gal-archive]').outerHTML=arguments[0]",
+            "document.querySelector('[data-grove-archive]').outerHTML=arguments[0]",
             original,
         )
         wait.until(
             lambda d: d.find_element(
-                By.CSS_SELECTOR, "[data-gal-controls]"
+                By.CSS_SELECTOR, "[data-grove-controls]"
             ).is_displayed()
         )
-        driver.find_element(By.CSS_SELECTOR, "[data-gal-search]").send_keys("Precision")
+        driver.find_element(By.CSS_SELECTOR, "[data-grove-search]").send_keys(
+            "Precision"
+        )
         count(2)
         reset()
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
@@ -307,18 +315,18 @@ def run_checks(work_dir):
             len(
                 [
                     r
-                    for r in driver.find_elements(By.CSS_SELECTOR, "[data-gal-item]")
+                    for r in driver.find_elements(By.CSS_SELECTOR, "[data-grove-item]")
                     if r.is_displayed()
                 ]
             )
             == 4
         )
         assert not driver.find_element(
-            By.CSS_SELECTOR, "[data-gal-controls]"
+            By.CSS_SELECTOR, "[data-grove-controls]"
         ).is_displayed()
         assert all(
             block.is_displayed()
-            for block in driver.find_elements(By.CSS_SELECTOR, ".gal-paper-citation")
+            for block in driver.find_elements(By.CSS_SELECTOR, ".grove-paper-citation")
         )
         check_link_layout()
         print(
@@ -327,7 +335,7 @@ def run_checks(work_dir):
 
 
 def main():
-    with TemporaryDirectory(prefix="gal-papers-browser-") as directory:
+    with TemporaryDirectory(prefix="grove-papers-browser-") as directory:
         run_checks(Path(directory))
 
 

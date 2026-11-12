@@ -4,6 +4,11 @@
   "title": "GLANCE curated registry",
   "description": "Current generated registry structure. Unknown additions are allowed; validation inserts no defaults. See docs/file-reference.md.",
   "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/currentNamespace"
+    }
+  ],
   "properties": {
     "schema": {
       "const": "glance-curated-registry"
@@ -45,7 +50,7 @@
     "source": {
       "$ref": "#/$defs/source"
     },
-    "gal_curation": {
+    "grove_curation": {
       "$ref": "#/$defs/curation"
     },
     "analyses": {
@@ -185,13 +190,13 @@
         "null"
       ],
       "properties": {
-        "gal_keywords": {
+        "grove_keywords": {
           "$ref": "#/$defs/optionalNames"
         },
-        "gal_triggers": {
+        "grove_triggers": {
           "$ref": "#/$defs/optionalNames"
         },
-        "gal_statisticalTools": {
+        "grove_statisticalTools": {
           "$ref": "#/$defs/optionalNames"
         }
       }
@@ -291,13 +296,13 @@
         "shortTitle": {
           "$ref": "#/$defs/text"
         },
-        "gal_analysisContacts": {
+        "grove_analysisContacts": {
           "$ref": "#/$defs/names"
         },
-        "gal_contactEditors": {
+        "grove_contactEditors": {
           "$ref": "#/$defs/names"
         },
-        "gal_groups": {
+        "grove_groups": {
           "$ref": "#/$defs/groups"
         },
         "metadata": {
@@ -309,8 +314,8 @@
         "analysisTeam": false
       },
       "required": [
-        "gal_analysisContacts",
-        "gal_contactEditors"
+        "grove_analysisContacts",
+        "grove_contactEditors"
       ]
     },
     "publication": {
@@ -319,7 +324,7 @@
         "relatedAnalysis": {
           "$ref": "#/$defs/link"
         },
-        "gal_publicationProvenance": {
+        "grove_publicationProvenance": {
           "$ref": "#/$defs/provenance"
         }
       }
@@ -342,34 +347,34 @@
         "pgcOrSgcSignOffDate": {
           "$ref": "#/$defs/milestoneDate"
         },
-        "gal_editorialBoard": {
+        "grove_editorialBoard": {
           "$ref": "#/$defs/people"
         },
-        "gal_editorialBoardChairs": {
+        "grove_editorialBoardChairs": {
           "$ref": "#/$defs/people"
         },
-        "gal_eoiMeetingDates": {
+        "grove_eoiMeetingDates": {
           "type": "array",
           "items": {
             "type": "string",
             "format": "date"
           }
         },
-        "gal_editorialBoardRequestMeetingDates": {
+        "grove_editorialBoardRequestMeetingDates": {
           "type": "array",
           "items": {
             "type": "string",
             "format": "date"
           }
         },
-        "gal_preApprovalMeetingDates": {
+        "grove_preApprovalMeetingDates": {
           "type": "array",
           "items": {
             "type": "string",
             "format": "date"
           }
         },
-        "gal_approvalMeetingDates": {
+        "grove_approvalMeetingDates": {
           "type": "array",
           "items": {
             "type": "string",
@@ -384,28 +389,28 @@
         "null"
       ],
       "properties": {
-        "gal_editorialBoard": {
+        "grove_editorialBoard": {
           "$ref": "#/$defs/people"
         },
-        "gal_editorialBoardChairs": {
+        "grove_editorialBoardChairs": {
           "$ref": "#/$defs/people"
         },
-        "gal_editorialBoardExOfficio": {
+        "grove_editorialBoardExOfficio": {
           "$ref": "#/$defs/people"
         },
-        "gal_readers": {
+        "grove_readers": {
           "$ref": "#/$defs/people"
         },
-        "gal_firstReaders": {
+        "grove_firstReaders": {
           "$ref": "#/$defs/people"
         },
-        "gal_secondReaders": {
+        "grove_secondReaders": {
           "$ref": "#/$defs/people"
         },
-        "gal_firstSignOffResponsible": {
+        "grove_firstSignOffResponsible": {
           "$ref": "#/$defs/people"
         },
-        "gal_secondSignOffResponsible": {
+        "grove_secondSignOffResponsible": {
           "$ref": "#/$defs/people"
         },
         "startDate": {
@@ -514,7 +519,7 @@
             "$ref": "#/$defs/url"
           }
         },
-        "gal_dois": {
+        "grove_dois": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/doi"
@@ -531,13 +536,13 @@
         "null"
       ],
       "properties": {
-        "gal_keywords": {
+        "grove_keywords": {
           "$ref": "#/$defs/optionalNames"
         },
-        "gal_triggers": {
+        "grove_triggers": {
           "$ref": "#/$defs/optionalNames"
         },
-        "gal_statisticalTools": {
+        "grove_statisticalTools": {
           "$ref": "#/$defs/optionalNames"
         },
         "mvaMlTools": {
@@ -578,28 +583,28 @@
         "null"
       ],
       "properties": {
-        "gal_editorialBoard": {
+        "grove_editorialBoard": {
           "$ref": "#/$defs/people"
         },
-        "gal_editorialBoardChairs": {
+        "grove_editorialBoardChairs": {
           "$ref": "#/$defs/people"
         },
-        "gal_editorialBoardExOfficio": {
+        "grove_editorialBoardExOfficio": {
           "$ref": "#/$defs/people"
         },
-        "gal_readers": {
+        "grove_readers": {
           "$ref": "#/$defs/people"
         },
-        "gal_firstReaders": {
+        "grove_firstReaders": {
           "$ref": "#/$defs/people"
         },
-        "gal_secondReaders": {
+        "grove_secondReaders": {
           "$ref": "#/$defs/people"
         },
-        "gal_firstSignOffResponsible": {
+        "grove_firstSignOffResponsible": {
           "$ref": "#/$defs/people"
         },
-        "gal_secondSignOffResponsible": {
+        "grove_secondSignOffResponsible": {
           "$ref": "#/$defs/people"
         },
         "releaseDate": {
@@ -660,7 +665,7 @@
             "referenceCode": {
               "$ref": "#/$defs/identifier"
             },
-            "gal_figuresUrl": {
+            "grove_figuresUrl": {
               "$ref": "#/$defs/text"
             },
             "phase1": {
@@ -699,7 +704,7 @@
             "finalReferenceCode": {
               "$ref": "#/$defs/text"
             },
-            "gal_finalReferenceCode": {
+            "grove_finalReferenceCode": {
               "$ref": "#/$defs/text"
             },
             "supersededBy": {
@@ -841,6 +846,32 @@
           "$ref": "#/$defs/names"
         }
       ]
+    },
+    "currentNamespace": {
+      "description": "Reject retired gal_ field names, including mixed namespaces; rebuild from saved API input.",
+      "if": {
+        "type": "object"
+      },
+      "then": {
+        "propertyNames": {
+          "not": {
+            "pattern": "^gal_"
+          }
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/currentNamespace"
+        }
+      },
+      "else": {
+        "if": {
+          "type": "array"
+        },
+        "then": {
+          "items": {
+            "$ref": "#/$defs/currentNamespace"
+          }
+        }
+      }
     }
   }
 }

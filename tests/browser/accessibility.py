@@ -7,13 +7,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-COLLECTION = ".gal-collection"
-TOGGLE = "[data-gal-card-toggle], [data-gal-paper-toggle], [data-gal-note-toggle]"
-COLLAPSE = (
-    "[data-gal-card-collapse], [data-gal-paper-collapse], [data-gal-note-collapse]"
-)
-RESET = "[data-gal-reset], [data-gal-note-reset]"
-EXPAND = "[data-gal-expand-all], [data-gal-archive-expand-all]"
+COLLECTION = ".grove-collection"
+TOGGLE = "[data-grove-card-toggle], [data-grove-paper-toggle], [data-grove-note-toggle]"
+COLLAPSE = "[data-grove-card-collapse], [data-grove-paper-collapse], [data-grove-note-collapse]"
+RESET = "[data-grove-reset], [data-grove-note-reset]"
+EXPAND = "[data-grove-expand-all], [data-grove-archive-expand-all]"
 
 
 def press(driver, *keys):
@@ -56,7 +54,7 @@ def check_keyboard(driver, wait, page):
     ):
         if element.is_displayed() and element.is_enabled():
             assert element.accessible_name.strip(), element.get_attribute("outerHTML")
-    search = root.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+    search = root.find_element(By.CSS_SELECTOR, "[data-grove-search]")
     tab_to(driver, search)
     assert_focus(driver, search)
     press(driver, Keys.TAB)
@@ -77,7 +75,7 @@ def check_keyboard(driver, wait, page):
     assert driver.switch_to.active_element == reset
 
     choice = root.find_element(
-        By.CSS_SELECTOR, "[data-gal-value], [data-gal-note-supersession]"
+        By.CSS_SELECTOR, "[data-grove-value], [data-grove-note-supersession]"
     )
     tab_to(driver, choice)
     assert_focus(driver, choice)
@@ -149,7 +147,7 @@ def check_layout_and_fallback(driver, wait, base, page_prefix, *, keyboard=True)
                 root = driver.find_element(By.CSS_SELECTOR, COLLECTION)
                 wait.until(
                     lambda _, root=root: root.find_element(
-                        By.CSS_SELECTOR, "[data-gal-search]"
+                        By.CSS_SELECTOR, "[data-grove-search]"
                     ).is_displayed()
                 )
                 for scheme in ("default", "slate"):
@@ -161,11 +159,13 @@ def check_layout_and_fallback(driver, wait, base, page_prefix, *, keyboard=True)
                         "return document.documentElement.scrollWidth <= innerWidth"
                     ), (page, width, scheme)
                     if keyboard:
-                        search = root.find_element(By.CSS_SELECTOR, "[data-gal-search]")
+                        search = root.find_element(
+                            By.CSS_SELECTOR, "[data-grove-search]"
+                        )
                         tab_to(driver, search)
                         assert_focus(driver, search)
                         for region in root.find_elements(
-                            By.CSS_SELECTOR, ".gal-table-scroll"
+                            By.CSS_SELECTOR, ".grove-table-scroll"
                         ):
                             tab_to(driver, region)
                             assert_focus(driver, region)
@@ -188,11 +188,11 @@ def check_layout_and_fallback(driver, wait, base, page_prefix, *, keyboard=True)
                 driver.refresh()
                 root = driver.find_element(By.CSS_SELECTOR, COLLECTION)
                 records = root.find_elements(
-                    By.CSS_SELECTOR, "[data-gal-item], [data-gal-note]"
+                    By.CSS_SELECTOR, "[data-grove-item], [data-grove-note]"
                 )
                 assert len(records) == 4 and all(e.is_displayed() for e in records)
                 assert not root.find_element(
-                    By.CSS_SELECTOR, "[data-gal-search]"
+                    By.CSS_SELECTOR, "[data-grove-search]"
                 ).is_displayed()
                 for toggle in root.find_elements(By.CSS_SELECTOR, TOGGLE):
                     panel = driver.find_element(

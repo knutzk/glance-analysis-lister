@@ -20,10 +20,10 @@ def analysis_card(row, group):
     encoded = metadata_json(metadata)
     identifier = anchor(group, row.reference)
     heading = identifier + "-title"
-    out = f'<article class="gal-card" id="{identifier}" aria-labelledby="{heading}" data-gal-item data-gal-metadata="{encoded}">\n'
-    out += '<header class="gal-card__header"><div class="gal-card__title-line">'
-    out += '<span class="gal-card__glance-links">'
-    out += f'<a class="gal-glance-button" href="{escape(glance_url("analyses", row.reference), quote=True)}" aria-label="GLANCE analysis {escape(row.reference, quote=True)}">{escape(row.reference)}</a>'
+    out = f'<article class="grove-card" id="{identifier}" aria-labelledby="{heading}" data-grove-item data-grove-metadata="{encoded}">\n'
+    out += '<header class="grove-card__header"><div class="grove-card__title-line">'
+    out += '<span class="grove-card__glance-links">'
+    out += f'<a class="grove-glance-button" href="{escape(glance_url("analyses", row.reference), quote=True)}" aria-label="GLANCE analysis {escape(row.reference, quote=True)}">{escape(row.reference)}</a>'
     for link in row.publications:
         if link["resource"] in {"papers", "confnotes", "pubnotes"} and (
             link["resource"] != "papers"
@@ -35,17 +35,17 @@ def analysis_card(row, group):
                 "pubnotes": "PUB note",
             }[link["resource"]]
             label = link["reference"] if link["resource"] == "papers" else kind
-            out += f'<a class="gal-glance-button" href="{escape(glance_url(link["resource"], link["reference"]), quote=True)}" aria-label="GLANCE {kind}: {escape(link["reference"], quote=True)}" title="{escape(link["reference"], quote=True)}">{escape(label)}</a>'
+            out += f'<a class="grove-glance-button" href="{escape(glance_url(link["resource"], link["reference"]), quote=True)}" aria-label="GLANCE {kind}: {escape(link["reference"], quote=True)}" title="{escape(link["reference"], quote=True)}">{escape(label)}</a>'
     out += "</span>"
-    out += f'<h2 id="{heading}"><span data-gal-card-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></h2>'
+    out += f'<h2 id="{heading}"><span data-grove-card-toggle aria-controls="{identifier}-details">{escape(row.title)}</span></h2>'
     out += "</div>"
     out += affiliation_tags(row.groups)
-    out += '<div class="gal-card__actions">'
-    out += f'<a class="gal-card__permalink" href="#{identifier}" aria-label="Link to {escape(row.reference, quote=True)}" title="Link to this analysis">#</a>'
+    out += '<div class="grove-card__actions">'
+    out += f'<a class="grove-card__permalink" href="#{identifier}" aria-label="Link to {escape(row.reference, quote=True)}" title="Link to this analysis">#</a>'
     out += "</div></header>"
     if row.stage == "awaiting_publication_review":
-        out += '<p class="gal-card__label">Awaiting publication review</p>'
-    out += '<ol class="gal-progress" aria-label="Approval milestones">'
+        out += '<p class="grove-card__label">Awaiting publication review</p>'
+    out += '<ol class="grove-progress" aria-label="Approval milestones">'
     flow_labels = {
         "EdBoard assignment": "EdBoard",
         "Pre-approval sign-off": "Pre-approval",
@@ -60,8 +60,8 @@ def analysis_card(row, group):
             if step["reached"] and step["label"] == "Publication review"
             else state
         )
-        out += f'<li class="gal-progress__step{" gal-progress__step--reached" if step["reached"] else ""}" title="{escape(detail, quote=True)}"><span class="gal-progress__marker" aria-hidden="true">{"✓" if step["reached"] else "○"}</span><strong>{escape(flow_labels.get(step["label"], step["label"]))}</strong><span class="gal-visually-hidden">: {escape(detail)}</span></li>'
-    out += f'</ol><div class="gal-card__details" id="{identifier}-details"><div class="gal-card__columns"><div>'
+        out += f'<li class="grove-progress__step{" grove-progress__step--reached" if step["reached"] else ""}" title="{escape(detail, quote=True)}"><span class="grove-progress__marker" aria-hidden="true">{"✓" if step["reached"] else "○"}</span><strong>{escape(flow_labels.get(step["label"], step["label"]))}</strong><span class="grove-visually-hidden">: {escape(detail)}</span></li>'
+    out += f'</ol><div class="grove-card__details" id="{identifier}-details"><div class="grove-card__columns"><div>'
     out += fields(
         [
             (
@@ -87,12 +87,12 @@ def analysis_card(row, group):
     )
     out += "</div><div>"
     if row.email_lists:
-        out += '<p class="gal-card__label">Email lists</p><ul>'
+        out += '<p class="grove-card__label">Email lists</p><ul>'
         for item in row.email_lists:
             out += f'<li><a href="mailto:{escape(item["address"], quote=True)}">{escape(item["address"])}</a></li>'
         out += "</ul>"
     if row.documents:
-        out += '<p class="gal-card__label">Supporting documents</p><ul>'
+        out += '<p class="grove-card__label">Supporting documents</p><ul>'
         for doc in row.documents:
             url = doc.get("url") or ""
             label = doc.get("label") or "Document"
@@ -105,14 +105,15 @@ def analysis_card(row, group):
         ("Keywords", row.keywords),
     ):
         if values:
-            out += f'<p class="gal-card__label">{label}</p><div class="gal-card__keyword-tags">'
+            out += f'<p class="grove-card__label">{label}</p><div class="grove-card__keyword-tags">'
             out += "".join(
-                f'<span class="gal-badge">{escape(value)}</span>\n' for value in values
+                f'<span class="grove-badge">{escape(value)}</span>\n'
+                for value in values
             )
             out += "</div>"
     return (
         out
-        + f'</div></div><div class="gal-card__collapse-row"><button type="button" class="gal-card__collapse" data-gal-card-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></article>\n'
+        + f'</div></div><div class="grove-card__collapse-row"><button type="button" class="grove-card__collapse" data-grove-card-collapse aria-controls="{identifier}-details" hidden>Collapse <span aria-hidden="true">▴</span></button></div></div></article>\n'
     )
 
 
@@ -128,13 +129,13 @@ def filter_controls(group, controls):
 
 
 def ongoing_cards(view):
-    out = '<section class="gal-collection gal-ongoing" data-gal-collection data-gal-noun="analyses" aria-label="Ongoing analyses">\n'
+    out = '<section class="grove-collection grove-ongoing" data-grove-collection data-grove-noun="analyses" aria-label="Ongoing analyses">\n'
     out += filter_controls(view.profile.group, view.controls["ongoing"])
-    out += f'<p class="gal-result-count" data-gal-count role="status" aria-live="polite" aria-atomic="true">{len(view.ongoing)} analyses</p>\n'
+    out += f'<p class="grove-result-count" data-grove-count role="status" aria-live="polite" aria-atomic="true">{len(view.ongoing)} analyses</p>\n'
     out += (
-        '<div class="gal-cards">\n'
+        '<div class="grove-cards">\n'
         + "".join(analysis_card(row, view.profile.group) for row in view.ongoing)
         + "</div>\n"
     )
-    out += '<p class="gal-no-results" data-gal-empty hidden>No analyses match these filters. Reset the filters to see all analyses.</p>\n'
+    out += '<p class="grove-no-results" data-grove-empty hidden>No analyses match these filters. Reset the filters to see all analyses.</p>\n'
     return readable_html(out + "</section>") + "\n"

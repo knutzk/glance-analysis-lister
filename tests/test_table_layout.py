@@ -59,20 +59,20 @@ class TableLayoutTests(unittest.TestCase):
                         body_rows[index].find_next_sibling(), body_rows[index + 1]
                     )
                 self.assertFalse(
-                    soup.select("[data-gal-subgroups], [data-gal-resource]")
+                    soup.select("[data-grove-subgroups], [data-grove-resource]")
                 )
                 if resource == "papers":
                     self.assertEqual(
-                        set(json.loads(body_rows[0]["data-gal-metadata"])),
+                        set(json.loads(body_rows[0]["data-grove-metadata"])),
                         {"text", "publication_status"},
                     )
                 else:
-                    self.assertIn("data-gal-search-text", body_rows[0].attrs)
-                    self.assertIn("data-gal-date", body_rows[0].attrs)
-                    self.assertIn("data-gal-superseded", body_rows[0].attrs)
+                    self.assertIn("data-grove-search-text", body_rows[0].attrs)
+                    self.assertIn("data-grove-date", body_rows[0].attrs)
+                    self.assertIn("data-grove-superseded", body_rows[0].attrs)
 
     def test_layout_preserves_elements_attributes_and_inline_content(self):
-        source = '<section><div><a href="https://example.test">A <strong>linked</strong> label</a></div><dl><dt>Editors</dt><dd>First, Second</dd></dl><table><tbody><tr data-gal-item><td>Compact</td><td>Row</td></tr><tr class="gal-paper-detail-row"><td><div><p>Details</p></div></td></tr></tbody></table></section>'
+        source = '<section><div><a href="https://example.test">A <strong>linked</strong> label</a></div><dl><dt>Editors</dt><dd>First, Second</dd></dl><table><tbody><tr data-grove-item><td>Compact</td><td>Row</td></tr><tr class="grove-paper-detail-row"><td><div><p>Details</p></div></td></tr></tbody></table></section>'
         formatted = readable_html(source)
         original, result = (
             BeautifulSoup(value, "html.parser") for value in (source, formatted)
@@ -91,6 +91,6 @@ class TableLayoutTests(unittest.TestCase):
         encoded = metadata_json(values)
         self.assertEqual(encoded, metadata_json(dict(reversed(list(values.items())))))
         html = BeautifulSoup(
-            '<div data-gal-metadata="' + encoded + '"></div>', "html.parser"
+            '<div data-grove-metadata="' + encoded + '"></div>', "html.parser"
         )
-        self.assertEqual(json.loads(html.div["data-gal-metadata"]), values)
+        self.assertEqual(json.loads(html.div["data-grove-metadata"]), values)

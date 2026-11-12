@@ -5,6 +5,10 @@ again. The registry, in turn, lets you regenerate pages without repeating
 curation. Rendering also writes a diagnostic report to explain the result.
 Keep these inputs and reports privately; publish only the intended pages and assets.
 
+Current curated fields use the `grove_` namespace. Files containing retired
+`gal_` fields are rejected; follow the [rebuild guidance](upgrading.md#unreleased-grove-field-and-browser-names)
+when upgrading from v0.4.0 or earlier.
+
 The [data guide](data.md) explains this workflow. This reference describes the
 stored values, output names and URL parameters when you need to inspect a file
 or connect the package to another tool. Generated JSON supports the package's
@@ -20,7 +24,7 @@ and are handled separately in the [upgrade guide](upgrading.md#preserve-the-inpu
 | `glance_curated_registry.json` | Validated, enriched records from `build-registry`; input to rendering and Python preparation. |
 | `ongoing.md` | Ongoing-analysis cards from `render-group`. |
 | `papers.md`, `confnotes.md`, `pubnotes.md` | Separate publication tables from `render-group`. |
-| `assets/gal-*.css`, `assets/gal-*.js` | Presentation and controls generated with the pages. The four asset pairs are `common`, `ongoing`, `papers` and `notes`. |
+| `assets/grove-*.css`, `assets/grove-*.js` | Presentation and controls generated with the pages. The four asset pairs are `common`, `ongoing`, `papers` and `notes`. |
 | `view-report.json` | Private counts, input fingerprints and explanations from `render-group`. |
 
 The JSON filenames are defaults; commands accept explicit paths. HTML downloads
@@ -48,7 +52,7 @@ making network requests. The [Python guide](python-access.md) shows both uses.
 
 Analyses and papers use `referenceCode`; notes use `temporaryReferenceCode`.
 These native identifiers are nonempty and unique within each resource. Public
-labels such as `finalReferenceCode` and `gal_finalReferenceCode` do not replace
+labels such as `finalReferenceCode` and `grove_finalReferenceCode` do not replace
 them. Array order is preserved, but identify records by ID rather than position.
 
 `relatedAnalysis` is an object or null. `relatedPublications` and note
@@ -68,7 +72,7 @@ returns `None` for an absent target and rejects unsupported link types.
 | Empty date string | No date supplied; not evidence that an event did not happen. |
 
 Optional phase, metadata and documentation objects can be null. Required
-`gal_analysisContacts` and `gal_contactEditors` are name arrays. Optional board,
+`grove_analysisContacts` and `grove_contactEditors` are name arrays. Optional board,
 reader and sign-off roles accept a string, string array or null; the writer emits
 arrays for boards and readers. Optional derived metadata lists also accept null.
 Raw `analysisTeam` is prohibited. People describe snapshot membership, not a
@@ -81,19 +85,19 @@ minute-precision format (`YYYY-MM-DDTHH:MM`): `arXivSubmissionDate`,
 carry no timezone; none is inferred or added. Downloads through stare 0.7 use
 this format and calendar-only meeting dates. Previously saved snapshots retain
 their accepted date representations and do not need conversion.
-Derived `gal_*MeetingDates` contain calendar dates only. Validation
+Derived `grove_*MeetingDates` contain calendar dates only. Validation
 checks that dates exist, but does not reorder milestones or infer missing events.
-`fetched_at` is an optional source timestamp or null; `gal_curation.built_at`
+`fetched_at` is an optional source timestamp or null; `grove_curation.built_at`
 records curation time and `contacts_as_of` the date used for current contacts.
 These are separate from milestone dates. Readers preserve source precision and
 timezones as stored.
 
 Titles, statuses, journal codes and collision metadata retain source wording,
 including numeric-looking strings and units. DOI, URL and citation values stay
-together in each `gal_dois` entry. Papers also retain `fullTitle` and
+together in each `grove_dois` entry. Papers also retain `fullTitle` and
 `publicationPhase.finalTitleTex` for the copy-ready citation. Both are optional
 strings or null; missing, null and empty values remain distinct in storage.
-`gal_publicationProvenance` records identifier evidence; neither it nor URL
+`grove_publicationProvenance` records identifier evidence; neither it nor URL
 validation establishes that a linked page is reachable.
 
 ### Current format rules
